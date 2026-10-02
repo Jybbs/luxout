@@ -16,7 +16,16 @@
   },
   "keywords": [
     "homebridge-plugin",
-    "supports-hap"
+    "supports-hap",
+    "typescript",
+    "nodejs",
+    "homebridge",
+    "homekit",
+    "home-automation",
+    "smart-home",
+    "weather",
+    "open-meteo",
+    "light-sensor"
   ],
   "main": "dist/index.js",
   "files": [
