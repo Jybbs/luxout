@@ -1,0 +1,13 @@
+min_version = "2026.9.18"
+
+[settings]
+auto_install                        = false
+idiomatic_version_file_enable_tools = ["node"]
+
+[tool_config]
+locked = true
+
+[tools]
+"aqua:cli/cli"   = "2.102.0"
+"aqua:jqlang/jq" = "1.8.2"
+bun              = "1.4.2"
