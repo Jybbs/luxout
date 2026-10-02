@@ -1,6 +1,6 @@
 import type { PluginInitializer } from 'homebridge'
 
-import { PLATFORM_NAME }  from './config/alias.js'
-import { LuxoutPlatform } from './platform/plugin.js'
+import schema             from '../config.schema.json' with { type: 'json' }
+import { LuxoutPlatform } from './platform/dynamic.js'
 
-export default ((api) => api.registerPlatform(PLATFORM_NAME, LuxoutPlatform)) satisfies PluginInitializer
+export default ((api) => api.registerPlatform(schema.pluginAlias, LuxoutPlatform)) satisfies PluginInitializer

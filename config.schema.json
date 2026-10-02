@@ -4,6 +4,12 @@
   "singular": true,
   "schema": {
     "type": "object",
-    "properties": {}
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "placeholder": "Luxout"
+      }
+    }
   }
 }
