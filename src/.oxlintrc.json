@@ -1,0 +1,39 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "eslint/no-restricted-imports": ["error", {
+      "paths": [
+        {
+          "importNames": ["default"],
+          "message": "Import `astronomy-engine` by name, since the package declares no `\"type\": \"module\"` and a default import fails in Node.",
+          "name": "astronomy-engine"
+        },
+        {
+          "message": "Wait through the global `setTimeout`, which Vitest's fake timers replace.",
+          "name": "node:timers/promises"
+        }
+      ],
+      "patterns": [
+        {
+          "message": "Read every HAP value off the `api` Homebridge hands the platform, as `api.hap`.",
+          "regex": "^(@homebridge/)?hap-nodejs(/|$)"
+        }
+      ]
+    }],
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/prefer-find": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "unicorn/prefer-date-now": "error",
+    "unicorn/prefer-dom-node-append": "error",
+    "unicorn/prefer-dom-node-text-content": "error",
+    "unicorn/prefer-math-min-max": "error",
+    "unicorn/prefer-modern-math-apis": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-set-has": "error",
+    "unicorn/prefer-structured-clone": "error"
+  }
+}

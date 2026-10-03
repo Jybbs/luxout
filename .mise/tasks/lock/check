@@ -1,0 +1,28 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "lockfile"
+#MISE description = "Verify `bun.lock` and `.mise/mise.lock` are in sync with their manifests"
+
+restore() {
+  cmp -s "$snapshot" .mise/mise.lock || mv -f "$snapshot" .mise/mise.lock
+  rm -f "$snapshot"
+}
+
+bun install --dry-run --frozen-lockfile
+
+snapshot=$(mktemp)
+cp -p .mise/mise.lock "$snapshot"
+trap restore EXIT
+
+status=0
+log=$(mise lock 2>&1) || status=$?
+printf '%s\n' "$log" >&2
+
+if grep -qi 'failed to resolve' <<<"$log"; then
+  echo "mise lock failed to resolve a tool, so .mise/mise.lock is incomplete" >&2
+  exit 1
+fi
+
+(( status == 0 )) || exit "$status"
+diff -u "$snapshot" .mise/mise.lock >&2
+
+MISE_LOCKED_SCOPES=project mise install --dry-run --force --locked

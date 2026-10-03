@@ -1,0 +1,6 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "test"
+#MISE depends     = ["plugin:bake"]
+#MISE description = "Run the plugin's suites, passing any further arguments to Vitest"
+
+vitest run --config tests/vitest.config.ts "$@"

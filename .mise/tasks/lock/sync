@@ -1,0 +1,13 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "relock"
+#MISE description = "Re-resolve `bun.lock` and `.mise/mise.lock` against their manifests, rerunning `mise lock` until `.mise/mise.lock` stops changing"
+
+bun install --lockfile-only
+
+previous=$(mktemp)
+trap 'rm -f "$previous"' EXIT
+
+until cmp -s "$previous" .mise/mise.lock; do
+  cp -p .mise/mise.lock "$previous"
+  mise lock
+done
