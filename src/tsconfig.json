@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "erasableSyntaxOnly": true,
+    "lib": ["es2024", "es2025.collection", "es2025.iterator", "esnext.array"],
+    "module": "nodenext",
+    "noUncheckedIndexedAccess": true,
+    "outDir": "../dist",
+    "rootDir": ".",
+    "skipLibCheck": true,
+    "target": "es2024",
+    "types": ["node"],
+    "verbatimModuleSyntax": true
+  }
+}

@@ -1,0 +1,13 @@
+min_version = "2026.9.18"
+
+[settings]
+auto_install = false
+
+[tool_config]
+locked = true
+
+[tools]
+bun  = "1.4.2"
+gh   = "2.102.0"
+jq   = "1.8.2"
+node = "26.10.0"
