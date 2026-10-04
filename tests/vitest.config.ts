@@ -5,8 +5,9 @@ import { defineConfig } from 'vitest/config'
 import thresholds from './coverage.json' with { type: 'json' }
 
 export default defineConfig({
-  root : dirname(import.meta.dirname),
-  test : {
+  cacheDir : '.cache/vite',
+  root     : dirname(import.meta.dirname),
+  test     : {
     expect              : { requireAssertions: true },
     include             : ['tests/**/*.test.ts'],
     resolveSnapshotPath : (testPath, extension) => testPath + extension,

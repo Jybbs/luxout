@@ -20,6 +20,10 @@ it('measures coverage over src/**/*.ts and reports it under .cache/coverage', ()
   })
 })
 
+it('keeps the Vite and Vitest caches under .cache/vite', () => {
+  expect(config.cacheDir).toBe('.cache/vite')
+})
+
 it('reads the coverage floor from tests/coverage.json', () => {
   expect(config.test?.coverage?.thresholds).toBe(thresholds)
 })
