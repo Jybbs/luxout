@@ -7,9 +7,9 @@ import { CONFIG }                  from './mise.ts'
 import { type Command, commands } from './shell.ts'
 
 interface Defect {
-  details : string
-  message : string
-  task    : string
+  message  : string
+  task     : string
+  details? : string
 }
 
 interface Listed {
@@ -19,9 +19,8 @@ interface Listed {
   source : string
 }
 
-interface Script {
-  line : number
-  text : string
+interface Script extends Spot {
+  text: string
 }
 
 const INSTALL = new Set(['i', 'install'])
@@ -39,25 +38,36 @@ class Task {
   readonly #spot    : Spot
 
   /**
-   * Reads the scripts of `listed`, the whole script for a task mise runs from a
-   * file, a TOML task's `file` included, and each string of its `run` for any
-   * other TOML task.
+   * Reads the scripts of `listed`, the whole file for a file task, the script a
+   * TOML task's `file` names, and each string of a TOML task's `run`.
+   *
+   * A defect `mise tasks validate` reports lands on the table declaring a TOML
+   * task, and a `file` naming no script on disk yields no script to read.
    */
   static read(audit: Audit, defects: Defect[], listed: Listed): Task {
-    const file = audit.relative(listed.file ?? listed.source)
-    const text = audit.read(file)
+    const source = audit.relative(listed.source)
+    const text   = audit.read(source)
 
-    if (listed.file !== null) return new Task(defects, [{ line: 1, text }], { file, line: 1 })
+    if (listed.file === listed.source) {
+      return new Task(defects, [{ file: source, line: 1, text }], { file: source, line: 1 })
+    }
 
-    const toml = new TomlFile(file, text)
+    const toml = new TomlFile(source, text)
     const path = toml.at(listed.name) ? [listed.name] : ['tasks', listed.name]
+    const spot = { file: source, line: toml.at(...path)?.line ?? 1 }
+
+    if (listed.file !== null) {
+      const file = audit.relative(listed.file)
+
+      return new Task(defects, audit.exists(file) ? [{ file, line: 1, text: audit.read(file) }] : [], spot)
+    }
 
     return new Task(
       defects,
       listed.run
         .filter((run) => typeof run === 'string')
-        .map((run) => ({ line: toml.lineOf(run, ...path) ?? 1, text: run })),
-      { file, line: toml.at(...path)?.line ?? 1 }
+        .map((run) => ({ file: source, line: toml.lineOf(run, ...path, 'run') ?? 1, text: run })),
+      spot
     )
   }
 
@@ -70,8 +80,8 @@ class Task {
   get findings(): Finding[] {
     return [
       ...this.#installs,
-      ...this.#defects.map((defect) => new Finding(
-        `${defect.message}. ${defect.details}`,
+      ...this.#defects.map(({ details, message }) => new Finding(
+        [message, details].filter(Boolean).join('. '),
         this.#spot,
         'Task defect'
       ))
@@ -84,11 +94,11 @@ class Task {
    */
   get #installs(): Finding[] {
     return this.#scripts.values()
-      .flatMap(({ line, text }) => commands(text, line))
+      .flatMap(({ file, line, text }) => commands(text, line).map((command) => ({ ...command, file })))
       .filter(unfrozen)
-      .map(({ line, words }) => new Finding(
+      .map(({ file, line, words }) => new Finding(
         `\`${words.join(' ')}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
-        { file: this.#spot.file, line },
+        { file, line },
         'Unfrozen install'
       ))
       .toArray()

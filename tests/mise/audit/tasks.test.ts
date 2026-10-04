@@ -54,9 +54,9 @@ describe('a bun install a task runs', () => {
     expect(TaskList.read(audit).findings.map(({ spot }) => spot.line)).toEqual([4, 5])
   })
 
-  test('reads the script a TOML task names through file', async ({ scratch }) => {
+  test('reads the script a TOML task’s file names, keeping defects on its table', async ({ scratch }) => {
     await plant(scratch, {
-      '.mise/tasks/repo/sync.toml' : '["repo:sync"]\nfile = "scripts/sync.sh"\n',
+      '.mise/tasks/repo/sync.toml' : '\n["repo:sync"]\nfile = "scripts/sync.sh"\n',
       'scripts/sync.sh'            : FRONTMATTER + 'bun install\n'
     })
 
@@ -65,13 +65,33 @@ describe('a bun install a task runs', () => {
       name   : 'repo:sync',
       run    : [],
       source : join(scratch, '.mise/tasks/repo/sync.toml')
-    }]))
+    }], [{ message: "Dependency 'nope' not found", task: 'repo:sync' }]))
 
-    expect(TaskList.read(audit).findings).toMatchObject([{ spot: { file: 'scripts/sync.sh', line: 4 } }])
+    expect(TaskList.read(audit).findings).toMatchObject([
+      { spot: { file: 'scripts/sync.sh', line: 4 }, title: 'Unfrozen install' },
+      { message: "Dependency 'nope' not found", spot: { file: '.mise/tasks/repo/sync.toml', line: 2 } }
+    ])
+  })
+
+  test('reports a file that names no script as mise’s defect rather than throwing', async ({ scratch }) => {
+    await plant(scratch, { '.mise/tasks/repo/sync.toml': '["repo:sync"]\nfile = "scripts/missing.sh"\n' })
+
+    const audit = new Audit(scratch, mise([{
+      file   : 'scripts/missing.sh',
+      name   : 'repo:sync',
+      run    : [],
+      source : join(scratch, '.mise/tasks/repo/sync.toml')
+    }], [{ message: 'Task file not found: scripts/missing.sh', task: 'repo:sync' }]))
+
+    expect(TaskList.read(audit).findings).toMatchObject([{
+      message : 'Task file not found: scripts/missing.sh',
+      spot    : { file: '.mise/tasks/repo/sync.toml', line: 1 }
+    }])
   })
 
   test('reads each run on its line inside its own task’s table', async ({ scratch }) => {
-    const toml = '["x:a"]\ndescription = "bun install"\nrun = "mise lock"\n\n["x:b"]\nrun = "bun install"\n'
+    const toml = '["x:a"]\ndescription = "bun install"\nrun = "mise lock"\n\n'
+               + '["x:b"]\ndescription = "bun install"\nrun = "bun install"\n'
 
     await plant(scratch, { '.mise/tasks/x.toml': toml })
 
@@ -80,7 +100,7 @@ describe('a bun install a task runs', () => {
       { name: 'x:b', run: ['bun install'], source: '.mise/tasks/x.toml' }
     ])))
 
-    expect(TaskList.read(audit).findings).toMatchObject([{ spot: { file: '.mise/tasks/x.toml', line: 6 } }])
+    expect(TaskList.read(audit).findings).toMatchObject([{ spot: { file: '.mise/tasks/x.toml', line: 7 } }])
   })
 
   test('reads each string of a TOML task’s run on the line its command sits', async ({ scratch }) => {

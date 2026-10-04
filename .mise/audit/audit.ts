@@ -1,5 +1,5 @@
 import { type SpawnSyncReturns, spawnSync } from 'node:child_process'
-import { readFileSync }                     from 'node:fs'
+import { existsSync, readFileSync }         from 'node:fs'
 import { join, relative, resolve }          from 'node:path'
 
 import type { Finding }    from './finding.ts'
@@ -33,6 +33,10 @@ export class Audit {
       ...MiseConfig.read(this).findings(manifest),
       ...TaskList.read(this).findings
     ]
+  }
+
+  exists(file: string): boolean {
+    return existsSync(join(this.#root, file))
   }
 
   /**
