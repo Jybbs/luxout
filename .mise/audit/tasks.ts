@@ -1,10 +1,10 @@
 import { parseArgs } from 'node:util'
 
-import type { Audit }              from './audit.ts'
-import { TomlFile }                from './files.ts'
-import { Finding, type Spot }      from './finding.ts'
-import { CONFIG }                  from './mise.ts'
-import { type Command, commands } from './shell.ts'
+import type { Audit }                    from './audit.ts'
+import { TomlFile }                      from './files.ts'
+import { Finding, type Spot }            from './finding.ts'
+import { CONFIG }                        from './mise.ts'
+import { type Invocation, invocations } from './shell.ts'
 
 interface Defect {
   message  : string
@@ -93,15 +93,14 @@ class Task {
    * `--frozen-lockfile` nor `--lockfile-only`.
    */
   get #installs(): Finding[] {
-    return this.#scripts.values()
-      .flatMap(({ file, line, text }) => commands(text, line).map((command) => ({ ...command, file })))
+    return this.#scripts
+      .flatMap(({ file, line, text }) => invocations(text, line).map((command) => ({ ...command, file })))
       .filter(unfrozen)
       .map(({ file, line, words }) => new Finding(
         `\`${words.join(' ')}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
         { file, line },
         'Unfrozen install'
       ))
-      .toArray()
   }
 }
 
@@ -146,7 +145,7 @@ export class TaskList {
   }
 }
 
-function unfrozen({ words: [program, ...args] }: Command): boolean {
+function unfrozen({ words: [program, ...args] }: Invocation): boolean {
   if (program !== 'bun') return false
 
   const { positionals: [verb = ''], values } = parseArgs({

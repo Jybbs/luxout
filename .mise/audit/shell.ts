@@ -1,48 +1,45 @@
+import { type Command, parse } from 'unbash'
+
 /**
  * A simple command a script runs, with the line it starts on and its words
  * after quote removal.
  */
-export interface Command {
+export interface Invocation {
   line  : number
   words : string[]
 }
 
-const ASSIGNMENT = /^[A-Za-z_]\w*=/
-const ESCAPED    = /\\(?:\n|([$`"\\]))/g
-const QUOTED     = /'([^']*)'|"((?:[^"\\]|\\.)*)"|\\(.)/gs
-const RESERVED   = new Set([
-  '!', 'do', 'done', 'elif', 'else', 'esac', 'fi', 'if', 'then', 'time', 'until', 'while', '{', '}'
-])
-const TOKENS = /[ \t]+|\\\n|#.*|(?<word>(?:[<>]&|&>|[^\s;&|()`'"\\]|\\.|'[^']*'|"(?:[^"\\]|\\[\s\S])*")+)|(?<operator>[\s\S])/g
+function isCommand(node: unknown): node is Command {
+  return typeof node === 'object' && node !== null && 'type' in node && node.type === 'Command'
+}
 
 /**
- * Splits `script` into the simple commands it runs, skipping each comment and
- * each reserved word and assignment ahead of a command's program.
+ * Finds every simple command `script` runs in the syntax tree `unbash` parses,
+ * those inside compound commands, function bodies, and command substitutions
+ * included, leaving out each redirection and each command that only assigns.
+ *
+ * The tree holds each word's parts and each substitution's script behind lazy
+ * getters that its `toJSON` reads, so the replacer `JSON.stringify` calls on
+ * every value it serializes visits every node.
  *
  * Args:
  *   script : A task's shell script, a whole task file or one entry of a TOML
  *     task's `run`.
  *   line   : The line of its file that `script` starts on.
  */
-export function* commands(script: string, line = 1): Generator<Command> {
-  let start           = line
-  let words: string[] = []
+export function invocations(script: string, line = 1): Invocation[] {
+  const found: Invocation[] = []
 
-  for (const { 0: token, groups: { operator, word } = {} } of script.matchAll(TOKENS)) {
-    if (word !== undefined && (words.length > 0 || !(RESERVED.has(word) || ASSIGNMENT.test(word)))) {
-      if (words.length === 0) start = line
-      words.push(word.replaceAll(QUOTED, unquote))
+  JSON.stringify(parse(script), (_, node: unknown) => {
+    if (isCommand(node) && node.name) {
+      found.push({
+        line  : line + script.slice(0, node.pos).split('\n').length - 1,
+        words : [node.name, ...node.suffix].flatMap((item) => item.type === 'Word' ? [item.value] : [])
+      })
     }
-    if (operator !== undefined && words.length > 0) {
-      yield { line: start, words }
-      words = []
-    }
-    line += token.split('\n').length - 1
-  }
 
-  if (words.length > 0) yield { line: start, words }
-}
+    return node
+  })
 
-function unquote(_: string, single: string | undefined, double: string | undefined, escaped: string): string {
-  return single ?? double?.replaceAll(ESCAPED, '$1') ?? escaped
+  return found
 }

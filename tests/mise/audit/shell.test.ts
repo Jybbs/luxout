@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 
-import { commands } from '../../../.mise/audit/shell.ts'
+import { invocations } from '../../../.mise/audit/shell.ts'
 
 it.each([
   {
@@ -37,9 +37,19 @@ it.each([
     script   : 'echo \'bun install\' "a \\"b\\" $c" d\\ e a#b'
   },
   {
-    expected : [{ line: 1, words: ['bun', 'install', '2>&1', '&>/dev/null'] }],
-    name     : 'keeps a redirection to a descriptor inside its word',
+    expected : [{ line: 1, words: ['bun', 'install'] }],
+    name     : 'leaves each redirection out of the words',
     script   : 'bun install 2>&1 &>/dev/null'
+  },
+  {
+    expected : [{ line: 2, words: ['bun', 'install'] }],
+    name     : 'reads the commands a function body runs',
+    script   : 'function bake {\n  bun install\n}'
+  },
+  {
+    expected : [{ line: 1, words: ['cat'] }],
+    name     : 'reads a heredoc as the text it feeds rather than as commands',
+    script   : 'cat <<EOF\nbun install\nEOF\n'
   },
   {
     expected : [{ line: 1, words: ['bun', 'install', '--frozen-lockfile'] }, { line: 3, words: ['next'] }],
@@ -62,10 +72,10 @@ it.each([
     script   : 'echo "one\ntwo"\nlast'
   }
 ])('$name', ({ expected, script }) => {
-  expect(commands(script).toArray()).toEqual(expected)
+  expect(invocations(script)).toEqual(expected)
 })
 
 it('numbers each command from the line its script starts on', () => {
-  expect(commands('one\ntwo', 10).toArray())
+  expect(invocations('one\ntwo', 10))
     .toEqual([{ line: 10, words: ['one'] }, { line: 11, words: ['two'] }])
 })
