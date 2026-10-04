@@ -8,7 +8,7 @@
       "paths": [
         {
           "importNames": ["default"],
-          "message": "Import `astronomy-engine` by name, since the package declares no `\"type\": \"module\"` and a default import fails in Node.",
+          "message": "Import `astronomy-engine` by name, since Node loads its ES module build, which has no default export, while TypeScript checks a default import against its CommonJS declarations.",
           "name": "astronomy-engine"
         },
         {

@@ -55,5 +55,5 @@ test.prop([fc.constantFrom(...names), fc.array(fc.string())], {
 })('passes every argument from outside the checkout to the program of its name', (name, args) => {
   const received = execFileSync(join(copies, name), args, { cwd: tmpdir(), encoding: 'utf8' })
 
-  expect(received.split('\0').slice(0, -1)).toEqual(args)
+  expect(received.split('\0').slice(0, -1)).toEqual([name, ...args])
 }, 30_000)
