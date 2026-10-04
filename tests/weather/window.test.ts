@@ -51,6 +51,11 @@ it.each([
     steps   : { time: steps.time }
   },
   {
+    message : 'missing_value at .minutely_15.time (missing value)',
+    name    : 'steps missing the times',
+    steps   : { shortwave_radiation_instant: steps.shortwave_radiation_instant }
+  },
+  {
     message : 'custom_error at .minutely_15 (the step times and the irradiances differ in length)',
     name    : 'arrays that differ in length',
     steps   : { ...steps, time: steps.time.slice(1) }
