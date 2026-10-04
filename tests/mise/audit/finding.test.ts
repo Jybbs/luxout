@@ -22,7 +22,7 @@ it.each([
 })
 
 test.prop([TEXT, fc.nat(), TEXT, TEXT])(
-  'hands the runner decoding the annotation back every file, line, message, and title',
+  'round-trips every file, line, message, and title through the runner’s decoding',
   (file, line, message, title) => {
     const { groups = {} } = ANNOTATION.exec(new Finding(message, { file, line }, title).annotation) ?? {}
 

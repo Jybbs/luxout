@@ -1,3 +1,5 @@
+import { parseArgs } from 'node:util'
+
 import type { Audit }              from './audit.ts'
 import { TomlFile }                from './files.ts'
 import { Finding, type Spot }      from './finding.ts'
@@ -24,7 +26,8 @@ interface Script {
 
 const INSTALL = new Set(['i', 'install'])
 const LISTING = { file: CONFIG, line: 1 }
-const LOCKED  = new Set(['--frozen-lockfile', '--lockfile-only'])
+const LOCKED  = new Set(['frozen-lockfile', 'lockfile-only'])
+const OPTIONS = { cwd: { type: 'string' } } as const
 
 /**
  * A task mise lists, holding the scripts it runs and the defects `mise tasks
@@ -36,23 +39,25 @@ class Task {
   readonly #spot    : Spot
 
   /**
-   * Reads the scripts of `listed` from the file declaring it, the whole file
-   * for a file task and each string of its `run` for a TOML task.
+   * Reads the scripts of `listed`, the whole script for a task mise runs from a
+   * file, a TOML task's `file` included, and each string of its `run` for any
+   * other TOML task.
    */
   static read(audit: Audit, defects: Defect[], listed: Listed): Task {
-    const file = audit.relative(listed.source)
+    const file = audit.relative(listed.file ?? listed.source)
     const text = audit.read(file)
 
     if (listed.file !== null) return new Task(defects, [{ line: 1, text }], { file, line: 1 })
 
     const toml = new TomlFile(file, text)
+    const path = toml.at(listed.name) ? [listed.name] : ['tasks', listed.name]
 
     return new Task(
       defects,
       listed.run
         .filter((run) => typeof run === 'string')
-        .map((run) => ({ line: toml.lineOf(run) ?? 1, text: run })),
-      { file, line: (toml.at(listed.name) ?? toml.at('tasks', listed.name))?.line ?? 1 }
+        .map((run) => ({ line: toml.lineOf(run, ...path) ?? 1, text: run })),
+      { file, line: toml.at(...path)?.line ?? 1 }
     )
   }
 
@@ -131,6 +136,15 @@ export class TaskList {
   }
 }
 
-function unfrozen({ words: [program, verb = '', ...flags] }: Command): boolean {
-  return program === 'bun' && INSTALL.has(verb) && LOCKED.isDisjointFrom(new Set(flags))
+function unfrozen({ words: [program, ...args] }: Command): boolean {
+  if (program !== 'bun') return false
+
+  const { positionals: [verb = ''], values } = parseArgs({
+    allowPositionals : true,
+    args             : args,
+    options          : OPTIONS,
+    strict           : false
+  })
+
+  return INSTALL.has(verb) && LOCKED.isDisjointFrom(new Set(Object.keys(values)))
 }

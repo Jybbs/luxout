@@ -8,12 +8,12 @@ export interface Command {
 }
 
 const ASSIGNMENT = /^[A-Za-z_]\w*=/
-const ESCAPED    = /\\([$`"\\\n])/g
+const ESCAPED    = /\\(?:\n|([$`"\\]))/g
 const QUOTED     = /'([^']*)'|"((?:[^"\\]|\\.)*)"|\\(.)/gs
 const RESERVED   = new Set([
   '!', 'do', 'done', 'elif', 'else', 'esac', 'fi', 'if', 'then', 'time', 'until', 'while', '{', '}'
 ])
-const TOKENS = /[ \t]+|\\\n|#.*|(?<word>(?:[<>]&|&>|[^\s;&|()`'"\\]|\\.|'[^']*'|"(?:[^"\\]|\\.)*")+)|(?<operator>[\s\S])/g
+const TOKENS = /[ \t]+|\\\n|#.*|(?<word>(?:[<>]&|&>|[^\s;&|()`'"\\]|\\.|'[^']*'|"(?:[^"\\]|\\[\s\S])*")+)|(?<operator>[\s\S])/g
 
 /**
  * Splits `script` into the simple commands it runs, skipping each comment and

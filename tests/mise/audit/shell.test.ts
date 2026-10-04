@@ -23,11 +23,12 @@ it.each([
   },
   {
     name     : 'skips each reserved word and assignment ahead of a program',
-    script   : 'if CI=1 bun install; then\n  until ! cmp -s a b; do { mise lock; }; done\nfi',
+    script   : 'if CI=1 bun install; then\n  until ! cmp -s a b; do { mise lock; }; done\nfi\necho done CI=1',
     expected : [
       { line: 1, words: ['bun', 'install'] },
       { line: 2, words: ['cmp', '-s', 'a', 'b'] },
-      { line: 2, words: ['mise', 'lock'] }
+      { line: 2, words: ['mise', 'lock'] },
+      { line: 4, words: ['echo', 'done', 'CI=1'] }
     ]
   },
   {
@@ -49,6 +50,11 @@ it.each([
     expected : [{ line: 1, words: ['bun', 'install'] }],
     name     : 'reads the command a substitution runs',
     script   : 'snapshot=$(bun install)'
+  },
+  {
+    expected : [{ line: 1, words: ['echo', 'a b'] }, { line: 2, words: ['bun', 'install'] }],
+    name     : 'drops a backslash-newline inside double quotes, as a continuation',
+    script   : 'echo "a \\\nb" && bun install'
   },
   {
     expected : [{ line: 1, words: ['echo', 'one\ntwo'] }, { line: 3, words: ['last'] }],

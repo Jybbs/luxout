@@ -4,7 +4,7 @@ import { describe, expect, vi } from 'vitest'
 
 import { Audit, type Run } from '../../../.mise/audit/audit.ts'
 import { TaskList }        from '../../../.mise/audit/tasks.ts'
-import { plant, test }     from '../../common/scratch.ts'
+import { plant, test }     from '../../common/scratch.js'
 
 const FRONTMATTER = '#!/usr/bin/env -S bash -euo pipefail\n#MISE description = "Install"\n\n'
 
@@ -23,6 +23,8 @@ describe('a bun install a task runs', () => {
   test.for([
     { flagged: true, script: 'bun install' },
     { flagged: true, script: 'bun i --production' },
+    { flagged: true, script: 'bun --cwd site install' },
+    { flagged: false, script: 'bun --cwd=site install --frozen-lockfile' },
     { flagged: false, script: 'bun install --frozen-lockfile' },
     { flagged: false, script: 'bun install --dry-run --frozen-lockfile' },
     { flagged: false, script: 'bun install --lockfile-only' },
@@ -50,6 +52,35 @@ describe('a bun install a task runs', () => {
     ])))
 
     expect(TaskList.read(audit).findings.map(({ spot }) => spot.line)).toEqual([4, 5])
+  })
+
+  test('reads the script a TOML task names through file', async ({ scratch }) => {
+    await plant(scratch, {
+      '.mise/tasks/repo/sync.toml' : '["repo:sync"]\nfile = "scripts/sync.sh"\n',
+      'scripts/sync.sh'            : FRONTMATTER + 'bun install\n'
+    })
+
+    const audit = new Audit(scratch, mise([{
+      file   : 'scripts/sync.sh',
+      name   : 'repo:sync',
+      run    : [],
+      source : join(scratch, '.mise/tasks/repo/sync.toml')
+    }]))
+
+    expect(TaskList.read(audit).findings).toMatchObject([{ spot: { file: 'scripts/sync.sh', line: 4 } }])
+  })
+
+  test('reads each run on its line inside its own task’s table', async ({ scratch }) => {
+    const toml = '["x:a"]\ndescription = "bun install"\nrun = "mise lock"\n\n["x:b"]\nrun = "bun install"\n'
+
+    await plant(scratch, { '.mise/tasks/x.toml': toml })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { name: 'x:a', run: ['mise lock'], source: '.mise/tasks/x.toml' },
+      { name: 'x:b', run: ['bun install'], source: '.mise/tasks/x.toml' }
+    ])))
+
+    expect(TaskList.read(audit).findings).toMatchObject([{ spot: { file: '.mise/tasks/x.toml', line: 6 } }])
   })
 
   test('reads each string of a TOML task’s run on the line its command sits', async ({ scratch }) => {

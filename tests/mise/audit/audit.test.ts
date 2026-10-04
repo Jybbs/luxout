@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { expect, vi } from 'vitest'
 
 import { Audit, type Run } from '../../../.mise/audit/audit.ts'
-import { plant, test }     from '../../common/scratch.ts'
+import { plant, test }     from '../../common/scratch.js'
 
 const CONFIG     = '[tools]\nnode = "26.10.0"\n'
 const EMPTY: Run = (_, [, verb]) => ({ stderr: '', stdout: verb === 'ls' ? '[]' : '{ "issues": [] }' })

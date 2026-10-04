@@ -1,6 +1,6 @@
 import { type SpawnSyncReturns, spawnSync } from 'node:child_process'
 import { readFileSync }                     from 'node:fs'
-import { join, relative }                   from 'node:path'
+import { join, relative, resolve }          from 'node:path'
 
 import type { Finding }    from './finding.ts'
 import { MiseConfig }      from './mise.ts'
@@ -11,8 +11,8 @@ type Output     = Pick<SpawnSyncReturns<string>, 'error' | 'stderr' | 'stdout'>
 export type Run = (command: string, args: string[], options: { cwd: string, encoding: 'utf8' }) => Output
 
 /**
- * The audit of one checkout, which reads its files and runs mise in it for each
- * check, and prints every finding the checks report.
+ * The audit of one checkout, which reads its files, runs mise in it to list and
+ * validate its tasks, and prints every finding the checks report.
  */
 export class Audit {
   readonly #root  : string
@@ -57,7 +57,7 @@ export class Audit {
   }
 
   relative(path: string): string {
-    return relative(this.#root, path)
+    return relative(this.#root, resolve(this.#root, path))
   }
 
   /**

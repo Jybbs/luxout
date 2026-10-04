@@ -24,7 +24,7 @@ export class Finding {
   }
 
   /**
-   * Writes the finding as the `::error` workflow command GitHub Actions reads,
+   * Formats the finding as the `::error` workflow command GitHub Actions reads,
    * percent-encoding `%`, `\r`, and `\n` in the message, and those with `:` and
    * `,` in each property, as the `@actions/core` toolkit encodes them.
    */

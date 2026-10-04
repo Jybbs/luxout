@@ -11,7 +11,7 @@ const audit = (engines: string | undefined, node: string): Finding[] =>
   new MiseConfig(`[tools]\nbun  = "1.4.2"\nnode = "${node}"\n`)
     .findings(new PackageManifest(JSON.stringify({ engines: { node: engines } })))
 
-test.prop([fc.nat(), fc.nat()])(
+test.prop([fc.nat(), fc.nat()], { examples: [[0, 0]] })(
   'passes every Node release of the newest line at or above its floor',
   (minor, patch) => {
     expect(audit(ENGINES, `26.${10 + minor}.${patch}`)).toEqual([])

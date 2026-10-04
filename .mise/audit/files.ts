@@ -52,20 +52,21 @@ export class TomlFile {
    * key spells it out.
    */
   at(...path: Key[]): Entry | undefined {
-    const [, node] = keyed(this.#program.body[0].body).find(([key]) => isDeepStrictEqual(key, path)) ?? []
-    const value    = path.reduce<unknown>((table, key) => Reflect.get(Object(table), key), this.#value)
+    const node  = this.#find(path)
+    const value = path.reduce<unknown>((table, key) => Reflect.get(Object(table), key), this.#value)
 
     return node && { file: this.file, line: node.loc.start.line, value }
   }
 
   /**
-   * Finds the line a string value equal to `text` starts on, past the newline
-   * TOML trims after the opening delimiter of a multi-line string.
+   * Finds the line a string value equal to `text` starts on inside the table or
+   * the value at `path`, or anywhere in the file where nothing sits at `path`,
+   * past the newline TOML trims after a multi-line string's opening delimiter.
    */
-  lineOf(text: string): number | undefined {
+  lineOf(text: string, ...path: Key[]): number | undefined {
     let line: number | undefined
 
-    traverseNodes(this.#program, {
+    traverseNodes(this.#find(path) ?? this.#program, {
       leaveNode : () => {},
       enterNode : (node) => {
         if (node.type === 'TOMLValue' && node.kind === 'string' && node.value === text) {
@@ -75,6 +76,10 @@ export class TomlFile {
     })
 
     return line
+  }
+
+  #find(path: Key[]): AST.TOMLNode | undefined {
+    return keyed(this.#program.body[0].body).find(([key]) => isDeepStrictEqual(key, path))?.[1]
   }
 }
 

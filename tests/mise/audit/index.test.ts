@@ -4,7 +4,7 @@ import { join }      from 'node:path'
 
 import { expect } from 'vitest'
 
-import { plant, test } from '../../common/scratch.ts'
+import { plant, test } from '../../common/scratch.js'
 
 const ENTRY = join(import.meta.dirname, '..', '..', '..', '.mise', 'audit', 'index.ts')
 
