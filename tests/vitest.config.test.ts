@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest'
 
-import config from './vitest.config.js'
+import thresholds from './coverage.json' with { type: 'json' }
+import config     from './vitest.config.js'
 
 it('fails a case with no assertion, shuffles the order, and undoes every spy and stub', () => {
   expect(config.test).toMatchObject({
@@ -18,6 +19,16 @@ it('holds coverage over src/**/*.ts at 95% on every measure, reported under .cac
     reportsDirectory : '.cache/coverage',
     thresholds       : { branches: 95, functions: 95, lines: 95, statements: 95 }
   })
+})
+
+it('reads the coverage floor from tests/coverage.json', () => {
+  expect(config.test?.coverage?.thresholds).toBe(thresholds)
+})
+
+it('writes the snapshot file of a case beside its test', () => {
+  const { snapshotPath, testFilePath } = expect.getState().snapshotState
+
+  expect(snapshotPath).toBe(`${testFilePath}.snap`)
 })
 
 it.each([
