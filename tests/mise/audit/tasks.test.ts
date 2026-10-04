@@ -54,6 +54,20 @@ describe('a bun install a task runs', () => {
     expect(TaskList.read(audit).findings.map(({ spot }) => spot.line)).toEqual([4, 5])
   })
 
+  test('reports the line a task script stops parsing on', async ({ scratch }) => {
+    await plant(scratch, { '.mise/tasks/plugin/bake': FRONTMATTER + 'cd {{arg(name="dir")}}\nbun install\n' })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { file: true, name: 'plugin:bake', source: '.mise/tasks/plugin/bake' }
+    ])))
+
+    expect(TaskList.read(audit).findings).toMatchObject([{
+      message : "unexpected token '('",
+      spot    : { file: '.mise/tasks/plugin/bake', line: 4 },
+      title   : 'Shell syntax'
+    }])
+  })
+
   test('reads the script a TOML task’s file names, keeping defects on its table', async ({ scratch }) => {
     await plant(scratch, {
       '.mise/tasks/repo/sync.toml' : '\n["repo:sync"]\nfile = "scripts/sync.sh"\n',

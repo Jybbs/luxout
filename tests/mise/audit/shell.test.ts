@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 
-import { invocations } from '../../../.mise/audit/shell.ts'
+import { scan } from '../../../.mise/audit/shell.ts'
 
 it.each([
   {
@@ -62,6 +62,26 @@ it.each([
     script   : 'snapshot=$(bun install)'
   },
   {
+    expected : [{ line: 1, words: ['cat'] }, { line: 2, words: ['bun', 'install'] }],
+    name     : 'reads the command a substitution runs inside an unquoted heredoc',
+    script   : 'cat <<EOF\n$(bun install)\nEOF\n'
+  },
+  {
+    name     : 'reads the command a substitution runs inside a quote, an expansion, or a process',
+    script   : 'echo "$(bun i)" ${x:-$(bun i)} <(bun i)',
+    expected : [
+      { line: 1, words: ['echo', '$(bun i)', '${x:-$(bun i)}', '<(bun i)'] },
+      { line: 1, words: ['bun', 'i'] },
+      { line: 1, words: ['bun', 'i'] },
+      { line: 1, words: ['bun', 'i'] }
+    ]
+  },
+  {
+    expected : [{ line: 2, words: ['echo', '$y'] }, { line: 2, words: ['bun', 'install'] }],
+    name     : 'counts lines in a backtick substitution that holds an escape from the line it opens on',
+    script   : '# a long first line\nx=`echo \\$y; bun install`'
+  },
+  {
     expected : [{ line: 1, words: ['echo', 'a b'] }, { line: 2, words: ['bun', 'install'] }],
     name     : 'drops a backslash-newline inside double quotes, as a continuation',
     script   : 'echo "a \\\nb" && bun install'
@@ -72,10 +92,20 @@ it.each([
     script   : 'echo "one\ntwo"\nlast'
   }
 ])('$name', ({ expected, script }) => {
-  expect(invocations(script)).toEqual(expected)
+  expect(scan(script).invocations).toEqual(expected)
 })
 
 it('numbers each command from the line its script starts on', () => {
-  expect(invocations('one\ntwo', 10))
+  expect(scan('one\ntwo', 10).invocations)
     .toEqual([{ line: 10, words: ['one'] }, { line: 11, words: ['two'] }])
+})
+
+it.each([
+  { expected: [{ line: 1, message: "unexpected token '('" }], script: 'cd {{arg(name="dir")}}\nbun install' },
+  {
+    expected : [{ line: 3, message: "expected 'esac' to close 'case'" }],
+    script   : 'case $x in\n  a) echo ;;\nbun install'
+  }
+])('reports each error the parser meets in $script', ({ expected, script }) => {
+  expect(scan(script).errors).toEqual(expected)
 })

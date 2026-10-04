@@ -1,10 +1,10 @@
 import { parseArgs } from 'node:util'
 
-import type { Audit }                    from './audit.ts'
-import { TomlFile }                      from './files.ts'
-import { Finding, type Spot }            from './finding.ts'
-import { CONFIG }                        from './mise.ts'
-import { type Invocation, invocations } from './shell.ts'
+import type { Audit }             from './audit.ts'
+import { TomlFile }               from './files.ts'
+import { Finding, type Spot }     from './finding.ts'
+import { CONFIG }                 from './mise.ts'
+import { type Invocation, scan } from './shell.ts'
 
 interface Defect {
   message  : string
@@ -79,7 +79,7 @@ class Task {
 
   get findings(): Finding[] {
     return [
-      ...this.#installs,
+      ...this.#shell,
       ...this.#defects.map(({ details, message }) => new Finding(
         [message, details].filter(Boolean).join('. '),
         this.#spot,
@@ -89,18 +89,23 @@ class Task {
   }
 
   /**
-   * Rejects each `bun install` the task runs carrying neither
-   * `--frozen-lockfile` nor `--lockfile-only`.
+   * Reports each error `unbash` meets in a script the task runs, and rejects
+   * each `bun install` it runs carrying neither `--frozen-lockfile` nor
+   * `--lockfile-only`.
    */
-  get #installs(): Finding[] {
-    return this.#scripts
-      .flatMap(({ file, line, text }) => invocations(text, line).map((command) => ({ ...command, file })))
-      .filter(unfrozen)
-      .map(({ file, line, words }) => new Finding(
-        `\`${words.join(' ')}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
-        { file, line },
-        'Unfrozen install'
-      ))
+  get #shell(): Finding[] {
+    return this.#scripts.flatMap(({ file, line, text }) => {
+      const { errors, invocations } = scan(text, line)
+
+      return [
+        ...errors.map((error) => new Finding(error.message, { file, line: error.line }, 'Shell syntax')),
+        ...invocations.filter(unfrozen).map(({ words, ...command }) => new Finding(
+          `\`${words.join(' ')}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
+          { file, line: command.line },
+          'Unfrozen install'
+        ))
+      ]
+    })
   }
 }
 
