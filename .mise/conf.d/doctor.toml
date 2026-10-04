@@ -1,0 +1,4 @@
+[doctor.checks.tools]
+description = "Every tool `.mise/config.toml` pins is installed, since a task otherwise runs whatever release of that tool the machine's `PATH` holds"
+hint        = "Run `mise install` from the repository root."
+run         = 'test -z "$(mise ls --local --missing --no-header)"'

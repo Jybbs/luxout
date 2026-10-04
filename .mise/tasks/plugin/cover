@@ -1,0 +1,6 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "cover"
+#MISE depends     = ["plugin:bake"]
+#MISE description = "Run the plugin's suites under coverage, failing below the floor `tests/coverage.json` declares and passing any further arguments to Vitest"
+
+vitest run --config tests/vitest.config.ts --coverage "$@"

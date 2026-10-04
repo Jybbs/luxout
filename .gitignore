@@ -1,7 +1,8 @@
 /.cache/
+*.pyc
+__pycache__/
 /dist/
 node_modules/
-site/.vitepress/cache/
 site/.vitepress/dist/
 site/.vitepress/.temp/
 *.tgz

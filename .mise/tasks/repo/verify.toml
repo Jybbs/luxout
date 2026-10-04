@@ -1,0 +1,14 @@
+["repo:verify"]
+alias       = "ci"
+description = "Run `mise doctor project`, then every check task on the Node release `.mise/config.toml` pins"
+run         = [
+  "mise doctor project",
+  { tasks = [
+    "lock:check",
+    "plugin:build",
+    "plugin:cover",
+    "plugin:lint",
+    "plugin:scour",
+    "plugin:typecheck"
+  ] }
+]

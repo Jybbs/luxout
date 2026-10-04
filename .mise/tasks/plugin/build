@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "build"
+#MISE depends     = ["plugin:bake"]
+#MISE description = "Empty `dist/` and compile `src/` into it"
+
+rm -rf dist
+tsc -p src
