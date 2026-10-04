@@ -99,9 +99,9 @@ class Task {
 
       return [
         ...errors.map((error) => new Finding(error.message, { file, line: error.line }, 'Shell syntax')),
-        ...invocations.filter(unfrozen).map(({ words, ...command }) => new Finding(
-          `\`${words.join(' ')}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
-          { file, line: command.line },
+        ...invocations.filter(unfrozen).map((install) => new Finding(
+          `\`${install.words.join(' ')}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
+          { file, line: install.line },
           'Unfrozen install'
         ))
       ]

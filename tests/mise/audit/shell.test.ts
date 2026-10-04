@@ -105,6 +105,10 @@ it.each([
   {
     expected : [{ line: 3, message: "expected 'esac' to close 'case'" }],
     script   : 'case $x in\n  a) echo ;;\nbun install'
+  },
+  {
+    expected : [{ line: 2, message: 'unterminated command substitution' }],
+    script   : 'x=1\ny=`echo \\$y; echo $(`'
   }
 ])('reports each error the parser meets in $script', ({ expected, script }) => {
   expect(scan(script).errors).toEqual(expected)
