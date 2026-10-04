@@ -1,11 +1,11 @@
 import { DEG2RAD } from 'astronomy-engine'
 
-const EXTINCTION     = 0.21       // The extinction coefficient of the direct rays per air mass
-const RADIUS         = 753.66156  // The Earth's radius over the height of a homogeneous atmosphere
-const SKYLIGHT       = 0.0289     // The coefficient of the empirical skylight term
-const SKY_EXTINCTION = 0.042      // The extinction coefficient of the skylight term per air mass
-const SUNLIGHT       = 133775     // The sun's illuminance at the top of the atmosphere, in lux
-const UNREFRACTED    = -5 / 6     // The altitude in degrees below which no refraction is added
+const EXTINCTION     = 0.21       // Circular 171's extinction coefficient of the direct rays per air mass
+const RADIUS         = 753.66156  // Circular 171's Earth radius over the homogeneous atmosphere's height
+const SKYLIGHT       = 0.0289     // Circular 171's coefficient of the empirical skylight term
+const SKY_EXTINCTION = 0.042      // Circular 171's extinction coefficient of the skylight term per air mass
+const SUNLIGHT       = 133775     // Circular 171's sun illuminance at the top of the atmosphere, in lux
+const UNREFRACTED    = -5 / 6     // Circular 171's altitude in degrees below which no refraction is added
 
 /**
  * Evaluates the sun illuminance model of U.S. Naval Observatory Circular 171
