@@ -4,6 +4,6 @@
   "plugins": ["vitest"],
   "rules": {
     "eslint/no-restricted-imports": "off",
-    "vitest/no-standalone-expect": ["error", { "additionalTestBlockFunctions": ["test.prop"] }]
+    "vitest/no-standalone-expect": ["error", { "additionalTestBlockFunctions": ["test", "test.for", "test.prop"] }]
   }
 }

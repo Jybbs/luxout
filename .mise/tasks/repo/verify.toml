@@ -9,6 +9,7 @@ run         = [
     "plugin:cover",
     "plugin:lint",
     "plugin:scour",
-    "plugin:typecheck"
+    "plugin:typecheck",
+    "repo:audit"
   ] }
 ]
