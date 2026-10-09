@@ -5,5 +5,6 @@ __pycache__/
 node_modules/
 site/.vitepress/dist/
 site/.vitepress/.temp/
+/README.md
 *.tgz
 .DS_Store

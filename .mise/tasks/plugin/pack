@@ -1,0 +1,27 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "pack"
+#MISE depends     = ["plugin:build"]
+#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, then lint the tarball with publint, install it into an empty directory, and import the package there"
+
+cp .github/README.md README.md
+
+pack=$(npm pack --json)
+files=$(jq --raw-output '.[0].files[].path' <<<"$pack")
+echo "$files"
+
+if ! grep --fixed-strings --line-regexp --quiet README.md <<<"$files"; then
+  echo "The tarball holds no README.md, so npm shows no README for the package" >&2
+  exit 1
+fi
+
+name=$(jq --raw-output '.[0].name' <<<"$pack")
+tarball=$PWD/$(jq --raw-output '.[0].filename' <<<"$pack")
+
+publint --strict "$tarball"
+
+prefix=$(mktemp -d)
+trap 'rm -rf "$prefix"' EXIT
+
+npm install --ignore-scripts --no-audit --no-fund --prefix "$prefix" "$tarball"
+cd "$prefix"
+node --eval 'await import(process.argv[1])' --input-type=module "$name"

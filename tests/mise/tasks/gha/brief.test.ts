@@ -6,16 +6,12 @@ import { expect } from 'vitest'
 
 import { test } from '../../../common/scratch.js'
 
-const TASK = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'gha', 'brief')
+const task = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'gha', 'brief')
 
-/**
- * Runs `gha:brief` on the `needs` context a case poses, writing the step
- * summary into `scratch`.
- */
 async function brief(needs: Record<string, { result: string }>, scratch: string) {
   const summary = join(scratch, 'summary.md')
 
-  const { status } = spawnSync(TASK, {
+  const { status } = spawnSync(task, {
     encoding : 'utf8',
     env      : { ...process.env, GITHUB_STEP_SUMMARY: summary, NEEDS: JSON.stringify(needs) }
   })
