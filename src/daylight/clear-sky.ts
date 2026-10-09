@@ -14,15 +14,8 @@ const UNREFRACTED    = -5 / 6     // Circular 171's altitude in degrees below wh
  */
 export class ClearSky {
   /**
-   * Attenuates the sun's light at the top of the atmosphere through the air
-   * mass along the refracted line of sight, adding the skylight term to the
-   * direct rays.
-   *
-   * Args:
-   *   altitude: The sun's geometric altitude in degrees.
-   *
-   * Returns:
-   *   The illuminance in lux, unclamped.
+   * Computes the unclamped illuminance in lux for the sun at the geometric
+   * `altitude` in degrees.
    */
   illuminance(altitude: number): number {
     const apparent = this.refracted(altitude) * DEG2RAD

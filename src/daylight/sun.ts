@@ -12,11 +12,8 @@ export class Sun {
   }
 
   /**
-   * Converts the sun's topocentric equatorial coordinates of date at `time`
-   * into its geometric altitude, before any refraction.
-   *
-   * Returns:
-   *   The altitude of the sun's center in degrees, negative below the horizon.
+   * Computes the geometric altitude of the sun's center at `time`, in degrees
+   * and before any refraction, negative below the horizon.
    */
   altitude(time: Date): number {
     const { dec, ra } = Equator(Body.Sun, time, this.#observer, true, true)

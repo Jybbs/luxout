@@ -1,0 +1,16 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "labels"
+#MISE confirm     = "Create or update every label `.github/labels.toml` declares on GitHub?"
+#MISE description = "Create or update every label `.github/labels.toml` declares through `gh label create --force`, then list each live label it omits"
+
+source "$MISE_PROJECT_ROOT/.mise/lib/sync.sh"
+
+labels=$(bun --print 'JSON.stringify(require("./.github/labels.toml"))')
+declared=$(jq --compact-output keys_unsorted <<<"$labels")
+
+jq --raw-output0 '
+  to_entries[]
+  | "--color", .value.color, "--description", .value.description, "--force", .key
+' <<<"$labels" | xargs -0 -n 6 -r gh label create
+
+list_omitted "$declared" labels 'repos/{owner}/{repo}/labels'

@@ -17,7 +17,7 @@ export default defineConfig({
     unstubGlobals       : true,
 
     coverage: {
-      include          : ['src/**/*.ts'],
+      include          : ['.mise/audit/**/*.ts', 'src/**/*.ts'],
       provider         : 'v8',
       reportOnFailure  : true,
       reportsDirectory : '.cache/coverage',

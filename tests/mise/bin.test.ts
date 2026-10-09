@@ -1,6 +1,5 @@
 import { execFileSync }    from 'node:child_process'
-import { randomUUID }      from 'node:crypto'
-import { access, constants, cp, mkdir, readFile, readdir, rm } from 'node:fs/promises'
+import { access, constants, cp, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir }          from 'node:os'
 import { delimiter, join } from 'node:path'
 
@@ -8,7 +7,7 @@ import { fc, test }                        from '@fast-check/vitest'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 
 const root    = join(import.meta.dirname, '..', '..')
-const scratch = join(tmpdir(), `luxout-bin-${randomUUID()}`)
+const scratch = await mkdtemp(join(tmpdir(), 'luxout-bin-'))
 const bin     = join(root, '.mise', 'bin')
 const copies  = join(scratch, '.mise', 'bin')
 const names   = await readdir(bin)
@@ -17,7 +16,6 @@ const path    = process.env.PATH?.split(delimiter)
   .join(delimiter)
 
 beforeAll(async () => {
-  await mkdir(scratch)
   await Promise.all(names.flatMap((name) => [
     cp(join(bin, name), join(copies, name)),
     cp(join(import.meta.dirname, 'fixtures', 'args.sh'), join(scratch, 'node_modules', '.bin', name))

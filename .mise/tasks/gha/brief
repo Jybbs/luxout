@@ -1,0 +1,12 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE description = "Write the run's step summary from the `needs` context `NEEDS` holds, failing where any job failed or was canceled"
+
+jq --raw-output '
+  "| **Job** | **Result** |",
+  "|---|---|",
+  (to_entries[] | "| `\(.key)` | \(.value.result) |")
+' <<<"$NEEDS" >>"$GITHUB_STEP_SUMMARY"
+
+jq --exit-status '
+  all(.[].result; IN("failure", "cancelled") | not)
+' <<<"$NEEDS" >/dev/null
