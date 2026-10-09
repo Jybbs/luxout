@@ -8,9 +8,6 @@ import { TaskList }        from '../../../.mise/audit/tasks.ts'
 import { mise }            from '../../common/mise.js'
 import { plant, test }     from '../../common/scratch.js'
 
-/**
- * A task a case poses, naming its source relative to the scratch checkout.
- */
 interface Declared {
   name   : string
   source : string

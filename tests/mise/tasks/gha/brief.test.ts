@@ -8,10 +8,6 @@ import { test } from '../../../common/scratch.js'
 
 const TASK = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'gha', 'brief')
 
-/**
- * Runs `gha:brief` on the `needs` context a case poses, writing the step
- * summary into `scratch`.
- */
 async function brief(needs: Record<string, { result: string }>, scratch: string) {
   const summary = join(scratch, 'summary.md')
 

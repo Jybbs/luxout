@@ -1,8 +1,7 @@
 import { type Command, type CommandExpansionPart, type ParseError, parse } from 'unbash'
 
 /**
- * A simple command a script runs, with the line it starts on and its words
- * after quote removal.
+ * A simple command a script runs, its words after quote removal.
  */
 export interface Invocation {
   line  : number
@@ -10,8 +9,8 @@ export interface Invocation {
 }
 
 /**
- * The simple commands a script runs, beside each error `unbash` reports where
- * it cannot read the script, past which commands can go unread.
+ * The simple commands a script runs, beside each error `unbash` reports, past
+ * which commands can go unread.
  */
 export interface Scan {
   errors      : { line: number, message: string }[]
@@ -23,23 +22,14 @@ function is<T extends { type: string }>(node: unknown, type: T['type']): node is
 }
 
 /**
- * Finds every simple command `script` runs in the syntax tree `unbash` parses,
- * those inside compound commands, function bodies, and substitutions included,
- * beside each error the parser reports at any depth, leaving out each
- * redirection, each assignment a declaration such as `export` takes, and each
- * command that only assigns.
+ * Finds every simple command `script` runs at any depth, numbering its lines
+ * from `line`.
  *
- * The tree parses each word's parts, and with them the script each substitution
- * runs, when its `parts` getter is first read, and the `toJSON` of each node
- * reads that getter, so the replacer `JSON.stringify` calls on every value it
- * serializes visits every node. A backtick substitution holding an escape
- * indexes the source it decodes, so it is scanned on its own from the line it
- * opens on.
- *
- * Args:
- *   script : A task's shell script, a whole task file or one entry of a TOML
- *     task's `run`.
- *   line   : The line of its file that `script` starts on.
+ * `unbash` parses a word's parts, a substitution's script among them, only once
+ * the word's `parts` getter is read. Each node's `toJSON` reads that getter, so
+ * the replacer `JSON.stringify` calls visits every node. A backtick
+ * substitution holding an escape indexes the source it decodes, so it is
+ * scanned on its own from the line it opens on.
  */
 export function scan(script: string, line = 1): Scan {
   const lineAt      = (pos: number): number => line + script.slice(0, pos).split('\n').length - 1

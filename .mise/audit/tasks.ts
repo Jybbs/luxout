@@ -31,10 +31,6 @@ const LOCKED  = new Set(['frozen-lockfile', 'lockfile-only'])
 const OPTIONS = { cwd: { type: 'string' } } as const
 const VERIFY  = 'repo:verify'
 
-/**
- * A task mise lists, holding the scripts it runs and the defects `mise tasks
- * validate` reports against it.
- */
 class Task {
   readonly scripts  : Script[]
   readonly #defects : Defect[]
@@ -42,14 +38,6 @@ class Task {
   readonly #release : Spot
   readonly #spot    : Spot
 
-  /**
-   * Reads the scripts of `listed`, the whole file for a file task, the script a
-   * TOML task's `file` names, and each string of a TOML task's `run`.
-   *
-   * A defect `mise tasks validate` reports lands on the table declaring a TOML
-   * task, a Node release lands on the `tools` row of a TOML task, and a `file`
-   * naming no script on disk yields no script to read.
-   */
   static read(audit: Audit, defects: Defect[], listed: Listed): Task {
     const source = audit.relative(listed.source)
     const text   = audit.read(source)
@@ -93,9 +81,6 @@ class Task {
     return this.#listed.name
   }
 
-  /**
-   * Finds each task the task's `run` names through a `tasks` entry.
-   */
   get subtasks(): string[] {
     return this.#listed.run.flatMap((run) => typeof run === 'string' ? [] : run.tasks)
   }
@@ -104,11 +89,6 @@ class Task {
     return this.#listed.tools
   }
 
-  /**
-   * Reports each defect `mise tasks validate` finds in the task, and a Node
-   * release the task declares off the floor that `engines` in `manifest` sets
-   * for that release's line.
-   */
   findings(manifest: PackageManifest): Finding[] {
     return [
       ...this.#defects.map(({ details, message }) => new Finding(
@@ -139,21 +119,10 @@ class Task {
   }
 }
 
-/**
- * The tasks mise lists from the checkout, beside the defects `mise tasks
- * validate` reports against them.
- */
 export class TaskList {
   readonly #errors : Finding[]
   readonly #tasks  : Map<string, Task>
 
-  /**
-   * Lists every task the checkout declares through mise, hidden ones included,
-   * beside each defect `mise tasks validate` finds in them.
-   *
-   * A failure of either call, such as a task file mise cannot parse, becomes a
-   * finding.
-   */
   static read(audit: Audit): TaskList {
     let defects : Defect[]
     let listed  : Listed[]
@@ -175,25 +144,14 @@ export class TaskList {
     this.#tasks  = new Map(tasks.map((task) => [task.name, task]))
   }
 
-  /**
-   * Reports whether mise listed the checkout's tasks.
-   */
   get listed(): boolean {
     return this.#errors.length === 0
   }
 
-  /**
-   * Finds each task `repo:verify` runs.
-   */
   get verified(): Set<string> {
     return new Set(this.#tasks.get(VERIFY)?.subtasks)
   }
 
-  /**
-   * Reports each error `unbash` meets in a script a task runs, and rejects each
-   * `bun install` it runs carrying neither `--frozen-lockfile` nor
-   * `--lockfile-only`, scanning only once a script that several tasks share.
-   */
   get #shell(): Finding[] {
     const scripts = new Map(this.#tasks.values()
       .flatMap((task) => task.scripts)
@@ -221,10 +179,6 @@ export class TaskList {
     ]
   }
 
-  /**
-   * Finds the tools the task named `name` declares, keyed by tool, or nothing
-   * where mise lists no such task.
-   */
   tools(name: string): Record<string, string> | undefined {
     return this.#tasks.get(name)?.tools
   }
