@@ -1,18 +1,20 @@
 import { isDeepStrictEqual } from 'node:util'
 
-import { type AST, ParseError, getStaticTOMLValue, parseTOML, traverseNodes } from 'toml-eslint-parser'
-import { type Document, LineCounter, isNode, parseDocument }                 from 'yaml'
+import { type AST, ParseError, getStaticTOMLValue, parseTOML, traverseNodes }       from 'toml-eslint-parser'
+import { type Document, LineCounter, isAlias, isMap, isNode, parseDocument, visit } from 'yaml'
 
 import { Finding, type Spot } from './finding.ts'
 
 /**
- * A value one of the audited files holds, beside the file and line it sits on.
+ * A value one of the audited files holds, beside the file and line it sits on
+ * and any comment trailing it there.
  */
-interface Entry extends Spot {
-  value: unknown
+export interface Entry extends Spot {
+  value    : unknown
+  comment? : string
 }
 
-type Key = number | string
+export type Key = number | string
 
 const PARSE = 'Parse error'
 
@@ -98,6 +100,25 @@ export class YamlFile {
     this.#document = parseDocument(text, { lineCounter: this.#lines, prettyErrors: false })
   }
 
+  /**
+   * Finds every alias the document holds on its line and every anchor on the
+   * line of the node it marks, each valued as it is written, such as `&step`
+   * or `*step`.
+   */
+  get anchors(): Entry[] {
+    const anchors: Entry[] = []
+
+    visit(this.#document, {
+      Node: (_, node) => {
+        const value = isAlias(node) ? `*${node.source}` : node.anchor && `&${node.anchor}`
+
+        if (value && node.range) anchors.push({ ...this.#spot(node.range[0]), value })
+      }
+    })
+
+    return anchors
+  }
+
   get errors(): Finding[] {
     return this.#document.errors.map((error) => new Finding(error.message, this.#spot(error.pos[0]), PARSE))
   }
@@ -109,7 +130,20 @@ export class YamlFile {
   at(...path: Key[]): Entry | undefined {
     const node = this.#document.getIn(path, true)
 
-    return isNode(node) && node.range ? { ...this.#spot(node.range[0]), value: node.toJSON() } : undefined
+    return isNode(node) && node.range
+         ? { ...this.#spot(node.range[0]), comment: node.comment ?? undefined, value: node.toJSON() }
+         : undefined
+  }
+
+  /**
+   * Finds each key of the mapping at `path` on its line, valued by the key
+   * itself, or none where no mapping sits there.
+   */
+  keys(...path: Key[]): Entry[] {
+    const node = this.#document.getIn(path, true)
+    const keys = isMap(node) ? node.items.map(({ key }) => key).filter(isNode) : []
+
+    return keys.flatMap((key) => key.range ? [{ ...this.#spot(key.range[0]), value: key.toJSON() }] : [])
   }
 
   #spot(offset: number): Spot {

@@ -10,7 +10,8 @@ auto_install = false
 locked = true
 
 [tools]
-bun  = "1.4.2"
-gh   = "2.102.0"
-jq   = "1.8.2"
-node = "26.10.0"
+bun    = "1.4.2"
+gh     = "2.102.0"
+jq     = "1.8.2"
+node   = "26.10.0"
+zizmor = "1.30.1"

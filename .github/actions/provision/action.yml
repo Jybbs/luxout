@@ -1,0 +1,23 @@
+name        : Provision
+description : Install the mise release `min_version` names, then the tools a job reads at the releases `.mise/mise.lock` records
+
+inputs:
+  tools:
+    description : The tools `mise install` installs, separated by spaces, each as `.mise/config.toml` names it or as `<tool>@<release>`
+    required    : true
+
+runs:
+  using: composite
+
+  steps:
+    - name  : Read the mise release `min_version` names
+      id    : mise
+      run   : echo "version=$(yq --input-format toml '.min_version' .mise/config.toml)" >> "$GITHUB_OUTPUT"
+      shell : bash
+
+    - name : Install mise and the job's tools
+      uses : jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+      with:
+        cache        : 'false'
+        install_args : ${{ inputs.tools }}
+        version      : ${{ steps.mise.outputs.version }}
