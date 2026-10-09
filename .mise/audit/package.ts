@@ -6,10 +6,6 @@ const FLOOR    = /(?<=\^)\d[\d.]*/g
 const MANIFEST = 'package.json'
 const SITE     = 'site/package.json'
 
-/**
- * A `package.json` at the root of the checkout or under `site/`, holding the
- * pins its checks read against one another.
- */
 export class PackageManifest {
   readonly #file: YamlFile
 

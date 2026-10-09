@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 
 import thresholds from '../../../tests/coverage.json' with { type: 'json' }
 import config     from '../vitest.config.ts'
@@ -31,4 +31,30 @@ it('fails a case with no assertion, shuffles the order, and undoes every spy and
     unstubEnvs    : true,
     unstubGlobals : true
   })
+})
+
+it('writes the snapshot file of a case beside its test', () => {
+  const { snapshotPath, testFilePath } = expect.getState().snapshotState
+
+  expect(snapshotPath).toBe(`${testFilePath}.snap`)
+})
+
+it.each([
+  {
+    actions   : 'true',
+    name      : 'annotates a failure and writes no job summary under GitHub Actions',
+    reporters : ['default', ['github-actions', { jobSummary: { enabled: false } }]]
+  },
+  {
+    actions   : undefined,
+    name      : 'reports through the default reporter alone outside GitHub Actions',
+    reporters : ['default']
+  }
+])('$name', async ({ actions, reporters }) => {
+  vi.stubEnv('GITHUB_ACTIONS', actions)
+  vi.resetModules()
+
+  const { default: fresh } = await import('../vitest.config.ts')
+
+  expect(fresh.test?.reporters).toEqual(reporters)
 })

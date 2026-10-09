@@ -7,6 +7,7 @@
 lychee \
   --fallback-extensions html \
   --include-fragments \
+  --index-files index.html \
   --offline \
   --root-dir "$PWD/.vitepress/dist" \
   .vitepress/dist

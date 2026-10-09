@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 
-import manifest     from '../../../../package.json' with { type: 'json' }
-import { setFacts } from '../../lib/config/page-data.ts'
+import manifest     from '../../../../../package.json' with { type: 'json' }
+import { setFacts } from '../../../lib/config/page-data.ts'
 
 it('sets the engines and the version package.json declares on a page, beside its own keys', () => {
   expect(setFacts(manifest)({ frontmatter: { title: 'Setup' } })).toEqual({
