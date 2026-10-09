@@ -12,8 +12,10 @@ runs:
   steps:
     - name  : Read the mise release `min_version` names
       id    : mise
-      run   : echo "version=$(yq --input-format toml '.min_version' .mise/config.toml)" >> "$GITHUB_OUTPUT"
       shell : bash
+      run   : |
+        version=$(yq --input-format toml --output-format yaml '.min_version' .mise/config.toml)
+        echo "version=$version" >> "$GITHUB_OUTPUT"
 
     - name : Install mise and the job's tools
       uses : jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca

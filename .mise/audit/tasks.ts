@@ -36,10 +36,10 @@ const VERIFY  = 'repo:verify'
  * validate` reports against it.
  */
 class Task {
+  readonly scripts  : Script[]
   readonly #defects : Defect[]
   readonly #listed  : Listed
   readonly #release : Spot
-  readonly #scripts : Script[]
   readonly #spot    : Spot
 
   /**
@@ -82,10 +82,10 @@ class Task {
   }
 
   constructor(defects: Defect[], listed: Listed, scripts: Script[], spot: Spot, release: Spot = spot) {
+    this.scripts  = scripts
     this.#defects = defects
     this.#listed  = listed
     this.#release = release
-    this.#scripts = scripts
     this.#spot    = spot
   }
 
@@ -105,34 +105,12 @@ class Task {
   }
 
   /**
-   * Reports each error `unbash` meets in a script the task runs, and rejects
-   * each `bun install` it runs carrying neither `--frozen-lockfile` nor
-   * `--lockfile-only`.
-   */
-  get #shell(): Finding[] {
-    return this.#scripts.flatMap(({ file, line, text }) => {
-      const { errors, invocations } = scan(text, line)
-
-      return [
-        ...errors.map((error) => new Finding(error.message, { file, line: error.line }, 'Shell syntax')),
-        ...invocations.filter(unfrozen).map((install) => new Finding(
-          `\`${install.words.join(' ')}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
-          { file, line: install.line },
-          'Unfrozen install'
-        ))
-      ]
-    })
-  }
-
-  /**
-   * Reports each defect `mise tasks validate` finds in the task, each script
-   * the task runs that `unbash` cannot read or that runs an unfrozen
-   * `bun install`, and a Node release the task declares off the floor that
-   * `engines` in `manifest` sets for that release's line.
+   * Reports each defect `mise tasks validate` finds in the task, and a Node
+   * release the task declares off the floor that `engines` in `manifest` sets
+   * for that release's line.
    */
   findings(manifest: PackageManifest): Finding[] {
     return [
-      ...this.#shell,
       ...this.#defects.map(({ details, message }) => new Finding(
         [message, details].filter(Boolean).join('. '),
         this.#spot,
@@ -211,8 +189,36 @@ export class TaskList {
     return new Set(this.#tasks.get(VERIFY)?.subtasks)
   }
 
+  /**
+   * Reports each error `unbash` meets in a script a task runs, and rejects each
+   * `bun install` it runs carrying neither `--frozen-lockfile` nor
+   * `--lockfile-only`, reading a script several tasks run once.
+   */
+  get #shell(): Finding[] {
+    const scripts = new Map(this.#tasks.values()
+      .flatMap((task) => task.scripts)
+      .map((script) => [`${script.file}:${script.line}`, script]))
+
+    return [...scripts.values()].flatMap(({ file, line, text }) => {
+      const { errors, invocations } = scan(text, line)
+
+      return [
+        ...errors.map((error) => new Finding(error.message, { file, line: error.line }, 'Shell syntax')),
+        ...invocations.filter(unfrozen).map((install) => new Finding(
+          `\`${install.words.join(' ')}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
+          { file, line: install.line },
+          'Unfrozen install'
+        ))
+      ]
+    })
+  }
+
   findings(manifest: PackageManifest): Finding[] {
-    return [...this.#errors, ...this.#tasks.values().flatMap((task) => task.findings(manifest))]
+    return [
+      ...this.#errors,
+      ...this.#shell,
+      ...this.#tasks.values().flatMap((task) => task.findings(manifest))
+    ]
   }
 
   /**

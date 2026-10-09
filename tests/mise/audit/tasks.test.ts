@@ -56,6 +56,27 @@ describe('a bun install a task runs', () => {
     }] : [])
   })
 
+  test('reports an unfrozen install once where several tasks run its script', async ({ scratch }) => {
+    await plant(scratch, {
+      '.mise/tasks/plugin/lines.toml' : '["plugin:test:22"]\nfile = ".mise/tasks/plugin/test"\n',
+      '.mise/tasks/plugin/test'       : FRONTMATTER + 'bun install\n'
+    })
+
+    const audit = new Audit(scratch, mise([
+      ...listing(scratch, [{ file: true, name: 'plugin:test', source: '.mise/tasks/plugin/test' }]),
+      {
+        file   : '.mise/tasks/plugin/test',
+        name   : 'plugin:test:22',
+        run    : [],
+        source : join(scratch, '.mise/tasks/plugin/lines.toml'),
+        tools  : {}
+      }
+    ]))
+
+    expect(TaskList.read(audit).findings(MANIFEST))
+      .toMatchObject([{ spot: { file: '.mise/tasks/plugin/test', line: 4 }, title: 'Unfrozen install' }])
+  })
+
   test('reports each unfrozen install a task runs on its own line', async ({ scratch }) => {
     await plant(scratch, { '.mise/tasks/plugin/bake': FRONTMATTER + 'bun install\nbun i\n' })
 
