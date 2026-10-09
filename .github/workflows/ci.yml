@@ -26,6 +26,22 @@ jobs:
         env:
           TASK: ${{ matrix.task }}
 
+      - name : Upload the plugin's coverage report
+        if   : ${{ !cancelled() && matrix.task == 'plugin:cover' }}
+        uses : actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          include-hidden-files : true
+          name                 : plugin-cover
+          path                 : .cache/coverage
+
+      - name : Upload the site's coverage report
+        if   : ${{ !cancelled() && matrix.task == 'site:cover' }}
+        uses : actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          include-hidden-files : true
+          name                 : site-cover
+          path                 : .cache/site/coverage
+
     strategy:
       fail-fast: false
 
