@@ -5,6 +5,7 @@ _.path = ".mise/bin"
 
 [settings]
 auto_install = false
+locked       = true
 
 [tool_config]
 locked = true
