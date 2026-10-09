@@ -25,12 +25,12 @@ const TASK = join(ROOT, '.mise', 'tasks', 'repo', 'sync', 'labels')
 /**
  * Runs the task in `scratch` against `registry`, with a stand-in `gh` first on
  * its path that logs each call, answers `gh api` with the names in `live`, and
- * fails each `gh label create` where `fail` is set.
+ * fails each call to the `gh` command `fail` names.
  */
 async function sync(
   registry            : string,
   scratch             : string,
-  { fail, live = [] } : { fail?: boolean, live?: string[] } = {}
+  { fail, live = [] } : { fail?: 'api' | 'label', live?: string[] } = {}
 ): Promise<{ calls: string[][], status: number | null, stdout: string }> {
   await plant(scratch, { '.github/labels.toml': registry, 'gh.log': '' })
   await cp(join(import.meta.dirname, '..', '..', '..', 'fixtures', 'gh.sh'), join(scratch, 'bin', 'gh'))
@@ -40,7 +40,7 @@ async function sync(
     encoding : 'utf8',
     env      : {
       GH_CONFIG_DIR     : scratch,
-      GH_FAIL           : fail ? '1' : '',
+      GH_FAIL           : fail ?? '',
       GH_LIVE           : live.join('\n'),
       GH_LOG            : join(scratch, 'gh.log'),
       MISE_PROJECT_ROOT : ROOT,
@@ -93,23 +93,32 @@ test('writes nothing where the registry fails to parse', async ({ scratch }) => 
 })
 
 test('stops before listing the live labels where a create fails', async ({ scratch }) => {
-  const { calls, status } = await sync(REGISTRY, scratch, { fail: true })
+  const { calls, status } = await sync(REGISTRY, scratch, { fail: 'label' })
 
   expect({ commands: calls.map(([command]) => command), failed: status !== 0 })
     .toEqual({ commands: ['label', 'label'], failed: true })
 })
 
-test('asks before its first write, failing where no terminal can answer', async ({ scratch }) => {
+test('fails without listing where reading the live labels fails', async ({ scratch }) => {
+  expect(await sync(REGISTRY, scratch, { fail: 'api' })).toMatchObject({ status: 1, stdout: '' })
+})
+
+test('asks before writing when run as labels, failing with no terminal to answer', async ({ scratch }) => {
   const task = join(scratch, '.mise', 'tasks', 'repo', 'sync', 'labels')
 
   await plant(scratch, { '.mise/config.toml': '' })
   await cp(TASK, task)
 
-  const { status, stderr } = spawnSync('mise', ['run', 'repo:sync:labels'], {
+  const { status, stderr } = spawnSync('mise', ['run', 'labels'], {
     cwd      : scratch,
     encoding : 'utf8',
-    env      : { ...process.env, GH_CONFIG_DIR: scratch, MISE_TRUSTED_CONFIG_PATHS: scratch },
-    stdio    : ['ignore', 'pipe', 'pipe']
+    stdio    : ['ignore', 'pipe', 'pipe'],
+    env      : {
+      GH_CONFIG_DIR             : scratch,
+      HOME                      : process.env.HOME,
+      MISE_TRUSTED_CONFIG_PATHS : scratch,
+      PATH                      : process.env.PATH
+    }
   })
 
   expect({ asked: stderr.includes('requires confirmation'), status }).toEqual({ asked: true, status: 1 })

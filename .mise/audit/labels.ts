@@ -69,7 +69,8 @@ class Label {
     return [
       ...text.length > LIMIT ? [
         new Finding(
-          `The description of \`${name}\` runs ${text.length} characters, past the ${LIMIT} GitHub accepts`,
+            `The description of \`${name}\` runs ${text.length} UTF-16 code units, `
+          + `past the ${LIMIT} characters GitHub accepts`,
           description,
           'Label description'
         )

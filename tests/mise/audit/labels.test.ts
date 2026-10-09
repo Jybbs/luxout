@@ -68,7 +68,8 @@ describe('a description', () => {
     { description: '🐞'.repeat(51), length: 102 }
   ])('reports one running $length code units on its own line', ({ description, length }) => {
     expect(new LabelRegistry(table('🐞 bug', 'c62d42', description)).findings).toMatchObject([{
-      message : `The description of \`🐞 bug\` runs ${length} characters, past the 100 GitHub accepts`,
+      message : `The description of \`🐞 bug\` runs ${length} UTF-16 code units, `
+              + 'past the 100 characters GitHub accepts',
       spot    : { line: 3 },
       title   : 'Label description'
     }])
