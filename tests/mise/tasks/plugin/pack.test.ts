@@ -22,7 +22,7 @@ const PACKAGE = {
 }
 const task = join(root, '.mise', 'tasks', 'plugin', 'pack')
 
-async function pack(files: Record<string, string>, scratch: string) {
+async function pack(files: Record<string, string>, scratch: string, tmpdir = scratch) {
   await plant(scratch, files)
 
   const path = [join(scratch, 'bin'), join(root, '.mise', 'bin'), process.env.PATH].join(delimiter)
@@ -33,7 +33,7 @@ async function pack(files: Record<string, string>, scratch: string) {
     env      : {
       ...process.env,
       PATH                       : path,
-      TMPDIR                     : scratch,
+      TMPDIR                     : tmpdir,
       npm_config_cache           : join(scratch, '.npm'),
       npm_config_offline         : 'true',
       npm_config_update_notifier : 'false'
@@ -51,6 +51,14 @@ test('copies the README to the root, prints the files, and imports the package',
     status : 0,
     stdout : expect.stringMatching(/^README\.md\ndist\/index\.js\npackage\.json\n/)
   })
+}, 60_000)
+
+test('makes the directory it installs the tarball into under TMPDIR', async ({ scratch }) => {
+  const tmpdir = join(scratch, 'file')
+
+  const { status, stderr } = await pack({ ...PACKAGE, file: '' }, scratch, tmpdir)
+
+  expect({ status, stderr }).toEqual({ status: 1, stderr: expect.stringContaining(tmpdir) })
 }, 60_000)
 
 test('removes the directory it installs the tarball into', async ({ scratch }) => {
