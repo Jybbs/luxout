@@ -1,0 +1,27 @@
+["🐞 bug"]
+color       = "c62d42"
+description = "A defect, filed beside the label of the domain where it breaks"
+
+["🗜️ build"]
+color       = "e6e6ff"
+description = "The package, the toolchain, the workflows, and the release path to npm"
+
+["📗 docs"]
+color       = "8cc5a3"
+description = "The README, the docs site, and the contributor guide"
+
+["🔌 homebridge"]
+color       = "e3c3a3"
+description = "The platform's registration and lifecycle, and the accessories it registers and restores"
+
+["🕶️ sensors"]
+color       = "7db3e0"
+description = "The HomeKit light sensor, the threshold sensors, and the characteristics each one reports"
+
+["🎚️ settings"]
+color       = "999999"
+description = "The settings form, the validation of the config, and the settings page's location search"
+
+["⛅ sky"]
+color       = "e8c840"
+description = "The sun's position, the lux model, and the Open-Meteo forecast with its fetch schedule"

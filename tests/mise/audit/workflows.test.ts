@@ -52,10 +52,6 @@ const CI        = [
 const audit = async (scratch: string, text: string, actions = new Actions({})) =>
   new Workflows({ [FILE]: text }).findings(actions, await tasks(scratch))
 
-/**
- * Reads the tasks a checkout declares, where `repo:verify` runs `plugin:cover`
- * and `plugin:test:22` runs on Node 22.23.3, through a stand-in for mise.
- */
 async function tasks(scratch: string): Promise<TaskList> {
   const source = join(scratch, '.mise/tasks/plugin.toml')
 

@@ -5,24 +5,16 @@ import { type Entry, YamlFile } from './files.ts'
 import { Finding }              from './finding.ts'
 import { Step }                 from './steps.ts'
 
-const MANIFESTS = ['.github/actions/*/action.yml', '.github/actions/*/action.yaml']
+const MANIFESTS = '.github/actions/*/action.{yaml,yml}'
 const SELF      = /^\$\//
 
-/**
- * The composite actions under `.github/actions/`, each a directory holding its
- * `action.yml`.
- */
 export class Actions {
   readonly #manifests: Manifest[]
 
   static read(audit: Audit): Actions {
-    return new Actions(audit.readAll(...MANIFESTS))
+    return new Actions(audit.readAll(MANIFESTS))
   }
 
-  /**
-   * Reads each manifest from its text in `files`, keyed by its path relative to
-   * the checkout.
-   */
   constructor(files: Record<string, string>) {
     this.#manifests = Object.entries(files).map(([file, text]) => new Manifest(file, text))
   }
@@ -31,17 +23,13 @@ export class Actions {
     return this.#manifests.flatMap((manifest) => manifest.findings)
   }
 
-  /**
-   * Finds the action each step of every manifest names through `uses`.
-   */
   get pins(): Entry[] {
     return this.#manifests.flatMap((manifest) => manifest.steps.flatMap((step) => step.uses ?? []))
   }
 
   /**
-   * Finds the inputs the manifest declares in the directory `uses` names, such
-   * as `$/.github/actions/provision` or `./.github/actions/provision`, or
-   * nothing where no manifest sits there.
+   * Finds the inputs declared by the manifest in the directory `uses` names,
+   * whether `uses` opens on `$/` or `./`.
    */
   inputs(uses: string): Set<string> | undefined {
     const directory = posix.normalize(uses.replace(SELF, ''))
@@ -50,10 +38,6 @@ export class Actions {
   }
 }
 
-/**
- * One composite action's manifest, `action.yml` in the directory a workflow
- * names through `uses`.
- */
 class Manifest {
   readonly directory : string
   readonly #file     : YamlFile
@@ -63,11 +47,6 @@ class Manifest {
     this.#file     = new YamlFile(file, text)
   }
 
-  /**
-   * Reports each error the manifest fails to parse on, each anchor and alias
-   * it holds, which GitHub's action-manifest parser rejects, and each step
-   * writing the step summary, which only a workflow's gate writes.
-   */
   get findings(): Finding[] {
     return [
       ...this.#file.errors,

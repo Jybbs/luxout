@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { TomlFile, YamlFile } from '../../../.mise/audit/files.ts'
 
-const JSON_TEXT = JSON.stringify(
+const jsonText = JSON.stringify(
   { devDependencies: { vitest: '5.0.3' }, engines: { node: '^26.10.0' } },
   null,
   2
@@ -43,6 +43,19 @@ describe('TomlFile', () => {
     expect(file.at('tools', 'bun')).toBeUndefined()
   })
 
+  it('finds a value inside an inline table on the line it sits', () => {
+    expect(new TomlFile('.mise/config.toml', '[tasks]\nlint = { run = "x" }\n').at('tasks', 'lint', 'run'))
+      .toEqual({ file: '.mise/config.toml', line: 2, value: 'x' })
+  })
+
+  it('finds the whole file at an empty path', () => {
+    expect(file.at()).toMatchObject({
+      file  : '.mise/config.toml',
+      line  : 1,
+      value : { tools: { node: '26.10.0' } }
+    })
+  })
+
   it.each([
     { line: 8, name: 'a one-line string', text: 'mise doctor project' },
     { line: 10, name: 'a multi-line string past the newline its delimiter opens on', text: 'bun install\n' },
@@ -63,7 +76,7 @@ describe('TomlFile', () => {
 })
 
 describe('YamlFile', () => {
-  const file = new YamlFile('package.json', JSON_TEXT)
+  const file = new YamlFile('package.json', jsonText)
 
   it.each([
     { line: 3, path: ['devDependencies', 'vitest'], value: '5.0.3' },
@@ -74,6 +87,19 @@ describe('YamlFile', () => {
 
   it('finds nothing at a path no key spells and reports no error on a well-formed file', () => {
     expect([file.at('devDependencies', 'yaml'), file.errors]).toEqual([undefined, []])
+  })
+
+  it('finds each item of a sequence on its line, and none where no sequence sits', () => {
+    const notes = new YamlFile('.github/release.yml', 'labels:\n  - 🐞 bug\n  - "*"\ntitle: Fixes\n')
+
+    expect([notes.items('labels'), notes.items('title'), notes.items('exclude')]).toEqual([
+      [
+        { file: '.github/release.yml', line: 2, value: '🐞 bug' },
+        { file: '.github/release.yml', line: 3, value: '*' }
+      ],
+      [],
+      []
+    ])
   })
 
   it('holds each parse error as a finding on its line', () => {

@@ -1,6 +1,3 @@
-/**
- * The file and line a finding concerns.
- */
 export interface Spot {
   file : string
   line : number
@@ -9,9 +6,6 @@ export interface Spot {
 const MESSAGE  = /[%\r\n]/g
 const PROPERTY = /[%\r\n:,]/g
 
-/**
- * A divergence one check reports against the file and line it concerns.
- */
 export class Finding {
   readonly message : string
   readonly spot    : Spot
@@ -25,8 +19,7 @@ export class Finding {
 
   /**
    * Formats the finding as the `::error` workflow command GitHub Actions reads,
-   * percent-encoding `%`, `\r`, and `\n` in the message, and those with `:` and
-   * `,` in each property, as the `@actions/core` toolkit encodes them.
+   * percent-encoding each field as the `@actions/core` toolkit does.
    */
   get annotation(): string {
     const file    = this.spot.file.replaceAll(PROPERTY, encodeURIComponent)
