@@ -96,9 +96,27 @@ describe('a workflow on its own', () => {
       title : 'Schedule trigger'
     },
     {
-      line  : 1,
-      name  : 'no `concurrency` group',
+      line  : 3,
+      name  : 'a workflow `pull_request` triggers with no `concurrency` key',
       text  : CI.replace(/concurrency:\n.*\n.*\n/, ''),
+      title : 'Concurrency'
+    },
+    {
+      line  : 6,
+      name  : 'a workflow `pull_request` triggers whose `cancel-in-progress` is `false`',
+      text  : CI.replace("${{ github.event_name == 'pull_request' }}", 'false'),
+      title : 'Concurrency'
+    },
+    {
+      line  : 6,
+      name  : 'a workflow `pull_request` triggers whose group leaves `cancel-in-progress` unset',
+      text  : CI.replace(/ {2}cancel-in-progress.*\n/, ''),
+      title : 'Concurrency'
+    },
+    {
+      line  : 5,
+      name  : 'a workflow `pull_request` triggers whose group is a bare string',
+      text  : CI.replace(/concurrency:\n.*\n.*\n/, 'concurrency: ${{ github.workflow }}-${{ github.ref }}\n'),
       title : 'Concurrency'
     },
     {
@@ -173,12 +191,14 @@ describe('a workflow on its own', () => {
 
   test.for([
     {
-      name : 'a `cancel-in-progress` of `false`',
-      text : CI.replace(/\$\{\{ github.event_name.*\}\}/, 'false')
+      name : 'a workflow `pull_request` does not trigger, with no `concurrency` key',
+      text : CI.replace('  pull_request:\n', '').replace(/concurrency:\n.*\n.*\n/, '')
     },
     {
-      name : 'a group written as a bare string',
-      text : CI.replace(/concurrency:\n.*\n.*\n/, 'concurrency: ${{ github.workflow }}-${{ github.ref }}\n')
+      name : 'a workflow `pull_request` does not trigger, whose `cancel-in-progress` is `false`',
+      text : CI
+        .replace('  pull_request:\n', '')
+        .replace("${{ github.event_name == 'pull_request' }}", 'false')
     },
     {
       name : 'a gate under `${{ always() }}`',

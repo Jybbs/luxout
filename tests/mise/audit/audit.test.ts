@@ -38,7 +38,7 @@ test('prints the findings of the workflows and the composite actions', async ({ 
 
   await plant(scratch, {
     '.github/actions/a/action.yml' : 'runs:\n  steps:\n    - &a\n      run: x\n',
-    '.github/workflows/ci.yml'     : 'jobs:\n  a:\n    timeout-minutes: 1\n',
+    '.github/workflows/ci.yml'     : 'on: pull_request\njobs:\n  a:\n    timeout-minutes: 1\n',
     '.mise/config.toml'            : CONFIG,
     'package.json'                 : manifest('5.0.3')
   })
@@ -47,9 +47,9 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   expect(write.mock.calls.flat()).toEqual([
     '::error file=.github/actions/a/action.yml,line=4,title=YAML anchor::'
   + '`&a` is a YAML anchor or alias, which GitHub rejects in an action manifest',
-    '::error file=.github/workflows/ci.yml,line=1,title=Concurrency::'
-  + 'The workflow sets no `concurrency` group',
-    '::error file=.github/workflows/ci.yml,line=2,title=Brief gate::The workflow ends on no `🪁 Brief` gate'
+    '::error file=.github/workflows/ci.yml,line=1,title=Concurrency::The workflow runs on `pull_request` '
+  + 'and sets no `concurrency` group, so a superseded pull-request run keeps running',
+    '::error file=.github/workflows/ci.yml,line=3,title=Brief gate::The workflow ends on no `🪁 Brief` gate'
   ])
 })
 

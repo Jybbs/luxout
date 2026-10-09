@@ -117,9 +117,10 @@ class Workflow {
 
   /**
    * Reports each error the workflow fails to parse on, a `schedule` trigger, a
-   * concurrency group that cancels more than a superseded pull-request run, a
-   * job running steps of its own with no `timeout-minutes`, a gate the workflow
-   * does not end on, and a job other than the gate writing the step summary.
+   * concurrency group that cancels more than a superseded pull-request run or,
+   * where `pull_request` triggers the workflow, cancels nothing, a job running
+   * steps of its own with no `timeout-minutes`, a gate the workflow does not end
+   * on, and a job other than the gate writing the step summary.
    */
   get findings(): Finding[] {
     return [
@@ -133,26 +134,33 @@ class Workflow {
 
   /**
    * Holds the workflow's concurrency group to one keyed by the workflow and
-   * the ref, which cancels a run in progress only for a pull request.
+   * the ref, which cancels a run in progress only for a pull request, and holds
+   * a workflow `pull_request` triggers to a group that cancels the run each push
+   * to the pull request supersedes.
+   *
+   * An unset `cancel-in-progress` reads as `false`, the default GitHub applies.
    */
   get #concurrency(): Finding[] {
     const concurrency = this.#file.at('concurrency')
     const cancel      = this.#file.at('concurrency', 'cancel-in-progress')
+    const pull        = this.#trigger('pull_request')
     const group       = typeof concurrency?.value === 'string'
                       ? concurrency
                       : this.#file.at('concurrency', 'group')
 
     if (!group) {
-      return [new Finding(
-        'The workflow sets no `concurrency` group',
-        concurrency ?? this.#start,
+      return pull ? [new Finding(
+        'The workflow runs on `pull_request` and sets no `concurrency` group, '
+      + 'so a superseded pull-request run keeps running',
+        concurrency ?? pull,
         'Concurrency'
-      )]
+      )] : []
     }
 
     const words   = new Set(String(group.value).match(/[\w.]+/g))
     const missing = [...CONTEXTS.difference(words)]
-    const cancels = cancel && !['false', CANCEL].includes(expression(cancel.value))
+    const value   = cancel ? expression(cancel.value) : 'false'
+    const cancels = cancel && !['false', CANCEL].includes(value)
 
     return [
       ...missing.length === 0 ? [] : [new Finding(
@@ -165,6 +173,11 @@ class Workflow {
         `\`cancel-in-progress\` is \`${String(cancel.value)}\`, `
       + 'which cancels more than a superseded pull-request run',
         cancel,
+        'Concurrency'
+      )] : [],
+      ...pull && value === 'false' ? [new Finding(
+        '`cancel-in-progress` is false or unset, so a superseded pull-request run keeps running',
+        cancel ?? group,
         'Concurrency'
       )] : []
     ]
@@ -211,9 +224,7 @@ class Workflow {
    * than on a development event.
    */
   get #schedule(): Finding[] {
-    const on       = this.#file.at('on')
-    const schedule = this.#file.keys('on').find(({ value }) => value === 'schedule')
-                  ?? ([on?.value].flat().includes('schedule') ? on : undefined)
+    const schedule = this.#trigger('schedule')
 
     return schedule ? [new Finding(
       '`schedule` runs the workflow on a timer rather than on a development event',
@@ -224,6 +235,17 @@ class Workflow {
 
   get #start(): Spot {
     return { file: this.#file.file, line: 1 }
+  }
+
+  /**
+   * Finds where the workflow names `event` as a trigger, as a key of `on`, as
+   * one entry of a list `on` holds, or as `on` itself.
+   */
+  #trigger(event: string): Entry | undefined {
+    const on = this.#file.at('on')
+
+    return this.#file.keys('on').find(({ value }) => value === event)
+        ?? ([on?.value].flat().includes(event) ? on : undefined)
   }
 }
 
