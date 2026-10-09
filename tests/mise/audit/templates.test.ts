@@ -32,7 +32,7 @@ it.each([
   { name: 'an empty labels string', text: '---\nname: Spec\nlabels: \'\'\n---\n' },
   { name: 'a body past the front matter', text: '---\nname: Spec\n---\nlabels: 🦖 rex\n---\n' },
   { name: 'no front matter', text: 'labels: 🦖 rex\n' },
-  { name: 'front matter left unclosed', text: '---\nlabels: 🦖 rex\n----\n' }
+  { name: 'front matter ending on a four-dash line', text: '---\nlabels: 🦖 rex\n----\n' }
 ])('reads no label from a Markdown template with $name', ({ text }) => {
   expect(lines({ [SPEC]: text })).toEqual([])
 })
