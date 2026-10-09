@@ -1,11 +1,14 @@
-import { type SpawnSyncReturns, spawnSync } from 'node:child_process'
-import { existsSync, readFileSync }         from 'node:fs'
-import { join, relative, resolve }          from 'node:path'
+import { type SpawnSyncReturns, spawnSync }   from 'node:child_process'
+import { existsSync, globSync, readFileSync } from 'node:fs'
+import { join, relative, resolve }            from 'node:path'
 
 import type { Finding }    from './finding.ts'
+import { LabelRegistry }   from './labels.ts'
 import { MiseConfig }      from './mise.ts'
 import { PackageManifest } from './package.ts'
+import { ReleaseNotes }    from './release.ts'
 import { TaskList }        from './tasks.ts'
+import { IssueTemplates }  from './templates.ts'
 
 type Output     = Pick<SpawnSyncReturns<string>, 'error' | 'stderr' | 'stdout'>
 export type Run = (command: string, args: string[], options: { cwd: string, encoding: 'utf8' }) => Output
@@ -26,17 +29,29 @@ export class Audit {
   }
 
   get #findings(): Finding[] {
+    const labels   = LabelRegistry.read(this)
     const manifest = PackageManifest.read(this)
 
     return [
       ...manifest.findings,
       ...MiseConfig.read(this).findings(manifest),
-      ...TaskList.read(this).findings
+      ...TaskList.read(this).findings,
+      ...labels.findings,
+      ...ReleaseNotes.read(this).findings(labels),
+      ...IssueTemplates.read(this).findings(labels)
     ]
   }
 
   exists(file: string): boolean {
     return existsSync(join(this.#root, file))
+  }
+
+  /**
+   * Finds every path in the checkout `pattern` matches, relative to the
+   * checkout and sorted.
+   */
+  glob(pattern: string): string[] {
+    return globSync(pattern, { cwd: this.#root }).toSorted()
   }
 
   /**

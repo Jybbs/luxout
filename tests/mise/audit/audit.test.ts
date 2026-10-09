@@ -33,6 +33,36 @@ test.for([
   expect(write.mock.calls.flat()).toEqual(written)
 })
 
+test('prints what the label registry and the files naming its labels report', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.github/ISSUE_TEMPLATE/spec.md' : '---\nlabels: 🦖 rex\n---\n',
+    '.github/labels.toml'            : '["🐞 bug"]\ncolor = "c62d42"\ndescription = "A defect."\n',
+    '.github/release.yml'            : 'changelog:\n  categories: []\n',
+    '.mise/config.toml'              : CONFIG,
+    'package.json'                   : manifest('5.0.3')
+  })
+
+  expect(new Audit(scratch, EMPTY, write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=.github/labels.toml,line=3,title=Label description::'
+  + 'The description of `🐞 bug` ends on a period',
+    '::error file=.github/labels.toml,line=1,title=Release category::'
+  + '`🐞 bug` sits in no category of `.github/release.yml`',
+    '::error file=.github/ISSUE_TEMPLATE/spec.md,line=2,title=Unknown label::'
+  + '`.github/labels.toml` declares no label `🦖 rex`'
+  ])
+})
+
+test('finds each path a pattern matches, relative to the checkout and sorted', async ({ scratch }) => {
+  const audit = new Audit(scratch)
+
+  await plant(scratch, { 'a/y.md': '', 'a/z.txt': '', 'b/x.md': '' })
+
+  expect([audit.glob('*/*.md'), audit.glob('missing/*.md')]).toEqual([['a/y.md', 'b/x.md'], []])
+})
+
 test('runs mise in the checkout and returns what it prints whatever its exit status', ({ scratch }) => {
   const run = vi.fn<Run>(() => ({ stderr: 'mise ERROR 1 error', stdout: '{ "issues": [] }' }))
 

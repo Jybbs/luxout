@@ -8,7 +8,7 @@ import { Finding, type Spot } from './finding.ts'
 /**
  * A value one of the audited files holds, beside the file and line it sits on.
  */
-interface Entry extends Spot {
+export interface Entry extends Spot {
   value: unknown
 }
 
@@ -48,8 +48,8 @@ export class TomlFile {
   }
 
   /**
-   * Finds the table or the value at `path`, whether a table header or a dotted
-   * key spells it out.
+   * Finds the table or the value at `path`, whether a table header, a dotted
+   * key, or an inline table spells it out, and the whole file at an empty path.
    */
   at(...path: Key[]): Entry | undefined {
     const node  = this.#find(path)
@@ -79,6 +79,8 @@ export class TomlFile {
   }
 
   #find(path: Key[]): AST.TOMLNode | undefined {
+    if (path.length === 0) return this.#program
+
     return keyed(this.#program.body[0].body).find(([key]) => isDeepStrictEqual(key, path))?.[1]
   }
 }
@@ -112,6 +114,16 @@ export class YamlFile {
     return isNode(node) && node.range ? { ...this.#spot(node.range[0]), value: node.toJSON() } : undefined
   }
 
+  /**
+   * Finds each item of the sequence at `path`, and none where anything other
+   * than a sequence sits there.
+   */
+  items(...path: Key[]): Entry[] {
+    const sequence = this.at(...path)?.value
+
+    return Array.isArray(sequence) ? sequence.flatMap((_, index) => this.at(...path, index) ?? []) : []
+  }
+
   #spot(offset: number): Spot {
     return { file: this.file, line: this.#lines.linePos(offset).line }
   }
@@ -126,7 +138,11 @@ function* keyed(
       yield [node.resolvedKey, node]
       yield* keyed(node.body, node.resolvedKey)
     } else {
-      yield [[...prefix, ...getStaticTOMLValue(node.key)], node.value]
+      const key = [...prefix, ...getStaticTOMLValue(node.key)]
+
+      yield [key, node.value]
+
+      if (node.value.type === 'TOMLInlineTable') yield* keyed(node.value.body, key)
     }
   }
 }
