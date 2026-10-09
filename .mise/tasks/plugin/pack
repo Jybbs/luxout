@@ -19,7 +19,7 @@ tarball=$PWD/$(jq --raw-output '.[0].filename' <<<"$pack")
 
 publint --strict "$tarball"
 
-prefix=$(mktemp -d)
+prefix=$(mktemp -d --tmpdir)
 trap 'rm -rf "$prefix"' EXIT
 
 npm install --ignore-scripts --no-audit --no-fund --prefix "$prefix" "$tarball"

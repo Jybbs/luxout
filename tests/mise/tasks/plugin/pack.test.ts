@@ -1,6 +1,6 @@
-import { spawnSync }       from 'node:child_process'
-import { cp, readFile }    from 'node:fs/promises'
-import { delimiter, join } from 'node:path'
+import { spawnSync }             from 'node:child_process'
+import { cp, readFile, readdir } from 'node:fs/promises'
+import { delimiter, join }       from 'node:path'
 
 import { expect } from 'vitest'
 
@@ -51,6 +51,20 @@ test('copies the README to the root, prints the files, and imports the package',
     status : 0,
     stdout : expect.stringMatching(/^README\.md\ndist\/index\.js\npackage\.json\n/)
   })
+}, 60_000)
+
+test('removes the directory it installs the tarball into', async ({ scratch }) => {
+  await pack(PACKAGE, scratch)
+
+  expect((await readdir(scratch)).filter((entry) => entry.startsWith('tmp.'))).toEqual([])
+}, 60_000)
+
+test('installs the tarball without running its install scripts', async ({ scratch }) => {
+  const manifest = JSON.stringify({ ...MANIFEST, scripts: { postinstall: 'exit 1' } })
+
+  const { status } = await pack({ ...PACKAGE, 'package.json': manifest }, scratch)
+
+  expect(status).toBe(0)
 }, 60_000)
 
 test('fails a package whose main imports a file the tarball leaves out', async ({ scratch }) => {
