@@ -8,8 +8,8 @@ import { plant, test }    from '../../common/scratch.js'
 const REGISTRY = new LabelRegistry('["🐞 bug"]\ncolor = "c62d42"\ndescription = "A defect"\n')
 const SPEC     = '.github/ISSUE_TEMPLATE/spec.md'
 
-const lines = (texts: Record<string, string>): (number | string)[][] =>
-  new IssueTemplates(texts).findings(REGISTRY).map(({ message, spot }) => [spot.file, spot.line, message])
+const lines = (files: Record<string, string>): (number | string)[][] =>
+  new IssueTemplates(files).findings(REGISTRY).map(({ message, spot }) => [spot.file, spot.line, message])
 
 it.each([
   { labels: 'labels: 🐞 bug, 🐛 bug', name: 'in one comma-separated string' },

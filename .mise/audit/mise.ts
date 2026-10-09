@@ -6,10 +6,6 @@ import type { PackageManifest } from './package.ts'
 export const CONFIG = '.mise/config.toml'
 const NUMERIC       = new Intl.Collator('en', { numeric: true })
 
-/**
- * The `.mise/config.toml` at the root of the checkout, holding the release of
- * each tool a task runs.
- */
 export class MiseConfig {
   readonly #file: TomlFile
 
@@ -25,10 +21,6 @@ export class MiseConfig {
     return [...this.#file.errors, ...this.#node(manifest)]
   }
 
-  /**
-   * Holds the Node release `[tools]` pins inside the caret range of the newest
-   * line the `engines` of `manifest` admits.
-   */
   #node(manifest: PackageManifest): Finding[] {
     const pin = this.#file.at('tools', 'node')
 
@@ -38,7 +30,7 @@ export class MiseConfig {
     const release = String(pin.value)
 
     const inside = floor                           !== undefined
-                && release.split('.')[0]           === floor.split('.')[0]
+                && manifest.floor(release)         === floor
                 && NUMERIC.compare(release, floor)  >= 0
 
     const message = floor === undefined

@@ -7,11 +7,6 @@ const CATEGORIES = ['changelog', 'categories']
 const NOTES      = '.github/release.yml'
 const WILDCARD   = '*'
 
-/**
- * The `.github/release.yml` at the root of the checkout, holding the categories
- * GitHub sorts a release's generated notes into, read as holding none where the
- * checkout lacks the file.
- */
 export class ReleaseNotes {
   readonly #file: YamlFile
 
@@ -23,27 +18,14 @@ export class ReleaseNotes {
     this.#file = new YamlFile(NOTES, text)
   }
 
-  /**
-   * Reads each label a category files a pull request under, the `*` catch-all
-   * aside, in the order the categories rank.
-   */
   get #categorized(): Entry[] {
     return this.#inCategories('labels').filter(({ value }) => value !== WILDCARD)
   }
 
-  /**
-   * Reads each label the notes leave out, whether from every category or from
-   * one alone.
-   */
   get #excluded(): Entry[] {
     return [...this.#file.items('changelog', 'exclude', 'labels'), ...this.#inCategories('exclude', 'labels')]
   }
 
-  /**
-   * Reports a file that fails to parse, each label it names that `registry`
-   * does not declare, each label `registry` declares that sits in no category,
-   * and each repeat of a label an earlier category already holds.
-   */
   findings(registry: LabelRegistry): Finding[] {
     const categorized = this.#categorized
     const placed      = Map.groupBy(categorized, ({ value }) => String(value))
@@ -67,10 +49,6 @@ export class ReleaseNotes {
     ]
   }
 
-  /**
-   * Reads each item of the sequence at `path` inside each category, in the
-   * order the categories rank.
-   */
   #inCategories(...path: string[]): Entry[] {
     return this.#file
       .items(...CATEGORIES)

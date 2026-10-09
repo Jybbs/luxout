@@ -3,13 +3,9 @@ import { type Entry, TomlFile } from './files.ts'
 import { Finding, type Spot }   from './finding.ts'
 
 const COLOR    = /^[\da-f]{6}$/
-const LIMIT    = 100
+const LIMIT    = 100  // GitHub's limit on a label description, checked in UTF-16 code units
 const REGISTRY = '.github/labels.toml'
 
-/**
- * A label the registry declares, beside the color and the description its table
- * holds.
- */
 class Label {
   readonly name         : string
   readonly spot         : Spot
@@ -27,10 +23,6 @@ class Label {
     return [...this.#colorFindings, ...this.#descriptionFindings]
   }
 
-  /**
-   * Reports a color the table leaves out or writes as anything other than six
-   * lowercase hex digits.
-   */
   get #colorFindings(): Finding[] {
     const { name } = this
     const color    = this.#color
@@ -48,14 +40,6 @@ class Label {
     ]
   }
 
-  /**
-   * Reports a description the table leaves out, one running past the 100
-   * characters GitHub accepts, and one ending on a period.
-   *
-   * The length counts UTF-16 code units, which run at least as high as code
-   * points or grapheme clusters, so a description it passes fits GitHub's limit
-   * whichever of those GitHub counts.
-   */
   get #descriptionFindings(): Finding[] {
     const { name }    = this
     const description = this.#description
@@ -81,9 +65,6 @@ class Label {
     ]
   }
 
-  /**
-   * Reads the color in lowercase, so two spellings of one color compare equal.
-   */
   get #hex(): string | undefined {
     return this.#color && String(this.#color.value).toLowerCase()
   }
@@ -105,10 +86,6 @@ class Label {
   }
 }
 
-/**
- * The label registry at `.github/labels.toml`, one table per label keyed by its
- * full name, read as declaring nothing where the checkout holds no registry.
- */
 export class LabelRegistry {
   readonly labels : Label[]
   readonly #file  : TomlFile
@@ -124,11 +101,6 @@ export class LabelRegistry {
     this.#names = new Set(this.labels.map(({ name }) => name))
   }
 
-  /**
-   * Reports a registry that fails to parse, which covers two tables sharing a
-   * name, beside each label's own findings and each label taking a color a
-   * label above it already takes.
-   */
   get findings(): Finding[] {
     return [
       ...this.#file.errors,
@@ -136,10 +108,6 @@ export class LabelRegistry {
     ]
   }
 
-  /**
-   * Reports each of `named`, the labels another file names, that the registry
-   * does not declare.
-   */
   undeclared(named: Entry[]): Finding[] {
     return named
       .filter(({ value }) => !this.#names.has(String(value)))

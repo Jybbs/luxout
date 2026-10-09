@@ -1,0 +1,8 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "workflows"
+#MISE description = "Audit every workflow and composite action under `.github/` with zizmor, passing any further arguments to it"
+
+format=plain
+[[ -z "${GITHUB_ACTIONS:-}" ]] || format=github
+
+zizmor --format "$format" --offline --strict-collection "$@" .github

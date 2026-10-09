@@ -6,26 +6,17 @@ import type { LabelRegistry }   from './labels.ts'
 const FRONTMATTER = /^---\n.*?\n(?=---(?:\n|$))/s
 const TEMPLATES   = '.github/ISSUE_TEMPLATE/*.{md,yaml,yml}'
 
-/**
- * An issue template, read as the YAML an issue form holds or as the front
- * matter a Markdown template opens on.
- */
 class IssueTemplate {
   readonly #file: YamlFile
 
   /**
-   * Parses the front matter of a Markdown template from its opening `---` to
-   * the line before its closing one, so each line keeps its number, and reads a
-   * Markdown template carrying none as empty.
+   * Keeps a Markdown template's opening `---` in the front matter it parses, so
+   * each line keeps its number.
    */
   constructor(file: string, text: string) {
     this.#file = new YamlFile(file, file.endsWith('.md') ? text.match(FRONTMATTER)?.[0] ?? '' : text)
   }
 
-  /**
-   * Reads each label `labels` names, whether it lists them or separates them
-   * with commas in one string, each comma-separated name on the string's line.
-   */
   get #labels(): Entry[] {
     const labels = this.#file.at('labels')
 
@@ -37,32 +28,20 @@ class IssueTemplate {
       .filter(({ value }) => value !== '')
   }
 
-  /**
-   * Reports a template that fails to parse and each label it names that
-   * `registry` does not declare.
-   */
   findings(registry: LabelRegistry): Finding[] {
     return [...this.#file.errors, ...registry.undeclared(this.#labels)]
   }
 }
 
-/**
- * The issue templates under `.github/ISSUE_TEMPLATE/`.
- */
 export class IssueTemplates {
   readonly #templates: IssueTemplate[]
 
   static read(audit: Audit): IssueTemplates {
-    const texts = audit.glob(TEMPLATES).map((file) => [file, audit.read(file)])
-
-    return new IssueTemplates(Object.fromEntries(texts))
+    return new IssueTemplates(audit.readAll(TEMPLATES))
   }
 
-  /**
-   * Reads each template in `texts`, which keys the text of each by its path.
-   */
-  constructor(texts: Record<string, string>) {
-    this.#templates = Object.entries(texts).map(([file, text]) => new IssueTemplate(file, text))
+  constructor(files: Record<string, string>) {
+    this.#templates = Object.entries(files).map(([file, text]) => new IssueTemplate(file, text))
   }
 
   findings(registry: LabelRegistry): Finding[] {

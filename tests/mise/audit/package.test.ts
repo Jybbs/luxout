@@ -39,6 +39,15 @@ it.each([
   expect(new PackageManifest(JSON.stringify({ engines })).floors).toEqual(floors)
 })
 
+it.each([
+  { floor: '22.23.3', release: '22.0.0' },
+  { floor: '24.21.0', release: '24.21.0' },
+  { floor: undefined, release: '20.19.0' }
+])('reads $floor as the floor engines sets for the line Node $release sits on', ({ floor, release }) => {
+  expect(new PackageManifest(JSON.stringify({ engines: { node: '^22.23.3 || ^24.21.0' } })).floor(release))
+    .toBe(floor)
+})
+
 it('reports a key the manifest names twice, which JSON.parse would take the last of', () => {
   const text = '{\n  "devDependencies": {},\n  "devDependencies": {}\n}\n'
 

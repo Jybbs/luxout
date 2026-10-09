@@ -23,9 +23,8 @@ const PATH = execFileSync('mise', ['x', '--', 'printenv', 'PATH'], { cwd: ROOT, 
 const TASK = join(ROOT, '.mise', 'tasks', 'repo', 'sync', 'labels')
 
 /**
- * Runs the task in `scratch` against `registry`, with a stand-in `gh` first on
- * its path that logs each call, answers `gh api` with the names in `live`, and
- * fails each call to the `gh` command `fail` names.
+ * Runs the task in `scratch` with a stand-in `gh` that answers `gh api` with
+ * `live` and fails each call to the command `fail` names.
  */
 async function sync(
   registry            : string,

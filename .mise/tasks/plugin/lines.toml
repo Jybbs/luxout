@@ -1,0 +1,11 @@
+["plugin:test:22"]
+depends     = ["plugin:bake"]
+description = "Run the plugin's suites on the release of Node 22 that `engines` sets as the line's floor, passing any further arguments to Vitest"
+file        = ".mise/tasks/plugin/test"
+tools       = { node = "22.23.3" }
+
+["plugin:test:24"]
+depends     = ["plugin:bake"]
+description = "Run the plugin's suites on the release of Node 24 that `engines` sets as the line's floor, passing any further arguments to Vitest"
+file        = ".mise/tasks/plugin/test"
+tools       = { node = "24.21.0" }

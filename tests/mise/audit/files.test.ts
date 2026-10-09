@@ -107,4 +107,34 @@ describe('YamlFile', () => {
 
     expect(broken.errors).toMatchObject([{ spot: { file: 'package.json', line: 5 }, title: 'Parse error' }])
   })
+
+  it('finds each key of a mapping on its own line, and none at a sequence or a missing path', () => {
+    const workflow = new YamlFile('ci.yml', 'jobs:\n  check:\n    steps: []\n  brief:\n    needs: [check]\n')
+
+    expect([workflow.keys('jobs'), workflow.keys('jobs', 'brief', 'needs'), workflow.keys('on')]).toEqual([
+      [{ file: 'ci.yml', line: 2, value: 'check' }, { file: 'ci.yml', line: 4, value: 'brief' }],
+      [],
+      []
+    ])
+  })
+
+  it('finds the comment trailing a value beside the value', () => {
+    const action = new YamlFile('action.yml', 'runs:\n  uses: actions/checkout@abc  # v7.0.1\n')
+
+    expect(action.at('runs', 'uses')).toEqual({
+      comment : ' v7.0.1',
+      file    : 'action.yml',
+      line    : 2,
+      value   : 'actions/checkout@abc'
+    })
+  })
+
+  it('finds each alias on its line and each anchor on the line of the node it marks', () => {
+    const action = new YamlFile('action.yml', 'steps:\n  - &step\n    run: echo\n  - *step\n  - run: echo\n')
+
+    expect([action.anchors, file.anchors]).toEqual([
+      [{ file: 'action.yml', line: 3, value: '&step' }, { file: 'action.yml', line: 4, value: '*step' }],
+      []
+    ])
+  })
 })

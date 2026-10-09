@@ -1,25 +1,22 @@
 import { isDeepStrictEqual } from 'node:util'
 
-import { type AST, ParseError, getStaticTOMLValue, parseTOML, traverseNodes } from 'toml-eslint-parser'
-import { type Document, LineCounter, isNode, parseDocument }                 from 'yaml'
+import { type AST, ParseError, getStaticTOMLValue, parseTOML, traverseNodes }       from 'toml-eslint-parser'
+import { type Document, LineCounter, isAlias, isMap, isNode, parseDocument, visit } from 'yaml'
 
 import { Finding, type Spot } from './finding.ts'
 
 /**
- * A value one of the audited files holds, beside the file and line it sits on.
+ * A value an audited file holds, beside any comment trailing it on its line.
  */
 export interface Entry extends Spot {
-  value: unknown
+  value    : unknown
+  comment? : string
 }
 
-type Key = number | string
+export type Key = number | string
 
 const PARSE = 'Parse error'
 
-/**
- * A TOML file parsed through `toml-eslint-parser`, which gives each table, key,
- * and value the line it sits on.
- */
 export class TomlFile {
   readonly errors   : Finding[]
   readonly file     : string
@@ -27,10 +24,6 @@ export class TomlFile {
   readonly #text    : string
   readonly #value   : unknown
 
-  /**
-   * Parses `text`, holding a parse error as a finding beside the empty program,
-   * so every lookup into a file that fails to parse finds nothing.
-   */
   constructor(file: string, text: string) {
     this.file  = file
     this.#text = text
@@ -85,10 +78,6 @@ export class TomlFile {
   }
 }
 
-/**
- * A YAML or JSON file parsed through `yaml`, whose `LineCounter` gives each
- * node the line it sits on.
- */
 export class YamlFile {
   readonly file      : string
   readonly #document : Document.Parsed
@@ -100,24 +89,43 @@ export class YamlFile {
     this.#document = parseDocument(text, { lineCounter: this.#lines, prettyErrors: false })
   }
 
+  /**
+   * Finds each alias and each anchor, valued as written, such as `*step` or
+   * `&step`, an anchor on the line of the node it marks.
+   */
+  get anchors(): Entry[] {
+    const anchors: Entry[] = []
+
+    visit(this.#document, {
+      Node: (_, node) => {
+        const value = isAlias(node) ? `*${node.source}` : node.anchor && `&${node.anchor}`
+
+        if (value && node.range) anchors.push({ ...this.#spot(node.range[0]), value })
+      }
+    })
+
+    return anchors
+  }
+
   get errors(): Finding[] {
     return this.#document.errors.map((error) => new Finding(error.message, this.#spot(error.pos[0]), PARSE))
   }
 
-  /**
-   * Finds the node at `path`, each step a key of a mapping or an index of a
-   * sequence.
-   */
   at(...path: Key[]): Entry | undefined {
     const node = this.#document.getIn(path, true)
 
-    return isNode(node) && node.range ? { ...this.#spot(node.range[0]), value: node.toJSON() } : undefined
+    return isNode(node) && node.range
+         ? { ...this.#spot(node.range[0]), comment: node.comment ?? undefined, value: node.toJSON() }
+         : undefined
   }
 
-  /**
-   * Finds each item of the sequence at `path`, and none where anything other
-   * than a sequence sits there.
-   */
+  keys(...path: Key[]): Entry[] {
+    const node = this.#document.getIn(path, true)
+    const keys = isMap(node) ? node.items.map(({ key }) => key).filter(isNode) : []
+
+    return keys.flatMap((key) => key.range ? [{ ...this.#spot(key.range[0]), value: key.toJSON() }] : [])
+  }
+
   items(...path: Key[]): Entry[] {
     const sequence = this.at(...path)?.value
 
