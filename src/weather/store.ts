@@ -18,12 +18,9 @@ export class WindowStore {
   }
 
   /**
-   * Reads the stored window, rejecting on any error beside a file that is
-   * missing or not JSON.
-   *
-   * Returns:
-   *   The window, or `undefined` where the file is missing, malformed, or
-   *   fetched for coordinates other than those of `place`.
+   * Reads the window stored for `place`, resolving to `undefined` where the
+   * file is missing, malformed, or fetched for other coordinates, and
+   * rejecting on any other error.
    */
   async read(place: Place): Promise<ForecastWindow | undefined> {
     const stored: unknown = await readFile(this.#path, 'utf8')

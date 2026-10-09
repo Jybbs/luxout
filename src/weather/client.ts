@@ -6,13 +6,13 @@ import { ForecastWindow } from './window.js'
 
 type Tuning = typeof TUNING
 
-const ENDPOINT = 'https://api.open-meteo.com/v1/forecast'
-const ERROR    = v.object({ reason: v.string() })
-const TUNING   = {
+const ENDPOINT  = 'https://api.open-meteo.com/v1/forecast'
+const TUNING    = {
   forecast : 24,     // The 15-minute steps a request covers from the current one on
   past     : 4,      // The 15-minute steps a request covers before the current one
   timeout  : 10_000  // The milliseconds a request runs before it times out
 }
+const errorBody = v.object({ reason: v.string() })
 
 /**
  * Requests Open-Meteo's forecast of the shortwave irradiance at the ground, one
@@ -28,12 +28,9 @@ export class ForecastClient {
   }
 
   /**
-   * Fetches the window for `place`, bounding the request by the timeout the
-   * tuning record holds and by `signal`.
-   *
-   * Returns:
-   *   The window, the failure that kept it from arriving, or `undefined` once
-   *   `signal` aborts.
+   * Fetches the window for `place` within the tuning's timeout, resolving to
+   * the failure that kept it from arriving, or to `undefined` once `signal`
+   * aborts.
    */
   async fetch(
     place  : Place,
@@ -58,7 +55,7 @@ export class ForecastClient {
     })
 
     if (!response.ok) {
-      const error  = ERROR.try(await response.json().catch(() => undefined), { mode: 'strip' })
+      const error  = errorBody.try(await response.json().catch(() => undefined), { mode: 'strip' })
       const status = `status ${response.status}`
 
       return new FetchFailure('status', error.ok ? `${status}, ${error.value.reason}` : status)

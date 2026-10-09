@@ -1,11 +1,11 @@
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
-import { tmpdir }                                  from 'node:os'
-import { join }                                    from 'node:path'
+import { mkdir, readdir, writeFile } from 'node:fs/promises'
+import { join }                      from 'node:path'
 
-import { expect, it, onTestFinished, vi } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { Place }       from '../../src/config/place.js'
 import { WindowStore } from '../../src/weather/store.js'
+import { test }        from '../common/scratch.js'
 import { parsed }      from '../common/window.js'
 import forecast        from './fixtures/forecast.json' with { type: 'json' }
 
@@ -20,34 +20,30 @@ const other  = new Place(40.71, -74.01)
 const place  = new Place(42.35843, -71.05977)
 const window = parsed(forecast, place)
 
-it('reads back the window it writes', async () => {
-  const store = new WindowStore(await scratch())
+test('reads back the window it writes', async ({ scratch }) => {
+  const store = new WindowStore(scratch)
 
   await store.write(window)
 
   await expect(store.read(place)).resolves.toEqual(window)
 })
 
-it('writes one file under the storage directory and nothing beside it', async () => {
-  const storage = await scratch()
+test('writes one file under the storage directory and nothing beside it', async ({ scratch }) => {
+  await new WindowStore(scratch).write(window)
 
-  await new WindowStore(storage).write(window)
-
-  await expect(readdir(storage)).resolves.toEqual([FILE])
+  await expect(readdir(scratch)).resolves.toEqual([FILE])
 })
 
-it('flushes the window to a temporary file before moving it into place', async () => {
-  const storage = await scratch()
+test('flushes the window to a temporary file before moving it into place', async ({ scratch }) => {
+  await new WindowStore(scratch).write(window)
 
-  await new WindowStore(storage).write(window)
-
-  expect(writeFile).toHaveBeenLastCalledWith(join(storage, `${FILE}.tmp`), JSON.stringify(window), {
+  expect(writeFile).toHaveBeenLastCalledWith(join(scratch, `${FILE}.tmp`), JSON.stringify(window), {
     flush: true
   })
 })
 
-it('keeps the previous window when a write stops partway', async () => {
-  const store    = new WindowStore(await scratch())
+test('keeps the previous window when a write stops partway', async ({ scratch }) => {
+  const store    = new WindowStore(scratch)
   const write    = vi.mocked(writeFile)
   const original = write.getMockImplementation()
 
@@ -61,45 +57,33 @@ it('keeps the previous window when a write stops partway', async () => {
   await expect(store.read(place)).resolves.toEqual(window)
 })
 
-it('reads no window from a storage directory holding none', async () => {
-  await expect(new WindowStore(await scratch()).read(place)).resolves.toBeUndefined()
+test('reads no window from a storage directory holding none', async ({ scratch }) => {
+  await expect(new WindowStore(scratch).read(place)).resolves.toBeUndefined()
 })
 
-it.each([
+test.for([
   { contents: '{"latitude":42.36,', name: 'a file that is not JSON' },
   { contents: '{}', name: 'JSON that holds no window' },
   {
     contents : JSON.stringify({ ...window.toJSON(), minutely_15: { time: [] } }),
     name     : 'a window missing its irradiances'
   }
-])('reads no window from $name', async ({ contents }) => {
-  const storage = await scratch()
+])('reads no window from $name', async ({ contents }, { scratch }) => {
+  await writeFile(join(scratch, FILE), contents)
 
-  await writeFile(join(storage, FILE), contents)
-
-  await expect(new WindowStore(storage).read(place)).resolves.toBeUndefined()
+  await expect(new WindowStore(scratch).read(place)).resolves.toBeUndefined()
 })
 
-it('reads no window fetched for other coordinates', async () => {
-  const store = new WindowStore(await scratch())
+test('reads no window fetched for other coordinates', async ({ scratch }) => {
+  const store = new WindowStore(scratch)
 
   await store.write(window)
 
   await expect(store.read(other)).resolves.toBeUndefined()
 })
 
-it('rejects on a read error other than a missing file', async () => {
-  const storage = await scratch()
+test('rejects on a read error other than a missing file', async ({ scratch }) => {
+  await mkdir(join(scratch, FILE))
 
-  await mkdir(join(storage, FILE))
-
-  await expect(new WindowStore(storage).read(place)).rejects.toMatchObject({ code: 'EISDIR' })
+  await expect(new WindowStore(scratch).read(place)).rejects.toMatchObject({ code: 'EISDIR' })
 })
-
-async function scratch(): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), 'luxout-store-'))
-
-  onTestFinished(() => rm(directory, { force: true, recursive: true }))
-
-  return directory
-}

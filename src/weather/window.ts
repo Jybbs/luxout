@@ -7,9 +7,10 @@ import { Place } from '../config/place.js'
  */
 type Bracket = readonly [before: number, after: number]
 
-type Steps = v.Infer<typeof BODY>['minutely_15']
+type Steps = v.Infer<typeof forecastBody>['minutely_15']
 
-const BODY = v.object({
+const STEP         = 900  // The seconds between two `minutely_15` steps
+const forecastBody = v.object({
   minutely_15: v.object({
     shortwave_radiation_instant : v.array(v.number()),
     time                        : v.array(v.number())
@@ -23,9 +24,8 @@ const BODY = v.object({
       'the steps sit other than 900 seconds apart'
     )
 })
-const PLACE = v.object({ latitude: v.number(), longitude: v.number() })
+const storedPlace  = v.object({ latitude: v.number(), longitude: v.number() })
   .map(({ latitude, longitude }) => new Place(latitude, longitude))
-const STEP = 900  // The seconds between two `minutely_15` steps
 
 /**
  * Holds the shortwave irradiance Open-Meteo forecasts at the ground for a
@@ -39,14 +39,9 @@ export class ForecastWindow {
   /**
    * Parses a body Open-Meteo returned for `place`, ignoring every field beside
    * `minutely_15`.
-   *
-   * Returns:
-   *   The window, or the issues valita finds in a body whose arrays are
-   *   missing, differ in length, sit other than 900 seconds apart, or hold a
-   *   value that is not a number.
    */
   static parse(body: unknown, place: Place): v.ValitaResult<ForecastWindow> {
-    const parsed = BODY.try(body, { mode: 'strip' })
+    const parsed = forecastBody.try(body, { mode: 'strip' })
 
     return parsed.ok ? v.ok(new ForecastWindow(place, parsed.value.minutely_15)) : parsed
   }
@@ -56,7 +51,7 @@ export class ForecastWindow {
    * coordinates stored beside the steps.
    */
   static restore(stored: unknown): v.ValitaResult<ForecastWindow> {
-    const place = PLACE.try(stored, { mode: 'strip' })
+    const place = storedPlace.try(stored, { mode: 'strip' })
 
     return place.ok ? ForecastWindow.parse(stored, place.value) : place
   }
@@ -68,12 +63,8 @@ export class ForecastWindow {
   }
 
   /**
-   * Finds the first two adjacent steps whose times hold `instant` between them,
-   * either end included.
-   *
-   * Returns:
-   *   The indices of the two steps, or `undefined` where no two steps hold
-   *   `instant` between them.
+   * Finds the indices of the first two adjacent steps whose times hold
+   * `instant` between them, either end included.
    */
   bracket(instant: Date): Bracket | undefined {
     const time  = instant.getTime()
@@ -82,17 +73,13 @@ export class ForecastWindow {
     return index < 0 ? undefined : [index, index + 1]
   }
 
-  /**
-   * Reports whether two steps hold `instant` between them.
-   */
   covers(instant: Date): boolean {
     return this.bracket(instant) !== undefined
   }
 
   /**
    * Shapes the window as the body Open-Meteo returns, its step times in Unix
-   * seconds, beside the coordinates of its place. `restore` reads the shape
-   * back.
+   * seconds, beside the coordinates of its place.
    */
   toJSON() {
     return {

@@ -1,9 +1,9 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "lint"
 #MISE depends     = ["plugin:bake"]
-#MISE description = "Lint the plugin and its suites with type information, passing any further arguments to oxlint"
+#MISE description = "Lint the plugin, the audit, and their suites with type information, passing any further arguments to oxlint"
 
 format=default
 [[ -z "${GITHUB_ACTIONS:-}" ]] || format=github
 
-oxlint --format "$format" --type-aware "$@" src tests
+oxlint --format "$format" --type-aware "$@" .mise/audit src tests
