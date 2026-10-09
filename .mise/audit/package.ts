@@ -45,4 +45,13 @@ export class PackageManifest {
 
     return [new Finding(message, coverage, 'Coverage pin')]
   }
+
+  /**
+   * Reads the floor `engines.node` admits for the line `release` sits on, such
+   * as `22.23.3` for any release of Node 22, or nothing where it admits no such
+   * line.
+   */
+  floor(release: string): string | undefined {
+    return this.floors.find((floor) => floor.split('.')[0] === release.split('.')[0])
+  }
 }

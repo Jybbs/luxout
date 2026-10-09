@@ -38,7 +38,7 @@ export class MiseConfig {
     const release = String(pin.value)
 
     const inside = floor                           !== undefined
-                && release.split('.')[0]           === floor.split('.')[0]
+                && manifest.floor(release)         === floor
                 && NUMERIC.compare(release, floor)  >= 0
 
     const message = floor === undefined

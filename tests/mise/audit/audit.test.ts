@@ -3,10 +3,10 @@ import { join } from 'node:path'
 import { expect, vi } from 'vitest'
 
 import { Audit, type Run } from '../../../.mise/audit/audit.ts'
+import { mise }            from '../../common/mise.js'
 import { plant, test }     from '../../common/scratch.js'
 
-const CONFIG     = '[tools]\nnode = "26.10.0"\n'
-const EMPTY: Run = (_, [, verb]) => ({ stderr: '', stdout: verb === 'ls' ? '[]' : '{ "issues": [] }' })
+const CONFIG = '[tools]\nnode = "26.10.0"\n'
 
 const manifest = (coverage: string): string => JSON.stringify(
   { devDependencies: { '@vitest/coverage-v8': coverage, vitest: '5.0.3' }, engines: { node: '^26.10.0' } },
@@ -29,8 +29,36 @@ test.for([
 
   await plant(scratch, { '.mise/config.toml': CONFIG, 'package.json': manifest(coverage) })
 
-  expect(new Audit(scratch, EMPTY, write).report()).toBe(status)
+  expect(new Audit(scratch, mise([]), write).report()).toBe(status)
   expect(write.mock.calls.flat()).toEqual(written)
+})
+
+test('prints the findings of the workflows and the composite actions', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.github/actions/a/action.yml' : 'runs:\n  steps:\n    - &a\n      run: x\n',
+    '.github/workflows/ci.yml'     : 'on: pull_request\njobs:\n  a:\n    timeout-minutes: 1\n',
+    '.mise/config.toml'            : CONFIG,
+    'package.json'                 : manifest('5.0.3')
+  })
+
+  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=.github/actions/a/action.yml,line=4,title=YAML anchor::'
+  + '`&a` is a YAML anchor or alias, which GitHub rejects in an action manifest',
+    '::error file=.github/workflows/ci.yml,line=1,title=Concurrency::The workflow runs on `pull_request` '
+  + 'and sets no `concurrency` group, so a superseded pull-request run keeps running',
+    '::error file=.github/workflows/ci.yml,line=3,title=Brief gate::The workflow ends on no `🪁 Brief` gate'
+  ])
+})
+
+test('reads every file matching a pattern, keyed by its path in sorted order', async ({ scratch }) => {
+  await plant(scratch, { 'a/x.yml': 'ax', 'a/y.yaml': 'ay', 'b/x.yml': 'bx', 'c.txt': 'c' })
+
+  const files = new Audit(scratch).readAll('*/*.yml', '*/*.yaml')
+
+  expect(Object.entries(files)).toEqual([['a/x.yml', 'ax'], ['a/y.yaml', 'ay'], ['b/x.yml', 'bx']])
 })
 
 test('runs mise in the checkout and returns what it prints whatever its exit status', ({ scratch }) => {
