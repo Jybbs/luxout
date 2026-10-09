@@ -61,6 +61,37 @@ jobs:
           - task  : repo:lint:workflows
             tools : zizmor
 
+          - task  : site:cover
+            tools : bun node
+
+          - task  : site:lint
+            tools : bun node
+
+          - task  : site:scour
+            tools : bun node
+
+          - task  : site:typecheck
+            tools : bun node
+
+  press:
+    name            : site:linkcheck
+    runs-on         : ubuntu-26.04
+    timeout-minutes : 15
+
+    steps:
+      - name : Check out the repository
+        uses : actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name : Provision the press job's tools
+        uses : $/.github/actions/provision
+        with:
+          tools: bun lychee node
+
+      - name : Build the site and check its links
+        run  : mise run site:linkcheck
+
   brief:
     name            : 🪁 Brief
     if              : always()
@@ -69,6 +100,7 @@ jobs:
 
     needs:
       - check
+      - press
 
     steps:
       - name : Check out the repository

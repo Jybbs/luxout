@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "press"
+#MISE depends     = ["site:bake"]
+#MISE description = "Build the site into `site/.vitepress/dist`, failing on a link between pages that leads nowhere"
+#MISE dir         = "site"
+
+vitepress build

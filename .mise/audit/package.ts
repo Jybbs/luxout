@@ -4,10 +4,11 @@ import { Finding }    from './finding.ts'
 
 const FLOOR    = /(?<=\^)\d[\d.]*/g
 const MANIFEST = 'package.json'
+const SITE     = 'site/package.json'
 
 /**
- * The `package.json` at the root of the checkout, holding the pins its checks
- * read against one another.
+ * A `package.json` at the root of the checkout or under `site/`, holding the
+ * pins its checks read against one another.
  */
 export class PackageManifest {
   readonly #file: YamlFile
@@ -16,8 +17,12 @@ export class PackageManifest {
     return new PackageManifest(audit.read(MANIFEST))
   }
 
-  constructor(text: string) {
-    this.#file = new YamlFile(MANIFEST, text)
+  static site(audit: Audit): PackageManifest | undefined {
+    return audit.exists(SITE) ? new PackageManifest(audit.read(SITE), SITE) : undefined
+  }
+
+  constructor(text: string, file = MANIFEST) {
+    this.#file = new YamlFile(file, text)
   }
 
   get findings(): Finding[] {

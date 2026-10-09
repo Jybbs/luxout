@@ -11,6 +11,11 @@ run         = [
     "plugin:scour",
     "plugin:typecheck",
     "repo:audit",
-    "repo:lint:workflows"
+    "repo:lint:workflows",
+    "site:cover",
+    "site:linkcheck",
+    "site:lint",
+    "site:scour",
+    "site:typecheck"
   ] }
 ]

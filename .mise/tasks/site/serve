@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "serve"
+#MISE depends     = ["site:bake"]
+#MISE description = "Serve the site and reload each page as it is edited, passing any further arguments to VitePress"
+#MISE dir         = "site"
+
+vitepress dev "$@"

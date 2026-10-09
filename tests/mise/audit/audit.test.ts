@@ -33,6 +33,23 @@ test.for([
   expect(write.mock.calls.flat()).toEqual(written)
 })
 
+test('prints a finding against the site’s manifest where the checkout holds one', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.mise/config.toml' : CONFIG,
+    'package.json'      : manifest('5.0.3'),
+    'site/package.json' : manifest('5.0.4')
+  })
+
+  new Audit(scratch, mise([]), write).report()
+
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=site/package.json,line=3,title=Coverage pin::`@vitest/coverage-v8` pins 5.0.4, '
+  + 'whereas `vitest`, the release it runs under, pins 5.0.3'
+  ])
+})
+
 test('prints the findings of the workflows and the composite actions', async ({ scratch }) => {
   const write = vi.fn<(line: string) => void>()
 

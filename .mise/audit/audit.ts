@@ -34,6 +34,7 @@ export class Audit {
 
     return [
       ...manifest.findings,
+      ...PackageManifest.site(this)?.findings ?? [],
       ...MiseConfig.read(this).findings(manifest),
       ...tasks.findings(manifest),
       ...actions.findings,
