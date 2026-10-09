@@ -192,12 +192,12 @@ export class TaskList {
   /**
    * Reports each error `unbash` meets in a script a task runs, and rejects each
    * `bun install` it runs carrying neither `--frozen-lockfile` nor
-   * `--lockfile-only`, reading a script several tasks run once.
+   * `--lockfile-only`, scanning only once a script that several tasks share.
    */
   get #shell(): Finding[] {
     const scripts = new Map(this.#tasks.values()
       .flatMap((task) => task.scripts)
-      .map((script) => [`${script.file}:${script.line}`, script]))
+      .map((script) => [`${script.file}:${script.line}:${script.text}`, script]))
 
     return [...scripts.values()].flatMap(({ file, line, text }) => {
       const { errors, invocations } = scan(text, line)

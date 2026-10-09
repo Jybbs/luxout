@@ -14,7 +14,7 @@ runs:
       id    : mise
       shell : bash
       run   : |
-        version=$(yq --input-format toml --output-format yaml '.min_version' .mise/config.toml)
+        version=$(yq --exit-status --input-format toml --output-format yaml '.min_version' .mise/config.toml)
         echo "version=$version" >> "$GITHUB_OUTPUT"
 
     - name : Install mise and the job's tools

@@ -77,6 +77,19 @@ describe('a bun install a task runs', () => {
       .toMatchObject([{ spot: { file: '.mise/tasks/plugin/test', line: 4 }, title: 'Unfrozen install' }])
   })
 
+  test('reports each unfrozen install where two run strings share one line', async ({ scratch }) => {
+    await plant(scratch, { '.mise/tasks/x.toml': '["x:a"]\nrun = ["bun install", "bun i"]\n' })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { name: 'x:a', run: ['bun install', 'bun i'], source: '.mise/tasks/x.toml' }
+    ])))
+
+    expect(TaskList.read(audit).findings(MANIFEST).map(({ message }) => message)).toEqual([
+      '`bun install` runs without `--frozen-lockfile` or `--lockfile-only`',
+      '`bun i` runs without `--frozen-lockfile` or `--lockfile-only`'
+    ])
+  })
+
   test('reports each unfrozen install a task runs on its own line', async ({ scratch }) => {
     await plant(scratch, { '.mise/tasks/plugin/bake': FRONTMATTER + 'bun install\nbun i\n' })
 
