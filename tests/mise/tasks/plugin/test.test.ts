@@ -11,7 +11,7 @@ const FIXTURES = join(import.meta.dirname, '..', '..', 'fixtures')
 const MESSAGE  = 'plugin:test:24 runs on Node 24.21.0, which mise has not installed, '
                + 'so run `mise install --include-task-tools` first\n'
 const TASK   = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'plugin', 'test')
-const VITEST = ['vitest', 'run', '--config', 'tests/vitest.config.ts', ...ARGS]
+const VITEST = ['run', '--config', 'tests/vitest.config.ts', ...ARGS]
 
 /**
  * Runs the task as `name` in `scratch` beside stand-ins for the programs it
@@ -41,7 +41,7 @@ async function run(
     }
   })
 
-  return { status, stderr, vitest: stdout.split('\0').slice(0, -1) }
+  return { status, stderr, vitest: stdout.split('\0').slice(1, -1) }
 }
 
 test('runs Vitest with every argument where the task declares no release of Node', async ({ scratch }) => {
@@ -55,6 +55,7 @@ test('runs Vitest where the running Node is the release the task declares', asyn
 
 test.for([
   { name: 'another release of Node', running: 'v26.10.0' },
+  { name: 'another release of the same line', running: 'v24.21.1' },
   { name: 'a node that fails to run', running: '' }
 ])('fails before Vitest starts where the path holds $name', async ({ running }, { scratch }) => {
   expect(await run('plugin:test:24', running, scratch, { node: '24.21.0' }))
