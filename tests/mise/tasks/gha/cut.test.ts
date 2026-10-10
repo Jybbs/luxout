@@ -119,17 +119,21 @@ test('leaves a draft already carrying the version untouched and reports its addr
   })
 })
 
-test('skips the cut with a warning where a published release carries the version', async ({ scratch }) => {
-  const published = release(false, '0.2.0')
-
-  expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages: [[release(true, '0.2.0'), published]] })).toEqual({
-    calls   : [LISTING],
-    outputs : { state: 'published', url: published.html_url, version: '0.2.0' },
-    status  : 0,
-    stderr  : '',
-    stdout  : '::warning::Version 0.2.0 is already published, so no draft is cut\n'
-  })
-})
+test.for([
+  { order: 'after', pages: [[release(true, '0.2.0'), release(false, '0.2.0')]] },
+  { order: 'before', pages: [[release(false, '0.2.0'), release(true, '0.2.0')]] }
+])(
+  'skips the cut with a warning where a release listed $order a draft is published',
+  async ({ pages }, { scratch }) => {
+    expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages })).toEqual({
+      calls   : [LISTING],
+      outputs : { state: 'published', url: release(false, '0.2.0').html_url, version: '0.2.0' },
+      status  : 0,
+      stderr  : '',
+      stdout  : '::warning::Version 0.2.0 is already published, so no draft is cut\n'
+    })
+  }
+)
 
 test('reads a release carrying the version off a later page of the listing', async ({ scratch }) => {
   const draft = release(true, '0.2.0')

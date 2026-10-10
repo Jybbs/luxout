@@ -34,13 +34,15 @@ test('writes a row naming each job and its result, and passes where none failed'
 })
 
 test('lists each output beneath the results, leaving out an empty one', async ({ scratch }) => {
-  const outputs = { state: 'created', url: 'https://github.com/Jybbs/luxout/releases', version: '' }
+  const draft = { state: 'created', url: 'https://github.com/Jybbs/luxout/releases', version: '' }
+  const pack  = { tarball: 'homebridge-luxout-0.2.0.tgz' }
 
-  expect(await brief({ draft: need('success', outputs), pack: need('success') }, scratch)).toEqual({
+  expect(await brief({ draft: need('success', draft), pack: need('success', pack) }, scratch)).toEqual({
     status  : 0,
     summary : '| **Job** | **Result** |\n|---|---|\n| `draft` | success |\n| `pack` | success |\n\n'
             + '| **Output** | **Value** |\n|---|---|\n| `draft.state` | created |\n'
             + '| `draft.url` | https://github.com/Jybbs/luxout/releases |\n'
+            + '| `pack.tarball` | homebridge-luxout-0.2.0.tgz |\n'
   })
 })
 
