@@ -1,10 +1,22 @@
 #!/usr/bin/env -S bash -euo pipefail
-#MISE description = "Write the run's step summary from the `needs` context `NEEDS` holds, failing where any job failed or was canceled"
+#MISE description = "Write the run's step summary of each job's result and each nonempty output from the `needs` context `NEEDS` holds, failing where any job failed or was canceled"
 
 jq --raw-output '
   "| **Job** | **Result** |",
   "|---|---|",
-  (to_entries[] | "| `\(.key)` | \(.value.result) |")
+  (to_entries[] | "| `\(.key)` | \(.value.result) |"),
+  (
+    [
+      to_entries[]
+      | .key as $job
+      | .value.outputs
+      | to_entries[]
+      | select(.value != "")
+      | "| `\($job).\(.key)` | \(.value) |"
+    ]
+    | select(length > 0)
+    | "", "| **Output** | **Value** |", "|---|---|", .[]
+  )
 ' <<<"$NEEDS" >>"$GITHUB_STEP_SUMMARY"
 
 jq --exit-status '

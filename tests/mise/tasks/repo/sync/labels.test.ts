@@ -1,10 +1,11 @@
-import { execFileSync, spawnSync } from 'node:child_process'
-import { cp, readFile }            from 'node:fs/promises'
-import { delimiter, join }         from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { cp }        from 'node:fs/promises'
+import { join }      from 'node:path'
 
 import { expect } from 'vitest'
 
-import { plant, test } from '../../../../common/scratch.js'
+import { logged, standIn } from '../../../../common/gh.js'
+import { plant, test }     from '../../../../common/scratch.js'
 
 const LISTING = ['api', '--jq', '.[].name', '--paginate', 'repos/{owner}/{repo}/labels']
 
@@ -18,9 +19,8 @@ const REGISTRY = [
   String.raw`description = "-Quotes ' and \" and $HOME and \\ stay as written"`
 ].join('\n')
 
-const ROOT = join(import.meta.dirname, '..', '..', '..', '..', '..')
-const PATH = execFileSync('mise', ['x', '--', 'printenv', 'PATH'], { cwd: ROOT, encoding: 'utf8' }).trim()
-const TASK = join(ROOT, '.mise', 'tasks', 'repo', 'sync', 'labels')
+const root = join(import.meta.dirname, '..', '..', '..', '..', '..')
+const task = join(root, '.mise', 'tasks', 'repo', 'sync', 'labels')
 
 /**
  * Runs the task in `scratch` with a stand-in `gh` that answers `gh api` with
@@ -30,27 +30,22 @@ async function sync(
   registry            : string,
   scratch             : string,
   { fail, live = [] } : { fail?: 'api' | 'label', live?: string[] } = {}
-): Promise<{ calls: string[][], status: number | null, stdout: string }> {
-  await plant(scratch, { '.github/labels.toml': registry, 'gh.log': '' })
-  await cp(join(import.meta.dirname, '..', '..', '..', 'fixtures', 'gh.sh'), join(scratch, 'bin', 'gh'))
+) {
+  await plant(scratch, { '.github/labels.toml': registry })
 
-  const { status, stdout } = spawnSync(TASK, [], {
+  const { status, stdout } = spawnSync(task, [], {
     cwd      : scratch,
     encoding : 'utf8',
     env      : {
+      ...await standIn(scratch),
       GH_CONFIG_DIR     : scratch,
       GH_FAIL           : fail ?? '',
       GH_LIVE           : live.join('\n'),
-      GH_LOG            : join(scratch, 'gh.log'),
-      MISE_PROJECT_ROOT : ROOT,
-      PATH              : join(scratch, 'bin') + delimiter + PATH
+      MISE_PROJECT_ROOT : root
     }
   })
 
-  const log   = await readFile(join(scratch, 'gh.log'), 'utf8')
-  const calls = log.split('\n').slice(0, -1).map((call) => call.split('\0').slice(0, -1))
-
-  return { calls, status, stdout }
+  return { calls: await logged(scratch), status, stdout }
 }
 
 test('creates or updates each declared label with every value as written', async ({ scratch }) => {
@@ -103,10 +98,10 @@ test('fails without listing where reading the live labels fails', async ({ scrat
 })
 
 test('asks before writing when run as labels, failing with no terminal to answer', async ({ scratch }) => {
-  const task = join(scratch, '.mise', 'tasks', 'repo', 'sync', 'labels')
+  const copy = join(scratch, '.mise', 'tasks', 'repo', 'sync', 'labels')
 
   await plant(scratch, { '.mise/config.toml': '' })
-  await cp(TASK, task)
+  await cp(task, copy)
 
   const { status, stderr } = spawnSync('mise', ['run', 'labels'], {
     cwd      : scratch,

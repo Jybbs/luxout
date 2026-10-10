@@ -3,3 +3,4 @@
 
 [ "$1" != "$GH_FAIL" ] || exit 1
 [ "$1" != api ] || [ -z "$GH_LIVE" ] || printf '%s\n' "$GH_LIVE"
+[ "$1" != release ] || [ -z "$GH_CREATED" ] || printf '%s\n' "$GH_CREATED"

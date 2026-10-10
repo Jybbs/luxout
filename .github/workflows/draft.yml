@@ -1,0 +1,75 @@
+name: 🔆 Draft
+
+concurrency:
+  group : ${{ github.workflow }}-${{ github.ref }}
+  queue : max
+
+jobs:
+  draft:
+    name            : 🔆 Draft
+    runs-on         : ubuntu-26.04
+    timeout-minutes : 10
+
+    outputs:
+      state   : ${{ steps.cut.outputs.state }}
+      url     : ${{ steps.cut.outputs.url }}
+      version : ${{ steps.cut.outputs.version }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name : Check out the last two commits
+        uses : actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth         : 2
+          persist-credentials : false
+
+      - name : Provision the job's tools
+        uses : $/.github/actions/provision
+        with:
+          tools: gh jq
+
+      - name : Cut a draft where the version moved
+        id   : cut
+        run  : mise run gha:cut
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  brief:
+    name            : 🪁 Brief
+    if              : always()
+    runs-on         : ubuntu-26.04
+    timeout-minutes : 5
+
+    needs:
+      - draft
+
+    steps:
+      - name : Check out the repository
+        uses : actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name : Provision the gate's tools
+        uses : $/.github/actions/provision
+        with:
+          tools: jq
+
+      - name : Render the run's brief
+        run  : mise run gha:brief
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+
+on:
+  push:
+    branches:
+      - main
+
+    paths:
+      - package.json
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
