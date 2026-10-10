@@ -8,6 +8,7 @@ import { LabelRegistry }   from './labels.ts'
 import { MiseConfig }      from './mise.ts'
 import { PackageManifest } from './package.ts'
 import { ReleaseNotes }    from './release.ts'
+import { Rulesets }        from './rulesets.ts'
 import { TaskList }        from './tasks.ts'
 import { IssueTemplates }  from './templates.ts'
 import { Workflows }       from './workflows.ts'
@@ -27,17 +28,19 @@ export class Audit {
   }
 
   get #findings(): Finding[] {
-    const actions  = Actions.read(this)
-    const labels   = LabelRegistry.read(this)
-    const manifest = PackageManifest.read(this)
-    const tasks    = TaskList.read(this)
+    const actions   = Actions.read(this)
+    const labels    = LabelRegistry.read(this)
+    const manifest  = PackageManifest.read(this)
+    const tasks     = TaskList.read(this)
+    const workflows = Workflows.read(this)
 
     return [
       ...manifest.findings,
       ...MiseConfig.read(this).findings(manifest),
       ...tasks.findings(manifest),
       ...actions.findings,
-      ...Workflows.read(this).findings(actions, tasks),
+      ...workflows.findings(actions, tasks),
+      ...Rulesets.read(this).findings(workflows),
       ...labels.findings,
       ...ReleaseNotes.read(this).findings(labels),
       ...IssueTemplates.read(this).findings(labels)

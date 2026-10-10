@@ -10,11 +10,11 @@ interface Row {
   tools : Entry
 }
 
-const CANCEL    = "github.event_name=='pull_request'"
-const CONTEXTS  = new Set(['github.workflow', 'github.ref'])
-const GATE      = '🪁 Brief'
-const IMAGE     = /^[a-z]+-\d[\w.-]*$/
-const WORKFLOWS = '.github/workflows/*.{yaml,yml}'
+const CANCEL       = "github.event_name=='pull_request'"
+export const GATE = '🪁 Brief'
+const IMAGE        = /^[a-z]+-\d[\w.-]*$/
+const WORKFLOWS    = '.github/workflows/*.{yaml,yml}'
+const contexts     = new Set(['github.workflow', 'github.ref'])
 
 class Job {
   readonly id    : string
@@ -99,14 +99,22 @@ class Workflow {
       ...this.#schedule,
       ...this.#concurrency,
       ...this.jobs.flatMap((job) => job.findings),
-      ...this.#gate
+      ...this.#gateFindings
     ]
+  }
+
+  get gate(): Job | undefined {
+    return this.jobs.find((job) => job.name === GATE)
+  }
+
+  get pullRequest(): Entry | undefined {
+    return this.#trigger('pull_request')
   }
 
   get #concurrency(): Finding[] {
     const concurrency = this.#file.at('concurrency')
     const cancel      = this.#file.at('concurrency', 'cancel-in-progress')
-    const pull        = this.#trigger('pull_request')
+    const pull        = this.pullRequest
     const group       = typeof concurrency?.value === 'string'
                       ? concurrency
                       : this.#file.at('concurrency', 'group')
@@ -121,7 +129,7 @@ class Workflow {
     }
 
     const words   = new Set(String(group.value).match(/[\w.]+/g))
-    const missing = [...CONTEXTS.difference(words)]
+    const missing = [...contexts.difference(words)]
     const value   = cancel ? expression(cancel.value) : 'false'
     const cancels = cancel && !['false', CANCEL].includes(value)
 
@@ -146,13 +154,13 @@ class Workflow {
     ]
   }
 
-  get #gate(): Finding[] {
-    const gate = this.jobs.find((job) => job.name === GATE)
+  get #gateFindings(): Finding[] {
+    const { gate } = this
 
     if (gate === undefined) {
       return [new Finding(
         `The workflow ends on no \`${GATE}\` gate`,
-        this.#file.at('jobs') ?? this.#start,
+        this.#file.at('jobs') ?? this.#file.start,
         'Brief gate'
       )]
     }
@@ -187,10 +195,6 @@ class Workflow {
     )] : []
   }
 
-  get #start(): Spot {
-    return { file: this.#file.file, line: 1 }
-  }
-
   #trigger(event: string): Entry | undefined {
     const on = this.#file.at('on')
 
@@ -210,6 +214,14 @@ export class Workflows {
   constructor(files: Record<string, string>) {
     this.#workflows = Object.entries(files).map(([file, text]) => new Workflow(file, text))
     this.#jobs      = this.#workflows.flatMap((workflow) => workflow.jobs)
+  }
+
+  /**
+   * Finds the gate of each workflow a pull request runs, the checks a ruleset
+   * can require of every pull request.
+   */
+  get gates(): Job[] {
+    return this.#workflows.flatMap((workflow) => workflow.pullRequest ? workflow.gate ?? [] : [])
   }
 
   get #images(): Finding[] {
