@@ -1,6 +1,6 @@
 # Contributing
 
-This guide takes a contributor on macOS or Linux from a fresh clone of *Luxout* through its checks to an issue and a pull request, each opened from its template. [mise](https://mise.jdx.dev) installs each tool the work runs at the release the repository pins, and Bun installs the packages `bun.lock` records.
+This guide takes a contributor on macOS or Linux from a fresh clone of *Luxout* through its checks to an issue and a pull request, each opened from its template. [mise](https://mise.jdx.dev) installs each tool the repository pins, and Bun installs the packages `bun.lock` records.
 
 ## A Fresh Clone
 
@@ -15,7 +15,7 @@ bun install --frozen-lockfile
 mise doctor project
 ```
 
-As soon as `cd` runs, mise puts the `.mise/bin` wrappers on the path beside the releases `.mise/config.toml` pins, even when the block is pasted whole. The `bun` on the next line is therefore the pinned release, and once it has filled `node_modules/`, each program a task runs from the package's dependencies (*`tsc` and `vitest` among them*) runs by name through its wrapper. `mise doctor project` then reports each condition the clone lacks that no task supplies, beside the command that fixes it.
+As soon as `cd` runs, mise puts the `.mise/bin` wrappers on the path beside the releases `.mise/config.toml` pins, even when the block is pasted whole. The `bun` on the next line is therefore the pinned release, and once it has filled `node_modules/`, each program a task runs from the package's dependencies (*`tsc` and `vitest` among them*) runs by name through its wrapper. `mise doctor project` then runs the readiness checks `.mise/conf.d/doctor.toml` declares, reporting each that fails beside the command that fixes it.
 
 ## Checking a Change
 
