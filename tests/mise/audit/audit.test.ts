@@ -70,6 +70,25 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   ])
 })
 
+test('prints what the rulesets report against the gates of the workflows', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+  const rules = [
+    { parameters: { required_status_checks: [{ context: 'build' }] }, type: 'required_status_checks' }
+  ]
+
+  await plant(scratch, {
+    '.github/rulesets/main.json' : JSON.stringify({ name: 'main', rules }),
+    '.mise/config.toml'          : CONFIG,
+    'package.json'               : manifest('5.0.3')
+  })
+
+  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=.github/rulesets/main.json,line=1,title=Required check::'
+  + '`main` requires the check `build`, which is not the gate of any workflow that runs on `pull_request`'
+  ])
+})
+
 test('prints what the label registry and the files naming its labels report', async ({ scratch }) => {
   const write = vi.fn<(line: string) => void>()
 

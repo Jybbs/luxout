@@ -111,6 +111,10 @@ export class YamlFile {
     return this.#document.errors.map((error) => new Finding(error.message, this.#spot(error.pos[0]), PARSE))
   }
 
+  get start(): Spot {
+    return { file: this.file, line: 1 }
+  }
+
   at(...path: Key[]): Entry | undefined {
     const node = this.#document.getIn(path, true)
 
