@@ -11,10 +11,10 @@ interface Row {
 }
 
 const CANCEL      = "github.event_name=='pull_request'"
+const CONTEXTS    = new Set(['github.workflow', 'github.ref'])
 export const GATE = '🪁 Brief'
 const IMAGE       = /^[a-z]+-\d[\w.-]*$/
 const WORKFLOWS   = '.github/workflows/*.{yaml,yml}'
-const contexts    = new Set(['github.workflow', 'github.ref'])
 
 class Job {
   readonly id    : string
@@ -129,7 +129,7 @@ class Workflow {
     }
 
     const words   = new Set(String(group.value).match(/[\w.]+/g))
-    const missing = [...contexts.difference(words)]
+    const missing = [...CONTEXTS.difference(words)]
     const value   = cancel ? expression(cancel.value) : 'false'
     const cancels = cancel && !['false', CANCEL].includes(value)
 

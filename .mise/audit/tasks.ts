@@ -25,11 +25,11 @@ interface Script extends Spot {
   text: string
 }
 
+const INSTALL = new Set(['i', 'install'])
 const LISTING = { file: CONFIG, line: 1 }
+const LOCKED  = new Set(['frozen-lockfile', 'lockfile-only'])
 const OPTIONS = { cwd: { type: 'string' } } as const
 const VERIFY  = 'repo:verify'
-const install = new Set(['i', 'install'])
-const locked  = new Set(['frozen-lockfile', 'lockfile-only'])
 
 class Task {
   readonly scripts  : Script[]
@@ -194,5 +194,5 @@ function unfrozen({ words: [program, ...args] }: Invocation): boolean {
     strict           : false
   })
 
-  return install.has(verb) && locked.isDisjointFrom(new Set(Object.keys(values)))
+  return INSTALL.has(verb) && LOCKED.isDisjointFrom(new Set(Object.keys(values)))
 }

@@ -6,19 +6,18 @@ import { describe, expect } from 'vitest'
 import { type Call, type SyncRun, confirm, sync } from '../../../../common/sync.js'
 import { plant, test }                            from '../../../../common/scratch.js'
 
+const MANIFEST = JSON.stringify({
+  description : 'A light sensor',
+  keywords    : ['homebridge-plugin', 'supports-hap']
+})
+
 const OWN = [
   '.github/rulesets/main.json', '.github/rulesets/tags.json', '.github/settings.toml', 'package.json'
 ]
 
 const RULESETS = 'repos/{owner}/{repo}/rulesets'
-const TOPICS   = { names: ['homebridge-plugin'] }
 
-const manifest = JSON.stringify({
-  description : 'A light sensor',
-  keywords    : ['homebridge-plugin', 'supports-hap']
-})
-
-const settings = [
+const SETTINGS = [
   '[graphql.updateRepository]',
   'hasDiscussionsEnabled = false',
   '',
@@ -39,6 +38,7 @@ const settings = [
   'enabled = true'
 ].join('\n')
 
+const TOPICS  = { names: ['homebridge-plugin'] }
 const LISTING = { args: ['api', '--jq', '.[].name', '--paginate', RULESETS], body: null }
 
 /**
@@ -50,7 +50,7 @@ async function rulesets(
   scratch : string,
   options : Parameters<typeof sync>[2] = {}
 ): Promise<SyncRun> {
-  await plant(scratch, { 'package.json': manifest, ...files })
+  await plant(scratch, { 'package.json': MANIFEST, ...files })
 
   return sync(scratch, 'repo:sync:rulesets', options)
 }
@@ -139,7 +139,7 @@ describe('the settings', () => {
   const ruleset = { '.github/rulesets/main.json': '{ "name": "main" }' }
 
   test('sends every table the file declares to its endpoint, with its body', async ({ scratch }) => {
-    const { calls, status } = await rulesets({ ...ruleset, '.github/settings.toml': settings }, scratch, {
+    const { calls, status } = await rulesets({ ...ruleset, '.github/settings.toml': SETTINGS }, scratch, {
       live: { 'repos/{owner}/{repo}': { node_id: 'R_1' }, [RULESETS]: [[{ id: 7, name: 'main' }]] }
     })
 
@@ -209,7 +209,7 @@ describe('the settings', () => {
   })
 
   test('sends no further setting once one fails to send', async ({ scratch }) => {
-    const { calls, status } = await rulesets({ ...ruleset, '.github/settings.toml': settings }, scratch, {
+    const { calls, status } = await rulesets({ ...ruleset, '.github/settings.toml': SETTINGS }, scratch, {
       fail: 'PATCH'
     })
 
