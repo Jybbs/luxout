@@ -1,33 +1,48 @@
-import { spawnSync } from 'node:child_process'
-import { readFile }  from 'node:fs/promises'
-import { join }      from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { join }     from 'node:path'
 
 import { expect } from 'vitest'
 
 import { test } from '../../../common/scratch.js'
+import { sync } from '../../../common/sync.js'
 
-const TASK = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'gha', 'brief')
+interface Need {
+  outputs : Record<string, string>
+  result  : string
+}
 
-async function brief(needs: Record<string, { result: string }>, scratch: string) {
+async function brief(needs: Record<string, Need>, scratch: string) {
   const summary = join(scratch, 'summary.md')
 
-  const { status } = spawnSync(TASK, {
-    encoding : 'utf8',
-    env      : { ...process.env, GITHUB_STEP_SUMMARY: summary, NEEDS: JSON.stringify(needs) }
+  const { status } = await sync(scratch, 'gha:brief', {
+    env: { GITHUB_STEP_SUMMARY: summary, NEEDS: JSON.stringify(needs) }
   })
 
   return { status, summary: await readFile(summary, 'utf8') }
 }
 
+const need = (result: string, outputs: Record<string, string> = {}) => ({ outputs, result })
+
 test('writes a row naming each job and its result, and passes where none failed', async ({ scratch }) => {
-  expect(await brief({ check: { result: 'success' }, press: { result: 'skipped' } }, scratch)).toEqual({
+  expect(await brief({ check: need('success'), press: need('skipped') }, scratch)).toEqual({
     status  : 0,
     summary : '| **Job** | **Result** |\n|---|---|\n| `check` | success |\n| `press` | skipped |\n'
   })
 })
 
-test.for(['failure', 'cancelled'])('fails where a job reports %s', async (result, { scratch }) => {
-  const { status } = await brief({ check: { result: 'success' }, press: { result } }, scratch)
+test('lists each output beneath the results, leaving out an empty one', async ({ scratch }) => {
+  const draft = { state: 'created', url: 'https://github.com/Jybbs/luxout/releases', version: '' }
+  const pack  = { tarball: 'homebridge-luxout-0.2.0.tgz' }
 
-  expect(status).toBe(1)
+  expect(await brief({ draft: need('success', draft), pack: need('success', pack) }, scratch)).toEqual({
+    status  : 0,
+    summary : '| **Job** | **Result** |\n|---|---|\n| `draft` | success |\n| `pack` | success |\n\n'
+            + '| **Output** | **Value** |\n|---|---|\n| `draft.state` | created |\n'
+            + '| `draft.url` | https://github.com/Jybbs/luxout/releases |\n'
+            + '| `pack.tarball` | homebridge-luxout-0.2.0.tgz |\n'
+  })
+})
+
+test.for(['failure', 'cancelled'])('fails where a job reports %s', async (result, { scratch }) => {
+  expect((await brief({ check: need('success'), press: need(result) }, scratch)).status).toBe(1)
 })

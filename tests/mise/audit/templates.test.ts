@@ -5,11 +5,11 @@ import { LabelRegistry }  from '../../../.mise/audit/labels.ts'
 import { IssueTemplates } from '../../../.mise/audit/templates.ts'
 import { plant, test }    from '../../common/scratch.js'
 
-const REGISTRY = new LabelRegistry('["🐞 bug"]\ncolor = "c62d42"\ndescription = "A defect"\n')
 const SPEC     = '.github/ISSUE_TEMPLATE/spec.md'
+const registry = new LabelRegistry('["🐞 bug"]\ncolor = "c62d42"\ndescription = "A defect"\n')
 
 const lines = (files: Record<string, string>): (number | string)[][] =>
-  new IssueTemplates(files).findings(REGISTRY).map(({ message, spot }) => [spot.file, spot.line, message])
+  new IssueTemplates(files).findings(registry).map(({ message, spot }) => [spot.file, spot.line, message])
 
 it.each([
   { labels: 'labels: 🐞 bug, 🐛 bug', name: 'in one comma-separated string' },
@@ -42,7 +42,7 @@ it('reads no label from the chooser’s config.yml', () => {
 })
 
 it('reports a template that fails to parse rather than throwing', () => {
-  expect(new IssueTemplates({ [SPEC]: '---\nlabels: [\n---\n' }).findings(REGISTRY))
+  expect(new IssueTemplates({ [SPEC]: '---\nlabels: [\n---\n' }).findings(registry))
     .toMatchObject([{ spot: { file: SPEC }, title: 'Parse error' }])
 })
 
@@ -56,7 +56,7 @@ test('reads each Markdown and YAML template under .github/ISSUE_TEMPLATE/ alone'
     '.github/labels.yml'                 : 'labels: 🦖 f\n'
   })
 
-  expect(IssueTemplates.read(new Audit(scratch)).findings(REGISTRY).map(({ spot }) => spot.file)).toEqual([
+  expect(IssueTemplates.read(new Audit(scratch)).findings(registry).map(({ spot }) => spot.file)).toEqual([
     '.github/ISSUE_TEMPLATE/a.yaml',
     '.github/ISSUE_TEMPLATE/b.yml',
     '.github/ISSUE_TEMPLATE/c.md'

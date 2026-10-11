@@ -1,0 +1,5 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE description = "Install the packages `site/bun.lock` records, failing where it no longer matches `site/package.json`"
+#MISE dir         = "site"
+
+bun install --frozen-lockfile
