@@ -46,7 +46,9 @@ it.each([
 })
 
 it('gives every step of a dusk the mean factor of the evening’s last four daylight steps', () => {
-  expect(factors(evening).slice(4)).toEqual(Array(24).fill(expect.closeTo(mean(EVENING), 6)))
+  const afternoon = derive(spaced(Array(28).fill(2000), angeles, '2026-10-10T17:00:00Z'))
+
+  expect(factors(evening, afternoon).slice(4)).toEqual(Array(24).fill(expect.closeTo(mean(EVENING), 6)))
 })
 
 it('gives every step of a dawn the mean factor of the morning’s first four daylight steps', () => {
