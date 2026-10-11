@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "rulesets"
-#MISE confirm     = "Apply every ruleset under `.github/rulesets/` and every setting `.github/settings.toml` declares on GitHub?"
+#MISE confirm     = "Apply every ruleset under `.github/rulesets/` and every setting `.github/settings.toml` and `package.json` declare on GitHub?"
 #MISE description = "Apply each ruleset under `.github/rulesets/`, renaming in place the live ruleset its file is named for, send every setting `.github/settings.toml` and `package.json` declare, then list each live ruleset no file names"
 
 source "$MISE_PROJECT_ROOT/.mise/lib/sync.sh"

@@ -13,10 +13,8 @@ class Ruleset {
   }
 
   get #contexts(): Entry[] {
-    return this.#file.items('rules').flatMap((rule, index) => {
+    return this.#file.items('rules').flatMap((_, index) => {
       const checks = ['rules', index, 'parameters', 'required_status_checks']
-
-      if (Object(rule.value).type !== 'required_status_checks') return []
 
       return this.#file.items(...checks)
         .flatMap((_, check) => this.#file.at(...checks, check, 'context') ?? [])

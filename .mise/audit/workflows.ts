@@ -10,11 +10,11 @@ interface Row {
   tools : Entry
 }
 
-const CANCEL       = "github.event_name=='pull_request'"
+const CANCEL      = "github.event_name=='pull_request'"
 export const GATE = '🪁 Brief'
-const IMAGE        = /^[a-z]+-\d[\w.-]*$/
-const WORKFLOWS    = '.github/workflows/*.{yaml,yml}'
-const contexts     = new Set(['github.workflow', 'github.ref'])
+const IMAGE       = /^[a-z]+-\d[\w.-]*$/
+const WORKFLOWS   = '.github/workflows/*.{yaml,yml}'
+const contexts    = new Set(['github.workflow', 'github.ref'])
 
 class Job {
   readonly id    : string
@@ -217,8 +217,8 @@ export class Workflows {
   }
 
   /**
-   * Finds the gate of each workflow a pull request runs, the checks a ruleset
-   * can require of every pull request.
+   * Finds the gate of each workflow that runs on `pull_request`, the checks a
+   * branch ruleset requires.
    */
   get gates(): Job[] {
     return this.#workflows.flatMap((workflow) => workflow.pullRequest ? workflow.gate ?? [] : [])
