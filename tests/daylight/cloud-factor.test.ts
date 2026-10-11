@@ -29,6 +29,7 @@ const instants = fc.date({
   min           : new Date('2026-10-11T00:00:00Z'),
   noInvalidDate : true
 })
+const oslo    = new Place(59.91273, 10.74609)
 const sky     = new ClearSky()
 const tromso  = new Place(69.6489, 18.95508)
 const evening = parsed(dusk, angeles)
@@ -63,6 +64,12 @@ it('carries the evening’s factor into a window fetched once its daylight steps
 
 it('takes 1 through a dusk whose daylight steps neither the window nor an earlier one holds', () => {
   expect(factors(later(evening, 4))).toEqual(Array(28).fill(1))
+})
+
+it('carries nothing from an earlier window fetched for another place', () => {
+  const night = derive(spaced(Array(28).fill(0), oslo, '2026-10-11T01:00:00Z'), derive(evening))
+
+  expect(at(night, '2026-10-11T01:00:00Z')).toBe(1)
 })
 
 it('takes each daylight step from the newest window holding it', () => {

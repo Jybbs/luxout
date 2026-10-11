@@ -43,7 +43,8 @@ const TUNING               = {
  * the daylight steps closest to it, as many as the tuning's `nearest`, from
  * `behind` before it to `ahead` after it, and 1 where none lies in that span.
  * Each daylight step comes from this window, or from `earlier` where it
- * precedes this window's first step.
+ * precedes this window's first step and `earlier`'s window holds the same
+ * place.
  */
 export class CloudFactor {
   readonly #daylight : readonly StepFactor[]
@@ -57,13 +58,18 @@ export class CloudFactor {
     earlier? : CloudFactor,
     tuning   : Tuning = TUNING
   ) {
-    const first    = window.times[0] ?? Infinity
-    const carried  = earlier === undefined ? [] : earlier.#daylight
+    const first   = window.times[0] ?? Infinity
+    const carried = earlier !== undefined && earlier.#window.place.equals(window.place)
+                  ? earlier.#daylight
+                  : []
     const daylight = window.times.flatMap((time, index) => {
       const altitude = sky.refracted(sun.altitude(new Date(time)))
-      const share    = (window.irradiances[index] ?? 0) / haurwitz(altitude)
 
-      return altitude < tuning.floor ? [] : [{ factor: Math.min(Math.max(share, 0), 1), time }]
+      if (altitude < tuning.floor) return []
+
+      const share = (window.irradiances[index] ?? 0) / haurwitz(altitude)
+
+      return [{ factor: Math.min(Math.max(share, 0), 1), time }]
     })
 
     this.#window   = window
