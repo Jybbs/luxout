@@ -12,7 +12,7 @@ interface Row {
 
 const CANCEL    = "github.event_name=='pull_request'"
 const CONTEXTS  = new Set(['github.workflow', 'github.ref'])
-const GATE      = '🪁 Brief'
+const GATE      = '✨ Reading'
 const IMAGE     = /^[a-z]+-\d[\w.-]*$/
 const WORKFLOWS = '.github/workflows/*.{yaml,yml}'
 
@@ -153,7 +153,7 @@ class Workflow {
       return [new Finding(
         `The workflow ends on no \`${GATE}\` gate`,
         this.#file.at('jobs') ?? this.#start,
-        'Brief gate'
+        'Reading gate'
       )]
     }
 
@@ -166,12 +166,12 @@ class Workflow {
       ...always ? [] : [new Finding(
         `The \`${GATE}\` gate runs without \`if: always()\`, so a failed job skips it and its check passes`,
         gate.condition ?? gate.spot,
-        'Brief gate'
+        'Reading gate'
       )],
       ...missing.length === 0 ? [] : [new Finding(
         `The \`${GATE}\` gate waits on no \`${missing.join('`, `')}\``,
         gate.needs ?? gate.spot,
-        'Brief gate'
+        'Reading gate'
       )],
       ...others.flatMap((job) => job.steps).flatMap((step) => step.findings)
     ]

@@ -2,7 +2,7 @@ name: 🔆 Release
 
 jobs:
   pack:
-    name            : Pack the package
+    name            : 📦 Pack
     runs-on         : ubuntu-26.04
     timeout-minutes : 15
 
@@ -31,7 +31,7 @@ jobs:
           path              : '*.tgz'
 
   publish:
-    name            : Publish to npm
+    name            : 📯 Publish
     runs-on         : ubuntu-26.04
     timeout-minutes : 10
 
@@ -66,7 +66,7 @@ jobs:
         run  : npm publish ./*.tgz
 
   brief:
-    name            : 🪁 Brief
+    name            : ✨ Reading
     if              : always()
     runs-on         : ubuntu-26.04
     timeout-minutes : 5

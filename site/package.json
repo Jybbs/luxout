@@ -1,0 +1,15 @@
+{
+  "name": "luxout-site",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.0.3",
+    "knip": "6.41.0",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2003",
+    "typescript": "7.0.2",
+    "vitepress": "2.0.0-alpha.20",
+    "vitest": "5.0.3"
+  }
+}

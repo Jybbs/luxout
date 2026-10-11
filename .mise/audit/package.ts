@@ -4,6 +4,7 @@ import { Finding }    from './finding.ts'
 
 const FLOOR    = /(?<=\^)\d[\d.]*/g
 const MANIFEST = 'package.json'
+const SITE     = 'site/package.json'
 
 export class PackageManifest {
   readonly #file: YamlFile
@@ -12,8 +13,12 @@ export class PackageManifest {
     return new PackageManifest(audit.read(MANIFEST))
   }
 
-  constructor(text: string) {
-    this.#file = new YamlFile(MANIFEST, text)
+  static site(audit: Audit): PackageManifest | undefined {
+    return audit.exists(SITE) ? new PackageManifest(audit.read(SITE), SITE) : undefined
+  }
+
+  constructor(text: string, file = MANIFEST) {
+    this.#file = new YamlFile(file, text)
   }
 
   get findings(): Finding[] {
