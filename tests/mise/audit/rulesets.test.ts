@@ -39,7 +39,7 @@ test('reports nothing where the branch ruleset requires the gate a pull request 
 test('reports a required check that is no gate', () => {
   expect(audit(checks(GATE, 'build'))).toEqual([{
     message : '`main branch protection` requires the check `build`, '
-            + 'which is not the gate of any workflow a pull request runs',
+            + 'which is not the gate of any workflow that runs on `pull_request`',
     spot    : { file: FILE, line: 16 },
     title   : 'Required check'
   }])
@@ -66,7 +66,7 @@ test('reports the check a renamed gate leaves behind and the gate the ruleset no
     [
       12,
       '`main branch protection` requires the check `Brief`, '
-    + 'which is not the gate of any workflow a pull request runs'
+    + 'which is not the gate of any workflow that runs on `pull_request`'
     ],
     [3, `\`main branch protection\` does not require \`${GATE}\`, the gate \`ci.yml\` ends on`]
   ])

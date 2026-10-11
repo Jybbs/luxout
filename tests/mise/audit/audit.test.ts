@@ -68,7 +68,7 @@ test('prints what the rulesets report against the gates of the workflows', async
   expect(new Audit(scratch, mise([]), write).report()).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '::error file=.github/rulesets/main.json,line=1,title=Required check::'
-  + '`main` requires the check `build`, which is not the gate of any workflow a pull request runs'
+  + '`main` requires the check `build`, which is not the gate of any workflow that runs on `pull_request`'
   ])
 })
 

@@ -40,7 +40,7 @@ class Ruleset {
     return [
       ...contexts.filter(({ value }) => !named.has(value)).map((context) => new Finding(
         `\`${name}\` requires the check \`${String(context.value)}\`, `
-      + 'which is not the gate of any workflow a pull request runs',
+      + 'which is not the gate of any workflow that runs on `pull_request`',
         context,
         'Required check'
       )),
