@@ -6,7 +6,7 @@ concurrency:
 
 jobs:
   check:
-    name            : ${{ matrix.task }}
+    name            : ${{ matrix.name }}
     runs-on         : ubuntu-26.04
     timeout-minutes : 15
 
@@ -21,7 +21,7 @@ jobs:
         with:
           tools: ${{ matrix.tools }}
 
-      - name : Run the row's task
+      - name : mise run ${{ matrix.task }}
         run  : mise run "$TASK"
         env:
           TASK: ${{ matrix.task }}
@@ -47,50 +47,68 @@ jobs:
 
       matrix:
         include:
-          - task  : lock:check
+          - name  : ❄️ Lockfile
+            task  : lock:check
             tools : bun
 
-          - task  : plugin:build
+          - name  : 🗜️ Build
+            task  : plugin:build
             tools : bun node
 
-          - task  : plugin:cover
+          - name  : ☀️ Suite
+            task  : plugin:cover
             tools : bun jq node
 
-          - task  : plugin:lint
+          - name  : 🐂 Oxlint
+            task  : plugin:lint
             tools : bun node
 
-          - task  : plugin:scour
+          - name  : 📦 Pack
+            task  : plugin:pack
+            tools : bun jq node
+
+          - name  : 🕸️ Unused
+            task  : plugin:scour
             tools : bun node
 
-          - task  : plugin:test:22
+          - name  : 🕯️ Node 22
+            task  : plugin:test:22
             tools : bun jq node@22.23.3
 
-          - task  : plugin:test:24
+          - name  : 💡 Node 24
+            task  : plugin:test:24
             tools : bun jq node@24.21.0
 
-          - task  : plugin:typecheck
+          - name  : 🚩 Types
+            task  : plugin:typecheck
             tools : bun node
 
-          - task  : repo:audit
+          - name  : 🔭 Audit
+            task  : repo:audit
             tools : bun node
 
-          - task  : repo:lint:workflows
+          - name  : 🗝️ Workflows
+            task  : repo:lint:workflows
             tools : zizmor
 
-          - task  : site:cover
+          - name  : ☂️ Coverage
+            task  : site:cover
             tools : bun node
 
-          - task  : site:lint
+          - name  : 🧶 Lint
+            task  : site:lint
             tools : bun node
 
-          - task  : site:scour
+          - name  : 🍂 Cruft
+            task  : site:scour
             tools : bun node
 
-          - task  : site:typecheck
+          - name  : 🚩 Types
+            task  : site:typecheck
             tools : bun node
 
   press:
-    name            : site:linkcheck
+    name            : ⛓️ Links
     runs-on         : ubuntu-26.04
     timeout-minutes : 15
 
@@ -109,7 +127,7 @@ jobs:
         run  : mise run site:linkcheck
 
   brief:
-    name            : 🪁 Brief
+    name            : ✨ Reading
     if              : always()
     runs-on         : ubuntu-26.04
     timeout-minutes : 5

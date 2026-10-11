@@ -4,22 +4,12 @@ import { Finding }                   from './finding.ts'
 const PIN     = /^(?<action>[^/@]+\/[^/@]+)[^@]*@(?<ref>.+)$/
 const SUMMARY = 'GITHUB_STEP_SUMMARY'
 
-/**
- * A step of a workflow's job or of a composite action, read from the file that
- * holds it.
- */
 export class Step {
   readonly #file : YamlFile
   readonly #path : Key[]
 
-  /**
-   * Reads each step of the sequence at `path`, or none where no sequence sits
-   * there.
-   */
   static list(file: YamlFile, ...path: Key[]): Step[] {
-    const steps = file.at(...path)?.value
-
-    return Array.isArray(steps) ? steps.map((_, index) => new Step(file, [...path, index])) : []
+    return file.items(...path).map((_, index) => new Step(file, [...path, index]))
   }
 
   constructor(file: YamlFile, path: Key[]) {
@@ -27,9 +17,6 @@ export class Step {
     this.#path = path
   }
 
-  /**
-   * Reports the script the step runs where it writes the step summary.
-   */
   get findings(): Finding[] {
     const run = this.#file.at(...this.#path, 'run')
 
@@ -40,9 +27,6 @@ export class Step {
     )] : []
   }
 
-  /**
-   * Finds each input the step passes through `with`, valued by its name.
-   */
   get inputs(): Entry[] {
     return this.#file.keys(...this.#path, 'with')
   }
@@ -53,11 +37,9 @@ export class Step {
 }
 
 /**
- * Holds every action `uses` names outside the repository to one commit across
- * every file naming it, and rejects a comment trailing a pin.
- *
- * An action is keyed by its owner and repository, so the actions under one
- * repository share a commit, and a local or Docker reference names none.
+ * Holds each action outside the repository to one commit across every file
+ * naming it, keyed by its owner and repository, and rejects a comment trailing
+ * a pin.
  */
 export function pinned(uses: Entry[]): Finding[] {
   const pins = uses.flatMap((entry) => {

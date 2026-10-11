@@ -66,7 +66,29 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   + '`&a` is a YAML anchor or alias, which GitHub rejects in an action manifest',
     '::error file=.github/workflows/ci.yml,line=1,title=Concurrency::The workflow runs on `pull_request` '
   + 'and sets no `concurrency` group, so a superseded pull-request run keeps running',
-    '::error file=.github/workflows/ci.yml,line=3,title=Brief gate::The workflow ends on no `🪁 Brief` gate'
+    '::error file=.github/workflows/ci.yml,line=3,title=Reading gate::The workflow ends on no `✨ Reading` gate'
+  ])
+})
+
+test('prints what the label registry and the files naming its labels report', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.github/ISSUE_TEMPLATE/spec.md' : '---\nlabels: 🦖 rex\n---\n',
+    '.github/labels.toml'            : '["🐞 bug"]\ncolor = "c62d42"\ndescription = "A defect."\n',
+    '.github/release.yml'            : 'changelog:\n  categories: []\n',
+    '.mise/config.toml'              : CONFIG,
+    'package.json'                   : manifest('5.0.3')
+  })
+
+  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=.github/labels.toml,line=3,title=Label description::'
+  + 'The description of `🐞 bug` ends on a period',
+    '::error file=.github/labels.toml,line=1,title=Release category::'
+  + '`🐞 bug` sits in no category of `.github/release.yml`',
+    '::error file=.github/ISSUE_TEMPLATE/spec.md,line=2,title=Unknown label::'
+  + '`.github/labels.toml` declares no label `🦖 rex`'
   ])
 })
 

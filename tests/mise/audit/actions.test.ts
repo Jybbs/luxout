@@ -19,10 +19,10 @@ const PROVISION = [
   '        install_args: ${{ inputs.tools }}'
 ].join('\n')
 
-const ACTIONS = new Actions({ [MANIFEST]: PROVISION })
+const actions = new Actions({ [MANIFEST]: PROVISION })
 
 it('reports nothing on a manifest with no anchor and no step writing the step summary', () => {
-  expect(ACTIONS.findings).toEqual([])
+  expect(actions.findings).toEqual([])
 })
 
 it.each([
@@ -46,7 +46,7 @@ it('reports a manifest that fails to parse rather than throwing', () => {
 })
 
 it('finds the action each step of every manifest names', () => {
-  expect(ACTIONS.pins).toEqual([{
+  expect(actions.pins).toEqual([{
     file  : MANIFEST,
     line  : 8,
     value : 'jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca'
@@ -59,7 +59,7 @@ it.each([
   { inputs: undefined, uses: './.github/actions/missing' },
   { inputs: undefined, uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' }
 ])('finds the inputs the manifest `$uses` names declares', ({ inputs, uses }) => {
-  expect(ACTIONS.inputs(uses)).toEqual(inputs)
+  expect(actions.inputs(uses)).toEqual(inputs)
 })
 
 test('reads every manifest under .github/actions/ from the checkout', async ({ scratch }) => {

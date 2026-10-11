@@ -1,0 +1,33 @@
+changelog:
+  categories:
+    - title: 🐞 Fixes
+      labels:
+        - 🐞 bug
+
+    - title: 🕶️ Sensors
+      labels:
+        - 🕶️ sensors
+
+    - title: ⛅ Sky
+      labels:
+        - ⛅ sky
+
+    - title: 🔌 Homebridge
+      labels:
+        - 🔌 homebridge
+
+    - title: 🎚️ Settings
+      labels:
+        - 🎚️ settings
+
+    - title: 📗 Docs
+      labels:
+        - 📗 docs
+
+    - title: 🗜️ Build
+      labels:
+        - 🗜️ build
+
+    - title: Other
+      labels:
+        - "*"

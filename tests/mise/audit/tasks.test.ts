@@ -8,9 +8,6 @@ import { TaskList }        from '../../../.mise/audit/tasks.ts'
 import { mise }            from '../../common/mise.js'
 import { plant, test }     from '../../common/scratch.js'
 
-/**
- * A task a case poses, naming its source relative to the scratch checkout.
- */
 interface Declared {
   name   : string
   source : string
@@ -20,7 +17,7 @@ interface Declared {
 }
 
 const FRONTMATTER = '#!/usr/bin/env -S bash -euo pipefail\n#MISE description = "Install"\n\n'
-const MANIFEST    = new PackageManifest('{}')
+const manifest    = new PackageManifest('{}')
 
 const listing = (root: string, tasks: Declared[]) =>
   tasks.map(({ file = false, name, run = [], source, tools = {} }) => ({
@@ -49,7 +46,7 @@ describe('a bun install a task runs', () => {
       { file: true, name: 'plugin:bake', source: '.mise/tasks/plugin/bake' }
     ])))
 
-    expect(TaskList.read(audit).findings(MANIFEST)).toMatchObject(flagged ? [{
+    expect(TaskList.read(audit).findings(manifest)).toMatchObject(flagged ? [{
       message : `\`${script}\` runs without \`--frozen-lockfile\` or \`--lockfile-only\``,
       spot    : { file: '.mise/tasks/plugin/bake', line: 4 },
       title   : 'Unfrozen install'
@@ -73,7 +70,7 @@ describe('a bun install a task runs', () => {
       }
     ]))
 
-    expect(TaskList.read(audit).findings(MANIFEST))
+    expect(TaskList.read(audit).findings(manifest))
       .toMatchObject([{ spot: { file: '.mise/tasks/plugin/test', line: 4 }, title: 'Unfrozen install' }])
   })
 
@@ -84,7 +81,7 @@ describe('a bun install a task runs', () => {
       { name: 'x:a', run: ['bun install', 'bun i'], source: '.mise/tasks/x.toml' }
     ])))
 
-    expect(TaskList.read(audit).findings(MANIFEST).map(({ message }) => message)).toEqual([
+    expect(TaskList.read(audit).findings(manifest).map(({ message }) => message)).toEqual([
       '`bun install` runs without `--frozen-lockfile` or `--lockfile-only`',
       '`bun i` runs without `--frozen-lockfile` or `--lockfile-only`'
     ])
@@ -97,7 +94,7 @@ describe('a bun install a task runs', () => {
       { file: true, name: 'plugin:bake', source: '.mise/tasks/plugin/bake' }
     ])))
 
-    expect(TaskList.read(audit).findings(MANIFEST).map(({ spot }) => spot.line)).toEqual([4, 5])
+    expect(TaskList.read(audit).findings(manifest).map(({ spot }) => spot.line)).toEqual([4, 5])
   })
 
   test('reads the script a TOML task’s file names, keeping defects on its table', async ({ scratch }) => {
@@ -114,7 +111,7 @@ describe('a bun install a task runs', () => {
       tools  : {}
     }], [{ message: "Dependency 'nope' not found", task: 'repo:sync' }]))
 
-    expect(TaskList.read(audit).findings(MANIFEST)).toMatchObject([
+    expect(TaskList.read(audit).findings(manifest)).toMatchObject([
       { spot: { file: 'scripts/sync.sh', line: 4 }, title: 'Unfrozen install' },
       { message: "Dependency 'nope' not found", spot: { file: '.mise/tasks/repo/sync.toml', line: 2 } }
     ])
@@ -131,7 +128,7 @@ describe('a bun install a task runs', () => {
       tools  : {}
     }], [{ message: 'Task file not found: scripts/missing.sh', task: 'repo:sync' }]))
 
-    expect(TaskList.read(audit).findings(MANIFEST)).toMatchObject([{
+    expect(TaskList.read(audit).findings(manifest)).toMatchObject([{
       message : 'Task file not found: scripts/missing.sh',
       spot    : { file: '.mise/tasks/repo/sync.toml', line: 1 }
     }])
@@ -148,7 +145,7 @@ describe('a bun install a task runs', () => {
       { name: 'x:b', run: ['bun install'], source: '.mise/tasks/x.toml' }
     ])))
 
-    expect(TaskList.read(audit).findings(MANIFEST))
+    expect(TaskList.read(audit).findings(manifest))
       .toMatchObject([{ spot: { file: '.mise/tasks/x.toml', line: 7 } }])
   })
 
@@ -161,7 +158,7 @@ describe('a bun install a task runs', () => {
       { name: 'lock:sync', run: ['mise lock', 'bun install\n'], source: '.mise/tasks/lock/sync.toml' }
     ])))
 
-    expect(TaskList.read(audit).findings(MANIFEST)).toMatchObject([
+    expect(TaskList.read(audit).findings(manifest)).toMatchObject([
       { spot: { file: '.mise/tasks/lock/sync.toml', line: 6 } }
     ])
   })
@@ -176,7 +173,7 @@ describe('a defect mise tasks validate reports', () => {
       [{ details: "Referenced in 'depends'", message: "Dependency 'nope' not found", task: 'plugin:test' }]
     ))
 
-    expect(TaskList.read(audit).findings(MANIFEST)).toMatchObject([{
+    expect(TaskList.read(audit).findings(manifest)).toMatchObject([{
       message : "Dependency 'nope' not found. Referenced in 'depends'",
       spot    : { file: '.mise/tasks/plugin/test', line: 1 },
       title   : 'Task defect'
@@ -191,7 +188,7 @@ describe('a defect mise tasks validate reports', () => {
       [{ details: 'Run mise fmt', message: 'Not formatted', severity: 'warning', task: 'plugin:test' }]
     ))
 
-    expect(TaskList.read(audit).findings(MANIFEST))
+    expect(TaskList.read(audit).findings(manifest))
       .toMatchObject([{ message: 'Not formatted. Run mise fmt' }])
   })
 
@@ -216,7 +213,7 @@ describe('a defect mise tasks validate reports', () => {
       [{ details: 'Tasks: a, b', message: "Alias 'x' is used by multiple tasks", task: name }]
     ))
 
-    expect(TaskList.read(audit).findings(MANIFEST)).toMatchObject([{ spot: { file: source, line } }])
+    expect(TaskList.read(audit).findings(manifest)).toMatchObject([{ spot: { file: source, line } }])
   })
 })
 
@@ -234,7 +231,7 @@ test('lists every task the checkout declares through mise, hidden ones included'
 test('reports what mise printed where it lists no task rather than throwing', ({ scratch }) => {
   const run = vi.fn<Run>(() => ({ stderr: 'mise ERROR Error parsing task file\n', stdout: '' }))
 
-  expect(TaskList.read(new Audit(scratch, run)).findings(MANIFEST)).toMatchObject([{
+  expect(TaskList.read(new Audit(scratch, run)).findings(manifest)).toMatchObject([{
     message : 'Error: mise ERROR Error parsing task file',
     spot    : { file: '.mise/config.toml', line: 1 },
     title   : 'Task listing'
@@ -248,7 +245,7 @@ test('reports the line a task script stops parsing on', async ({ scratch }) => {
     { file: true, name: 'plugin:bake', source: '.mise/tasks/plugin/bake' }
   ])))
 
-  expect(TaskList.read(audit).findings(MANIFEST)).toMatchObject([{
+  expect(TaskList.read(audit).findings(manifest)).toMatchObject([{
     message : "unexpected token '('",
     spot    : { file: '.mise/tasks/plugin/bake', line: 4 },
     title   : 'Shell syntax'

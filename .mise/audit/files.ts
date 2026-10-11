@@ -6,8 +6,7 @@ import { type Document, LineCounter, isAlias, isMap, isNode, parseDocument, visi
 import { Finding, type Spot } from './finding.ts'
 
 /**
- * A value one of the audited files holds, beside the file and line it sits on
- * and any comment trailing it there.
+ * A value an audited file holds, beside any comment trailing it on its line.
  */
 export interface Entry extends Spot {
   value    : unknown
@@ -18,10 +17,6 @@ export type Key = number | string
 
 const PARSE = 'Parse error'
 
-/**
- * A TOML file parsed through `toml-eslint-parser`, which gives each table, key,
- * and value the line it sits on.
- */
 export class TomlFile {
   readonly errors   : Finding[]
   readonly file     : string
@@ -29,10 +24,6 @@ export class TomlFile {
   readonly #text    : string
   readonly #value   : unknown
 
-  /**
-   * Parses `text`, holding a parse error as a finding beside the empty program,
-   * so every lookup into a file that fails to parse finds nothing.
-   */
   constructor(file: string, text: string) {
     this.file  = file
     this.#text = text
@@ -50,8 +41,8 @@ export class TomlFile {
   }
 
   /**
-   * Finds the table or the value at `path`, whether a table header or a dotted
-   * key spells it out.
+   * Finds the table or the value at `path`, whether a table header, a dotted
+   * key, or an inline table spells it out, and the whole file at an empty path.
    */
   at(...path: Key[]): Entry | undefined {
     const node  = this.#find(path)
@@ -81,14 +72,12 @@ export class TomlFile {
   }
 
   #find(path: Key[]): AST.TOMLNode | undefined {
+    if (path.length === 0) return this.#program
+
     return keyed(this.#program.body[0].body).find(([key]) => isDeepStrictEqual(key, path))?.[1]
   }
 }
 
-/**
- * A YAML or JSON file parsed through `yaml`, whose `LineCounter` gives each
- * node the line it sits on.
- */
 export class YamlFile {
   readonly file      : string
   readonly #document : Document.Parsed
@@ -101,9 +90,8 @@ export class YamlFile {
   }
 
   /**
-   * Finds every alias the document holds on its line and every anchor on the
-   * line of the node it marks, each valued as it is written, such as `&step`
-   * or `*step`.
+   * Finds each alias and each anchor, valued as written, such as `*step` or
+   * `&step`, an anchor on the line of the node it marks.
    */
   get anchors(): Entry[] {
     const anchors: Entry[] = []
@@ -123,10 +111,6 @@ export class YamlFile {
     return this.#document.errors.map((error) => new Finding(error.message, this.#spot(error.pos[0]), PARSE))
   }
 
-  /**
-   * Finds the node at `path`, each step a key of a mapping or an index of a
-   * sequence.
-   */
   at(...path: Key[]): Entry | undefined {
     const node = this.#document.getIn(path, true)
 
@@ -135,15 +119,17 @@ export class YamlFile {
          : undefined
   }
 
-  /**
-   * Finds each key of the mapping at `path` on its line, valued by the key
-   * itself, or none where no mapping sits there.
-   */
   keys(...path: Key[]): Entry[] {
     const node = this.#document.getIn(path, true)
     const keys = isMap(node) ? node.items.map(({ key }) => key).filter(isNode) : []
 
     return keys.flatMap((key) => key.range ? [{ ...this.#spot(key.range[0]), value: key.toJSON() }] : [])
+  }
+
+  items(...path: Key[]): Entry[] {
+    const sequence = this.at(...path)?.value
+
+    return Array.isArray(sequence) ? sequence.flatMap((_, index) => this.at(...path, index) ?? []) : []
   }
 
   #spot(offset: number): Spot {
@@ -160,7 +146,11 @@ function* keyed(
       yield [node.resolvedKey, node]
       yield* keyed(node.body, node.resolvedKey)
     } else {
-      yield [[...prefix, ...getStaticTOMLValue(node.key)], node.value]
+      const key = [...prefix, ...getStaticTOMLValue(node.key)]
+
+      yield [key, node.value]
+
+      if (node.value.type === 'TOMLInlineTable') yield* keyed(node.value.body, key)
     }
   }
 }
