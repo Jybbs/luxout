@@ -1,20 +1,12 @@
-import { spawnSync } from 'node:child_process'
-import { join }      from 'node:path'
-
 import { expect } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
-
-const task = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'gha', 'match')
+import { sync }        from '../../../common/sync.js'
 
 async function match(scratch: string, tag: string | undefined, version: string) {
   await plant(scratch, { 'package.json': JSON.stringify({ version }) })
 
-  const { status, stderr } = spawnSync(task, {
-    cwd      : scratch,
-    encoding : 'utf8',
-    env      : { ...process.env, GITHUB_REF_NAME: tag }
-  })
+  const { status, stderr } = await sync(scratch, 'gha:match', { env: { GITHUB_REF_NAME: tag } })
 
   return { status, stderr }
 }

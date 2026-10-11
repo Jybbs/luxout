@@ -33,6 +33,23 @@ test.for([
   expect(write.mock.calls.flat()).toEqual(written)
 })
 
+test('prints a finding against the site’s manifest where the checkout holds one', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.mise/config.toml' : CONFIG,
+    'package.json'      : manifest('5.0.3'),
+    'site/package.json' : manifest('5.0.4')
+  })
+
+  new Audit(scratch, mise([]), write).report()
+
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=site/package.json,line=3,title=Coverage pin::`@vitest/coverage-v8` pins 5.0.4, '
+  + 'whereas `vitest`, the release it runs under, pins 5.0.3'
+  ])
+})
+
 test('prints the findings of the workflows and the composite actions', async ({ scratch }) => {
   const write = vi.fn<(line: string) => void>()
 
@@ -49,7 +66,26 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   + '`&a` is a YAML anchor or alias, which GitHub rejects in an action manifest',
     '::error file=.github/workflows/ci.yml,line=1,title=Concurrency::The workflow runs on `pull_request` '
   + 'and sets no `concurrency` group, so a superseded pull-request run keeps running',
-    '::error file=.github/workflows/ci.yml,line=3,title=Brief gate::The workflow ends on no `🪁 Brief` gate'
+    '::error file=.github/workflows/ci.yml,line=3,title=Reading gate::The workflow ends on no `✨ Reading` gate'
+  ])
+})
+
+test('prints what the rulesets report against the gates of the workflows', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+  const rules = [
+    { parameters: { required_status_checks: [{ context: 'build' }] }, type: 'required_status_checks' }
+  ]
+
+  await plant(scratch, {
+    '.github/rulesets/main.json' : JSON.stringify({ name: 'main', rules }),
+    '.mise/config.toml'          : CONFIG,
+    'package.json'               : manifest('5.0.3')
+  })
+
+  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=.github/rulesets/main.json,line=1,title=Required check::'
+  + '`main` requires the check `build`, which is not the gate of any workflow that runs on `pull_request`'
   ])
 })
 

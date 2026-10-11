@@ -7,14 +7,14 @@ import { parsed, spaced } from '../common/window.js'
 import forecast           from './fixtures/forecast.json' with { type: 'json' }
 
 const DAY      = 86_400_000
-const first    = Date.parse('2026-10-04T10:15:00Z')
-const last     = Date.parse('2026-10-04T17:00:00Z')
+const FIRST    = Date.parse('2026-10-04T10:15:00Z')
+const LAST     = Date.parse('2026-10-04T17:00:00Z')
 const place    = new Place(42.35843, -71.05977)
 const readings = fc.array(fc.double({ max: 1400, min: 0, noNaN: true }))
 const starts   = fc.integer({ max: 2_000_000_000, min: 0 })
 const steps    = forecast.minutely_15
-const around   = fc.integer({ max: last + DAY, min: first - DAY })
-const inside   = fc.integer({ max: last, min: first })
+const around   = fc.integer({ max: LAST + DAY, min: FIRST - DAY })
+const inside   = fc.integer({ max: LAST, min: FIRST })
 const window   = parsed(forecast, place)
 
 it('holds one time in milliseconds and one irradiance per step of the forecast', () => {
@@ -106,14 +106,14 @@ test.prop([inside])('brackets an instant in the window by two adjacent steps', (
 })
 
 test.prop([around])('covers the instants from the first step to the last', (time) => {
-  expect(window.covers(new Date(time))).toBe(time >= first && time <= last)
+  expect(window.covers(new Date(time))).toBe(time >= FIRST && time <= LAST)
 })
 
 it.each([
   { irradiances: [],  name: 'no step' },
   { irradiances: [0], name: 'one step' }
 ])('covers no instant in a window holding $name', ({ irradiances }) => {
-  expect(spaced(irradiances, place, first).covers(new Date(first))).toBe(false)
+  expect(spaced(irradiances, place, FIRST).covers(new Date(FIRST))).toBe(false)
 })
 
 it('shapes the window as the body it parsed, beside the coordinates of its place', () => {

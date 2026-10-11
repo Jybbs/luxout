@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "lockfile"
-#MISE description = "Verify `bun.lock` and `.mise/mise.lock` are in sync with their manifests"
+#MISE description = "Verify `bun.lock`, `site/bun.lock`, and `.mise/mise.lock` are in sync with their manifests"
 
 restore() {
   cmp -s "$snapshot" .mise/mise.lock || mv -f "$snapshot" .mise/mise.lock
@@ -8,6 +8,7 @@ restore() {
 }
 
 bun install --dry-run --frozen-lockfile
+bun install --cwd site --dry-run --frozen-lockfile
 
 snapshot=$(mktemp)
 cp -p .mise/mise.lock "$snapshot"

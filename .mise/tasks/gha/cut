@@ -1,0 +1,52 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE description = "Create a draft release with generated notes where the `version` in `package.json` moved since `HEAD~1` or the run was dispatched, unless a release already carries it"
+
+if [[ "$GITHUB_REF_NAME" != main ]]; then
+  echo "A cut from $GITHUB_REF_NAME fails, since the draft's tag lands on main" >&2
+  exit 1
+fi
+
+version=$(jq --raw-output .version package.json)
+echo "version=$version" >>"$GITHUB_OUTPUT"
+
+if [[ "$GITHUB_EVENT_NAME" != workflow_dispatch ]]; then
+  previous=$(git show HEAD~1:package.json | jq --raw-output .version)
+
+  if [[ "$previous" == "$version" ]]; then
+    echo "Version $version did not move since HEAD~1, so no draft is cut"
+    echo "state=unmoved" >>"$GITHUB_OUTPUT"
+    exit 0
+  fi
+fi
+
+release=$(
+  gh api --paginate --slurp 'repos/{owner}/{repo}/releases' \
+    | jq --arg version "$version" --raw-output '
+        [.[][] | select(.tag_name == $version)]
+        | min_by(.draft) // empty
+        | "\(if .draft then "draft" else "published" end) \(.html_url)"
+      '
+)
+
+read -r state url <<<"$release"
+
+case "$state" in
+  draft) echo "Version $version already has a draft at $url, so no draft is cut" ;;
+  published)
+    echo "::warning::Version $version is already published, so no draft is cut"
+    ;;
+  *)
+    url=$(
+      gh release create \
+        --draft \
+        --generate-notes \
+        --target main \
+        --title "$version" \
+        "$version"
+    )
+    state=created
+    echo "Created a draft release for version $version at $url"
+    ;;
+esac
+
+printf 'state=%s\nurl=%s\n' "$state" "$url" >>"$GITHUB_OUTPUT"

@@ -1,3 +1,4 @@
 #!/bin/sh
-root="$(dirname "$0")/../.."
-exec "$root/node_modules/.bin/$(basename "$0")" "$@"
+bin=node_modules/.bin/$(basename "$0")
+[ -x "$bin" ] || bin="$(dirname "$0")/../../$bin"
+exec "$bin" "$@"

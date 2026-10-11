@@ -1,0 +1,4 @@
+#!/bin/sh
+bin=node_modules/.bin/$(basename "$0")
+[ -x "$bin" ] || bin="$(dirname "$0")/../../$bin"
+exec "$bin" "$@"
