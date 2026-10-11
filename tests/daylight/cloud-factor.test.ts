@@ -155,20 +155,18 @@ test.prop([
   fc.double({ max: 180, min: -180, noNaN: true }),
   fc.integer({ max: 499_000, min: 491_000 }),
   fc.integer({ max: 59, min: 0 }),
-  fc.array(fc.double({ max: 1000, min: 0, noNaN: true }), { maxLength: 80, minLength: 80 })
+  fc.array(fc.double({ max: 1000, min: 0, noNaN: true }), { maxLength: 84, minLength: 84 })
 ])(
   'keeps the factor at the minute a window replaces the one before it',
   (latitude, longitude, hours, minute, irradiances) => {
     const place   = new Place(latitude, longitude)
-    const fetched = (hour: number): number => (hours + hour) * HOUR + minute * 60_000
-    const chain   = Array.from({ length: 14 }).reduce<CloudFactor[]>((built, _, hour) => {
-      const first  = Math.floor(fetched(hour) / STEP) * STEP - 4 * STEP
-      const window = spaced(irradiances.slice(hour * 4, hour * 4 + 28), place, first)
+    const fetched = hours * HOUR + minute * 60_000
+    const first   = Math.floor(fetched / STEP) * STEP - 4 * STEP
+    const history = derive(spaced(irradiances.slice(0, 52), place, first - 52 * STEP))
+    const before  = derive(spaced(irradiances.slice(52, 80), place, first), history)
+    const after   = derive(spaced(irradiances.slice(56), place, first + HOUR), before)
 
-      return [...built, derive(window, built.at(-1))]
-    }, [])
-
-    expect(at(chain.at(-1), fetched(13))).toBeCloseTo(at(chain.at(-2), fetched(13)) ?? NaN, 12)
+    expect(at(after, fetched + HOUR)).toBeCloseTo(at(before, fetched + HOUR) ?? NaN, 12)
   }
 )
 
