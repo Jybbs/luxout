@@ -40,7 +40,7 @@ const CI        = [
   '          tools: ${{ matrix.tools }}',
   '      - run: mise run "$TASK"',
   '  brief:',
-  '    name: 🪁 Brief',
+  '    name: ✨ Reading',
   '    if: always()',
   '    needs: [check]',
   '    runs-on: ubuntu-26.04',
@@ -143,37 +143,37 @@ describe('a workflow on its own', () => {
       line  : 1,
       name  : 'no `jobs` at all',
       text  : CI.slice(0, CI.indexOf('jobs:')),
-      title : 'Brief gate'
+      title : 'Reading gate'
     },
     {
       line  : 9,
-      name  : 'no `🪁 Brief` gate',
-      text  : CI.replace('🪁 Brief', 'Brief'),
-      title : 'Brief gate'
+      name  : 'no `✨ Reading` gate',
+      text  : CI.replace('✨ Reading', 'Reading'),
+      title : 'Reading gate'
     },
     {
       line  : 27,
       name  : 'a gate that runs only while every job passes',
       text  : CI.replace('if: always()', 'if: success()'),
-      title : 'Brief gate'
+      title : 'Reading gate'
     },
     {
       line  : 25,
       name  : 'a gate with no condition',
       text  : CI.replace('    if: always()\n', ''),
-      title : 'Brief gate'
+      title : 'Reading gate'
     },
     {
       line  : 28,
       name  : 'a gate that waits on no `check`',
       text  : CI.replace('needs: [check]', 'needs: []'),
-      title : 'Brief gate'
+      title : 'Reading gate'
     },
     {
       line  : 25,
       name  : 'a gate with no `needs`',
       text  : CI.replace('    needs: [check]\n', ''),
-      title : 'Brief gate'
+      title : 'Reading gate'
     },
     {
       line  : 24,

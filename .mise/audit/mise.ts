@@ -4,7 +4,7 @@ import { Finding }              from './finding.ts'
 import type { PackageManifest } from './package.ts'
 
 export const CONFIG = '.mise/config.toml'
-const NUMERIC       = new Intl.Collator('en', { numeric: true })
+const numeric       = new Intl.Collator('en', { numeric: true })
 
 export class MiseConfig {
   readonly #file: TomlFile
@@ -26,12 +26,12 @@ export class MiseConfig {
 
     if (!pin) return []
 
-    const floor   = manifest.floors.toSorted(NUMERIC.compare).at(-1)
+    const floor   = manifest.floors.toSorted(numeric.compare).at(-1)
     const release = String(pin.value)
 
     const inside = floor                           !== undefined
                 && manifest.floor(release)         === floor
-                && NUMERIC.compare(release, floor)  >= 0
+                && numeric.compare(release, floor)  >= 0
 
     const message = floor === undefined
                   ? `\`engines\` admits no caret range for Node ${release} to sit inside`

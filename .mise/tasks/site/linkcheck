@@ -1,0 +1,13 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "linkcheck"
+#MISE depends     = ["site:press"]
+#MISE description = "Check every link and fragment in the built site against the files the build wrote, with no network"
+#MISE dir         = "site"
+
+lychee \
+  --fallback-extensions html \
+  --include-fragments \
+  --index-files index.html \
+  --offline \
+  --root-dir "$PWD/.vitepress/dist" \
+  .vitepress/dist

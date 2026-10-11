@@ -2,8 +2,8 @@ import { expect, it } from 'vitest'
 
 import { PackageManifest } from '../../../.mise/audit/package.ts'
 
-const manifest = (devDependencies: object): PackageManifest =>
-  new PackageManifest(JSON.stringify({ devDependencies, engines: { node: '^26.10.0' } }, null, 2))
+const manifest = (devDependencies: object, file?: string): PackageManifest =>
+  new PackageManifest(JSON.stringify({ devDependencies, engines: { node: '^26.10.0' } }, null, 2), file)
 
 it.each([
   { devDependencies: { '@vitest/coverage-v8': '5.0.3', vitest: '5.0.3' }, name: 'the two pins match' },
@@ -29,6 +29,11 @@ it.each([
   expect(manifest(devDependencies).findings).toMatchObject([
     { message, spot: { file: 'package.json', line: 3 }, title: 'Coverage pin' }
   ])
+})
+
+it('reports a coverage pin against the file the manifest was read from', () => {
+  expect(manifest({ '@vitest/coverage-v8': '5.0.4', vitest: '5.0.3' }, 'site/package.json').findings)
+    .toMatchObject([{ spot: { file: 'site/package.json', line: 3 }, title: 'Coverage pin' }])
 })
 
 it.each([
