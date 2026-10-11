@@ -16,6 +16,12 @@ export interface SyncRun extends Pick<SpawnSyncReturns<string>, 'status' | 'stde
   calls: Call[]
 }
 
+interface SyncSetup {
+  env?  : NodeJS.ProcessEnv
+  fail? : string
+  live? : Record<string, unknown>
+}
+
 const root = join(import.meta.dirname, '..', '..')
 const path = execFileSync('mise', ['x', '--', 'printenv', 'PATH'], { cwd: root, encoding: 'utf8' }).trim()
 
@@ -51,12 +57,13 @@ export async function confirm(
 /**
  * Runs `task` in `scratch` with a stand-in `gh`, which answers a call to each
  * endpoint `live` keys with that key's value, read as pages where the call
- * paginates, and fails each call naming `fail`.
+ * paginates, and fails each call naming `fail`, beside the variables `env` adds
+ * to the task's environment.
  */
 export async function sync(
-  scratch             : string,
-  task                : string,
-  { fail, live = {} } : { fail?: string, live?: Record<string, unknown> } = {}
+  scratch                       : string,
+  task                          : string,
+  { env = {}, fail, live = {} } : SyncSetup = {}
 ): Promise<SyncRun> {
   await plant(scratch, { 'gh.log': '' })
   await cp(join(import.meta.dirname, '..', 'mise', 'fixtures', 'gh.sh'), join(scratch, 'bin', 'gh'))
@@ -65,6 +72,7 @@ export async function sync(
     cwd      : scratch,
     encoding : 'utf8',
     env      : {
+      ...env,
       GH_CONFIG_DIR     : scratch,
       GH_FAIL           : fail ?? '',
       GH_LIVE           : JSON.stringify(live),

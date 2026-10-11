@@ -13,6 +13,7 @@ for arg; do
     "${GH_FAIL:-}") failed=1 ;;
     --paginate)     pages='.[]' ;;
     --silent)       filter=empty ;;
+    --slurp)        pages=. ;;
   esac
   flag=$arg
 done
@@ -25,6 +26,7 @@ jq \
   --args -- "$@" >> "$GH_LOG"
 
 [ -z "$failed" ] || exit 1
+[ "$1" != release ] || [ -z "${GH_CREATED:-}" ] || printf '%s\n' "$GH_CREATED"
 [ "$1" = api ] || exit 0
 
 printf '%s' "${GH_LIVE:-null}" \
