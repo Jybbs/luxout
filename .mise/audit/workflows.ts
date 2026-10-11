@@ -10,11 +10,11 @@ interface Row {
   tools : Entry
 }
 
-const CANCEL    = "github.event_name=='pull_request'"
-const CONTEXTS  = new Set(['github.workflow', 'github.ref'])
-const GATE      = '🪁 Brief'
-const IMAGE     = /^[a-z]+-\d[\w.-]*$/
-const WORKFLOWS = '.github/workflows/*.{yaml,yml}'
+const CANCEL      = "github.event_name=='pull_request'"
+const CONTEXTS    = new Set(['github.workflow', 'github.ref'])
+export const GATE = '✨ Reading'
+const IMAGE       = /^[a-z]+-\d[\w.-]*$/
+const WORKFLOWS   = '.github/workflows/*.{yaml,yml}'
 
 class Job {
   readonly id    : string
@@ -99,14 +99,22 @@ class Workflow {
       ...this.#schedule,
       ...this.#concurrency,
       ...this.jobs.flatMap((job) => job.findings),
-      ...this.#gate
+      ...this.#gateFindings
     ]
+  }
+
+  get gate(): Job | undefined {
+    return this.jobs.find((job) => job.name === GATE)
+  }
+
+  get pullRequest(): Entry | undefined {
+    return this.#trigger('pull_request')
   }
 
   get #concurrency(): Finding[] {
     const concurrency = this.#file.at('concurrency')
     const cancel      = this.#file.at('concurrency', 'cancel-in-progress')
-    const pull        = this.#trigger('pull_request')
+    const pull        = this.pullRequest
     const group       = typeof concurrency?.value === 'string'
                       ? concurrency
                       : this.#file.at('concurrency', 'group')
@@ -146,14 +154,14 @@ class Workflow {
     ]
   }
 
-  get #gate(): Finding[] {
-    const gate = this.jobs.find((job) => job.name === GATE)
+  get #gateFindings(): Finding[] {
+    const { gate } = this
 
     if (gate === undefined) {
       return [new Finding(
         `The workflow ends on no \`${GATE}\` gate`,
-        this.#file.at('jobs') ?? this.#start,
-        'Brief gate'
+        this.#file.at('jobs') ?? this.#file.start,
+        'Reading gate'
       )]
     }
 
@@ -166,12 +174,12 @@ class Workflow {
       ...always ? [] : [new Finding(
         `The \`${GATE}\` gate runs without \`if: always()\`, so a failed job skips it and its check passes`,
         gate.condition ?? gate.spot,
-        'Brief gate'
+        'Reading gate'
       )],
       ...missing.length === 0 ? [] : [new Finding(
         `The \`${GATE}\` gate waits on no \`${missing.join('`, `')}\``,
         gate.needs ?? gate.spot,
-        'Brief gate'
+        'Reading gate'
       )],
       ...others.flatMap((job) => job.steps).flatMap((step) => step.findings)
     ]
@@ -185,10 +193,6 @@ class Workflow {
       schedule,
       'Schedule trigger'
     )] : []
-  }
-
-  get #start(): Spot {
-    return { file: this.#file.file, line: 1 }
   }
 
   #trigger(event: string): Entry | undefined {
@@ -210,6 +214,14 @@ export class Workflows {
   constructor(files: Record<string, string>) {
     this.#workflows = Object.entries(files).map(([file, text]) => new Workflow(file, text))
     this.#jobs      = this.#workflows.flatMap((workflow) => workflow.jobs)
+  }
+
+  /**
+   * Finds the gate of each workflow that runs on `pull_request`, the checks a
+   * branch ruleset requires.
+   */
+  get gates(): Job[] {
+    return this.#workflows.flatMap((workflow) => workflow.pullRequest ? workflow.gate ?? [] : [])
   }
 
   get #images(): Finding[] {

@@ -1,12 +1,12 @@
-import { execFileSync, spawnSync } from 'node:child_process'
-import { readFile }                from 'node:fs/promises'
-import { join }                    from 'node:path'
-import { parseEnv }                from 'node:util'
+import { execFileSync } from 'node:child_process'
+import { readFile }     from 'node:fs/promises'
+import { join }         from 'node:path'
+import { parseEnv }     from 'node:util'
 
 import { expect } from 'vitest'
 
-import { logged, standIn } from '../../../common/gh.js'
-import { plant, test }     from '../../../common/scratch.js'
+import { plant, test } from '../../../common/scratch.js'
+import { sync }        from '../../../common/sync.js'
 
 interface Conditions {
   event? : string
@@ -21,9 +21,9 @@ interface Release {
   tag_name : string
 }
 
-const ADDRESS = 'https://github.com/Jybbs/luxout/releases/tag/untagged-5f0c2a'
-const LISTING = ['api', '--paginate', '--slurp', 'repos/{owner}/{repo}/releases']
-const task    = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'gha', 'cut')
+const ADDRESS  = 'https://github.com/Jybbs/luxout/releases/tag/untagged-5f0c2a'
+const ENDPOINT = 'repos/{owner}/{repo}/releases'
+const LISTING  = ['api', '--paginate', '--slurp', ENDPOINT]
 
 const create = (version: string) => [
   'release', 'create', '--draft', '--generate-notes', '--target', 'main', '--title', version, version
@@ -31,8 +31,8 @@ const create = (version: string) => [
 
 /**
  * Commits each of `versions` in turn as the `version` in `package.json`, then
- * runs the task in `scratch` under a stand-in `gh` that answers `gh api` with
- * `pages` and fails each call to the command `fail` names.
+ * runs the task in `scratch` under a stand-in `gh` that answers the releases
+ * listing with `pages` and fails each call to the command `fail` names.
  */
 async function cut(
   scratch  : string,
@@ -40,10 +40,7 @@ async function cut(
   { event = 'push', fail, pages = [[]], ref = 'main' } : Conditions = {}
 ) {
   const env = {
-    ...await standIn(scratch),
     GH_CREATED          : ADDRESS,
-    GH_FAIL             : fail ?? '',
-    GH_LIVE             : JSON.stringify(pages),
     GITHUB_EVENT_NAME   : event,
     GITHUB_OUTPUT       : join(scratch, 'output'),
     GITHUB_REF_NAME     : ref,
@@ -55,7 +52,8 @@ async function cut(
     GIT_CONFIG_NOSYSTEM : '1'
   }
 
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: scratch, env })
+  const git = (...args: string[]) =>
+    execFileSync('git', args, { cwd: scratch, env: { ...env, PATH: process.env.PATH } })
 
   await plant(scratch, { output: '' })
   git('init', '--quiet')
@@ -66,10 +64,14 @@ async function cut(
     git('commit', '--allow-empty', '--message', version, '--quiet')
   }
 
-  const { status, stderr, stdout } = spawnSync(task, { cwd: scratch, encoding: 'utf8', env })
-  const outputs                    = parseEnv(await readFile(join(scratch, 'output'), 'utf8'))
+  const { calls, status, stderr, stdout } = await sync(scratch, 'gha:cut', {
+    env  : env,
+    fail : fail,
+    live : { [ENDPOINT]: pages }
+  })
+  const outputs = parseEnv(await readFile(join(scratch, 'output'), 'utf8'))
 
-  return { calls: await logged(scratch), outputs, status, stderr, stdout }
+  return { calls: calls.map(({ args }) => args), outputs, status, stderr, stdout }
 }
 
 const release = (draft: boolean, tag: string) => ({

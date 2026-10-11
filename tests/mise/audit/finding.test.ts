@@ -4,7 +4,7 @@ import { expect, it } from 'vitest'
 import { Finding } from '../../../.mise/audit/finding.ts'
 
 const ANNOTATION = /^::error file=(?<file>[^,]*),line=(?<line>\d+),title=(?<title>[^:]*)::(?<message>.*)$/s
-const TEXT       = fc.string({ unit: 'binary-ascii' })
+const text       = fc.string({ unit: 'binary-ascii' })
 
 it.each([
   {
@@ -21,7 +21,7 @@ it.each([
   expect(finding.annotation).toBe(annotation)
 })
 
-test.prop([TEXT, fc.nat(), TEXT, TEXT])(
+test.prop([text, fc.nat(), text, text])(
   'round-trips every file, line, message, and title through the runner’s decoding',
   (file, line, message, title) => {
     const { groups = {} } = ANNOTATION.exec(new Finding(message, { file, line }, title).annotation) ?? {}

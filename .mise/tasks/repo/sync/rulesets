@@ -1,0 +1,140 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "rulesets"
+#MISE confirm     = "Apply every ruleset under `.github/rulesets/` and every setting `.github/settings.toml` and `package.json` declare on GitHub?"
+#MISE description = "Apply each ruleset under `.github/rulesets/`, renaming in place the live ruleset its file is named for, send every setting `.github/settings.toml` and `package.json` declare, then list each live ruleset no file names"
+
+source "$MISE_PROJECT_ROOT/.mise/lib/sync.sh"
+
+rulesets='repos/{owner}/{repo}/rulesets'
+settings=$(bun --print 'JSON.stringify(require("./.github/settings.toml"))')
+
+requests=$(
+  jq \
+    --raw-output \
+    --slurpfile manifest package.json \
+    '
+      { enabled: "boolean" } as $toggle
+      | {
+          graphql: { updateRepository: { hasDiscussionsEnabled: "boolean" } },
+
+          "repos/{owner}/{repo}": {
+            allow_auto_merge            : "boolean",
+            allow_merge_commit          : "boolean",
+            allow_rebase_merge          : "boolean",
+            allow_squash_merge          : "boolean",
+            allow_update_branch         : "boolean",
+            delete_branch_on_merge      : "boolean",
+            has_issues                  : "boolean",
+            has_projects                : "boolean",
+            has_wiki                    : "boolean",
+            squash_merge_commit_message : "string",
+            squash_merge_commit_title   : "string",
+
+            security_and_analysis: {
+              secret_scanning                 : { status: "string" },
+              secret_scanning_push_protection : { status: "string" }
+            }
+          },
+
+          "repos/{owner}/{repo}/actions/permissions": {
+            allowed_actions      : "string",
+            enabled              : "boolean",
+            sha_pinning_required : "boolean"
+          },
+
+          "repos/{owner}/{repo}/actions/permissions/fork-pr-contributor-approval": {
+            approval_policy: "string"
+          },
+
+          "repos/{owner}/{repo}/actions/permissions/workflow": {
+            can_approve_pull_request_reviews : "boolean",
+            default_workflow_permissions     : "string"
+          },
+
+          "repos/{owner}/{repo}/automated-security-fixes"        : $toggle,
+          "repos/{owner}/{repo}/immutable-releases"              : $toggle,
+          "repos/{owner}/{repo}/private-vulnerability-reporting" : $toggle,
+          "repos/{owner}/{repo}/vulnerability-alerts"            : $toggle
+        } as $schema
+      | . as $settings
+      | [
+          paths as $path
+          | select(
+              (getpath($path) | type)
+              != ($schema | try getpath($path) catch null | objects |= "object")
+            )
+          | $path
+          | join(".")
+        ]
+      | if . != [] then
+          "Nothing was sent, since .github/settings.toml declares a table, a key, or a value of a type outside the schema:\n"
+          + (map("  \(.)\n") | add)
+          | halt_error(1)
+        end
+      | $manifest[0] as { $description, $keywords }
+      | $settings
+      | (
+          [
+            "PATCH",
+            "repos/{owner}/{repo}",
+            .["repos/{owner}/{repo}"] + { $description }
+          ],
+          [
+            "PUT",
+            "repos/{owner}/{repo}/topics",
+            { names: ($keywords - ["supports-hap"]) }
+          ],
+          (
+            del(.graphql, .["repos/{owner}/{repo}"])
+            | to_entries[]
+            | if $schema[.key] == $toggle
+              then [if .value.enabled then "PUT" else "DELETE" end, .key]
+              else ["PUT", .key, .value]
+              end
+          )
+        )
+      | map(strings // tojson)
+      | join("\t")
+    ' <<<"$settings"
+)
+
+live=$(
+  gh api --paginate "$rulesets" \
+    | jq --compact-output --slurp 'add // [] | INDEX(.name) | map_values(.id)'
+)
+
+for file in .github/rulesets/*.json; do
+  id=$(
+    jq \
+      --arg stem "$(basename "$file" .json)" \
+      --raw-output \
+      --slurpfile ruleset "$file" \
+      '.[$ruleset[0].name] // .[$stem] // empty' <<<"$live"
+  )
+
+  method=POST
+  [[ -z "$id" ]] || method=PUT
+
+  gh api --input "$file" --method "$method" --silent "$rulesets${id:+/$id}"
+done
+
+while IFS=$'\t' read -r -u 3 method path body; do
+  gh api ${body:+--input -} --method "$method" --silent "$path" <<<"$body"
+done 3<<<"$requests"
+
+repository=$(gh api --jq .node_id 'repos/{owner}/{repo}')
+
+jq \
+  --arg repository "$repository" \
+  --compact-output \
+  '
+    {
+      query     : "mutation($input: UpdateRepositoryInput!) { "
+                + "updateRepository(input: $input) { clientMutationId } }",
+      variables : { input: ({ repositoryId: $repository } + .graphql.updateRepository) }
+    }
+  ' <<<"$settings" | gh api --input - --method POST --silent graphql
+
+declared=$(jq --compact-output --slurp 'map(.name)' .github/rulesets/*.json)
+
+list_omitted "$declared" rulesets "$rulesets"

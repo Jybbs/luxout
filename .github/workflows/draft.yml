@@ -37,7 +37,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   brief:
-    name            : 🪁 Brief
+    name            : ✨ Reading
     if              : always()
     runs-on         : ubuntu-26.04
     timeout-minutes : 5

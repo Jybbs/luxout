@@ -1,24 +1,21 @@
-import { spawnSync } from 'node:child_process'
-import { readFile }  from 'node:fs/promises'
-import { join }      from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { join }     from 'node:path'
 
 import { expect } from 'vitest'
 
 import { test } from '../../../common/scratch.js'
+import { sync } from '../../../common/sync.js'
 
 interface Need {
   outputs : Record<string, string>
   result  : string
 }
 
-const task = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'gha', 'brief')
-
 async function brief(needs: Record<string, Need>, scratch: string) {
   const summary = join(scratch, 'summary.md')
 
-  const { status } = spawnSync(task, {
-    encoding : 'utf8',
-    env      : { ...process.env, GITHUB_STEP_SUMMARY: summary, NEEDS: JSON.stringify(needs) }
+  const { status } = await sync(scratch, 'gha:brief', {
+    env: { GITHUB_STEP_SUMMARY: summary, NEEDS: JSON.stringify(needs) }
   })
 
   return { status, summary: await readFile(summary, 'utf8') }

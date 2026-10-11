@@ -5,7 +5,7 @@ import { LabelRegistry } from '../../../.mise/audit/labels.ts'
 import { ReleaseNotes }  from '../../../.mise/audit/release.ts'
 import { plant, test }   from '../../common/scratch.js'
 
-const REGISTRY = new LabelRegistry([
+const registry = new LabelRegistry([
   '["🐞 bug"]',
   'color       = "c62d42"',
   'description = "A defect"',
@@ -26,11 +26,11 @@ const notes = (...categories: string[][]): string => [
 ].join('\n')
 
 it('reports nothing where each label sits in one category beside the catch-all', () => {
-  expect(new ReleaseNotes(notes(['🐞 bug'], ['📗 docs'], ['*'])).findings(REGISTRY)).toEqual([])
+  expect(new ReleaseNotes(notes(['🐞 bug'], ['📗 docs'], ['*'])).findings(registry)).toEqual([])
 })
 
 it('reports a label in no category on the line its registry table opens', () => {
-  expect(new ReleaseNotes(notes(['🐞 bug'], ['*'])).findings(REGISTRY)).toEqual([expect.objectContaining({
+  expect(new ReleaseNotes(notes(['🐞 bug'], ['*'])).findings(registry)).toEqual([expect.objectContaining({
     message : '`📗 docs` sits in no category of `.github/release.yml`',
     spot    : { file: '.github/labels.toml', line: 5 },
     title   : 'Release category'
@@ -39,7 +39,7 @@ it('reports a label in no category on the line its registry table opens', () => 
 
 it('reports each repeat of a label on its own line, past the category that already holds it', () => {
   const text     = notes(['🐞 bug', '📗 docs'], ['🐞 bug'], ['📗 docs', '🐞 bug'])
-  const findings = new ReleaseNotes(text).findings(REGISTRY)
+  const findings = new ReleaseNotes(text).findings(registry)
 
   expect(findings.map(({ message, spot }) => [spot.file, spot.line, message])).toEqual([
     ['.github/release.yml', 9, '`🐞 bug` already sits in a category above this line'],
@@ -49,7 +49,7 @@ it('reports each repeat of a label on its own line, past the category that alrea
 })
 
 it('reports a label one category lists twice on its second line', () => {
-  expect(new ReleaseNotes(notes(['🐞 bug', '🐞 bug', '📗 docs'])).findings(REGISTRY)).toMatchObject([
+  expect(new ReleaseNotes(notes(['🐞 bug', '🐞 bug', '📗 docs'])).findings(registry)).toMatchObject([
     { message: '`🐞 bug` already sits in a category above this line', spot: { line: 6 } }
   ])
 })
@@ -71,7 +71,7 @@ it('reports each label a category or an exclusion names that the registry lacks,
     '          - 🙊 hush'
   ].join('\n')
 
-  expect(new ReleaseNotes(text).findings(REGISTRY).map(({ message, spot }) => [spot.line, message])).toEqual([
+  expect(new ReleaseNotes(text).findings(registry).map(({ message, spot }) => [spot.line, message])).toEqual([
     [8, '`.github/labels.toml` declares no label `🐛 bug`'],
     [4, '`.github/labels.toml` declares no label `🙈 skip`'],
     [13, '`.github/labels.toml` declares no label `🙊 hush`']
@@ -79,7 +79,7 @@ it('reports each label a category or an exclusion names that the registry lacks,
 })
 
 it('reads every label as sitting in no category where the file holds none', () => {
-  expect(new ReleaseNotes('').findings(REGISTRY).map(({ message }) => message)).toEqual([
+  expect(new ReleaseNotes('').findings(registry).map(({ message }) => message)).toEqual([
     '`🐞 bug` sits in no category of `.github/release.yml`',
     '`📗 docs` sits in no category of `.github/release.yml`'
   ])
@@ -92,9 +92,9 @@ it('reports a file that fails to parse rather than throwing', () => {
 
 test('reads the file a checkout holds, and none where it holds no file', async ({ scratch }) => {
   const audit = new Audit(scratch)
-  const empty = ReleaseNotes.read(audit).findings(REGISTRY).length
+  const empty = ReleaseNotes.read(audit).findings(registry).length
 
   await plant(scratch, { '.github/release.yml': notes(['🐞 bug', '📗 docs']) })
 
-  expect([empty, ReleaseNotes.read(audit).findings(REGISTRY)]).toEqual([2, []])
+  expect([empty, ReleaseNotes.read(audit).findings(registry)]).toEqual([2, []])
 })

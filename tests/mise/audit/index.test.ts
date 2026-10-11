@@ -6,7 +6,7 @@ import { expect } from 'vitest'
 
 import { plant, test } from '../../common/scratch.js'
 
-const ENTRY = join(import.meta.dirname, '..', '..', '..', '.mise', 'audit', 'index.ts')
+const entry = join(import.meta.dirname, '..', '..', '..', '.mise', 'audit', 'index.ts')
 
 test('runs under Node’s type stripping and exits 1 on the annotations it prints', async ({ scratch }) => {
   await plant(scratch, {
@@ -16,7 +16,7 @@ test('runs under Node’s type stripping and exits 1 on the annotations it print
   })
   await chmod(join(scratch, '.mise', 'tasks', 'plugin', 'bake'), 0o755)
 
-  const { status, stdout } = spawnSync(process.execPath, [ENTRY], {
+  const { status, stdout } = spawnSync(process.execPath, [entry], {
     cwd      : scratch,
     encoding : 'utf8',
     env      : { ...process.env, MISE_TRUSTED_CONFIG_PATHS: scratch }
