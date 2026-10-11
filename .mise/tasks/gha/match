@@ -1,0 +1,9 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE description = "Hold the `version` in `package.json` to the release tag `GITHUB_REF_NAME` names, failing where the two differ"
+
+version=$(jq --raw-output .version package.json)
+
+if [[ "$version" != "$GITHUB_REF_NAME" ]]; then
+  echo "package.json carries version $version, whereas the release is tagged $GITHUB_REF_NAME" >&2
+  exit 1
+fi

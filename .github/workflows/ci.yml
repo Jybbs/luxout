@@ -43,6 +43,9 @@ jobs:
           - task  : plugin:lint
             tools : bun node
 
+          - task  : plugin:pack
+            tools : bun jq node
+
           - task  : plugin:scour
             tools : bun node
 

@@ -4,15 +4,15 @@ import { Audit }         from '../../../.mise/audit/audit.ts'
 import { LabelRegistry } from '../../../.mise/audit/labels.ts'
 import { plant, test }   from '../../common/scratch.js'
 
-const BUG  = table('🐞 bug', 'c62d42', 'A defect, filed beside the label of the domain where it breaks')
-const DOCS = table('📗 docs', '8cc5a3', 'The README, the docs site, and the contributor guide')
+const bug  = table('🐞 bug', 'c62d42', 'A defect, filed beside the label of the domain where it breaks')
+const docs = table('📗 docs', '8cc5a3', 'The README, the docs site, and the contributor guide')
 
 it('reports nothing where every label holds a lowercase color and a description GitHub accepts', () => {
-  expect(new LabelRegistry([BUG, DOCS].join('\n')).findings).toEqual([])
+  expect(new LabelRegistry([bug, docs].join('\n')).findings).toEqual([])
 })
 
 it('reads each label by its full name on the line its table opens', () => {
-  expect(new LabelRegistry([BUG, DOCS].join('\n')).labels.map(({ name, spot }) => ({ name, spot }))).toEqual([
+  expect(new LabelRegistry([bug, docs].join('\n')).labels.map(({ name, spot }) => ({ name, spot }))).toEqual([
     { name: '🐞 bug', spot: { file: '.github/labels.toml', line: 1 } },
     { name: '📗 docs', spot: { file: '.github/labels.toml', line: 5 } }
   ])
@@ -45,7 +45,7 @@ describe('a color', () => {
   })
 
   it('reports each label taking a color a label above it already takes, naming the first', () => {
-    const shared = [BUG, table('📗 docs', 'c62d42', 'The README'), table('⛅ sky', 'C62D42', 'Sky')].join('\n')
+    const shared = [bug, table('📗 docs', 'c62d42', 'The README'), table('⛅ sky', 'C62D42', 'Sky')].join('\n')
 
     expect(new LabelRegistry(shared).findings.map(({ message, spot }) => [spot.line, message])).toEqual([
       [6, '`📗 docs` takes the color `c62d42`, which `🐞 bug` already takes'],
@@ -85,7 +85,7 @@ describe('a description', () => {
 })
 
 it('reports two tables sharing a name as the parse error on the second, declaring no label', () => {
-  const registry = new LabelRegistry([BUG, BUG].join('\n'))
+  const registry = new LabelRegistry([bug, bug].join('\n'))
 
   expect({ findings: registry.findings, labels: registry.labels }).toMatchObject({
     findings : [{ spot: { file: '.github/labels.toml', line: 5 }, title: 'Parse error' }],
@@ -99,7 +99,7 @@ it('reports each named label the registry does not declare on the line naming it
     { file: '.github/release.yml', line: 5, value: '🐛 bug' }
   ]
 
-  expect(new LabelRegistry(BUG).undeclared(named)).toEqual([expect.objectContaining({
+  expect(new LabelRegistry(bug).undeclared(named)).toEqual([expect.objectContaining({
     message : '`.github/labels.toml` declares no label `🐛 bug`',
     spot    : { file: '.github/release.yml', line: 5 },
     title   : 'Unknown label'
@@ -113,7 +113,7 @@ test('reads a checkout holding no registry as declaring no label', ({ scratch })
 })
 
 test('reads the registry a checkout holds', async ({ scratch }) => {
-  await plant(scratch, { '.github/labels.toml': BUG })
+  await plant(scratch, { '.github/labels.toml': bug })
 
   expect(LabelRegistry.read(new Audit(scratch)).labels.map(({ name }) => name)).toEqual(['🐞 bug'])
 })

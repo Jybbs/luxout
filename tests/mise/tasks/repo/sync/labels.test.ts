@@ -18,9 +18,9 @@ const REGISTRY = [
   String.raw`description = "-Quotes ' and \" and $HOME and \\ stay as written"`
 ].join('\n')
 
-const ROOT = join(import.meta.dirname, '..', '..', '..', '..', '..')
-const PATH = execFileSync('mise', ['x', '--', 'printenv', 'PATH'], { cwd: ROOT, encoding: 'utf8' }).trim()
-const TASK = join(ROOT, '.mise', 'tasks', 'repo', 'sync', 'labels')
+const root = join(import.meta.dirname, '..', '..', '..', '..', '..')
+const path = execFileSync('mise', ['x', '--', 'printenv', 'PATH'], { cwd: root, encoding: 'utf8' }).trim()
+const task = join(root, '.mise', 'tasks', 'repo', 'sync', 'labels')
 
 /**
  * Runs the task in `scratch` with a stand-in `gh` that answers `gh api` with
@@ -34,7 +34,7 @@ async function sync(
   await plant(scratch, { '.github/labels.toml': registry, 'gh.log': '' })
   await cp(join(import.meta.dirname, '..', '..', '..', 'fixtures', 'gh.sh'), join(scratch, 'bin', 'gh'))
 
-  const { status, stdout } = spawnSync(TASK, [], {
+  const { status, stdout } = spawnSync(task, [], {
     cwd      : scratch,
     encoding : 'utf8',
     env      : {
@@ -42,8 +42,8 @@ async function sync(
       GH_FAIL           : fail ?? '',
       GH_LIVE           : live.join('\n'),
       GH_LOG            : join(scratch, 'gh.log'),
-      MISE_PROJECT_ROOT : ROOT,
-      PATH              : join(scratch, 'bin') + delimiter + PATH
+      MISE_PROJECT_ROOT : root,
+      PATH              : join(scratch, 'bin') + delimiter + path
     }
   })
 
@@ -103,10 +103,10 @@ test('fails without listing where reading the live labels fails', async ({ scrat
 })
 
 test('asks before writing when run as labels, failing with no terminal to answer', async ({ scratch }) => {
-  const task = join(scratch, '.mise', 'tasks', 'repo', 'sync', 'labels')
+  const copy = join(scratch, '.mise', 'tasks', 'repo', 'sync', 'labels')
 
   await plant(scratch, { '.mise/config.toml': '' })
-  await cp(TASK, task)
+  await cp(task, copy)
 
   const { status, stderr } = spawnSync('mise', ['run', 'labels'], {
     cwd      : scratch,

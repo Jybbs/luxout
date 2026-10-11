@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { TomlFile, YamlFile } from '../../../.mise/audit/files.ts'
 
-const JSON_TEXT = JSON.stringify(
+const jsonText = JSON.stringify(
   { devDependencies: { vitest: '5.0.3' }, engines: { node: '^26.10.0' } },
   null,
   2
@@ -76,7 +76,7 @@ describe('TomlFile', () => {
 })
 
 describe('YamlFile', () => {
-  const file = new YamlFile('package.json', JSON_TEXT)
+  const file = new YamlFile('package.json', jsonText)
 
   it.each([
     { line: 3, path: ['devDependencies', 'vitest'], value: '5.0.3' },
