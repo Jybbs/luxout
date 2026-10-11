@@ -3,7 +3,7 @@ import { expect, it } from 'vitest'
 
 import { Place }          from '../../src/config/place.js'
 import { ForecastWindow } from '../../src/weather/window.js'
-import { parsed }         from '../common/window.js'
+import { parsed, spaced } from '../common/window.js'
 import forecast           from './fixtures/forecast.json' with { type: 'json' }
 
 const DAY      = 86_400_000
@@ -110,12 +110,10 @@ test.prop([around])('covers the instants from the first step to the last', (time
 })
 
 it.each([
-  { name: 'no step', time: [] },
-  { name: 'one step', time: steps.time.slice(0, 1) }
-])('covers no instant in a window holding $name', ({ time }) => {
-  const short = parsed({ minutely_15: { shortwave_radiation_instant: time.map(() => 0), time } }, place)
-
-  expect(short.covers(new Date(first))).toBe(false)
+  { irradiances: [],  name: 'no step' },
+  { irradiances: [0], name: 'one step' }
+])('covers no instant in a window holding $name', ({ irradiances }) => {
+  expect(spaced(irradiances, place, first).covers(new Date(first))).toBe(false)
 })
 
 it('shapes the window as the body it parsed, beside the coordinates of its place', () => {
@@ -123,8 +121,7 @@ it('shapes the window as the body it parsed, beside the coordinates of its place
 })
 
 test.prop([starts, readings])('restores every window from the shape it stores', (start, irradiances) => {
-  const time   = irradiances.map((_, index) => start + index * 900)
-  const stored = parsed({ minutely_15: { shortwave_radiation_instant: irradiances, time } }, place)
+  const stored = spaced(irradiances, place, start * 1000)
 
   expect(ForecastWindow.restore(stored.toJSON())).toEqual({ ok: true, value: stored })
 })
