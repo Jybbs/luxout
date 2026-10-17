@@ -54,8 +54,8 @@ it('keeps the particle written before a family name', () => {
 })
 
 it('shortens a list BibTeX ends on others to the first author', () => {
-  const bibtex = '@software{others, author = {Hufkens, Koen and others}, title = {T}, publisher = {P}, '
-               + 'year = {2026}, url = {u}}'
+  const bibtex = '@software{others, author = {Hufkens, Koen and Meier, Christoph and others}, title = {T}, '
+               + 'publisher = {P}, year = {2026}, url = {u}}'
 
   expect(Bibliography.parse(bibtex).cite('One[^others].\n'))
     .toBe('One[^others].\n\n[^others]: Hufkens et al. 2026. "T." P. <u>\n')
@@ -114,6 +114,46 @@ it('lifts a mid-page note with its indented lines, leaving one blank line betwee
     .toBe('One[^first].\n\nTwo.\n\n[^first]: The first work.\n')
 })
 
+it('keeps apart the paragraphs around a note that interrupts one', () => {
+  expect(notes.cite('One[^first].\n[^first]: Stale.\n\nTwo.\n'))
+    .toBe('One[^first].\n\nTwo.\n\n[^first]: The first work.\n')
+})
+
+it.each([
+  {
+    cited : 'One[^first].\n\n    [^first]: Code.\n\n[^first]: The first work.\n',
+    name  : 'keeps a definition indented by four spaces, which reads as code',
+    page  : 'One[^first].\n\n    [^first]: Code.\n'
+  },
+  {
+    cited : 'One[^first].\n\n[^first]: The first work.\n',
+    name  : 'lifts a continuation line indented by a tab',
+    page  : 'One[^first].\n\n[^first]: Stale\n\tand continued.\n'
+  },
+  {
+    cited : 'One[^first].\n\n[^first]: The first work.\n',
+    name  : 'lifts a continuation line indented by spaces and then a tab',
+    page  : 'One[^first].\n\n[^first]: Stale\n  \tand continued.\n'
+  },
+  {
+    cited : 'One[^first].\n\nTwo.\n\n[^first]: The first work.\n',
+    name  : 'lifts an indented paragraph continuing the note after a blank line',
+    page  : 'One[^first].\n\n[^first]: Stale.\n\n    More.\n\nTwo.\n'
+  },
+  {
+    cited : 'One[^first].\n\nTwo.\n\n[^first]: The first work.\n',
+    name  : 'lifts an indented paragraph after a blank line holding only spaces',
+    page  : 'One[^first].\n\n[^first]: Stale.\n  \n    More.\n\nTwo.\n'
+  },
+  {
+    cited : 'One[^first].\n\n  Two.\n\n[^first]: The first work.\n',
+    name  : 'keeps a paragraph indented by fewer than four spaces after a note',
+    page  : 'One[^first].\n\n[^first]: Stale.\n\n  Two.\n'
+  }
+])('$name', ({ cited, page }) => {
+  expect(notes.cite(page)).toBe(cited)
+})
+
 it('replaces a note indented by up to three spaces', () => {
   expect(notes.cite('One[^first].\n\n   [^first]: Stale.\n'))
     .toBe('One[^first].\n\n[^first]: The first work.\n')
@@ -148,10 +188,15 @@ it('fails naming an entry whose type no footnote template formats', () => {
 })
 
 it.each([
-  { entry: 'author = {A, B}, year = {2026}',             field: 'address', missing: 'no DOI or URL' },
+  { entry: 'author = {A, B}, year = {2026}', field: 'address', missing: 'no DOI or URL' },
   { entry: 'author = {, John}, year = {2026}, url = {u}', field: 'authors', missing: 'a nameless author' },
-  { entry: 'year = {2026}, url = {u}',                    field: 'authors', missing: 'no author' },
-  { entry: 'author = {A, B}, url = {u}',                  field: 'year',    missing: 'no year' }
+  {
+    entry   : 'author = {A, B and , John}, year = {2026}, url = {u}',
+    field   : 'authors',
+    missing : 'a nameless second author'
+  },
+  { entry: 'year = {2026}, url = {u}', field: 'authors', missing: 'no author' },
+  { entry: 'author = {A, B}, url = {u}', field: 'year', missing: 'no year' }
 ])('fails naming the $field an entry holding $missing leaves out', ({ entry, field }) => {
   expect(() => Bibliography.parse(`@software{bare, ${entry}, title = {T}, publisher = {P}}`))
     .toThrow(`bare leaves out the ${field} its footnote template reads`)

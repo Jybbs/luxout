@@ -3,10 +3,10 @@ import '@citation-js/plugin-bibtex'
 
 /**
  * Matches a footnote's definition from the line opening on `[^key]:` behind up
- * to three spaces, through each indented line continuing it and the blank lines
- * after it.
+ * to three spaces, through each line indented four columns that continues it,
+ * together with the line breaks and blank lines above it.
  */
-const DEFINITION  = /^ {0,3}\[\^[^\]\s]+\]:.*(?:\n+(?: {4}|\t).*)*\n*/gmu
+const DEFINITION  = /(?:\n[ \t]*)*^ {0,3}\[\^[^\]\s]+\]:.*(?:(?:\n[ \t]*)*\n(?: {4}| {0,3}\t).*)*/gmu
 const MARKER      = /(?<=\[\^)[^\]\s]+(?=\])/gu  // The key alone inside each `[^key]` marker
 const PLACEHOLDER = /\{([^}]+)\}/gu
 const TEMPLATES: Partial<Record<CSL['type'], string>> = {
