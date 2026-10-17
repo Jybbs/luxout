@@ -1,7 +1,12 @@
 import { type CSL, type CSLName, Cite } from '@citation-js/core'
 import '@citation-js/plugin-bibtex'
 
-const DEFINITION  = /^\[\^[^\]\s]+\]:.*$/gmu     // A footnote's definition, a line opening on `[^key]:`
+/**
+ * Matches a footnote's definition from the line opening on `[^key]:` behind up
+ * to three spaces, through each indented line continuing it and the blank lines
+ * after it.
+ */
+const DEFINITION  = /^ {0,3}\[\^[^\]\s]+\]:.*(?:\n+(?: {4}|\t).*)*\n*/gmu
 const MARKER      = /(?<=\[\^)[^\]\s]+(?=\])/gu  // The key alone inside each `[^key]` marker
 const PLACEHOLDER = /\{([^}]+)\}/gu
 const TEMPLATES: Partial<Record<CSL['type'], string>> = {
@@ -37,7 +42,7 @@ export class Bibliography {
   /**
    * Places the footnote text of each work `page` cites at the page's end, in
    * the order the page first cites each and a blank line apart. That text
-   * replaces every footnote the page held.
+   * replaces every footnote definition the page held.
    */
   cite(page: string): string {
     const body = page.replaceAll(DEFINITION, '').trimEnd()
@@ -52,15 +57,16 @@ export class Bibliography {
 }
 
 /**
- * Joins up to three family names into a list and shortens four or more to the
- * first beside `et al`, whose period the template supplies. The BibTeX parser
- * in citation-js gives every author a family name, an organization in double
- * braces included.
+ * Joins up to three family names, each with the particle BibTeX writes before
+ * it, and shortens four or more, or a list ending on BibTeX's `others`, to the
+ * first beside `et al`, whose period the template supplies.
  */
 function authors(names: readonly CSLName[]): string {
-  const families = names.map(({ family }) => family!)
+  const families = names.map((name) => [name['non-dropping-particle'], name.family].filter(Boolean).join(' '))
 
-  return families.length > 3 ? `${families[0]} et al` : listFormat.format(families)
+  return families.length > 3 || families.at(-1) === 'others'
+       ? `${families[0]} et al`
+       : listFormat.format(families)
 }
 
 function fail(message: string): never {
@@ -77,7 +83,7 @@ function footnote(work: CSL): string {
   const fields: Record<string, unknown> = {
     ...work,
     address : work.DOI ? `https://doi.org/${work.DOI}` : work.URL,
-    authors : work.author && authors(work.author),
+    authors : work.author?.every(({ family }) => family) && authors(work.author),
     year    : work.issued?.['date-parts']?.[0][0]
   }
 

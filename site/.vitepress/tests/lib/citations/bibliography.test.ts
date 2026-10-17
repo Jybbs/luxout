@@ -14,8 +14,8 @@ it.each([
     key  : 'hufkens2023',
     name : 'names the first of four or more authors and sets a journal’s volume, issue, and article number',
     note : 'Hufkens et al. 2023. "Evaluating the effects of moonlight on the vertical flight profiles of '
-         + 'three western palaearctic swifts." *Proceedings of the Royal Society B* 290 (2010): '
-         + '20230957. <https://doi.org/10.1098/rspb.2023.0957>'
+         + 'three western palaearctic swifts." *Proceedings of the Royal Society B: Biological Sciences* '
+         + '290 (2010): 20230957. <https://doi.org/10.1098/rspb.2023.0957>'
   },
   {
     key  : 'janiczek1987',
@@ -43,6 +43,30 @@ it.each([
   }
 ])('$name', ({ key, note }) => {
   expect(bibliography.cite(`Bright[^${key}].\n`)).toBe(`Bright[^${key}].\n\n[^${key}]: ${note}\n`)
+})
+
+it('keeps the particle written before a family name', () => {
+  const bibtex = '@software{silva, author = {da Silva, Luis and van der Linden, Ann}, title = {T}, '
+               + 'publisher = {P}, year = {2026}, url = {u}}'
+
+  expect(Bibliography.parse(bibtex).cite('One[^silva].\n'))
+    .toBe('One[^silva].\n\n[^silva]: da Silva and van der Linden. 2026. "T." P. <u>\n')
+})
+
+it('shortens a list BibTeX ends on others to the first author', () => {
+  const bibtex = '@software{others, author = {Hufkens, Koen and others}, title = {T}, publisher = {P}, '
+               + 'year = {2026}, url = {u}}'
+
+  expect(Bibliography.parse(bibtex).cite('One[^others].\n'))
+    .toBe('One[^others].\n\n[^others]: Hufkens et al. 2026. "T." P. <u>\n')
+})
+
+it('links the DOI of an entry holding both a DOI and a URL', () => {
+  const bibtex = '@software{both, author = {A, B}, title = {T}, publisher = {P}, year = {2026}, '
+               + 'doi = {10.1/x}, url = {u}}'
+
+  expect(Bibliography.parse(bibtex).cite('One[^both].\n'))
+    .toBe('One[^both].\n\n[^both]: A. 2026. "T." P. <https://doi.org/10.1/x>\n')
 })
 
 it('names an organization written in double braces as its author', () => {
@@ -85,6 +109,23 @@ it('changes nothing on a page it already wrote', () => {
   expect(notes.cite(page)).toBe(page)
 })
 
+it('lifts a mid-page note with its indented lines, leaving one blank line between paragraphs', () => {
+  expect(notes.cite('One[^first].\n\n[^first]: Stale\n    and continued.\n\nTwo.\n'))
+    .toBe('One[^first].\n\nTwo.\n\n[^first]: The first work.\n')
+})
+
+it('replaces a note indented by up to three spaces', () => {
+  expect(notes.cite('One[^first].\n\n   [^first]: Stale.\n'))
+    .toBe('One[^first].\n\n[^first]: The first work.\n')
+})
+
+it('cites a key holding capitals and punctuation', () => {
+  const keyed = new Bibliography(new Map([['Reda-2008:spa', 'The work.']]))
+
+  expect(keyed.cite('One[^Reda-2008:spa].\n\n[^Reda-2008:spa]: Stale.\n'))
+    .toBe('One[^Reda-2008:spa].\n\n[^Reda-2008:spa]: The work.\n')
+})
+
 it('replaces the footnote text a page holds with the text the bibliography gives', () => {
   expect(notes.cite('One[^first].\n\n[^first]: Stale.\n')).toBe('One[^first].\n\n[^first]: The first work.\n')
 })
@@ -107,9 +148,10 @@ it('fails naming an entry whose type no footnote template formats', () => {
 })
 
 it.each([
-  { entry: 'author = {A, B}, year = {2026}', field: 'address', missing: 'neither a DOI nor a URL' },
-  { entry: 'year = {2026}, url = {u}',       field: 'authors', missing: 'no author' },
-  { entry: 'author = {A, B}, url = {u}',     field: 'year',    missing: 'no year' }
+  { entry: 'author = {A, B}, year = {2026}',             field: 'address', missing: 'no DOI or URL' },
+  { entry: 'author = {, John}, year = {2026}, url = {u}', field: 'authors', missing: 'a nameless author' },
+  { entry: 'year = {2026}, url = {u}',                    field: 'authors', missing: 'no author' },
+  { entry: 'author = {A, B}, url = {u}',                  field: 'year',    missing: 'no year' }
 ])('fails naming the $field an entry holding $missing leaves out', ({ entry, field }) => {
   expect(() => Bibliography.parse(`@software{bare, ${entry}, title = {T}, publisher = {P}}`))
     .toThrow(`bare leaves out the ${field} its footnote template reads`)
