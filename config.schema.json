@@ -5,9 +5,20 @@
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Name",
-        "type": "string"
+      "name": { "title": "Name", "type": "string" },
+      "latitude": {
+        "title": "Latitude",
+        "description": "Degrees north of the equator, negative to the south",
+        "type": "number",
+        "minimum": -90,
+        "maximum": 90
+      },
+      "longitude": {
+        "title": "Longitude",
+        "description": "Degrees east of the prime meridian, negative to the west",
+        "type": "number",
+        "minimum": -180,
+        "maximum": 180
       }
     }
   }
