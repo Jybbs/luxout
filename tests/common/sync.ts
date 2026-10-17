@@ -17,6 +17,7 @@ export interface SyncRun extends Pick<SpawnSyncReturns<string>, 'status' | 'stde
 }
 
 interface SyncSetup {
+  args? : string[]
   env?  : NodeJS.ProcessEnv
   fail? : string
   live? : Record<string, unknown>
@@ -55,20 +56,20 @@ export async function confirm(
 }
 
 /**
- * Runs `task` in `scratch` with a stand-in `gh`, which answers a call to each
- * endpoint `live` keys with that key's value, read as pages where the call
- * paginates, and fails each call naming `fail`, beside the variables `env` adds
- * to the task's environment.
+ * Runs `task` with `args` in `scratch` with a stand-in `gh`, which answers a
+ * call to each endpoint `live` keys with that key's value, read as pages where
+ * the call paginates, and fails each call naming `fail`, beside the variables
+ * `env` adds to the task's environment.
  */
 export async function sync(
-  scratch                       : string,
-  task                          : string,
-  { env = {}, fail, live = {} } : SyncSetup = {}
+  scratch                                  : string,
+  task                                     : string,
+  { args = [], env = {}, fail, live = {} } : SyncSetup = {}
 ): Promise<SyncRun> {
   await plant(scratch, { 'gh.log': '' })
   await cp(join(import.meta.dirname, '..', 'mise', 'fixtures', 'gh.sh'), join(scratch, 'bin', 'gh'))
 
-  const { status, stderr, stdout } = spawnSync(join(root, source(task)), [], {
+  const { status, stderr, stdout } = spawnSync(join(root, source(task)), args, {
     cwd      : scratch,
     encoding : 'utf8',
     env      : {

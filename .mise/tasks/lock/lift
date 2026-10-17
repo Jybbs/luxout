@@ -1,0 +1,475 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "lift"
+#MISE depends     = ["plugin:bake", "site:bake"]
+#MISE description = "Print each pin behind its newest release as one Markdown table, trial the lift in a scratch clone under `--try`, write it under `--write`, and hold a pin where it stands under `--hold <pin>`"
+
+actions() {
+  local current files newest pin pins release released sha tag uses
+
+  uses=$(
+    grep \
+      --extended-regexp \
+      --include='*.yaml' \
+      --include='*.yml' \
+      --no-filename \
+      --only-matching \
+      --recursive \
+      'uses *: *[^ ]+@[0-9a-f]{40}' \
+      .github
+  ) || (( $? == 1 ))
+  pins=$(sed -E 's#^uses *: *([^/]+/[^/@]+)[^@]*@#\1 #' <<<"$uses" | sort -u)
+
+  while read -r pin sha; do
+    [[ -n "$pin" ]] || continue
+
+    release=$(
+      gh api --jq '"\(.tag_name)\t\(.published_at)"' "repos/$pin/releases/latest"
+    )
+    IFS=$'\t' read -r tag released <<<"$release"
+    newest=$(gh api --jq .sha "repos/$pin/commits/$tag")
+
+    [[ "$newest" != "$sha" ]] || continue
+
+    files=$(holding "@$sha")
+    current=$(
+      gh api --paginate --slurp "repos/$pin/tags?per_page=100" \
+        | jq --arg sha "$sha" --raw-output '
+            [.[][] | select(.commit.sha == $sha).name]
+            | max_by(split(".") | length) // empty
+          '
+    )
+
+    jq \
+      --arg current "${current:-${sha:0:7}}" \
+      --arg newest "$tag" \
+      --arg pin "$pin" \
+      --arg released "$released" \
+      --arg sha "$sha" \
+      --arg to "$newest" \
+      --argjson files "$files" \
+      --compact-output \
+      --null-input \
+      '{
+        $current, $newest, $pin, $released,
+        edits: [{ files: $files, new: "@\($to)", old: "@\($sha)" }]
+      }'
+  done <<<"$pins"
+}
+
+dated() {
+  local newest pin released row
+
+  while IFS=$'\t' read -r pin newest row; do
+    released=$("$1" "$pin" "$newest")
+    jq --arg released "$released" --compact-output '. + { $released }' <<<"$row"
+  done
+}
+
+holding() {
+  {
+    grep \
+      --files-with-matches \
+      --fixed-strings \
+      --include='*.yaml' \
+      --include='*.yml' \
+      --recursive \
+      -- "$1" .github || (( $? == 1 ))
+  } | jq --compact-output --null-input --raw-input '[inputs]'
+}
+
+mark() {
+  local advisories clears=[] current id major=false newest range row=$1
+
+  IFS=$'\t' read -r current newest <<<"$(
+    jq --raw-output '"\(.current)\t\(.newest)"' <<<"$row"
+  )"
+  advisories=$(
+    jq --raw-output '
+      .advisories[]? | "\(.url | split("/")[-1])\t\(.vulnerable_versions)"
+    ' <<<"$row"
+  )
+
+  satisfies "$newest" "^$current" || major=true
+
+  while IFS=$'\t' read -r id range; do
+    [[ -n "$id" ]] || continue
+    satisfies "$current" "$range" || continue
+    satisfies "$newest" "$range" && continue
+    clears=$(jq --arg id "$id" --compact-output '. + [$id]' <<<"$clears")
+  done <<<"$advisories"
+
+  jq \
+    --argjson clears "$clears" \
+    --argjson major "$major" \
+    --compact-output \
+    'del(.advisories) + { $clears, $major }' <<<"$row"
+}
+
+minimum() {
+  local current newest released
+
+  current=$(mise config get --file .mise/config.toml min_version)
+  newest=$(jq --raw-output '.latest // empty' <<<"$version")
+
+  [[ -n "$newest" && "$current" != "$newest" ]] || return 0
+
+  released=$(released aqua:jdx/mise "$newest")
+
+  jq \
+    --arg current "$current" \
+    --arg newest "$newest" \
+    --arg released "$released" \
+    --compact-output \
+    --null-input \
+    '{
+      $current, $newest, $released,
+      pin: "min_version",
+
+      edits: [{
+        files : [".mise/config.toml"],
+        key   : "min_version",
+        new   : "\"\($newest)\"",
+        old   : "\"\($current)\""
+      }]
+    }'
+}
+
+nodes() {
+  local floor newest node pin pins release released source workflows
+
+  node=$(mise config get --file .mise/config.toml tools.node)
+  pins=$(
+    printf 'node\t.mise/config.toml\t%s\n' "$node"
+    mise tasks ls --hidden --json --local \
+      | jq --arg root "$MISE_PROJECT_ROOT/" --raw-output '
+          .[]
+          | select(.tools.node)
+          | "\(.name)\t\(.source | ltrimstr($root))\t\(.tools.node)"
+        '
+  )
+
+  while IFS=$'\t' read -r pin source release; do
+    newest=$(mise latest "node@${release%%.*}")
+
+    [[ "$newest" != "$release" ]] || continue
+
+    released=$(released node "$newest")
+    workflows=$(holding "node@$release")
+    floor=$(
+      jq --arg line "${release%%.*}" --raw-output '
+        first(
+          .engines.node // ""
+          | scan("\\^(\\d[\\d.]*)")[0]
+          | select(split(".")[0] == $line)
+        )
+      ' package.json
+    )
+
+    jq \
+      --arg current "$release" \
+      --arg floor "$floor" \
+      --arg newest "$newest" \
+      --arg pin "$pin" \
+      --arg released "$released" \
+      --arg source "$source" \
+      --argjson workflows "$workflows" \
+      --compact-output \
+      --null-input \
+      '{
+        $current, $newest, $pin, $released,
+        edits: [
+          {
+            files : [$source],
+            key   : "node",
+            new   : "\"\($newest)\"",
+            old   : "\"\($current)\""
+          },
+          { files: $workflows, new: "node@\($newest)", old: "node@\($current)" },
+          if $floor == "" then empty else {
+            files : ["package.json"],
+            key   : "\"node\"",
+            new   : "^\($newest)",
+            old   : "^\($floor)"
+          } end
+        ]
+      }'
+  done <<<"$pins"
+}
+
+packages() {
+  local audit dir manifest
+
+  for dir in . site; do
+    manifest=$dir/package.json
+    audit=$(bun audit --cwd "$dir" --json) ||
+      jq --exit-status 'type == "object"' <<<"$audit" >/dev/null
+
+    bun outdated --cwd "$dir" | jq \
+      --arg manifest "${manifest#./}" \
+      --argjson audit "$audit" \
+      --compact-output \
+      --raw-input \
+      --slurpfile pins "$manifest" \
+      '
+        select(startswith("| "))
+        | split("|")[1:5]
+        | map(gsub("^ +| +$"; ""))
+        | select(.[0] != "Package")
+        | .[3] as $newest
+        | (.[0] | sub(" \\(\\w+\\)$"; "")) as $pin
+        | $pins[0]
+        | [.dependencies, .devDependencies, .optionalDependencies, .peerDependencies]
+        | first(.[][$pin]? // empty) as $current
+        | {
+            $current, $newest, $pin,
+            advisories: $audit[$pin] // [],
+
+            edits: [{
+              files : [$manifest],
+              key   : "\"\($pin)\"",
+              new   : "\"\($newest)\"",
+              old   : "\"\($current)\""
+            }]
+          }
+      '
+  done | jq --compact-output --raw-output --slurp '
+    group_by(.pin)[]
+    | {
+        advisories : map(.advisories[]) | unique_by(.id),
+        current    : .[0].current,
+        edits      : map(.edits[]),
+        newest     : .[0].newest,
+        pin        : .[0].pin
+      }
+    | "\(.pin)\t\(.newest)\t\(tojson)"
+  ' | dated published
+}
+
+published() {
+  bun info --json "$1" time | jq --arg version "$2" --raw-output '.[$version] // empty'
+}
+
+released() {
+  mise ls-remote --json "$1" "$2" | jq --arg version "$2" --raw-output '
+    first(.[] | select(.version == $version).created_at) // empty
+  '
+}
+
+satisfies() {
+  [[ "$(bun --print 'Bun.semver.satisfies(process.argv[1], process.argv[2])' "$1" "$2")" == true ]]
+}
+
+table() {
+  jq --raw-output '
+    [
+      [
+        "**Pin**", "**Current**", "**Newest**", "**Major**", "**Age**", "**Clears**",
+        "**Held**"
+      ],
+      (.[] | [
+        .pin,
+        .current,
+        .newest,
+        if .major then "yes" else "no" end,
+        if .released == "" then "" else
+          (now - (.released | sub("\\.\\d+Z$"; "Z") | fromdateiso8601)) / 86400
+          | floor
+          | "\(.) day\(if . == 1 then "" else "s" end)"
+        end,
+        (.clears | join(", ")),
+        if .held then "yes" else "" end
+      ])
+    ]
+    | (transpose | map(map(length) | max)) as $widths
+    | .[:1] + [$widths | map("-" * .)] + .[1:]
+    | .[]
+    | [., $widths]
+    | transpose
+    | map(.[0] + (" " * (.[1] - (.[0] | length)) // ""))
+    | "| \(join(" | ")) |"
+  '
+}
+
+tools() {
+  mise outdated --bump --json --local \
+    | jq --arg root "$MISE_PROJECT_ROOT/" --raw-output '
+        .[]
+        | select(.name != "node")
+        | {
+            current : .requested,
+            newest  : .latest,
+            pin     : .name,
+
+            edits: [{
+              files : [.source.path | ltrimstr($root)],
+              key   : .name,
+              new   : "\"\(.latest)\"",
+              old   : "\"\(.requested)\""
+            }]
+          }
+        | "\(.pin)\t\(.newest)\t\(tojson)"
+      ' \
+    | dated released
+}
+
+trial() {
+  local clone=$scratch/clone log=$1 rows=$2
+
+  rm -rf "$clone"
+
+  (
+    export MISE_TRUSTED_CONFIG_PATHS=$clone
+
+    jq --raw-output '"Lifting \(map(.pin) | join(", "))"' <<<"$rows" &&
+    git clone --quiet --shared . "$clone" &&
+    git diff --binary HEAD | git -C "$clone" apply --allow-empty --binary &&
+    git ls-files --exclude-standard --others -z \
+      | tar --create --file - --null --files-from - \
+      | tar --directory "$clone" --extract --file - &&
+    write "$clone" "$rows" &&
+    cd "$clone" &&
+    mise run lock:sync &&
+    mise run repo:verify
+  ) >"$log" 2>&1
+}
+
+write() {
+  local dir=$1 file rows=$2
+
+  for file in $(jq --raw-output '[.[].edits[].files[]] | unique[]' <<<"$rows"); do
+    jq \
+      --arg file "$file" \
+      --argjson rows "$rows" \
+      --join-output \
+      --raw-input \
+      --slurp \
+      '
+        reduce ($rows[].edits[] | select(any(.files[]; . == $file))) as $edit (
+          split("\n");
+          map(
+            if $edit.key == null or test("\($edit.key)\\s*[=:]")
+            then split($edit.old) | join($edit.new)
+            else .
+            end
+          )
+        )
+        | join("\n")
+      ' "$dir/$file" >"$scratch/lift" &&
+    cat "$scratch/lift" >"$dir/$file" || return
+  done
+}
+
+held=[]
+trying=false
+writing=false
+
+while (( $# > 0 )); do
+  case $1 in
+    --hold)
+      if (( $# == 1 )); then
+        echo '`--hold` takes the name of a pin the table lists' >&2
+        exit 2
+      fi
+      held=$(jq --arg pin "$2" --compact-output '. + [$pin]' <<<"$held")
+      shift 2
+      ;;
+    --try)   trying=true; shift ;;
+    --write) writing=true; shift ;;
+    *)
+      echo "\`$1\` is no flag \`lock:lift\` takes, which are \`--hold <pin>\`," \
+           "\`--try\`, and \`--write\`" >&2
+      exit 2
+      ;;
+  esac
+done
+
+holds=$(bun --print 'JSON.stringify(require("./.mise/holds.toml"))')
+scratch=$(mktemp -d)
+version=$(mise version --json)
+trap 'rm -rf "$scratch"' EXIT
+
+{ actions; minimum; nodes; packages; tools; } >"$scratch/rows"
+
+while read -r row; do mark "$row"; done <"$scratch/rows" >"$scratch/marked"
+
+rows=$(
+  jq --argjson held "$held" --argjson holds "$holds" --compact-output --slurp '
+    sort_by(.pin)
+    | map(
+        .pin as $pin
+        | . + { held: ($holds | has($pin)) or any($held[]; . == $pin) }
+      )
+  ' "$scratch/marked"
+)
+
+if [[ "$rows" == "[]" ]]; then
+  echo "Every pin stands at its newest release"
+else
+  table <<<"$rows"
+fi
+
+unknown=$(
+  jq --argjson held "$held" --raw-output '
+    $held - map(.pin) | unique | map("`\(.)`") | join(", ")
+  ' <<<"$rows"
+)
+
+if [[ -n "$unknown" ]]; then
+  echo "\`--hold\` names $unknown, which no row of the table lists" >&2
+  exit 2
+fi
+
+"$trying" || "$writing" || exit 0
+
+lifted=$(jq --compact-output 'map(select(.held | not))' <<<"$rows")
+
+if [[ "$lifted" == "[]" ]]; then
+  echo "Nothing is lifted, since every pin the table lists is held"
+  exit 0
+fi
+
+floor=$(jq --raw-output '.[] | select(.pin == "min_version").newest' <<<"$lifted")
+running=$(jq --raw-output '.version | split(" ")[0]' <<<"$version")
+
+if [[ -n "$floor" ]] && ! satisfies "$running" ">=$floor"; then
+  echo "Lifting \`min_version\` to $floor needs mise $floor or later," \
+       "whereas mise $running runs here, so update mise or hold \`min_version\`" >&2
+  exit 1
+fi
+
+if "$trying"; then
+  rm -rf .cache/lift
+  mkdir -p .cache/lift
+
+  if trial .cache/lift/whole.log "$lifted"; then
+    echo "The whole lift passes \`mise ci\`, logged at .cache/lift/whole.log"
+  else
+    echo "The whole lift fails \`mise ci\`, logged at .cache/lift/whole.log"
+
+    while IFS= read -r pin; do
+      [[ -n "$pin" ]] || continue
+
+      log=.cache/lift/without-${pin//[^[:alnum:].]/-}.log
+      rest=$(
+        jq --arg pin "$pin" --compact-output 'map(select(.pin != $pin))' <<<"$lifted"
+      )
+
+      if trial "$log" "$rest"; then
+        echo "Holding back \`$pin\` passes \`mise ci\`," \
+             "so lifting \`$pin\` breaks the tree, logged at $log"
+        exit 1
+      fi
+
+      echo "Holding back \`$pin\` still fails \`mise ci\`, logged at $log"
+    done <<<"$(jq --raw-output '.[] | select(.major).pin' <<<"$lifted")"
+
+    echo "No single major lift accounts for the failure," \
+         "whose logs sit under .cache/lift/" >&2
+    exit 1
+  fi
+fi
+
+if "$writing"; then
+  write . "$lifted"
+  mise run lock:sync
+fi

@@ -1,9 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "relock"
-#MISE description = "Re-resolve `bun.lock`, `site/bun.lock`, and `.mise/mise.lock` against their manifests, rerunning `mise lock` until `.mise/mise.lock` stops changing"
-
-bun install --lockfile-only
-bun install --cwd site --lockfile-only
+#MISE description = "Re-resolve `.mise/mise.lock`, rerunning `mise lock` until it stops changing, install each tool the project pins that mise has not installed, then re-resolve `bun.lock` and `site/bun.lock` against their manifests"
 
 previous=$(mktemp)
 trap 'rm -f "$previous"' EXIT
@@ -12,3 +9,10 @@ until cmp -s "$previous" .mise/mise.lock; do
   cp -p .mise/mise.lock "$previous"
   mise lock
 done
+
+missing=$(mise ls --json --local --missing | jq --raw-output 'keys | join(" ")')
+
+[[ -z "$missing" ]] || mise install $missing
+
+bun install --lockfile-only
+bun install --cwd site --lockfile-only

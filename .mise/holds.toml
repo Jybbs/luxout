@@ -1,0 +1,2 @@
+["@types/node"]
+reason = "Stays on the oldest Node line `engines` admits, so `tsc` rejects a newer API"
