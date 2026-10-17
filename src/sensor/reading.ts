@@ -62,11 +62,12 @@ export class Reading {
         }
 
         this.#log.debug(
-            'Outside reads %s lux from a solar altitude of %s° and a clear-sky illuminance of %s lux, '
-          + 'with no forecast covering the minute',
+            'Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, '
+          + 'and a cloud factor of %s, since no forecast covers the minute',
           lux,
           altitude,
-          clearSky
+          clearSky,
+          figure.format(estimate.factor)
         )
       } else {
         const [before, after] = estimate.steps

@@ -62,16 +62,17 @@ test('logs the altitude, the clear sky, the factor, and both steps behind a read
   `)
 })
 
-test('logs the altitude and the clear sky behind a reading no forecast covers', ({ bridge, log }) => {
+test('logs the altitude, the clear sky, and a factor of 1 where no forecast covers', ({ bridge, log }) => {
   meter(bridge, log, delhi).reading.start(new AbortController().signal)
 
   expect(vi.mocked(log.debug).mock.calls).toMatchInlineSnapshot(`
     [
       [
-        "Outside reads %s lux from a solar altitude of %s° and a clear-sky illuminance of %s lux, with no forecast covering the minute",
+        "Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, and a cloud factor of %s, since no forecast covers the minute",
         "22190",
         "15.87",
         "22190",
+        "1",
       ],
     ]
   `)

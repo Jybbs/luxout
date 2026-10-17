@@ -5,8 +5,7 @@ import { Place } from './place.js'
 
 const block = v.object({
   latitude  : bounded(schema.schema.properties.latitude),
-  longitude : bounded(schema.schema.properties.longitude),
-  name      : v.string().optional()
+  longitude : bounded(schema.schema.properties.longitude)
 })
   .map(({ latitude, longitude }) => new Place(latitude, longitude))
 
@@ -17,10 +16,11 @@ export class Settings {
   readonly place: Place
 
   /**
-   * Parses the block Homebridge hands the platform, failing a number outside
-   * the bounds `config.schema.json` declares for it. The `platform` and
-   * `_bridge` keys Homebridge adds pass, as does the `name` only Homebridge
-   * reads.
+   * Parses the block Homebridge hands the platform, failing a latitude or a
+   * longitude that is missing, not a number, or outside the bounds
+   * `config.schema.json` declares for it. Every other key passes unread, among
+   * them `platform`, `_bridge`, and the `name` Homebridge prefixes its log lines
+   * with.
    */
   static parse(config: unknown): v.ValitaResult<Settings> {
     const place = block.try(config, { mode: 'strip' })

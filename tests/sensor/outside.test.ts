@@ -1,9 +1,9 @@
-import { fc, test }       from '@fast-check/vitest'
-import { expect, it, vi } from 'vitest'
+import { fc, test }   from '@fast-check/vitest'
+import { expect, it } from 'vitest'
 
-import manifest          from '../../package.json' with { type: 'json' }
-import { OutsideSensor } from '../../src/sensor/outside.js'
-import { Bridge, level } from '../common/homebridge.js'
+import manifest                       from '../../package.json' with { type: 'json' }
+import { OutsideSensor }              from '../../src/sensor/outside.js'
+import { Bridge, NO_RESPONSE, level } from '../common/homebridge.js'
 
 const bridge                      = new Bridge('')
 const { Characteristic, Service } = bridge.hap
@@ -63,11 +63,12 @@ test.prop([fc.double({ noNaN: true })])('shows every reading inside the range Ho
 it('marks the sensor No Response until a reading replaces the error', () => {
   const accessory = bridge.cached()
   const sensor    = new OutsideSensor(accessory, bridge.api)
-  const update    = vi.spyOn(level(accessory), 'updateValue')
 
   sensor.fail()
+
+  expect(level(accessory).statusCode).toBe(NO_RESPONSE)
+
   sensor.report(250)
 
-  expect(update.mock.calls).toEqual([[expect.any(Error)], [250]])
-  expect(level(accessory).value).toBe(250)
+  expect(level(accessory)).toMatchObject({ statusCode: 0, value: 250 })
 })

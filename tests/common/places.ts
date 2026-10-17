@@ -2,7 +2,8 @@ import { Place } from '../../src/config/place.js'
 
 /**
  * Holds the public places the suites estimate for and the fixtures were
- * fetched for, each at the center the geocoding API returns for it.
+ * fetched for, each at the center the geocoding API returns for Los Angeles,
+ * Boston, and New Delhi in turn.
  */
 export const angeles = new Place(34.05223, -118.24368)
 export const boston  = new Place(42.35843, -71.05977)

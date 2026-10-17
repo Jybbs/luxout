@@ -5,12 +5,12 @@ import { format } from 'node:util'
 import type { Logging, PlatformAccessory } from 'homebridge'
 import { expect, vi }                      from 'vitest'
 
-import { LuxoutPlatform }           from '../../src/platform/dynamic.js'
-import { OUTSIDE, OutsideSensor }   from '../../src/sensor/outside.js'
-import { WindowStore }              from '../../src/weather/store.js'
-import { type Bridge, level, test } from '../common/homebridge.js'
-import { boston, delhi }            from '../common/places.js'
-import { spaced }                   from '../common/window.js'
+import { LuxoutPlatform }                        from '../../src/platform/dynamic.js'
+import { OUTSIDE, OutsideSensor }                from '../../src/sensor/outside.js'
+import { WindowStore }                           from '../../src/weather/store.js'
+import { type Bridge, NO_RESPONSE, level, test } from '../common/homebridge.js'
+import { boston, delhi }                         from '../common/places.js'
+import { spaced }                                from '../common/window.js'
 
 const MINUTE = 60_000
 const window = spaced(Array(28).fill(400), delhi, '2026-10-11T01:00:00Z')
@@ -28,14 +28,22 @@ test.for([boston, delhi])(
   }
 )
 
+test('reads on the accessory it registers', async ({ bridge, log }) => {
+  await launch(bridge, log, delhi)
+
+  const accessory = bridge.registerPlatformAccessories.mock.lastCall?.[2][0]
+
+  expect(accessory && level(accessory).value).toBeGreaterThan(0.0001)
+})
+
 test('reads on the accessory a restart restores rather than registering another', async ({ bridge, log }) => {
   const accessory = restored(bridge)
 
-  await launch(bridge, log, boston, accessory)
+  await launch(bridge, log, delhi, accessory)
 
   expect(bridge.registerPlatformAccessories).not.toHaveBeenCalled()
   expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
-  expect(level(accessory).value).toBe(0.0001)
+  expect(level(accessory).value).toBeGreaterThan(0.0001)
 })
 
 test('unregisters a cached accessory the settings no longer describe', async ({ bridge, log }) => {
@@ -71,11 +79,10 @@ test.for([
 
 test('keeps a cached Outside registered, marked No Response, while the block fails', ({ bridge, log }) => {
   const accessory = restored(bridge)
-  const update    = vi.spyOn(level(accessory), 'updateValue')
 
   start(bridge, log, {}, accessory)
 
-  expect(update).toHaveBeenCalledExactlyOnceWith(expect.any(Error))
+  expect(level(accessory).statusCode).toBe(NO_RESPONSE)
   expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
 })
 
@@ -91,7 +98,7 @@ test('ignores a forecast stored for another place', async ({ bridge, log, scratc
   await new WindowStore(scratch).write(spaced(Array(28).fill(400), boston, '2026-10-11T01:00:00Z'))
   await launch(bridge, log, delhi)
 
-  expect(vi.mocked(log.debug).mock.lastCall?.[0]).toContain('with no forecast covering the minute')
+  expect(vi.mocked(log.debug).mock.lastCall?.[0]).toContain('since no forecast covers the minute')
   expect(log.warn).toHaveBeenCalledExactlyOnceWith(
     'Outside reads the clear sky alone until a forecast covers the present'
   )
@@ -165,12 +172,18 @@ async function launch(
 }
 
 /**
- * Formats every line `log` was handed, at every level.
+ * Formats every line `log` was handed, through a direct call, `log.log`, or a
+ * method named for its level.
  */
 function lines(log: Logging): string[] {
-  return (['debug', 'error', 'info', 'success', 'warn'] as const).flatMap((method) => {
-    return vi.mocked(log[method]).mock.calls.map(([message, ...parameters]) => format(message, ...parameters))
-  })
+  const methods = ['debug', 'error', 'info', 'success', 'warn'] as const
+  const calls   = [
+    ...vi.mocked(log).mock.calls,
+    ...vi.mocked(log.log).mock.calls.map(([, ...call]) => call),
+    ...methods.flatMap((method) => vi.mocked(log[method]).mock.calls)
+  ]
+
+  return calls.map(([message, ...parameters]) => format(message, ...parameters))
 }
 
 /**
