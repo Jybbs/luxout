@@ -19,8 +19,8 @@ export class Settings {
    * Parses the block Homebridge hands the platform, failing a latitude or a
    * longitude that is missing, not a number, or outside the bounds
    * `config.schema.json` declares for it. Every other key passes unread, among
-   * them `platform`, `_bridge`, and the `name` Homebridge prefixes its log lines
-   * with.
+   * them `platform`, `_bridge`, and the `name` Homebridge prefixes its log
+   * lines with.
    */
   static parse(config: unknown): v.ValitaResult<Settings> {
     const place = block.try(config, { mode: 'strip' })

@@ -21,7 +21,7 @@ it.each([
   expect(parsed(block).place).toEqual(parsed(BLOCK).place)
 })
 
-it.each(properties.flatMap(([key]) => key === 'name' ? [] : key))('fails a block whose %s is null', (key) => {
+it.each(bounds.map(({ key }) => key))('fails a block whose %s is null', (key) => {
   expect(Settings.parse({ ...BLOCK, [key]: null })).toMatchObject({ issues: [{ path: [key] }], ok: false })
 })
 

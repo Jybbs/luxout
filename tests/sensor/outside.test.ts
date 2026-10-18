@@ -60,6 +60,14 @@ test.prop([fc.double({ noNaN: true })])('shows every reading inside the range Ho
   expect(level(accessory).value).toBeLessThanOrEqual(100000)
 })
 
+it('answers a HomeKit read from the reading it pushed, through no handler of its own', async () => {
+  const accessory = bridge.cached()
+
+  new OutsideSensor(accessory, bridge.api).report(250)
+
+  await expect(level(accessory).handleGetRequest()).resolves.toBe(250)
+})
+
 it('marks the sensor No Response until a reading replaces the error', () => {
   const accessory = bridge.cached()
   const sensor    = new OutsideSensor(accessory, bridge.api)

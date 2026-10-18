@@ -8,16 +8,20 @@ import { Sun }                      from '../../src/daylight/sun.js'
 import { OutsideSensor }            from '../../src/sensor/outside.js'
 import { Reading }                  from '../../src/sensor/reading.js'
 import { type Bridge, level, test } from '../common/homebridge.js'
-import { angeles, delhi }           from '../common/places.js'
+import { angeles, boston, delhi }   from '../common/places.js'
 import { spaced }                   from '../common/window.js'
 
 const MINUTE = 60_000
 
 test('shows a reading at start and one each minute after it', ({ bridge, log }) => {
-  meter(bridge, log, delhi).reading.start(new AbortController().signal)
+  const { accessory, reading } = meter(bridge, log, delhi)
+  const shown: unknown[]       = []
+
+  level(accessory).on('change', ({ newValue }) => shown.push(newValue))
+  reading.start(new AbortController().signal)
   vi.advanceTimersByTime(3 * MINUTE)
 
-  expect(log.debug).toHaveBeenCalledTimes(4)
+  expect(shown).toHaveLength(4)
 })
 
 test('stops reading once its signal aborts, leaving no timer behind', ({ bridge, log }) => {
@@ -62,16 +66,35 @@ test('logs the altitude, the clear sky, the factor, and both steps behind a read
   `)
 })
 
-test('logs the altitude, the clear sky, and a factor of 1 where no forecast covers', ({ bridge, log }) => {
-  meter(bridge, log, delhi).reading.start(new AbortController().signal)
+test(
+  'logs the altitude, the clear sky, and a factor of 1 behind a reading no forecast covers',
+  ({ bridge, log }) => {
+    meter(bridge, log, delhi).reading.start(new AbortController().signal)
+
+    expect(vi.mocked(log.debug).mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, and a cloud factor of %s, since no forecast covers the minute",
+          "22190",
+          "15.87",
+          "22190",
+          "1",
+        ],
+      ]
+    `)
+  }
+)
+
+test('logs the clamped reading and a clear sky of 0 lux under a night sun', ({ bridge, log }) => {
+  meter(bridge, log, boston).reading.start(new AbortController().signal)
 
   expect(vi.mocked(log.debug).mock.calls).toMatchInlineSnapshot(`
     [
       [
         "Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, and a cloud factor of %s, since no forecast covers the minute",
-        "22190",
-        "15.87",
-        "22190",
+        "0.0001",
+        "-42.54",
+        "0",
         "1",
       ],
     ]

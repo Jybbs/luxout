@@ -6,7 +6,12 @@ import type { ForecastWindow } from '../weather/window.js'
 import type { OutsideSensor }  from './outside.js'
 
 const MINUTE = 60_000  // The milliseconds between two readings
-const figure = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 4, useGrouping: false })
+const figure = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits    : 4,
+  maximumSignificantDigits : 4,
+  roundingPriority         : 'lessPrecision',
+  useGrouping              : false
+})
 
 /**
  * Reads the outdoor illuminance at launch and each minute after, shows it on
