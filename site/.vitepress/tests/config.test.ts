@@ -1,4 +1,5 @@
-import { join } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { join }     from 'node:path'
 
 import { type PageData, resolveConfig } from 'vitepress'
 import { expect, it }                   from 'vitest'
@@ -46,4 +47,9 @@ it('serves the CSS the build ships, through Lightning CSS', () => {
 
 it('links each page by its address without the .html extension', () => {
   expect(config.cleanUrls).toBe(true)
+})
+
+it('caches the hashed files for a year, leaving every other file at the host’s default', async () => {
+  expect(await readFile(join(config.publicDir, '_headers'), 'utf8'))
+    .toBe(`/${config.assetsDir}/*\n  Cache-Control: public, max-age=31536000, immutable\n`)
 })
