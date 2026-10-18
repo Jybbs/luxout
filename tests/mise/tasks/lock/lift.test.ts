@@ -592,25 +592,44 @@ test('lists an advisory both Bun packages report once in the row it clears', asy
   expect(row(stdout, 'vitest')[5]).toBe('GHSA-aaaa-bbbb-cccc')
 }, 60_000)
 
-test.for<{ hap: string, homebridge: string, leading: [string, string, string][], leads: string }>([
-  { hap: '2.2.3', homebridge: '2.5.0', leading: [['homebridge (dev)', '2.4.0', '2.5.0']], leads: 'lifts' },
-  { hap: '2.2.2', homebridge: '2.4.0', leading: [], leads: 'stands' }
+test.for<{
+  args       : string[]
+  hap        : string
+  homebridge : string
+  leading    : [string, string, string][]
+  leads      : string
+}>([
+  {
+    args       : ['--write'],
+    hap        : '2.2.3',
+    homebridge : '2.5.0',
+    leading    : [['homebridge (dev)', '2.4.0', '2.5.0']],
+    leads      : 'lifts'
+  },
+  {
+    args       : ['--hold', 'homebridge', '--write'],
+    hap        : '2.2.2',
+    homebridge : '2.4.0',
+    leading    : [['homebridge (dev)', '2.4.0', '2.5.0']],
+    leads      : 'is held'
+  },
+  { args: ['--write'], hap: '2.2.2', homebridge: '2.4.0', leading: [], leads: 'stands' }
 ])(
-  'moves a pin that follows another to the release its leader names where the leader $leads',
+    'puts a pin that follows another at the release its leader names, '
+  + 'with no row of its own, where the leader $leads',
   { timeout: 60_000 },
-  async ({ hap, homebridge, leading }, { scratch }) => {
+  async ({ args, hap, homebridge, leading }, { scratch }) => {
     const pins       = { '@homebridge/hap-nodejs': '2.2.2', homebridge: '2.4.0' }
     const { stdout } = await lift(scratch, {
-      args   : ['--write'],
+      args   : args,
       files  : { 'package.json': JSON.stringify({ devDependencies: pins }, null, 2) + '\n' },
       canned : {
-        'bun info --json @homebridge/hap-nodejs@2.2.3 version' : json('2.2.3'),
-        'bun info --json homebridge time'                     : json({ '2.5.0': ago(2) }),
-        'bun info --json homebridge@2.5.0 dependencies'       : json({ '@homebridge/hap-nodejs': '2.2.3' }),
-        'bun outdated --cwd .'                                : outdated(
-          ['@homebridge/hap-nodejs (dev)', '2.2.2', '2.2.4'],
-          ...leading
-        )
+        'bun info --json @homebridge/hap-nodejs@^2.2.3 version' : json('2.2.3'),
+        'bun info --json homebridge time'                      : json({ '2.5.0': ago(2) }),
+        'bun info --json homebridge@2.5.0'                     : json({
+          dependencies: { '@homebridge/hap-nodejs': '^2.2.3' }
+        }),
+        'bun outdated --cwd .': outdated(['@homebridge/hap-nodejs (dev)', '2.2.2', '2.2.4'], ...leading)
       }
     })
     const manifest   = JSON.parse((await read(scratch))['package.json'] ?? '{}')

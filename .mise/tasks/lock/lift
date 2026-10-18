@@ -265,8 +265,8 @@ packages() {
     [[ -n "$target" ]] || continue
 
     named=$(
-      bun info --json "$leader@$target" dependencies \
-        | jq --arg pin "$pin" --raw-output '.[$pin] // empty'
+      bun info --json "$leader@$target" \
+        | jq --arg pin "$pin" --raw-output '.dependencies[$pin] // empty'
     )
 
     [[ -n "$named" ]] || continue
@@ -287,7 +287,6 @@ packages() {
             { "package.json": $root[0], "site/package.json": $site[0] }
             | to_entries[]
             | (.value | pinned($pin)) as $current
-            | select($current != $version)
             | {
                 files : [.key],
                 key   : "\"\($pin)\"",

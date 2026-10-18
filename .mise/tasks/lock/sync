@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "relock"
-#MISE description = "Re-resolve `.mise/mise.lock`, rerunning `mise lock` until it stops changing, install each tool `.mise/config.toml` pins that mise has not installed, then re-resolve `bun.lock` and `site/bun.lock` against their manifests"
+#MISE description = "Re-resolve `.mise/mise.lock`, rerunning `mise lock` until it stops changing, install each tool the local mise config pins that mise has not installed, then re-resolve `bun.lock` and `site/bun.lock` against their manifests"
 
 previous=$(mktemp)
 trap 'rm -f "$previous"' EXIT

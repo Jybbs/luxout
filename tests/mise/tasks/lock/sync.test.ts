@@ -15,8 +15,8 @@ const STANDIN = join(import.meta.dirname, '..', '..', 'fixtures', 'canned.sh')
 
 /**
  * Runs the task in `scratch` under stand-ins for `mise` and `bun`, where
- * `mise ls` reports `missing` as the tools `.mise/config.toml` pins that mise
- * has not installed.
+ * `mise ls` reports `missing` as the tools the local mise config pins that
+ * mise has not installed.
  *
  * Returns:
  *   Each call the stand-ins received, in order, beside the exit status.
@@ -60,6 +60,6 @@ test('locks mise first and installs each missing tool before either Bun package 
   })
 })
 
-test('installs nothing where mise has installed every tool `.mise/config.toml` pins', async ({ scratch }) => {
+test('installs nothing where no tool the local mise config pins is missing', async ({ scratch }) => {
   expect(await relock([], scratch)).toEqual({ calls: [...LOCK, ...BAKE], status: 0 })
 })
