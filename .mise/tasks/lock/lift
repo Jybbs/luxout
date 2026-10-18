@@ -197,7 +197,7 @@ nodes() {
 }
 
 packages() {
-  local audit dir manifest
+  local audit dir follows leader manifest named pin rows target version
 
   for dir in . site; do
     manifest=$dir/package.json
@@ -211,15 +211,15 @@ packages() {
       --raw-input \
       --slurpfile pins "$manifest" \
       '
+        def pinned($pin): first(.dependencies, .devDependencies | .[$pin]? // empty);
+
         select(startswith("| "))
         | split("|")[1:5]
         | map(gsub("^ +| +$"; ""))
         | select(.[0] != "Package")
         | .[3] as $newest
         | (.[0] | sub(" \\(\\w+\\)$"; "")) as $pin
-        | $pins[0]
-        | [.dependencies, .devDependencies, .optionalDependencies, .peerDependencies]
-        | first(.[][$pin]? // empty) as $current
+        | ($pins[0] | pinned($pin)) as $current
         | {
             $current, $newest, $pin,
             advisories: $audit[$pin] // [],
@@ -232,17 +232,74 @@ packages() {
             }]
           }
       '
-  done | jq --compact-output --raw-output --slurp '
-    group_by(.pin)[]
-    | {
-        advisories : map(.advisories[]) | unique_by(.id),
-        current    : .[0].current,
-        edits      : map(.edits[]),
-        newest     : .[0].newest,
-        pin        : .[0].pin
-      }
-    | "\(.pin)\t\(.newest)\t\(tojson)"
-  ' | dated published
+  done >"$scratch/packages"
+
+  rows=$(
+    jq --compact-output --slurp '
+      group_by(.pin)
+      | map({
+          advisories : map(.advisories[]) | unique_by(.id),
+          current    : .[0].current,
+          edits      : map(.edits[]),
+          newest     : .[0].newest,
+          pin        : .[0].pin
+        })
+    ' "$scratch/packages"
+  )
+
+  follows=$(
+    jq --raw-output '
+      to_entries[] | select(.value.follows) | "\(.key)\t\(.value.follows)"
+    ' <<<"$holds"
+  )
+
+  while IFS=$'\t' read -r pin leader; do
+    [[ -n "$pin" ]] || continue
+
+    rows=$(jq --arg pin "$pin" --compact-output 'map(select(.pin != $pin))' <<<"$rows")
+    target=$(
+      jq --arg leader "$leader" --raw-output '.[] | select(.pin == $leader).newest' \
+        <<<"$rows"
+    )
+
+    [[ -n "$target" ]] || continue
+
+    named=$(
+      bun info --json "$leader@$target" dependencies \
+        | jq --arg pin "$pin" --raw-output '.[$pin] // empty'
+    )
+
+    [[ -n "$named" ]] || continue
+
+    version=$(bun info --json "$pin@$named" version | jq --raw-output .)
+    rows=$(
+      jq \
+        --arg leader "$leader" \
+        --arg pin "$pin" \
+        --arg version "$version" \
+        --compact-output \
+        --slurpfile root package.json \
+        --slurpfile site site/package.json \
+        '
+          def pinned($pin): first(.dependencies, .devDependencies | .[$pin]? // empty);
+
+          map(if .pin != $leader then . else .edits += [
+            { "package.json": $root[0], "site/package.json": $site[0] }
+            | to_entries[]
+            | (.value | pinned($pin)) as $current
+            | select($current != $version)
+            | {
+                files : [.key],
+                key   : "\"\($pin)\"",
+                new   : "\"\($version)\"",
+                old   : "\"\($current)\""
+              }
+          ] end)
+        ' <<<"$rows"
+    )
+  done <<<"$follows"
+
+  jq --raw-output '.[] | "\(.pin)\t\(.newest)\t\(tojson)"' <<<"$rows" | dated published
 }
 
 published() {

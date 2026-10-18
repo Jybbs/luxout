@@ -32,9 +32,12 @@ async function relock(
 
   const { status } = await sync(scratch, 'lock:sync', {
     env: {
-      CANNED_LOG : join(scratch, 'canned.log'),
-      TMPDIR     : scratch,
-      CANNED     : JSON.stringify({
+      CANNED_LOG     : join(scratch, 'canned.log'),
+      MISE_CACHE_DIR : join(scratch, 'mise', 'cache'),
+      MISE_DATA_DIR  : join(scratch, 'mise', 'data'),
+      MISE_STATE_DIR : join(scratch, 'mise', 'state'),
+      TMPDIR         : scratch,
+      CANNED         : JSON.stringify({
         'bun install --cwd site --lockfile-only' : {},
         'bun install --lockfile-only'            : {},
         [['mise install', ...missing].join(' ')] : {},

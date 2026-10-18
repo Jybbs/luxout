@@ -52,7 +52,8 @@ const FILES = {
   '.github/workflows/release.yml'        : 'jobs:\n  publish:\n    steps:\n'
                                          + `      - uses : actions/checkout@${CHECKOUT}\n`,
   '.gitignore'                           : '/*.log\n/.cache/\n/bin/\n/tmp/\n',
-  '.mise/holds.toml'                     : '["@types/node"]\nreason = "Stays on the 22 line"\n',
+  '.mise/holds.toml'                     : '["@homebridge/hap-nodejs"]\nfollows = "homebridge"\n\n'
+                                         + '["@types/node"]\nreason = "Stays on the 22 line"\n',
   '.mise/tasks/plugin/lines.toml'        : '["plugin:test:22"]\ntools = { node = "22.23.3" }\n\n'
                                          + '["plugin:test:24"]\ntools = { node = "24.21.0" }\n',
   'site/package.json': JSON.stringify({ devDependencies: { vitest: '5.0.3' } }, null, 2) + '\n',
@@ -225,9 +226,12 @@ async function lift(
     args : args,
     live : live,
     env  : {
-      CANNED     : JSON.stringify({ ...CANNED, ...canned }),
-      CANNED_LOG : join(scratch, 'canned.log'),
-      TMPDIR     : join(scratch, 'tmp')
+      CANNED         : JSON.stringify({ ...CANNED, ...canned }),
+      CANNED_LOG     : join(scratch, 'canned.log'),
+      MISE_CACHE_DIR : join(scratch, 'tmp', 'mise', 'cache'),
+      MISE_DATA_DIR  : join(scratch, 'tmp', 'mise', 'data'),
+      MISE_STATE_DIR : join(scratch, 'tmp', 'mise', 'state'),
+      TMPDIR         : join(scratch, 'tmp')
     }
   })
   const log    = await readFile(join(scratch, 'canned.log'), 'utf8')
@@ -587,3 +591,33 @@ test('lists an advisory both Bun packages report once in the row it clears', asy
 
   expect(row(stdout, 'vitest')[5]).toBe('GHSA-aaaa-bbbb-cccc')
 }, 60_000)
+
+test.for<{ hap: string, homebridge: string, leading: [string, string, string][], leads: string }>([
+  { hap: '2.2.3', homebridge: '2.5.0', leading: [['homebridge (dev)', '2.4.0', '2.5.0']], leads: 'lifts' },
+  { hap: '2.2.2', homebridge: '2.4.0', leading: [], leads: 'stands' }
+])(
+  'moves a pin that follows another to the release its leader names where the leader $leads',
+  { timeout: 60_000 },
+  async ({ hap, homebridge, leading }, { scratch }) => {
+    const pins       = { '@homebridge/hap-nodejs': '2.2.2', homebridge: '2.4.0' }
+    const { stdout } = await lift(scratch, {
+      args   : ['--write'],
+      files  : { 'package.json': JSON.stringify({ devDependencies: pins }, null, 2) + '\n' },
+      canned : {
+        'bun info --json @homebridge/hap-nodejs@2.2.3 version' : json('2.2.3'),
+        'bun info --json homebridge time'                     : json({ '2.5.0': ago(2) }),
+        'bun info --json homebridge@2.5.0 dependencies'       : json({ '@homebridge/hap-nodejs': '2.2.3' }),
+        'bun outdated --cwd .'                                : outdated(
+          ['@homebridge/hap-nodejs (dev)', '2.2.2', '2.2.4'],
+          ...leading
+        )
+      }
+    })
+    const manifest   = JSON.parse((await read(scratch))['package.json'] ?? '{}')
+
+    expect({ hap: row(stdout, '@homebridge/hap-nodejs'), pins: manifest.devDependencies }).toEqual({
+      hap  : [],
+      pins : { '@homebridge/hap-nodejs': hap, homebridge }
+    })
+  }
+)
