@@ -1,0 +1,10 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "cite"
+#MISE depends     = ["site:bake"]
+#MISE description = "Write into each page the footnote text `site/references.bib` gives every work it cites, running under `--update` the site test that holds each page to that text"
+#MISE dir         = "site"
+
+vitest run \
+  --config .vitepress/vitest.config.ts \
+  --update=all \
+  .vitepress/tests/citations.test.ts

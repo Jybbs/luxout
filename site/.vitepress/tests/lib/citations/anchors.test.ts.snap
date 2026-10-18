@@ -1,0 +1,25 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`names a note, its marker, and its back link for the key the marker cites 1`] = `
+"<p>Bright<sup class="footnote-ref"><a href="#footnote-reda2008">[1]</a><a class="footnote-anchor" id="footnote-ref-reda2008"></a></sup>.</p>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="footnote-reda2008" class="footnote-item"><p>Reda and Andreas. <a href="#footnote-ref-reda2008" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+"
+`;
+
+exports[`numbers every citation of one work alike, each marker and back link named for the key 1`] = `
+"<p>One<sup class="footnote-ref"><a href="#footnote-reda2008">[1]</a><a class="footnote-anchor" id="footnote-ref-reda2008"></a></sup>, again<sup class="footnote-ref"><a href="#footnote-reda2008">[1]</a><a class="footnote-anchor" id="footnote-ref-reda2008:1"></a></sup>.</p>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="footnote-reda2008" class="footnote-item"><p>Reda. <a href="#footnote-ref-reda2008" class="footnote-backref">↩︎</a> <a href="#footnote-ref-reda2008:1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+"
+`;

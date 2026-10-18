@@ -1,5 +1,6 @@
+import type { ForecastWindow }             from '../weather/window.js'
 import type { ClearSky }                   from './clear-sky.js'
-import type { CloudFactor, Interpolation } from './cloud-factor.js'
+import { CloudFactor, type Interpolation } from './cloud-factor.js'
 import type { Sun }                        from './sun.js'
 
 /**
@@ -40,6 +41,15 @@ export class Estimator {
   constructor(sky: ClearSky, sun: Sun) {
     this.#sky = sky
     this.#sun = sun
+  }
+
+  /**
+   * Derives the cloud factor of `window` under the sun and the clear sky the
+   * estimator reads, carrying daylight steps over from `earlier` as
+   * `CloudFactor` does.
+   */
+  derive(window: ForecastWindow, earlier?: CloudFactor): CloudFactor {
+    return new CloudFactor(this.#sky, this.#sun, window, earlier)
   }
 
   /**

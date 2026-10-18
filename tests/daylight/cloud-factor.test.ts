@@ -6,6 +6,7 @@ import { ClearSky }            from '../../src/daylight/clear-sky.js'
 import { CloudFactor }         from '../../src/daylight/cloud-factor.js'
 import { Sun }                 from '../../src/daylight/sun.js'
 import type { ForecastWindow } from '../../src/weather/window.js'
+import { angeles, delhi }      from '../common/places.js'
 import { parsed, spaced }      from '../common/window.js'
 import dawn                    from './fixtures/dawn.json' with { type: 'json' }
 import dusk                    from './fixtures/dusk.json' with { type: 'json' }
@@ -21,8 +22,6 @@ const EVENING  = [0.454493, 0.701868, 0.521517, 0.373257] as const
 const MORNING  = [0.504787, 0.462013, 0.446452, 0.437864] as const
 const HOUR     = 3_600_000
 const STEP     = 900_000
-const angeles  = new Place(34.05223, -118.24368)
-const delhi    = new Place(28.62137, 77.2148)
 const helsinki = new Place(60.16952, 24.93545)
 const instants = fc.date({
   max           : new Date('2026-10-11T06:45:00Z'),
@@ -182,7 +181,7 @@ function at(factor: CloudFactor | undefined, time: number | string): number | un
 }
 
 function derive(window: ForecastWindow, earlier?: CloudFactor): CloudFactor {
-  return new CloudFactor(sky, new Sun(window.place.latitude, window.place.longitude), window, earlier)
+  return new CloudFactor(sky, new Sun(window.place), window, earlier)
 }
 
 function factors(window: ForecastWindow, earlier?: CloudFactor): (number | undefined)[] {
@@ -202,7 +201,7 @@ function mean(values: readonly number[]): number {
 }
 
 function tuned(above: number): CloudFactor {
-  const sun   = new Sun(delhi.latitude, delhi.longitude)
+  const sun   = new Sun(delhi)
   const floor = sky.refracted(sun.altitude(new Date('2026-10-11T01:30:00Z'))) + above
 
   return new CloudFactor(sky, sun, morning, undefined, {

@@ -1,22 +1,21 @@
 import { fc, test }   from '@fast-check/vitest'
 import { expect, it } from 'vitest'
 
-import { Place }       from '../../src/config/place.js'
 import { ClearSky }    from '../../src/daylight/clear-sky.js'
 import { CloudFactor } from '../../src/daylight/cloud-factor.js'
 import { Estimator }   from '../../src/daylight/estimator.js'
 import { Sun }         from '../../src/daylight/sun.js'
+import { delhi }       from '../common/places.js'
 import { parsed }      from '../common/window.js'
 import dawn            from './fixtures/dawn.json' with { type: 'json' }
 
-const delhi    = new Place(28.62137, 77.2148)
 const instants = fc.date({
   max           : new Date('2026-10-11T06:45:00Z'),
   min           : new Date('2026-10-11T00:00:00Z'),
   noInvalidDate : true
 })
 const sky       = new ClearSky()
-const sun       = new Sun(delhi.latitude, delhi.longitude)
+const sun       = new Sun(delhi)
 const estimator = new Estimator(sky, sun)
 const morning   = new CloudFactor(sky, sun, parsed(dawn, delhi))
 
@@ -51,6 +50,17 @@ it.each([
 
   expect(estimate).toMatchObject({ factor: 1, steps: undefined })
   expect(estimate.lux).toBe(sky.illuminance(estimate.altitude))
+})
+
+it.each([
+  { earlier: undefined, name: 'alone' },
+  { earlier: morning,   name: 'beside the factor it replaces' }
+])('derives the cloud factor of a window $name under its own sun and clear sky', ({ earlier }) => {
+  const window  = parsed(dawn, delhi)
+  const instant = new Date('2026-10-11T00:37:30Z')
+
+  expect(estimator.derive(window, earlier).at(instant))
+    .toEqual(new CloudFactor(sky, sun, window, earlier).at(instant))
 })
 
 test.prop([instants])('never estimates past the clear-sky illuminance at the same altitude', (instant) => {

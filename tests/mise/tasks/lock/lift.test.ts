@@ -1,17 +1,11 @@
-import { execFileSync }                from 'node:child_process'
-import { cp, mkdir, readFile, readdir } from 'node:fs/promises'
-import { join }                        from 'node:path'
+import { execFileSync }      from 'node:child_process'
+import { readFile, readdir } from 'node:fs/promises'
+import { join }              from 'node:path'
 
 import { expect } from 'vitest'
 
-import { plant, test } from '../../../common/scratch.js'
-import { sync }        from '../../../common/sync.js'
-
-interface Answer {
-  breaks? : string
-  status? : number
-  stdout? : string
-}
+import { plant, test }       from '../../../common/scratch.js'
+import { type Answer, sync } from '../../../common/sync.js'
 
 interface Setup {
   args?   : string[]
@@ -33,7 +27,6 @@ const CHECKOUT = '1'.repeat(40)
 const LIFTED   = '2'.repeat(40)
 const PINNED   = '3'.repeat(40)
 const RELOCK   = ['mise', 'run', 'lock:sync']
-const STANDIN  = join(import.meta.dirname, '..', '..', 'fixtures', 'canned.sh')
 const VERIFY   = ['mise', 'run', 'repo:verify']
 const ago      = (days: number): string => new Date(Date.now() - days * 86_400_000).toISOString()
 const json     = (value: unknown, status = 0): Answer => ({ status, stdout: JSON.stringify(value) })
@@ -210,9 +203,7 @@ async function lift(
     }
   })
 
-  await plant(scratch, { ...FILES, ...files, 'canned.log': '' })
-  await mkdir(join(scratch, 'tmp'))
-  await Promise.all(['bun', 'mise'].map((program) => cp(STANDIN, join(scratch, 'bin', program))))
+  await plant(scratch, { ...FILES, ...files })
   git('init', '--quiet')
   git('add', '--all')
   git('commit', '--message', 'Fixture', '--quiet')
@@ -222,28 +213,19 @@ async function lift(
 
   const before = git('status', '--porcelain')
 
-  const { status, stderr, stdout } = await sync(scratch, 'lock:lift', {
-    args : args,
-    live : live,
-    env  : {
-      CANNED         : JSON.stringify({ ...CANNED, ...canned }),
-      CANNED_LOG     : join(scratch, 'canned.log'),
-      MISE_CACHE_DIR : join(scratch, 'tmp', 'mise', 'cache'),
-      MISE_DATA_DIR  : join(scratch, 'tmp', 'mise', 'data'),
-      MISE_STATE_DIR : join(scratch, 'tmp', 'mise', 'state'),
-      TMPDIR         : join(scratch, 'tmp')
-    }
+  const { invoked, status, stderr, stdout } = await sync(scratch, 'lock:lift', {
+    args   : args,
+    canned : { ...CANNED, ...canned },
+    live   : live
   })
-  const log    = await readFile(join(scratch, 'canned.log'), 'utf8')
-  const called = log.split('\n').slice(0, -1).map((line): { args: string[], cwd: string } => JSON.parse(line))
 
   return {
-    called : called,
-    moved  : before !== git('status', '--porcelain'),
-    status : status,
-    stderr : stderr,
-    stdout : stdout,
-    steps  : called
+    invoked : invoked,
+    moved   : before !== git('status', '--porcelain'),
+    status  : status,
+    stderr  : stderr,
+    stdout  : stdout,
+    steps   : invoked
       .filter(({ args: [program, verb] }) => program === 'mise' && verb === 'run')
       .map(({ args, cwd }) => [cwd === scratch ? 'checkout' : 'clone', ...args])
   }
@@ -363,9 +345,9 @@ test.for([
   'exits 2 on the arguments $args before reading any pin',
   { timeout: 60_000 },
   async ({ args, message }, { scratch }) => {
-    const { called, status, stderr } = await lift(scratch, { args })
+    const { invoked, status, stderr } = await lift(scratch, { args })
 
-    expect({ called, status, stderr }).toEqual({ called: [], status: 2, stderr: message })
+    expect({ invoked, status, stderr }).toEqual({ invoked: [], status: 2, stderr: message })
   }
 )
 
@@ -533,11 +515,11 @@ test('stops before printing a table where bun audit fails without a report', asy
 }, 60_000)
 
 test('lists no min_version row where mise reports no newest release', async ({ scratch }) => {
-  const { called, stdout } = await lift(scratch, {
+  const { invoked, stdout } = await lift(scratch, {
     canned: { 'mise version --json': json({ version: '2026.10.12 macos-arm64 (2026-10-16)' }) }
   })
 
-  const dated = called.some(({ args }) => args.includes('aqua:jdx/mise'))
+  const dated = invoked.some(({ args }) => args.includes('aqua:jdx/mise'))
 
   expect({ dated, row: row(stdout, 'min_version') }).toEqual({ dated: false, row: [] })
 }, 60_000)

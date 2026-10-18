@@ -71,13 +71,14 @@ requests=$(
           + (map("  \(.)\n") | add)
           | halt_error(1)
         end
-      | $manifest[0] as { $description, $keywords }
+      | $manifest[0] as { $description, $homepage, $keywords }
       | $settings
       | (
           [
             "PATCH",
             "repos/{owner}/{repo}",
-            .["repos/{owner}/{repo}"] + { $description }
+            .["repos/{owner}/{repo}"]
+            + { $description, homepage: ($homepage | ltrimstr("https://")) }
           ],
           [
             "PUT",
