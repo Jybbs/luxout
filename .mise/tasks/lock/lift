@@ -371,16 +371,17 @@ while (( $# > 0 )); do
         exit 2
       fi
       held=$(jq --arg pin "$2" --compact-output '. + [$pin]' <<<"$held")
-      shift 2
+      shift
       ;;
-    --try)   trying=true; shift ;;
-    --write) writing=true; shift ;;
+    --try)   trying=true ;;
+    --write) writing=true ;;
     *)
       echo "\`$1\` is no flag \`lock:lift\` takes, which are \`--hold <pin>\`," \
            "\`--try\`, and \`--write\`" >&2
       exit 2
       ;;
   esac
+  shift
 done
 
 holds=$(bun --print 'JSON.stringify(require("./.mise/holds.toml"))')
@@ -419,6 +420,7 @@ if [[ -n "$unknown" ]]; then
   exit 2
 fi
 
+[[ "$rows" != "[]" ]] || exit 0
 "$trying" || "$writing" || exit 0
 
 lifted=$(jq --compact-output 'map(select(.held | not))' <<<"$rows")

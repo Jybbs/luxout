@@ -19,8 +19,16 @@ interface Setup {
   edits?  : Record<string, string>
   files?  : Record<string, string>
   live?   : Record<string, unknown>
+  staged? : boolean
 }
 
+const ADVISORIES = {
+  vitest: [
+    { id: 1, url: 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc', vulnerable_versions: '<5.0.4' },
+    { id: 2, url: 'https://github.com/advisories/GHSA-dddd-eeee-ffff', vulnerable_versions: '<5.0.6' },
+    { id: 3, url: 'https://github.com/advisories/GHSA-gggg-hhhh-iiii', vulnerable_versions: '<5.0.1' }
+  ]
+}
 const CHECKOUT = '1'.repeat(40)
 const LIFTED   = '2'.repeat(40)
 const PINNED   = '3'.repeat(40)
@@ -37,10 +45,12 @@ const CURRENT: Record<string, Answer> = {
   'mise latest node@24'                 : { stdout: '24.21.0\n' },
   'mise latest node@26'                 : { stdout: '26.10.0\n' },
   'mise outdated --bump --json --local' : json({}),
-  'mise version --json'                 : json({ latest: '2026.9.18', version: '2026.10.12 macos' })
+  'mise version --json': json({ latest: '2026.9.18', version: '2026.10.12 macos-arm64 (2026-10-16)' })
 }
 const FILES = {
   '.github/actions/provision/action.yml' : `runs:\n  steps:\n    - uses : jdx/mise-action@${PINNED}\n`,
+  '.github/workflows/release.yml'        : 'jobs:\n  publish:\n    steps:\n'
+                                         + `      - uses : actions/checkout@${CHECKOUT}\n`,
   '.gitignore'                           : '/*.log\n/.cache/\n/bin/\n/tmp/\n',
   '.mise/holds.toml'                     : '["@types/node"]\nreason = "Stays on the 22 line"\n',
   '.mise/tasks/plugin/lines.toml'        : '["plugin:test:22"]\ntools = { node = "22.23.3" }\n\n'
@@ -109,15 +119,8 @@ const CANNED: Record<string, Answer> = {
   'mise ls-remote --json zizmor 1.31.1'            : json([{ version: '1.31.1' }]),
   'mise run lock:sync'                             : {},
   'mise run repo:verify'                           : {},
-  'mise version --json': json({ latest: '2026.10.12', version: '2026.10.12 macos' }),
-
-  'bun audit --cwd . --json': json({
-    vitest: [
-      { id: 1, url: 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc', vulnerable_versions: '<5.0.4' },
-      { id: 2, url: 'https://github.com/advisories/GHSA-dddd-eeee-ffff', vulnerable_versions: '<5.0.6' },
-      { id: 3, url: 'https://github.com/advisories/GHSA-gggg-hhhh-iiii', vulnerable_versions: '<5.0.1' }
-    ]
-  }, 1),
+  'bun audit --cwd . --json'                       : json(ADVISORIES, 1),
+  'mise version --json': json({ latest: '2026.10.12', version: '2026.10.12 macos-arm64 (2026-10-16)' }),
 
   'bun outdated --cwd .': outdated(
     ['@types/node (dev)', '22.20.5', '26.6.5'],
@@ -158,6 +161,7 @@ const LIFT = {
   ...FILES,
   '.mise/config.toml'             : 'min_version = "2026.10.12"\n\n[tools]\n'
                                   + 'bun    = "1.4.3"\nnode   = "26.12.0"\nzizmor = "1.31.1"\n',
+  '.github/workflows/release.yml' : FILES['.github/workflows/release.yml'].replace(CHECKOUT, LIFTED),
   '.mise/tasks/plugin/lines.toml' : FILES['.mise/tasks/plugin/lines.toml'].replace('24.21.0', '24.22.0'),
   'site/package.json'             : JSON.stringify({ devDependencies: { vitest: '5.0.5' } }, null, 2) + '\n',
 
@@ -188,8 +192,8 @@ const SETTLED: Record<string, unknown> = {
  *   ran in the checkout or in a clone, and whether `git status` changed.
  */
 async function lift(
-  scratch                                                         : string,
-  { args = [], canned = {}, edits = {}, files = {}, live = LIVE } : Setup = {}
+  scratch                                                                        : string,
+  { args = [], canned = {}, edits = {}, files = {}, live = LIVE, staged = false } : Setup = {}
 ) {
   const git = (...words: string[]): string => execFileSync('git', words, {
     cwd      : scratch,
@@ -212,6 +216,8 @@ async function lift(
   git('add', '--all')
   git('commit', '--message', 'Fixture', '--quiet')
   await plant(scratch, edits)
+
+  if (staged) git('add', '--all')
 
   const before = git('status', '--porcelain')
 
@@ -246,7 +252,9 @@ function outdated(...rows: [string, string, string][]): Answer {
       '|--------------------------------------|',
       '| Package | Current | Update | Latest |',
       '|---------|---------|--------|--------|',
-      ...rows.map(([name, current, latest]) => `| ${name} | ${current} | ${current} | ${latest} |`),
+      ...rows
+        .map(([name, current, latest]) => `| ${name} | ${current} | ${current} | ${latest} |`)
+        .flatMap((line, index) => index === 0 ? [line] : ['|---------|---------|--------|--------|', line]),
       '|--------------------------------------|',
       ''
     ].join('\n')
@@ -293,11 +301,19 @@ test('prints every pin behind its newest release as one Markdown table', async (
   `)
 }, 60_000)
 
-test('prints that every pin stands at its newest release where none lags', async ({ scratch }) => {
-  const { status, stdout } = await lift(scratch, { canned: CURRENT, live: SETTLED })
+test.for([{ args: [] }, { args: ['--try', '--write'] }])(
+  'prints only that every pin stands at its newest release where none lags, given $args',
+  { timeout: 60_000 },
+  async ({ args }, { scratch }) => {
+    const { status, steps, stdout } = await lift(scratch, { args, canned: CURRENT, live: SETTLED })
 
-  expect({ status, stdout }).toEqual({ status: 0, stdout: 'Every pin stands at its newest release\n' })
-}, 60_000)
+    expect({ status, steps, stdout }).toEqual({
+      status : 0,
+      steps  : [],
+      stdout : 'Every pin stands at its newest release\n'
+    })
+  }
+)
 
 test.for([
   { current: '0.33.1', major: 'yes', newest: '0.34.0' },
@@ -397,17 +413,27 @@ test('trials the lift in a scratch clone, leaving the checkout as it was', async
   })
 }, 60_000)
 
-test.for<{ edits: Record<string, string>, kind: string }>([
-  { edits: { 'notes.txt': 'carried\n' }, kind: 'untracked' },
-  { edits: { '.mise/holds.toml': '["@types/node"]\nreason = "carried"\n' }, kind: 'uncommitted' }
+test.for<{ edits: Record<string, string>, kind: string, staged: boolean }>([
+  { edits: { 'notes.txt': 'carried\n' }, kind: 'untracked', staged: false },
+  {
+    edits  : { '.mise/holds.toml': '["@types/node"]\nreason = "carried"\n' },
+    kind   : 'uncommitted',
+    staged : false
+  },
+  {
+    edits  : { '.mise/holds.toml': '["@types/node"]\nreason = "carried"\n' },
+    kind   : 'staged',
+    staged : true
+  }
 ])(
   'carries the checkout’s $kind files into the clone it trials',
   { timeout: 60_000 },
-  async ({ edits }, { scratch }) => {
+  async ({ edits, staged }, { scratch }) => {
     const { status, steps, stdout } = await lift(scratch, {
       args   : ['--try'],
       canned : { 'mise run repo:verify': { breaks: 'carried' } },
-      edits  : edits
+      edits  : edits,
+      staged : staged
     })
 
     expect({ status, steps, stdout }).toEqual({
@@ -466,7 +492,9 @@ test.for([
 test('stops before any trial or write where min_version would pass the running mise', async ({ scratch }) => {
   const { moved, status, stderr, steps } = await lift(scratch, {
     args   : ['--try', '--write'],
-    canned : { 'mise version --json': json({ latest: '2026.10.12', version: '2026.10.11 macos' }) }
+    canned : {
+      'mise version --json': json({ latest: '2026.10.12', version: '2026.10.11 macos-arm64 (2026-10-15)' })
+    }
   })
 
   expect({ moved, status, stderr, steps }).toEqual({
@@ -502,7 +530,7 @@ test('stops before printing a table where bun audit fails without a report', asy
 
 test('lists no min_version row where mise reports no newest release', async ({ scratch }) => {
   const { called, stdout } = await lift(scratch, {
-    canned: { 'mise version --json': json({ version: '2026.10.12 macos' }) }
+    canned: { 'mise version --json': json({ version: '2026.10.12 macos-arm64 (2026-10-16)' }) }
   })
 
   const dated = called.some(({ args }) => args.includes('aqua:jdx/mise'))
@@ -513,7 +541,9 @@ test('lists no min_version row where mise reports no newest release', async ({ s
 test('lifts the rest under an older mise where min_version is held', async ({ scratch }) => {
   const { status, steps } = await lift(scratch, {
     args   : ['--hold', 'min_version', '--write'],
-    canned : { 'mise version --json': json({ latest: '2026.10.12', version: '2026.10.11 macos' }) }
+    canned : {
+      'mise version --json': json({ latest: '2026.10.12', version: '2026.10.11 macos-arm64 (2026-10-15)' })
+    }
   })
 
   expect({ config: (await read(scratch))['.mise/config.toml'], status, steps }).toEqual({
@@ -527,4 +557,33 @@ test('clears the logs an earlier trial left before trialing again', async ({ scr
   await lift(scratch, { args: ['--try'], files: { '.cache/lift/without-bun.log': 'stale\n' } })
 
   expect(await readdir(join(scratch, '.cache', 'lift'))).toEqual(['whole.log'])
+}, 60_000)
+
+test('moves only the pin each edit names where another pin in its manifest shares the release', async ({
+  scratch
+}) => {
+  const shared     = { '@vitest/coverage-v8': '5.0.3', vitest: '5.0.3' }
+  const { status } = await lift(scratch, {
+    args   : ['--hold', 'vitest', '--write'],
+    files  : { 'package.json': JSON.stringify({ devDependencies: shared }, null, 2) + '\n' },
+    canned : {
+      'bun info --json @vitest/coverage-v8 time' : json({ '5.0.5': ago(2) }),
+      'bun outdated --cwd .'                     : outdated(
+        ['@vitest/coverage-v8 (dev)', '5.0.3', '5.0.5'],
+        ['vitest (dev)', '5.0.3', '5.0.5']
+      )
+    }
+  })
+  const manifest   = JSON.parse((await read(scratch))['package.json'] ?? '{}')
+
+  expect({ pins: manifest.devDependencies, status }).toEqual({
+    pins   : { '@vitest/coverage-v8': '5.0.5', vitest: '5.0.3' },
+    status : 0
+  })
+}, 60_000)
+
+test('lists an advisory both Bun packages report once in the row it clears', async ({ scratch }) => {
+  const { stdout } = await lift(scratch, { canned: { 'bun audit --cwd site --json': json(ADVISORIES, 1) } })
+
+  expect(row(stdout, 'vitest')[5]).toBe('GHSA-aaaa-bbbb-cccc')
 }, 60_000)

@@ -15,8 +15,8 @@ const STANDIN = join(import.meta.dirname, '..', '..', 'fixtures', 'canned.sh')
 
 /**
  * Runs the task in `scratch` under stand-ins for `mise` and `bun`, where
- * `mise ls` reports `missing` as the tools the project pins that mise has not
- * installed.
+ * `mise ls` reports `missing` as the tools `.mise/config.toml` pins that mise
+ * has not installed.
  *
  * Returns:
  *   Each call the stand-ins received, in order, beside the exit status.
@@ -37,7 +37,7 @@ async function relock(
       CANNED     : JSON.stringify({
         'bun install --cwd site --lockfile-only' : {},
         'bun install --lockfile-only'            : {},
-        [`mise install ${missing.join(' ')}`]    : {},
+        [['mise install', ...missing].join(' ')] : {},
         'mise lock'                              : {},
         'mise ls --json --local --missing'       : { stdout: JSON.stringify(lacking) }
       })
@@ -57,6 +57,6 @@ test('locks mise first and installs each missing tool before either Bun package 
   })
 })
 
-test('installs nothing where mise has installed every tool the project pins', async ({ scratch }) => {
+test('installs nothing where mise has installed every tool `.mise/config.toml` pins', async ({ scratch }) => {
   expect(await relock([], scratch)).toEqual({ calls: [...LOCK, ...BAKE], status: 0 })
 })
