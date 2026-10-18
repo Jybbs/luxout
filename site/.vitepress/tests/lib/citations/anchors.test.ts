@@ -16,8 +16,15 @@ it('keeps a note’s anchor where the page cites another work above it', () => {
     .toContain('<li id="footnote-reda2008" class="footnote-item">')
 })
 
-it('numbers a second citation of one work after a colon, its marker and back link named for the key', () => {
+it('numbers every citation of one work alike, each marker and back link named for the key', () => {
   expect(md.render('One[^reda2008], again[^reda2008].\n\n[^reda2008]: Reda.\n')).toMatchSnapshot()
+})
+
+it('captions each work with its own number, the work a page cites first as 1', () => {
+  const page = 'One[^reno2012], two[^reda2008], again[^reno2012].\n\n'
+             + '[^reno2012]: Reno.\n\n[^reda2008]: Reda.\n'
+
+  expect(md.render(page).match(/\[\d+\]<\/a>/gu)).toEqual(['[1]</a>', '[2]</a>', '[1]</a>'])
 })
 
 it('numbers a note written inline, which names no key', () => {
