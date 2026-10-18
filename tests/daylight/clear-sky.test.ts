@@ -21,7 +21,7 @@ const sky = new ClearSky()
 it.each(CIRCULAR)(
   'reaches the $lux lux of $run within 0.05° of the altitude the Sun computes',
   ({ latitude, longitude, lux, time }) => {
-    const altitude = new Sun(latitude, longitude).altitude(new Date(time))
+    const altitude = new Sun({ latitude, longitude }).altitude(new Date(time))
 
     expect(lux).toBeGreaterThan(sky.illuminance(altitude - 0.05))
     expect(lux).toBeLessThan(sky.illuminance(altitude + 0.05))
