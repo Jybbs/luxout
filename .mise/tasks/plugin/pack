@@ -1,7 +1,13 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "pack"
 #MISE depends     = ["plugin:build"]
-#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, then lint the tarball with publint, install it into an empty directory, and import the package there"
+#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md` or the settings page under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait for the ready message of the server script it forks"
+
+holds() {
+  grep --fixed-strings --line-regexp --quiet "$1" <<<"$files" && return
+  echo "The tarball holds no $1, so $2" >&2
+  exit 1
+}
 
 cp .github/README.md README.md
 
@@ -9,10 +15,11 @@ pack=$(npm pack --json)
 files=$(jq --raw-output '.[0].files[].path' <<<"$pack")
 echo "$files"
 
-if ! grep --fixed-strings --line-regexp --quiet README.md <<<"$files"; then
-  echo "The tarball holds no README.md, so npm shows no README for the package" >&2
-  exit 1
-fi
+ui=$(jq --raw-output '.customUiPath | ltrimstr("./")' config.schema.json)
+
+holds README.md "npm shows no README for the package"
+holds "$ui/public/index.html" "the Homebridge UI has no settings page to show"
+holds "$ui/server.js" "the settings page has no server script to answer it"
 
 name=$(jq --raw-output '.[0].name' <<<"$pack")
 tarball=$PWD/$(jq --raw-output '.[0].filename' <<<"$pack")
@@ -25,3 +32,17 @@ trap 'rm -rf "$prefix"' EXIT
 npm install --ignore-scripts --no-audit --no-fund --prefix "$prefix" "$tarball"
 cd "$prefix"
 node --eval 'await import(process.argv[1])' --input-type=module "$name"
+node --eval '
+  import { fork } from "node:child_process"
+  import { once } from "node:events"
+
+  const server    = fork(process.argv[1], { execArgv: [], signal: AbortSignal.timeout(10_000) })
+  const [message] = await Promise.race([once(server, "message"), once(server, "exit")]).catch(() => [])
+
+  server.kill()
+
+  if (message?.action !== "ready") {
+    console.error("The server script sent no ready message within 10 seconds")
+    process.exitCode = 1
+  }
+' --input-type=module "node_modules/$name/$ui/server.js"

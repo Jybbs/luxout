@@ -1,7 +1,9 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "build"
 #MISE depends     = ["plugin:bake"]
-#MISE description = "Empty `dist/` and compile `src/` into it"
+#MISE description = "Empty `dist/`, compile `src/` and the settings page under `src/ui/public/` into it, and copy the page's `index.html` there"
 
 rm -rf dist
 tsc -p src
+tsc -p src/ui/public
+cp src/ui/public/index.html dist/ui/public/

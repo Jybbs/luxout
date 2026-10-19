@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@badrap/valita": "0.5.4",
+    "@homebridge/plugin-ui-utils": "2.2.6",
     "astronomy-engine": "2.1.19"
   },
   "devDependencies": {
