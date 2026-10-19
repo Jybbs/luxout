@@ -11,7 +11,7 @@ interface Lockfile {
   packages: Record<string, [string, string, { bin?: Record<string, string> | string }?]>
 }
 
-const LOCKFILES = ['bun.lock', 'site/bun.lock']
+const LOCKFILES = ['bun.lock', 'site/bun.lock', 'tests/homebridge/bun.lock']
 const fixture   = join(import.meta.dirname, 'fixtures', 'args.sh')
 const root      = join(import.meta.dirname, '..', '..')
 const scratch   = await realpath(await mkdtemp(join(tmpdir(), 'luxout-bin-')))
@@ -52,7 +52,7 @@ it('keeps every wrapper a regular file holding the same bytes as the first', asy
   expect(wrappers).toEqual(names.map((name) => ({ bytes: wrappers[0]?.bytes, file: true, name })))
 })
 
-it.each(names)('names the %s wrapper after a program bun.lock or site/bun.lock installs', (name) => {
+it.each(names)('names the %s wrapper after a program one of the Bun lockfiles records', (name) => {
   expect(installed).toContain(name)
 })
 
