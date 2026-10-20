@@ -9,7 +9,7 @@ import { test } from '../../../common/scratch.js'
 const printer = join(import.meta.dirname, '..', '..', 'fixtures', 'args.sh')
 const task    = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'plugin', 'watch')
 
-test('restarts plugin:run under mise watch on each change, forwarding every further argument', async ({
+test('hands plugin:run and every further argument to mise watch, restarting it on each change', async ({
   scratch
 }) => {
   const bin = join(scratch, 'bin')
