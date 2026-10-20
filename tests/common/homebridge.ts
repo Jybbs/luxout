@@ -62,9 +62,19 @@ export class Bridge extends EventEmitter {
 }
 
 /**
+ * Finds the light level the Light Sensor of `accessory` holds.
+ */
+export function level(accessory: PlatformAccessory): Characteristic {
+  const sensor = accessory.getService(hap.Service.LightSensor)
+
+  return sensor?.getCharacteristic(hap.Characteristic.CurrentAmbientLightLevel)
+      ?? expect.unreachable('The accessory holds no Light Sensor')
+}
+
+/**
  * Builds a callable `Logging` whose every level is a mock.
  */
-function logging(): Logging {
+export function logging(): Logging {
   return Object.assign(vi.fn<(message: string, ...parameters: unknown[]) => void>(), {
     debug   : vi.fn<Logging['debug']>(),
     error   : vi.fn<Logging['error']>(),
@@ -74,14 +84,4 @@ function logging(): Logging {
     success : vi.fn<Logging['success']>(),
     warn    : vi.fn<Logging['warn']>()
   })
-}
-
-/**
- * Finds the light level the Light Sensor of `accessory` holds.
- */
-export function level(accessory: PlatformAccessory): Characteristic {
-  const sensor = accessory.getService(hap.Service.LightSensor)
-
-  return sensor?.getCharacteristic(hap.Characteristic.CurrentAmbientLightLevel)
-      ?? expect.unreachable('The accessory holds no Light Sensor')
 }

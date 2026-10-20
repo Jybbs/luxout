@@ -11,14 +11,18 @@ interface Lockfile {
   packages: Record<string, [string, string, { bin?: Record<string, string> | string }?]>
 }
 
-const LOCKFILES = ['bun.lock', 'site/bun.lock', 'tests/homebridge/bun.lock']
-const fixture   = join(import.meta.dirname, 'fixtures', 'args.sh')
-const root      = join(import.meta.dirname, '..', '..')
-const scratch   = await realpath(await mkdtemp(join(tmpdir(), 'luxout-bin-')))
-const bin       = join(root, '.mise', 'bin')
-const copies    = join(scratch, '.mise', 'bin')
+const fixture = join(import.meta.dirname, 'fixtures', 'args.sh')
+const root    = join(import.meta.dirname, '..', '..')
+const scratch = await realpath(await mkdtemp(join(tmpdir(), 'luxout-bin-')))
+const bin     = join(root, '.mise', 'bin')
+const copies  = join(scratch, '.mise', 'bin')
 
-const installed = (await Promise.all(LOCKFILES.map(async (file) => {
+const lockfiles = execFileSync('bash', ['-c', 'source .mise/lib/lock.sh && bun_packages'], {
+  cwd      : root,
+  encoding : 'utf8'
+}).split('\n').slice(0, -1).map((dir) => join(dir, 'bun.lock'))
+
+const installed = (await Promise.all(lockfiles.map(async (file) => {
   const { packages }: Lockfile = parse(await readFile(join(root, file), 'utf8'))
 
   return Object.values(packages)

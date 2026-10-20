@@ -1,10 +1,10 @@
-import { spawnSync }                                from 'node:child_process'
-import { cp, readFile, readdir, readlink, symlink } from 'node:fs/promises'
-import { basename, delimiter, join, sep }           from 'node:path'
+import { readFile, readdir, readlink } from 'node:fs/promises'
+import { basename, join }              from 'node:path'
 
 import { expect } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
+import { sync }        from '../../../common/sync.js'
 
 interface Run {
   calls  : string[][]
@@ -25,8 +25,6 @@ const SEED  = {
   'tests/homebridge/package.json' : 'manifest\n',
   'tests/homebridge/startup.json' : 'startup\n'
 }
-const printer = join(import.meta.dirname, '..', '..', 'fixtures', 'args.sh')
-const task    = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'plugin', 'run')
 const config  = `${CACHE}/storage/config.json`
 const startup = `${CACHE}/storage/.uix-hb-service-homebridge-startup.json`
 
@@ -125,7 +123,9 @@ test('passes a checkout path holding a space whole to bun, hb-service, and the p
 })
 
 test('starts no Homebridge where the UI fails to install', async ({ scratch }) => {
-  expect(await run(scratch, { failing: true })).toEqual({ calls: [], status: 1 })
+  const { calls, status } = await run(scratch, { failing: true })
+
+  expect({ programs: calls.map(([program]) => program), status }).toEqual({ programs: ['bun'], status: 1 })
 })
 
 async function read(directory: string, ...files: string[]): Promise<string[]> {
@@ -134,30 +134,29 @@ async function read(directory: string, ...files: string[]): Promise<string[]> {
 
 /**
  * Runs the task with `args` in `scratch`, a checkout holding the seed under
- * `tests/homebridge` beside the files `planted` adds. Stand-ins for `bun` and
- * `hb-service` each print the arguments they receive, and `bun` fails instead
- * where `failing` is set.
+ * `tests/homebridge` beside the files `planted` adds, under stand-ins for `bun`
+ * and `hb-service`, where `bun` fails instead where `failing` is set.
  *
  * Returns:
  *   Each program the task ran with its arguments, in order, beside the exit
  *   status.
  */
 async function run(scratch: string, { args = [], failing = false, planted = {} }: Setup = {}): Promise<Run> {
-  const bin = join(scratch, 'bin')
+  const cache = join(scratch, CACHE)
+  const start = [
+    'hb-service', 'run', '--plugin-path', join(cache, 'plugins'), '--stdout', '--strict-plugin-resolution',
+    '--user-storage-path', join(cache, 'storage'), ...args
+  ]
 
   await plant(scratch, { ...SEED, ...planted })
-  await cp(printer, join(bin, 'hb-service'))
-  await (failing ? symlink('/usr/bin/false', join(bin, 'bun')) : cp(printer, join(bin, 'bun')))
 
-  const { status, stdout } = spawnSync(task, args, {
-    cwd      : scratch,
-    encoding : 'utf8',
-    env      : { PATH: bin + delimiter + process.env.PATH }
+  const { invoked, status } = await sync(scratch, 'plugin:run', {
+    args   : args,
+    canned : {
+      [`bun install --cwd ${cache} --frozen-lockfile`] : failing ? { status: 1 } : {},
+      [start.join(' ')]                                : {}
+    }
   })
 
-  const calls = stdout.split(bin + sep)
-    .slice(1)
-    .map((call) => call.split('\0').slice(0, -1))
-
-  return { calls, status }
+  return { calls: invoked.map((call) => call.args), status }
 }
