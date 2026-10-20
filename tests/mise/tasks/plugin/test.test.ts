@@ -1,22 +1,21 @@
-import { spawnSync }       from 'node:child_process'
-import { cp }              from 'node:fs/promises'
-import { delimiter, join } from 'node:path'
+import { cp }   from 'node:fs/promises'
+import { join } from 'node:path'
 
 import { expect } from 'vitest'
 
 import { test } from '../../../common/scratch.js'
+import { sync } from '../../../common/sync.js'
 
-const ARGS     = ['--bail', '1']
-const FIXTURES = join(import.meta.dirname, '..', '..', 'fixtures')
-const MESSAGE  = 'plugin:test:24 runs on Node 24.21.0, which mise has not installed, '
-               + 'so run `mise install --include-task-tools` first\n'
-const TASK   = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'tasks', 'plugin', 'test')
-const VITEST = ['run', '--config', 'tests/vitest.config.ts', ...ARGS]
+const ARGS    = ['--bail', '1']
+const MESSAGE = 'plugin:test:24 runs on Node 24.21.0, which mise has not installed, '
+              + 'so run `mise install --include-task-tools` first\n'
+const VITEST  = ['run', '--config', 'tests/vitest.config.ts', ...ARGS]
 
 /**
  * Runs the task as `name` in `scratch` beside stand-ins for the programs it
  * calls, where `mise` reports the task declaring `tools` or fails without them,
- * `node` reports the `running` release, and `vitest` prints its arguments.
+ * `node` reports the `running` release or fails without one, and `vitest`
+ * prints its arguments.
  */
 async function run(
   name    : string,
@@ -24,20 +23,14 @@ async function run(
   scratch : string,
   tools?  : Record<string, string>
 ): Promise<{ status: number | null, stderr: string, vitest: string[] }> {
-  await Promise.all([
-    cp(join(FIXTURES, 'args.sh'), join(scratch, 'bin', 'vitest')),
-    cp(join(FIXTURES, 'mise.sh'), join(scratch, 'bin', 'mise')),
-    cp(join(FIXTURES, 'node.sh'), join(scratch, 'bin', 'node'))
-  ])
+  await cp(join(import.meta.dirname, '..', '..', 'fixtures', 'args.sh'), join(scratch, 'bin', 'vitest'))
 
-  const { status, stderr, stdout } = spawnSync(TASK, ARGS, {
-    cwd      : scratch,
-    encoding : 'utf8',
-    env      : {
-      MISE_TASK_INFO : tools ? JSON.stringify({ tools }) : '',
-      MISE_TASK_NAME : name,
-      NODE_VERSION   : running,
-      PATH           : join(scratch, 'bin') + delimiter + process.env.PATH
+  const { status, stderr, stdout } = await sync(scratch, 'plugin:test', {
+    args   : ARGS,
+    env    : { MISE_TASK_NAME: name },
+    canned : {
+      [`mise tasks info --json ${name}`] : tools ? { stdout: JSON.stringify({ tools }) } : { status: 1 },
+      'node --version'                   : running ? { stdout: running } : { status: 127 }
     }
   })
 

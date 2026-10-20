@@ -19,7 +19,7 @@ As soon as `cd` runs, mise puts the `.mise/bin` wrappers on the path beside the 
 
 ## Checking a Change
 
-`mise ci` runs `mise doctor project` and then every check a pull request runs in CI, on the release of Node `.mise/config.toml` pins. CI runs the plugin's suite again on the oldest releases of Node 22 and 24 that `engines` in `package.json` admits, and `mise run plugin:test:22` and `mise run plugin:test:24` run those suites locally once `mise install --include-task-tools` has installed both releases. After an edit to any `package.json` or to `.mise/config.toml`, run `mise relock` to re-resolve each lockfile against its manifest, since `mise ci` fails on a lockfile that no longer matches its manifest. `mise tasks` lists every task with its description.
+`mise ci` runs `mise doctor project` and then every check a pull request runs in CI, on the release of Node `.mise/config.toml` pins. CI runs the plugin's suite again on the oldest releases of Node 22 and 24 that `engines` in `package.json` admits, and `mise run plugin:test:22` and `mise run plugin:test:24` run those suites locally once `mise install --include-task-tools` has installed both releases. After an edit to any `package.json` or to `.mise/config.toml`, run `mise relock` to re-resolve each lockfile against its manifest, since `mise ci` fails on a lockfile that no longer matches its manifest. `mise lift` lists each pin behind its newest release as a table, and `mise lift -- --try --write` writes the lift in place and relocks once `mise ci` passes on it in a scratch clone. `mise tasks` lists every task with its description.
 
 ## Opening an Issue
 
