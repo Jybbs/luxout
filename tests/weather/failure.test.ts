@@ -8,13 +8,13 @@ it.each([
   {
     error : new DOMException('The operation was aborted due to timeout', 'TimeoutError'),
     kind  : 'timeout',
-    line  : 'Open-Meteo sent no forecast before the request timed out',
+    line  : 'Open-Meteo sent no answer before the request timed out',
     name  : 'a timeout'
   },
   {
     error : new SyntaxError('Unexpected token \'<\', "<html>" is not valid JSON'),
     kind  : 'body',
-    line  : 'Open-Meteo sent a forecast that fails validation (the body is not JSON)',
+    line  : 'Open-Meteo sent an answer that fails validation (the body is not JSON)',
     name  : 'a body that is not JSON'
   },
   {

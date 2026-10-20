@@ -6,6 +6,7 @@ import { expect, vi }                      from 'vitest'
 import { LuxoutPlatform }         from '../../src/platform/dynamic.js'
 import { OUTSIDE, OutsideSensor } from '../../src/sensor/outside.js'
 import { WindowStore }            from '../../src/weather/store.js'
+import { answering }              from '../common/fetch.js'
 import * as homebridge            from '../common/homebridge.js'
 import { boston, delhi }          from '../common/places.js'
 import { spaced }                 from '../common/window.js'
@@ -128,7 +129,7 @@ test(
 test(
   'reads at once from the forecast it fetches at launch where none is stored',
   async ({ fetch, launch, log }) => {
-    fetch.mockImplementation(() => Promise.resolve(Response.json(window)))
+    fetch.mockResolvedValue(Response.json(window))
     await launch(delhi)
 
     expect(vi.mocked(log.debug).mock.calls[0]?.[0]).toContain('interpolated between')
@@ -153,7 +154,7 @@ test(
 test(
   'requests through the global fetch where Homebridge builds the platform from its three arguments',
   async ({ bridge, log }) => {
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => Response.json(window))
+    const fetch = answering(Response.json(window))
 
     vi.stubGlobal('fetch', fetch)
     new LuxoutPlatform(

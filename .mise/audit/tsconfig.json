@@ -1,8 +1,4 @@
 {
   "extends": "../../src/tsconfig.json",
-  "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "rootDir": "."
-  }
+  "compilerOptions": { "allowImportingTsExtensions": true, "noEmit": true, "rootDir": "." }
 }
