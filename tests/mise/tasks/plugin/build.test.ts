@@ -11,8 +11,9 @@ const task = join(root, '.mise', 'tasks', 'plugin', 'build')
 
 test('leaves no dist behind a compile that fails', async ({ scratch }) => {
   await plant(scratch, {
-    'package.json' : '{ "type": "module" }',
-    'src/index.ts' : 'export const lux: number = "dark"\n'
+    'dist/index.js' : '',
+    'package.json'  : '{ "type": "module" }',
+    'src/index.ts'  : 'export const lux: number = "dark"\n'
   })
   await copyFile(join(root, 'src', 'tsconfig.json'), join(scratch, 'src', 'tsconfig.json'))
   await symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
