@@ -1,14 +1,17 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "build"
 #MISE depends     = ["plugin:bake"]
-#MISE description = "Empty `dist/` and compile `src/` into it, skipping the run where `dist/index.js` is newer than every source"
-#MISE outputs     = ["dist/index.js"]
+#MISE description = "Empty `dist/`, compile `src/` and the settings page under `src/ui/public/` into it, and copy the page's `index.html` there, skipping the run where every output is newer than every source"
+#MISE outputs     = ["dist/index.js", "dist/ui/public/index.html"]
 #MISE sources     = [
 #MISE   "config.schema.json",
 #MISE   "package.json",
 #MISE   "src/**/*.ts",
-#MISE   "src/**/tsconfig.json"
+#MISE   "src/**/tsconfig.json",
+#MISE   "src/ui/public/index.html"
 #MISE ]
 
 rm -rf dist
 tsc -p src
+tsc -p src/ui/public
+cp src/ui/public/index.html dist/ui/public/

@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest'
 
 import { Place }          from '../../src/config/place.js'
 import { ForecastClient } from '../../src/weather/client.js'
+import { answering }      from '../common/fetch.js'
 import { parsed }         from '../common/window.js'
 import forecast           from './fixtures/forecast.json' with { type: 'json' }
 
@@ -62,7 +63,7 @@ it('reports a request that times out as a timeout', async () => {
 
   expect(failure).toMatchObject({
     kind : 'timeout',
-    line : 'Open-Meteo sent no forecast before the request timed out'
+    line : 'Open-Meteo sent no answer before the request timed out'
   })
 })
 
@@ -97,12 +98,12 @@ it.each([
   },
   {
     fetch : answering(new Response('<html>OK</html>')),
-    line  : 'Open-Meteo sent a forecast that fails validation (the body is not JSON)',
+    line  : 'Open-Meteo sent an answer that fails validation (the body is not JSON)',
     name  : 'a body that is not JSON'
   },
   {
     fetch : answering(Response.json({ minutely_15: { ...forecast.minutely_15, time: [] } })),
-    line  : 'Open-Meteo sent a forecast that fails validation '
+    line  : 'Open-Meteo sent an answer that fails validation '
           + '(custom_error at .minutely_15 (the step times and the irradiances differ in length))',
     name  : 'a body that fails validation'
   }
@@ -112,10 +113,6 @@ it.each([
   expect(failure).toMatchObject({ line })
   expect(failure).toMatchObject({ line: expect.not.stringMatching(/open-meteo\.com|42\.36|71\.06/) })
 })
-
-function answering(response: Response) {
-  return vi.fn<typeof fetch>().mockResolvedValue(response)
-}
 
 function hanging() {
   return vi.fn<typeof fetch>((_url, init) => new Promise((_resolve, reject) => {

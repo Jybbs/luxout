@@ -2,6 +2,7 @@
   "pluginAlias": "Luxout",
   "pluginType": "platform",
   "singular": true,
+  "customUiPath": "./dist/ui",
   "schema": {
     "type": "object",
     "properties": {

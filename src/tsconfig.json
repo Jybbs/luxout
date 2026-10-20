@@ -11,5 +11,6 @@
     "target": "es2024",
     "types": ["node"],
     "verbatimModuleSyntax": true
-  }
+  },
+  "exclude": ["ui/public"]
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "typecheck"
 #MISE depends     = ["plugin:bake"]
-#MISE description = "Typecheck the plugin, the audit, and their suites, each under its own `tsconfig.json`"
+#MISE description = "Typecheck the plugin, its settings page, the audit, and their suites, each under its own `tsconfig.json`"
 
 tsc --noEmit -p src
+tsc --noEmit -p src/ui/public
 tsc -p .mise/audit
 tsc -p tests

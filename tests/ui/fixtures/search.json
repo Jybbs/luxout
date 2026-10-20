@@ -1,0 +1,25 @@
+{
+  "results": [
+    {
+      "name": "Paris",
+      "latitude": 48.85341,
+      "longitude": 2.3488,
+      "country": "France",
+      "admin1": "Île-de-France Region"
+    },
+    {
+      "name": "Addison",
+      "latitude": 32.96179,
+      "longitude": -96.82917,
+      "country": "United States",
+      "admin1": "Texas"
+    },
+    {
+      "name": "Paris 01 Louvre",
+      "latitude": 48.8592,
+      "longitude": 2.3417,
+      "country": "France",
+      "admin1": "Île-de-France Region"
+    }
+  ]
+}
