@@ -24,6 +24,29 @@ test('shows a reading at start and one each minute after it', ({ bridge, log }) 
   expect(shown).toHaveLength(4)
 })
 
+test('reads again at the start of the next minute', ({ bridge, log }) => {
+  meter(bridge, log, delhi).reading.start(new AbortController().signal)
+  vi.advanceTimersByTime(29_999)
+
+  expect(log.debug).toHaveBeenCalledOnce()
+
+  vi.advanceTimersByTime(1)
+
+  expect(log.debug).toHaveBeenCalledTimes(2)
+})
+
+test(
+  'reads each minute through the hour a fall-back repeats on a host in America/New_York',
+  ({ bridge, log }) => {
+    vi.stubEnv('TZ', 'America/New_York')
+    vi.setSystemTime(new Date('2026-11-01T05:58:30Z'))
+    meter(bridge, log, delhi).reading.start(new AbortController().signal)
+    vi.advanceTimersByTime(3 * MINUTE)
+
+    expect(log.debug).toHaveBeenCalledTimes(4)
+  }
+)
+
 test('stops reading once its signal aborts, leaving no timer behind', ({ bridge, log }) => {
   const shutdown = new AbortController()
 
@@ -119,7 +142,7 @@ test('warns again once a forecast that covered a reading runs out', ({ bridge, l
 
   expect(log.warn).toHaveBeenCalledOnce()
 
-  vi.advanceTimersByTime(7 * MINUTE)
+  vi.advanceTimersByTime(8 * MINUTE)
 
   expect(log.warn).toHaveBeenCalledTimes(2)
 })
