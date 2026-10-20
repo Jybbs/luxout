@@ -207,6 +207,19 @@ test(
 )
 
 test(
+  'defers an hourly fetch that falls while the one before it still runs until that one settles',
+  async ({ log, reading, shutdown, store }) => {
+    const { fetch, sent } = served(refusal, HOUR + MINUTE)
+
+    await store.write(held)
+    await scheduled(fetch, log, reading, store).start(shutdown.signal)
+    await vi.advanceTimersByTimeAsync(HOUR + 31 * MINUTE)
+
+    expect(sent).toEqual(['2026-10-11T02:37:20.000Z', '2026-10-11T03:38:20.000Z'])
+  }
+)
+
+test(
   'keeps fetching each hour after the held window runs out, until a fetch succeeds',
   async ({ log, reading, shutdown, store }) => {
     const later           = spaced(Array(28).fill(300), delhi, '2026-10-11T09:00:00Z')
@@ -337,7 +350,7 @@ test(
 )
 
 test(
-  'logs an error a fetch raises and keeps fetching each hour',
+  'logs an error the reading raises on a fetched window and keeps fetching each hour',
   async ({ log, reading, shutdown, store }) => {
     const error           = new Error('The window holds no daylight')
     const { fetch, sent } = served(answer)
@@ -353,6 +366,22 @@ test(
       ['Outside could not refresh the forecast: %s', error],
       ['Outside could not refresh the forecast: %s', error]
     ])
+  }
+)
+
+test(
+  'logs an error the reading raises on a window a retry fetched',
+  async ({ log, reading, shutdown, store }) => {
+    const error     = new Error('The window holds no daylight')
+    const { fetch } = served((index) => index === 0 ? refusal() : answer())
+
+    reading.use.mockImplementation(() => {
+      throw error
+    })
+    await scheduled(fetch, log, reading, store).start(shutdown.signal)
+    await vi.advanceTimersByTimeAsync(2 * MINUTE)
+
+    expect(vi.mocked(log.error).mock.calls).toEqual([['Outside could not refresh the forecast: %s', error]])
   }
 )
 
