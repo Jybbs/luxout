@@ -1,24 +1,48 @@
-import { mkdir }  from 'node:fs/promises'
-import { join }   from 'node:path'
 import { format } from 'node:util'
 
 import type { Logging, PlatformAccessory } from 'homebridge'
 import { expect, vi }                      from 'vitest'
 
-import { LuxoutPlatform }                        from '../../src/platform/dynamic.js'
-import { OUTSIDE, OutsideSensor }                from '../../src/sensor/outside.js'
-import { WindowStore }                           from '../../src/weather/store.js'
-import { type Bridge, NO_RESPONSE, level, test } from '../common/homebridge.js'
-import { boston, delhi }                         from '../common/places.js'
-import { spaced }                                from '../common/window.js'
+import { LuxoutPlatform }         from '../../src/platform/dynamic.js'
+import { OUTSIDE, OutsideSensor } from '../../src/sensor/outside.js'
+import { WindowStore }            from '../../src/weather/store.js'
+import { answering }              from '../common/fetch.js'
+import * as homebridge            from '../common/homebridge.js'
+import { boston, delhi }          from '../common/places.js'
+import { spaced }                 from '../common/window.js'
 
 const MINUTE = 60_000
 const window = spaced(Array(28).fill(400), delhi, '2026-10-11T01:00:00Z')
 
+/**
+ * Extends the Homebridge fixtures with a `fetch` that fails every request until
+ * a case answers through it, and `start`, which builds a platform on a block
+ * that requests through that `fetch` and draws its hourly fetch at 03:00:00,
+ * hands it each accessory the cache restored, and fires `didFinishLaunching`.
+ * `launch` runs `start` and waits for the first reading the platform logs.
+ */
+const test = homebridge.test
+  .extend('fetch', () => vi.fn<typeof fetch>().mockRejectedValue(new TypeError('fetch failed')))
+  .extend('start', ({ bridge, fetch, log }) => (block: object, ...accessories: PlatformAccessory[]) => {
+    const platform = new LuxoutPlatform(log, { platform: 'Luxout', ...block }, bridge.api, {
+      fetch  : fetch,
+      random : () => 0
+    })
+
+    for (const accessory of accessories) platform.configureAccessory(accessory)
+
+    bridge.emit('didFinishLaunching')
+  })
+  .extend('launch', ({ log, start }) => async (block: object, ...accessories: PlatformAccessory[]) => {
+    start(block, ...accessories)
+
+    await vi.waitUntil(() => vi.mocked(log.debug).mock.lastCall)
+  })
+
 test.for([boston, delhi])(
   'registers one accessory named Outside at $latitude, $longitude under one UUID',
-  async (block, { bridge, log }) => {
-    await launch(bridge, log, block)
+  async (block, { bridge, launch }) => {
+    await launch(block)
 
     expect(bridge.registerPlatformAccessories).toHaveBeenCalledExactlyOnceWith(
       'homebridge-luxout',
@@ -28,29 +52,32 @@ test.for([boston, delhi])(
   }
 )
 
-test('reads on the accessory it registers', async ({ bridge, log }) => {
-  await launch(bridge, log, delhi)
+test('reads on the accessory it registers', async ({ bridge, launch }) => {
+  await launch(delhi)
 
   const accessory = bridge.registerPlatformAccessories.mock.lastCall?.[2][0]
 
-  expect(accessory && level(accessory).value).toBeGreaterThan(0.0001)
+  expect(accessory && homebridge.level(accessory).value).toBeGreaterThan(0.0001)
 })
 
-test('reads on the accessory a restart restores rather than registering another', async ({ bridge, log }) => {
-  const accessory = restored(bridge)
+test(
+  'reads on the accessory a restart restores rather than registering another',
+  async ({ bridge, launch }) => {
+    const accessory = restored(bridge)
 
-  await launch(bridge, log, delhi, accessory)
+    await launch(delhi, accessory)
 
-  expect(bridge.registerPlatformAccessories).not.toHaveBeenCalled()
-  expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
-  expect(level(accessory).value).toBeGreaterThan(0.0001)
-})
+    expect(bridge.registerPlatformAccessories).not.toHaveBeenCalled()
+    expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
+    expect(homebridge.level(accessory).value).toBeGreaterThan(0.0001)
+  }
+)
 
-test('unregisters a cached accessory the settings no longer describe', async ({ bridge, log }) => {
+test('unregisters a cached accessory the settings no longer describe', async ({ bridge, launch }) => {
   const stale   = bridge.cached(OUTSIDE.name, 'luxout-elsewhere')
   const outside = bridge.cached()
 
-  await launch(bridge, log, delhi, stale, outside)
+  await launch(delhi, stale, outside)
 
   expect(bridge.unregisterPlatformAccessories).toHaveBeenCalledExactlyOnceWith(
     'homebridge-luxout',
@@ -66,110 +93,127 @@ test.for([
   { block: { latitude: delhi.latitude, longitude: '77.21' }, keys: 'longitude' }
 ])(
   'starts nothing for a block lacking a valid $keys, logging the one line that names it',
-  ({ block, keys }, { bridge, log }) => {
-    start(bridge, log, block, bridge.cached(OUTSIDE.name, 'luxout-elsewhere'))
+  ({ block, keys }, { bridge, fetch, log, start }) => {
+    start(block, bridge.cached(OUTSIDE.name, 'luxout-elsewhere'))
     vi.advanceTimersByTime(MINUTE)
 
     expect(lines(log)).toEqual([`Outside reads nothing until the settings hold a valid ${keys}`])
     expect(bridge.registerPlatformAccessories).not.toHaveBeenCalled()
     expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
     expect(vi.getTimerCount()).toBe(0)
   }
 )
 
-test('keeps a cached Outside registered, marked No Response, while the block fails', ({ bridge, log }) => {
+test('keeps a cached Outside registered, marked No Response, while the block fails', ({ bridge, start }) => {
   const accessory = restored(bridge)
 
-  start(bridge, log, {}, accessory)
+  start({}, accessory)
 
-  expect(level(accessory).statusCode).toBe(NO_RESPONSE)
+  expect(homebridge.level(accessory).statusCode).toBe(homebridge.NO_RESPONSE)
   expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
 })
 
-test('reads the forecast the storage directory holds for the place', async ({ bridge, log, scratch }) => {
-  await new WindowStore(scratch).write(window)
-  await launch(bridge, log, delhi)
+test(
+  'reads the forecast the storage directory holds for the place, requesting none',
+  async ({ fetch, launch, log, scratch }) => {
+    await new WindowStore(scratch).write(window)
+    await launch(delhi)
 
-  expect(vi.mocked(log.debug).mock.lastCall?.[0]).toContain('interpolated between')
-  expect(log.warn).not.toHaveBeenCalled()
-})
+    expect(vi.mocked(log.debug).mock.lastCall?.[0]).toContain('interpolated between')
+    expect(log.warn).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+  }
+)
 
-test('ignores a forecast stored for another place', async ({ bridge, log, scratch }) => {
-  await new WindowStore(scratch).write(spaced(Array(28).fill(400), boston, '2026-10-11T01:00:00Z'))
-  await launch(bridge, log, delhi)
+test(
+  'reads at once from the forecast it fetches at launch where none is stored',
+  async ({ fetch, launch, log }) => {
+    fetch.mockResolvedValue(Response.json(window))
+    await launch(delhi)
 
-  expect(vi.mocked(log.debug).mock.lastCall?.[0]).toContain('since no forecast covers the minute')
-  expect(log.warn).toHaveBeenCalledExactlyOnceWith(
-    'Outside reads the clear sky alone until a forecast covers the present'
-  )
-})
+    expect(vi.mocked(log.debug).mock.calls[0]?.[0]).toContain('interpolated between')
+    expect(log.warn).not.toHaveBeenCalled()
+  }
+)
 
-test('reads the clear sky alone where no stored forecast can be read', async ({ bridge, log, scratch }) => {
-  await mkdir(join(scratch, 'luxout-forecast.json'))
-  await launch(bridge, log, delhi)
+test(
+  'reads the clear sky alone where the forecast stored is for another place and none arrives',
+  async ({ launch, log, scratch }) => {
+    await new WindowStore(scratch).write(spaced(Array(28).fill(400), boston, '2026-10-11T01:00:00Z'))
+    await launch(delhi)
 
-  expect(log.warn).toHaveBeenCalledWith(
-    'Outside reads no stored forecast, since reading it failed: %s',
-    expect.objectContaining({ code: 'EISDIR' })
-  )
-  expect(log.debug).toHaveBeenCalledOnce()
-})
+    expect(vi.mocked(log.debug).mock.lastCall?.[0]).toContain('since no forecast covers the minute')
+    expect(vi.mocked(log.warn).mock.calls).toEqual([
+      ['Open-Meteo could not be reached'],
+      ['Outside reads the clear sky alone until a forecast covers the present']
+    ])
+  }
+)
 
-test('leaves no timer running once Homebridge shuts down', async ({ bridge, log }) => {
-  await launch(bridge, log, delhi)
+test(
+  'requests through the global fetch where Homebridge builds the platform from its three arguments',
+  async ({ bridge, log }) => {
+    const fetch = answering(Response.json(window))
+
+    vi.stubGlobal('fetch', fetch)
+    new LuxoutPlatform(
+      log,
+      { latitude: delhi.latitude, longitude: delhi.longitude, platform: 'Luxout' },
+      bridge.api
+    )
+    bridge.emit('didFinishLaunching')
+    await vi.waitUntil(() => vi.mocked(log.debug).mock.lastCall)
+
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(log.error).not.toHaveBeenCalled()
+  }
+)
+
+test('leaves no timer running once Homebridge shuts down', async ({ bridge, launch }) => {
+  await launch(delhi)
   bridge.emit('shutdown')
   vi.advanceTimersByTime(MINUTE)
 
   expect(vi.getTimerCount()).toBe(0)
 })
 
-test('starts no reading where shutdown comes before the stored forecast is read', async ({ bridge, log }) => {
-  const read = Promise.withResolvers<undefined>()
+test(
+  'starts no reading where shutdown comes before the stored forecast is read',
+  async ({ bridge, fetch, log, start }) => {
+    const read = Promise.withResolvers<undefined>()
 
-  vi.spyOn(WindowStore.prototype, 'read').mockReturnValue(read.promise)
-  start(bridge, log, delhi)
-  bridge.emit('shutdown')
-  read.resolve(undefined)
-  await vi.advanceTimersByTimeAsync(MINUTE)
+    vi.spyOn(WindowStore.prototype, 'read').mockReturnValue(read.promise)
+    start(delhi)
+    bridge.emit('shutdown')
+    read.resolve(undefined)
+    await vi.advanceTimersByTimeAsync(MINUTE)
 
-  expect(log.debug).not.toHaveBeenCalled()
-  expect(vi.getTimerCount()).toBe(0)
-})
+    expect(log.debug).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  }
+)
 
-test('logs no line carrying the coordinates', async ({ bridge, log, scratch }) => {
-  await new WindowStore(scratch).write(window)
-  await launch(bridge, log, delhi)
-  await vi.advanceTimersByTimeAsync(10 * MINUTE)
+test('logs no line carrying the coordinates', async ({ launch, log }) => {
+  await launch(delhi)
+  await vi.advanceTimersByTimeAsync(60 * MINUTE)
 
   expect(lines(log).join('\n')).not.toMatch(/28\.6|77\.2/)
 })
 
-test('logs an error the launch raises', async ({ bridge, log }) => {
+test('logs an error the launch raises', async ({ bridge, log, start }) => {
   const error = new Error('The bridge refused the accessory')
 
   bridge.registerPlatformAccessories.mockImplementation(() => {
     throw error
   })
-  start(bridge, log, delhi)
+  start(delhi)
 
   await vi.waitFor(() => {
     expect(log.error).toHaveBeenCalledExactlyOnceWith('Outside could not start reading: %s', error)
   })
 })
-
-/**
- * Starts a platform on `block` as `start` does and waits for its first reading.
- */
-async function launch(
-  bridge         : Bridge,
-  log            : Logging,
-  block          : object,
-  ...accessories : PlatformAccessory[]
-): Promise<void> {
-  start(bridge, log, block, ...accessories)
-
-  await vi.waitFor(() => expect(log.debug).toHaveBeenCalled())
-}
 
 /**
  * Formats every line `log` was handed, through a direct call, `log.log`, or a
@@ -190,22 +234,10 @@ function lines(log: Logging): string[] {
  * Builds the Outside accessory as a restart restores it, its Light Sensor
  * included.
  */
-function restored(bridge: Bridge): PlatformAccessory {
+function restored(bridge: homebridge.Bridge): PlatformAccessory {
   const accessory = bridge.cached()
 
   new OutsideSensor(accessory, bridge.api)
 
   return accessory
-}
-
-/**
- * Builds a platform on `block`, hands it each accessory the cache restored, and
- * fires `didFinishLaunching`.
- */
-function start(bridge: Bridge, log: Logging, block: object, ...accessories: PlatformAccessory[]): void {
-  const platform = new LuxoutPlatform(log, { platform: 'Luxout', ...block }, bridge.api)
-
-  for (const accessory of accessories) platform.configureAccessory(accessory)
-
-  bridge.emit('didFinishLaunching')
 }

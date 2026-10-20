@@ -1,3 +1,4 @@
+import { Cron }         from 'croner'
 import type { Logging } from 'homebridge'
 
 import type { CloudFactor }    from '../daylight/cloud-factor.js'
@@ -5,7 +6,6 @@ import type { Estimator }      from '../daylight/estimator.js'
 import type { ForecastWindow } from '../weather/window.js'
 import type { OutsideSensor }  from './outside.js'
 
-const MINUTE = 60_000  // The milliseconds between two readings
 const figure = new Intl.NumberFormat('en-US', {
   maximumFractionDigits    : 4,
   maximumSignificantDigits : 4,
@@ -19,10 +19,10 @@ const figure = new Intl.NumberFormat('en-US', {
  */
 export class Reading {
   readonly #estimator : Estimator
+  #factor             : CloudFactor | undefined
   #fallback           : boolean
   readonly #log       : Logging
   readonly #sensor    : OutsideSensor
-  #factor             : CloudFactor | undefined
 
   constructor(estimator: Estimator, log: Logging, sensor: OutsideSensor) {
     this.#estimator = estimator
@@ -32,22 +32,22 @@ export class Reading {
   }
 
   /**
-   * Reads now and each minute after until `signal` aborts, and reads nothing
-   * where it has already aborted.
+   * Reads now and at the start of each minute after until `signal` aborts, and
+   * reads nothing where it has already aborted.
    */
   start(signal: AbortSignal): void {
     if (signal.aborted) return
 
     this.#read()
 
-    const timer = setInterval(() => this.#read(), MINUTE)
+    const job = new Cron('0 * * * * *', { utcOffset: 0 }, () => this.#read())
 
-    signal.addEventListener('abort', () => clearInterval(timer), { once: true })
+    signal.addEventListener('abort', () => job.stop(), { once: true })
   }
 
   /**
-   * Derives the cloud factor of every later reading from `window`, carrying
-   * the daylight steps of the factor it replaces.
+   * Derives the cloud factor of every later reading from `window`, carrying the
+   * daylight steps of the factor it replaces.
    */
   use(window: ForecastWindow): void {
     this.#factor = this.#estimator.derive(window, this.#factor)
