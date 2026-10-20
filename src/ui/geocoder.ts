@@ -43,7 +43,8 @@ export class Geocoder extends OpenMeteoClient {
 
   /**
    * Searches for the places matching `name` in every country, each named in the
-   * language of `locale`, resolving to an empty list where the search finds
+   * language of `locale` where Open-Meteo holds a translation and in English or
+   * the local name otherwise, resolving to an empty list where the search finds
    * nothing.
    */
   async search(locale: Intl.Locale, name: string): Promise<FetchFailure | Match[]> {

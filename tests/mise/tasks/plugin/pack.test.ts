@@ -124,6 +124,18 @@ test.for([
   expect({ status, stderr }).toEqual({ status: 1, stderr: `The tarball holds no ${file}, so ${reason}\n` })
 })
 
+test('looks for the settings page under the customUiPath config.schema.json names', async ({ scratch }) => {
+  const schema = JSON.stringify({ customUiPath: './dist/page' })
+
+  const { status, stderr } = await pack({ ...PACKAGE, 'config.schema.json': schema }, scratch)
+
+  expect({ status, stderr }).toEqual({
+    status : 1,
+    stderr : 'The tarball holds no dist/page/public/index.html, '
+           + 'so the Homebridge UI has no settings page to show\n'
+  })
+}, 60_000)
+
 test.for([
   { script: '', what: 'stops before it sends its ready message' },
   { script: 'setInterval(() => {}, 1000)\n', what: 'never sends its ready message' }

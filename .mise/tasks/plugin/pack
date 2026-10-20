@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "pack"
 #MISE depends     = ["plugin:build"]
-#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md` or the settings page under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait for the ready message of the server script it forks"
+#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, or the settings page or its server script under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait for the ready message of the server script it forks"
 
 holds() {
   grep --fixed-strings --line-regexp --quiet "$1" <<<"$files" && return

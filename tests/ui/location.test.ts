@@ -26,8 +26,8 @@ it.each([
   expect(() => service().check(payload)).toThrow(new RequestError(BOUNDS, expect.any(Array)))
 })
 
-it('returns the places a search matches', async () => {
-  const matches = await service().search({ language: 'en', query: '75001' })
+it('returns the places a search matches, ignoring the other keys of the request', async () => {
+  const matches = await service().search({ language: 'en', platform: 'Luxout', query: '75001' })
 
   expect(matches.map(({ country, name }) => `${name}, ${country}`))
     .toStrictEqual(['Paris, France', 'Addison, United States', 'Paris 01 Louvre, France'])
@@ -46,10 +46,11 @@ it.each([
 })
 
 it('fails a search matching nothing with a hint to search by the city’s name', async () => {
-  const pending = service(answering(Response.json({}))).search({ language: 'de', query: '10115' })
+  const query   = 'SW1A 1AA'
+  const pending = service(answering(Response.json({}))).search({ language: 'en', query })
 
   await expect(pending).rejects.toStrictEqual(
-    new RequestError('No place matches “10115”, so search by the city’s name instead', { query: '10115' })
+    new RequestError(`No place matches “${query}”, so search by the city’s name instead`, { query })
   )
 })
 

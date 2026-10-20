@@ -34,5 +34,6 @@ it('answers the check with the place the coordinates round to', () => {
 })
 
 it('answers the search through the location service', async () => {
-  await expect(handlers.get('/search')?.({ language: 'en' })).rejects.toBeInstanceOf(RequestError)
+  await expect(handlers.get('/search')?.({ language: 'en' }))
+    .rejects.toStrictEqual(new RequestError('missing_value at .query (missing value)', expect.any(Array)))
 })
