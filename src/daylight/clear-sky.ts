@@ -1,5 +1,6 @@
 import { DEG2RAD } from 'astronomy-engine'
 
+const CIVIL_TWILIGHT = -6         // Circular 171's altitude in degrees at the lower limit of civil twilight
 const EXTINCTION     = 0.21       // Circular 171's extinction coefficient of the direct rays per air mass
 const RADIUS         = 753.66156  // Circular 171's Earth radius over the homogeneous atmosphere's height
 const SKYLIGHT       = 0.0289     // Circular 171's coefficient of the empirical skylight term
@@ -13,18 +14,24 @@ const UNREFRACTED    = -5 / 6     // Circular 171's altitude in degrees below wh
  * the sun and the sky together on a horizontal surface at sea level.
  */
 export class ClearSky {
+  readonly #high = this.#circular(UNREFRACTED)
+  readonly #low  = this.#circular(CIVIL_TWILIGHT)
+
   /**
    * Computes the unclamped illuminance in lux for the sun at the geometric
    * `altitude` in degrees.
+   *
+   * From -6 degrees, the lower limit of civil twilight, up to -5/6 degrees, the
+   * logarithm of the illuminance runs linearly in altitude between the
+   * circular's values at those two altitudes, so the curve climbs through -5/6
+   * degrees without the step the circular's refraction makes there.
    */
   illuminance(altitude: number): number {
-    const apparent = this.refracted(altitude) * DEG2RAD
-    const sine     = Math.sin(apparent)
-    const mass     = Math.sqrt((RADIUS + 1) ** 2 - (RADIUS * Math.cos(apparent)) ** 2) - RADIUS * sine
-    const direct   = Math.exp(-EXTINCTION * mass) * sine
-    const sky      = SKYLIGHT * Math.exp(-SKY_EXTINCTION * mass) * (1 + (apparent + Math.PI / 2) * sine)
+    if (altitude <= CIVIL_TWILIGHT || altitude >= UNREFRACTED) return this.#circular(altitude)
 
-    return SUNLIGHT * (direct + sky)
+    const fraction = (altitude - CIVIL_TWILIGHT) / (UNREFRACTED - CIVIL_TWILIGHT)
+
+    return this.#low * (this.#high / this.#low) ** fraction
   }
 
   /**
@@ -36,5 +43,20 @@ export class ClearSky {
     return altitude < UNREFRACTED
          ? altitude
          : altitude + 1 / Math.tan((altitude + 8.6 / (altitude + 4.42)) * DEG2RAD) / 60
+  }
+
+  /**
+   * Computes the circular's illuminance in lux for the sun at the geometric
+   * `altitude` in degrees, attenuated through the air mass at the refracted
+   * altitude.
+   */
+  #circular(altitude: number): number {
+    const apparent = this.refracted(altitude) * DEG2RAD
+    const sine     = Math.sin(apparent)
+    const mass     = Math.sqrt((RADIUS + 1) ** 2 - (RADIUS * Math.cos(apparent)) ** 2) - RADIUS * sine
+    const direct   = Math.exp(-EXTINCTION * mass) * sine
+    const sky      = SKYLIGHT * Math.exp(-SKY_EXTINCTION * mass) * (1 + (apparent + Math.PI / 2) * sine)
+
+    return SUNLIGHT * (direct + sky)
   }
 }
