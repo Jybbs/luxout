@@ -10,8 +10,9 @@ const UNREFRACTED    = -5 / 6     // Circular 171's altitude in degrees below wh
 
 /**
  * Evaluates the sun illuminance model of U.S. Naval Observatory Circular 171
- * under its sky condition 1, an average clear sky. The model gives the light of
- * the sun and the sky together on a horizontal surface at sea level.
+ * under its sky condition 1, an average clear sky, bridging the step its
+ * refraction makes at -5/6 degrees. The model gives the light of the sun and
+ * the sky together on a horizontal surface at sea level.
  */
 export class ClearSky {
   readonly #high = this.#circular(UNREFRACTED)

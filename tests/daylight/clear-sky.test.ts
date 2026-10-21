@@ -67,6 +67,13 @@ test.prop([fc.double({ max: -5 / 6, maxExcluded: true, min: -6, minExcluded: tru
   }
 )
 
+it.each([
+  { altitude: -6.01, lux: 2.9602851 },
+  { altitude: -0.82, lux: 666.41122 }
+])('keeps the circular’s $lux lux at $altitude°, just outside the bridge', ({ altitude, lux }) => {
+  expect(sky.illuminance(altitude) / lux).toBeCloseTo(1, 6)
+})
+
 it('moves through -5/6° without a step at sunrise and sunset in Boston on 4 October 2026', () => {
   const sun   = new Sun(boston)
   const times = ['10:43', '10:44', '10:45', '10:46', '22:19', '22:20', '22:21', '22:22']
