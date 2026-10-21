@@ -232,6 +232,7 @@ test(
 
     expect(sent).toHaveLength(7 * 6 + 1)
     await vi.waitFor(() => expect(reading.use).toHaveBeenLastCalledWith(later))
+    await vi.waitFor(() => expect(store.read(delhi)).resolves.toEqual(later))
   }
 )
 
@@ -247,6 +248,7 @@ test(
     await vi.advanceTimersByTimeAsync(5 * MINUTE)
 
     expect(sent).toEqual(['2026-10-11T02:37:20.000Z', '2026-10-11T03:40:20.000Z'])
+    await vi.waitFor(() => expect(store.read(delhi)).resolves.toEqual(fresh))
   }
 )
 

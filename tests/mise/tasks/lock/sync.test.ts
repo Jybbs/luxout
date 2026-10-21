@@ -4,8 +4,9 @@ import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
 
 const BAKE = [
-  ['bun', 'install', '--lockfile-only'],
-  ['bun', 'install', '--cwd', 'site', '--lockfile-only']
+  ['bun', 'install', '--cwd', '.', '--lockfile-only'],
+  ['bun', 'install', '--cwd', 'site', '--lockfile-only'],
+  ['bun', 'install', '--cwd', 'tests/homebridge', '--lockfile-only']
 ]
 const LOCK = [['mise', 'lock'], ['mise', 'ls', '--json', '--local', '--missing']]
 
@@ -27,18 +28,19 @@ async function relock(
 
   const { invoked, status } = await sync(scratch, 'lock:sync', {
     canned: {
-      'bun install --cwd site --lockfile-only' : {},
-      'bun install --lockfile-only'            : {},
-      [['mise install', ...missing].join(' ')] : {},
-      'mise lock'                              : {},
-      'mise ls --json --local --missing'       : { stdout: JSON.stringify(lacking) }
+      'bun install --cwd . --lockfile-only'                : {},
+      'bun install --cwd site --lockfile-only'             : {},
+      'bun install --cwd tests/homebridge --lockfile-only' : {},
+      [['mise install', ...missing].join(' ')]             : {},
+      'mise lock'                                          : {},
+      'mise ls --json --local --missing'                   : { stdout: JSON.stringify(lacking) }
     }
   })
 
   return { calls: invoked.map(({ args }) => args), status }
 }
 
-test('locks mise first and installs each missing tool before either Bun package relocks', async ({
+test('locks mise first and installs each missing tool before any Bun package relocks', async ({
   scratch
 }) => {
   expect(await relock(['bun', 'zizmor'], scratch)).toEqual({

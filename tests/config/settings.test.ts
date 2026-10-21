@@ -3,6 +3,8 @@ import { expect, it } from 'vitest'
 import schema       from '../../config.schema.json' with { type: 'json' }
 import { Place }    from '../../src/config/place.js'
 import { Settings } from '../../src/config/settings.js'
+import { boston }   from '../common/places.js'
+import homebridge   from '../homebridge/config.json' with { type: 'json' }
 
 const BLOCK      = { latitude: 42.35843, longitude: -71.05977, platform: 'Luxout' }
 const properties = Object.entries(schema.schema.properties)
@@ -10,6 +12,12 @@ const bounds     = properties.flatMap(([key, property]) => 'minimum' in property
 
 it('holds the place the block names, rounded to two decimals', () => {
   expect(parsed(BLOCK).place).toEqual(new Place(42.36, -71.06))
+})
+
+it('holds Boston as the place the Luxout block of the test config names', () => {
+  const block = homebridge.platforms.find(({ platform }) => platform === schema.pluginAlias)
+
+  expect(parsed(block).place).toEqual(boston)
 })
 
 it.each([

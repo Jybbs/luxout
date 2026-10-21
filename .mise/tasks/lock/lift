@@ -3,6 +3,8 @@
 #MISE depends     = ["plugin:bake", "site:bake"]
 #MISE description = "Print each pin behind its newest release as one Markdown table, trial the lift in a scratch clone under `--try`, write it under `--write`, and hold a pin where it stands under `--hold <pin>`"
 
+source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
+
 actions() {
   local current files newest pin pins release released sha tag uses
 
@@ -197,10 +199,17 @@ nodes() {
 }
 
 packages() {
-  local audit dir follows leader manifest named pin rows target version
+  local audit dir follows leader manifest manifests={} named pin rows target version
 
-  for dir in . site; do
+  for dir in $(bun_packages); do
     manifest=$dir/package.json
+    manifests=$(
+      jq \
+        --arg manifest "${manifest#./}" \
+        --compact-output \
+        --slurpfile pins "$manifest" \
+        '. + { ($manifest): $pins[0] }' <<<"$manifests"
+    )
     audit=$(bun audit --cwd "$dir" --json) ||
       jq --exit-status 'type == "object"' <<<"$audit" >/dev/null
 
@@ -277,14 +286,13 @@ packages() {
         --arg leader "$leader" \
         --arg pin "$pin" \
         --arg version "$version" \
+        --argjson manifests "$manifests" \
         --compact-output \
-        --slurpfile root package.json \
-        --slurpfile site site/package.json \
         '
           def pinned($pin): first(.dependencies, .devDependencies | .[$pin]? // empty);
 
           map(if .pin != $leader then . else .edits += [
-            { "package.json": $root[0], "site/package.json": $site[0] }
+            $manifests
             | to_entries[]
             | (.value | pinned($pin)) as $current
             | {

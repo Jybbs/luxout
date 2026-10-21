@@ -1,0 +1,4 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE description = "Run `plugin:run` and restart it whenever a file `plugin:build` lists among its sources changes, passing any further arguments to `hb-service` through the command line watchexec hands its shell, so an argument holding a space or a quote does not arrive whole"
+
+mise watch --restart plugin:run "$@"
