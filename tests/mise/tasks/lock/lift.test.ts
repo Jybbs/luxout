@@ -51,6 +51,10 @@ const FILES = {
                                          + '["plugin:test:24"]\ntools = { node = "24.21.0" }\n',
   'site/package.json': JSON.stringify({ devDependencies: { vitest: '5.0.3' } }, null, 2) + '\n',
 
+  'tests/homebridge/package.json': JSON.stringify({
+    dependencies: { 'homebridge-config-ui-x': '5.29.0' }
+  }, null, 2) + '\n',
+
   '.github/workflows/ci.yml': [
     'jobs:',
     '  check:',
@@ -100,7 +104,9 @@ const CANNED: Record<string, Answer> = {
   'bun info --json @types/node time'               : json({ '26.6.5': ago(8) }),
   'bun info --json unbash time'                    : json({ '6.0.0': ago(1) }),
   'bun info --json vitest time'                    : json({ '5.0.5': ago(2) }),
+  'bun audit --cwd tests/homebridge --json'        : json({}),
   'bun outdated --cwd site'                        : outdated(['vitest (dev)', '5.0.3', '5.0.5']),
+  'bun outdated --cwd tests/homebridge'            : outdated(),
   'mise config get --file .mise/config.toml min_version': { stdout: '2026.9.18\n' },
   'mise config get --file .mise/config.toml tools.node': { stdout: '26.10.0\n' },
   'mise latest node@22'                            : { stdout: '22.23.3\n' },
@@ -568,10 +574,30 @@ test('moves only the pin each edit names where another pin in its manifest share
   })
 }, 60_000)
 
-test('lists an advisory both Bun packages report once in the row it clears', async ({ scratch }) => {
+test('lists an advisory two Bun packages report once in the row it clears', async ({ scratch }) => {
   const { stdout } = await lift(scratch, { canned: { 'bun audit --cwd site --json': json(ADVISORIES, 1) } })
 
   expect(row(stdout, 'vitest')[5]).toBe('GHSA-aaaa-bbbb-cccc')
+}, 60_000)
+
+test('lifts a pin the Homebridge UI package holds into its own manifest', async ({ scratch }) => {
+  const { status, stdout } = await lift(scratch, {
+    args   : ['--write'],
+    live   : SETTLED,
+    canned : {
+      ...CURRENT,
+      'bun info --json homebridge-config-ui-x time' : json({ '5.30.0': ago(4) }),
+      'bun outdated --cwd tests/homebridge'         : outdated(['homebridge-config-ui-x', '5.29.0', '5.30.0'])
+    }
+  })
+  const manifest           = JSON.parse((await read(scratch))['tests/homebridge/package.json'] ?? '{}')
+
+  expect({ pins: manifest.dependencies, row: row(stdout, 'homebridge-config-ui-x').slice(0, 4), status })
+    .toEqual({
+      pins   : { 'homebridge-config-ui-x': '5.30.0' },
+      row    : ['homebridge-config-ui-x', '5.29.0', '5.30.0', 'no'],
+      status : 0
+    })
 }, 60_000)
 
 test.for<{

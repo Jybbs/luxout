@@ -1,0 +1,28 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE depends     = ["plugin:build"]
+#MISE description = "Install the Homebridge UI into `.cache/homebridge` and start it beside Homebridge against `.cache/homebridge/storage`, copying in the test config and the UI's startup options from `tests/homebridge` where the storage holds none, loading plugins only from the links under `.cache/homebridge/plugins`, and passing any further arguments to `hb-service`"
+#MISE env         = { HOMEBRIDGE_CONFIG_UI_TERMINAL = "1" }
+
+root=$PWD
+cache=$root/.cache/homebridge
+seed=tests/homebridge
+startup=$cache/storage/.uix-hb-service-homebridge-startup.json
+
+mkdir -p "$cache"/{plugins,storage}
+cp "$seed"/{bun.lock,bunfig.toml,package.json} "$cache"
+bun install --cwd "$cache" --frozen-lockfile
+
+[[ -e "$cache/storage/config.json" ]] || cp "$seed/config.json" "$cache/storage"
+[[ -e "$startup" ]] || cp "$seed/startup.json" "$startup"
+
+cd "$cache"
+ln -fns "$root" plugins/homebridge-luxout
+ln -fns "$root/node_modules/homebridge" plugins/homebridge
+ln -fns ../node_modules/homebridge-config-ui-x plugins/homebridge-config-ui-x
+
+exec hb-service run \
+  --plugin-path "$cache/plugins" \
+  --stdout \
+  --strict-plugin-resolution \
+  --user-storage-path "$cache/storage" \
+  "$@"

@@ -1,0 +1,6 @@
+{
+  "debugMode": true,
+  "keepOrphans": true,
+  "insecureMode": true,
+  "env": {}
+}
