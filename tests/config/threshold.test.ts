@@ -99,6 +99,21 @@ it.each([
   expect(ThresholdEntry.parse(raw, 2)).toMatchObject({ line })
 })
 
+it.each([
+  { raw: 'Dusk',   what: 'a string' },
+  { raw: 3,        what: 'a number' },
+  { raw: null,     what: 'null' },
+  { raw: ['Dusk'], what: 'an array' }
+])(
+  'fails an entry that is $what with the one line naming it by its position, giving it no serial',
+  ({ raw }) => {
+    expect(ThresholdEntry.parse(raw, 2)).toMatchObject({
+      line   : 'Threshold 3 starts no sensor, since it holds no name and no levels',
+      serial : undefined
+    })
+  }
+)
+
 it('keeps the serial of a failing entry whose name parses, and none where its name fails', () => {
   const { serial } = thresholdEntry({ name: 'Dusk' })
 

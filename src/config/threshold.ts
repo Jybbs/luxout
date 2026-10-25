@@ -31,10 +31,11 @@ export class ThresholdEntry {
 
   /**
    * Parses the entry at the zero-based `position` under `thresholds`, failing
-   * a name that is missing, longer than `config.schema.json` allows, or outside
-   * the rule HAP-NodeJS checks names against, a level outside the bounds the
-   * schema declares, and two levels that leave no gap between them. A level
-   * left out takes the placeholder the schema shows.
+   * an entry that is not an object, a name that is missing, longer than
+   * `config.schema.json` allows, or outside the rule HAP-NodeJS checks names
+   * against, a level outside the bounds the schema declares, and two levels
+   * that leave no gap between them. A level left out takes the placeholder the
+   * schema shows.
    */
   static parse(raw: unknown, position: number): ThresholdEntry | ThresholdFault {
     const parsed = entry.try(raw, { mode: 'strip' })
@@ -50,11 +51,11 @@ export class ThresholdEntry {
     const identified = identity.try(raw, { mode: 'strip' })
     const name       = identified.ok ? identified.value.name : undefined
     const label      = name ?? `Threshold ${position + 1}`
+    const line       = parsed.issues.some(({ path }) => path.length === 0)
+                     ? `${label} starts no sensor, since it holds no name and no levels`
+                     : `${label} starts no sensor until its settings hold a valid ${keysAtFault(parsed)}`
 
-    return new ThresholdFault(
-      `${label} starts no sensor until its settings hold a valid ${keysAtFault(parsed)}`,
-      name
-    )
+    return new ThresholdFault(line, name)
   }
 
   private constructor(name: string, offLux: number, onLux: number) {

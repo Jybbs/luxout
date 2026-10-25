@@ -8,7 +8,7 @@ import { ThresholdEntry, ThresholdFault } from './threshold.js'
 const block = v.object({
   latitude   : bounded(schema.schema.properties.latitude),
   longitude  : bounded(schema.schema.properties.longitude),
-  thresholds : v.array(v.record()).optional(() => [])
+  thresholds : v.array(v.unknown()).optional(() => [])
 })
 
 /**
@@ -22,9 +22,9 @@ export class Settings {
   /**
    * Parses the block Homebridge hands the platform, failing a latitude or a
    * longitude that is missing, not a number, or outside the bounds
-   * `config.schema.json` declares for it, and a `thresholds` that is not a list
-   * of objects. Every other key passes unread, among them `platform`,
-   * `_bridge`, and the `name` Homebridge prefixes its log lines with.
+   * `config.schema.json` declares for it, and a `thresholds` that is not a
+   * list. Every other key passes unread, among them `platform`, `_bridge`, and
+   * the `name` Homebridge prefixes its log lines with.
    *
    * An entry under `thresholds` that fails, or that repeats the name an earlier
    * entry holds, leaves the block parsing and lands among the faults instead.

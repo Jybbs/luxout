@@ -63,6 +63,24 @@ it('holds each entry that parses in order, and the line of each one failing amon
 })
 
 it.each([
+  { entry: 'Dusk',   what: 'a string' },
+  { entry: 3,        what: 'a number' },
+  { entry: null,     what: 'null' },
+  { entry: ['Dusk'], what: 'an array' }
+])(
+  'holds an entry that is $what among the faults by its position, beside the entries that parse',
+  ({ entry }) => {
+    const thresholds = [{ name: 'Dusk' }, entry, { name: 'Glare', onLux: 9e4 }]
+    const settings   = parsed({ ...BLOCK, thresholds })
+
+    expect(settings.thresholds.map(({ name }) => name)).toEqual(['Dusk', 'Glare'])
+    expect(settings.faults).toMatchObject([
+      { line: 'Threshold 2 starts no sensor, since it holds no name and no levels', serial: undefined }
+    ])
+  }
+)
+
+it.each([
   { first: { name: 'Dusk' },            what: 'an entry that parses' },
   { first: { name: 'Dusk', onLux: -1 }, what: 'an entry that fails' }
 ])('fails a later entry repeating the name $what holds, giving it no serial', ({ first }) => {
@@ -76,10 +94,13 @@ it.each([
 })
 
 it.each([
-  { path: ['thresholds'],    thresholds: 'Dusk',   what: 'is not a list' },
-  { path: ['thresholds', 0], thresholds: ['Dusk'], what: 'holds an entry that is not an object' }
-])('fails a block whose thresholds $what', ({ path, thresholds }) => {
-  expect(Settings.parse({ ...BLOCK, thresholds })).toMatchObject({ issues: [{ path }], ok: false })
+  { thresholds: 'Dusk',           what: 'a string' },
+  { thresholds: 3,                what: 'a number' },
+  { thresholds: null,             what: 'null' },
+  { thresholds: { name: 'Dusk' }, what: 'an object' }
+])('fails a block whose thresholds is $what rather than a list', ({ thresholds }) => {
+  expect(Settings.parse({ ...BLOCK, thresholds }))
+    .toMatchObject({ issues: [{ path: ['thresholds'] }], ok: false })
 })
 
 function parsed(config: unknown): Settings {

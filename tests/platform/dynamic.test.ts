@@ -292,6 +292,25 @@ test(
   }
 )
 
+test.for([
+  { entry: 'Dawn',   what: 'a string' },
+  { entry: 3,        what: 'a number' },
+  { entry: null,     what: 'null' },
+  { entry: ['Dawn'], what: 'an array' }
+])(
+  'starts no sensor for an entry that is $what, logging one line naming it while Outside and Dusk run',
+  async ({ entry }, { bridge, launch, log }) => {
+    await launch({ ...DELHI, thresholds: [entry, { name: 'Dusk' }] })
+
+    const names = bridge.registerPlatformAccessories.mock.lastCall?.[2].map(({ displayName }) => displayName)
+
+    expect(lines(log).filter((line) => line.includes('starts no'))).toEqual([
+      'Threshold 1 starts no sensor, since it holds no name and no levels'
+    ])
+    expect(names?.toSorted()).toEqual(['Dusk', 'Outside'])
+  }
+)
+
 test(
   'leaves the sensor of the first entry holding a name reading where a later entry repeats it',
   async ({ bridge, launch, log }) => {
