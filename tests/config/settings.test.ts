@@ -14,10 +14,10 @@ it('holds the place the block names, rounded to two decimals', () => {
   expect(parsed(BLOCK).place).toEqual(new Place(42.36, -71.06))
 })
 
-it('holds Boston as the place the Luxout block of the test config names', () => {
+it('holds Boston and a Dark Outside entry as the Luxout block of the test config names them', () => {
   const block = homebridge.platforms.find(({ platform }) => platform === schema.pluginAlias)
 
-  expect(parsed(block).place).toEqual(boston)
+  expect(parsed(block)).toMatchObject({ faults: [], place: boston, thresholds: [{ name: 'Dark Outside' }] })
 })
 
 it.each([
@@ -46,6 +46,40 @@ it.each(bounds.flatMap(({ key, maximum, minimum }) => [
   { holds: false, key, value: maximum + 1e-9 }
 ]))('accepts $key at $value only inside the bounds config.schema.json declares', ({ holds, key, value }) => {
   expect(Settings.parse({ ...BLOCK, [key]: value }).ok).toBe(holds)
+})
+
+it('holds no threshold entry and no fault where the block sets no thresholds', () => {
+  expect(parsed(BLOCK)).toMatchObject({ faults: [], thresholds: [] })
+})
+
+it('holds each entry that parses in order, and the line of each one failing among the faults', () => {
+  const thresholds = [{ name: 'Dusk' }, { onLux: 5 }, { name: 'Glare', onLux: 9e4 }]
+  const settings   = parsed({ ...BLOCK, thresholds })
+
+  expect(settings.thresholds.map(({ name }) => name)).toEqual(['Dusk', 'Glare'])
+  expect(settings.faults.map(({ line }) => line)).toEqual([
+    'Threshold 2 starts no sensor until its settings hold a valid name'
+  ])
+})
+
+it.each([
+  { first: { name: 'Dusk' },            what: 'an entry that parses' },
+  { first: { name: 'Dusk', onLux: -1 }, what: 'an entry that fails' }
+])('fails a later entry repeating the name $what holds, giving it no serial', ({ first }) => {
+  const settings = parsed({ ...BLOCK, thresholds: [first, { name: 'Dusk', onLux: 100 }] })
+
+  expect(settings.thresholds.filter(({ onLux }) => onLux === 100)).toEqual([])
+  expect(settings.faults.at(-1)).toMatchObject({
+    line   : 'Dusk starts no second sensor, since an earlier entry holds its name',
+    serial : undefined
+  })
+})
+
+it.each([
+  { path: ['thresholds'],    thresholds: 'Dusk',   what: 'is not a list' },
+  { path: ['thresholds', 0], thresholds: ['Dusk'], what: 'holds an entry that is not an object' }
+])('fails a block whose thresholds $what', ({ path, thresholds }) => {
+  expect(Settings.parse({ ...BLOCK, thresholds })).toMatchObject({ issues: [{ path }], ok: false })
 })
 
 function parsed(config: unknown): Settings {

@@ -20,6 +20,38 @@
         "type": "number",
         "minimum": -180,
         "maximum": 180
+      },
+      "thresholds": {
+        "title": "Threshold Sensors",
+        "description": "Sensors that each switch on as the light outdoors reaches one level and off only once it passes another, holding their state across the gap between the two",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "description": "The name the sensor takes in the Home app, starting and ending with a letter or a number, where a new name adds a new sensor in place of the old one",
+              "type": "string",
+              "maxLength": 47
+            },
+            "onLux": {
+              "title": "On Level",
+              "description": "The reading in lux at which the sensor switches on. A level below the off level switches it on as the light falls, and one above it as the light rises",
+              "type": "number",
+              "minimum": 0.0001,
+              "maximum": 100000,
+              "placeholder": 2.99
+            },
+            "offLux": {
+              "title": "Off Level",
+              "description": "The reading in lux past which the sensor switches off",
+              "type": "number",
+              "minimum": 0.0001,
+              "maximum": 100000,
+              "placeholder": 662
+            }
+          }
+        }
       }
     }
   }

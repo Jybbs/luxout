@@ -5,13 +5,16 @@ import { expect, vi }                      from 'vitest'
 
 import { LuxoutPlatform }         from '../../src/platform/dynamic.js'
 import { OUTSIDE, OutsideSensor } from '../../src/sensor/outside.js'
+import { Sensor }                 from '../../src/sensor/sensor.js'
 import { WindowStore }            from '../../src/weather/store.js'
 import { answering }              from '../common/fetch.js'
 import * as homebridge            from '../common/homebridge.js'
 import { boston, delhi }          from '../common/places.js'
+import { thresholdEntry }         from '../common/threshold.js'
 import { spaced }                 from '../common/window.js'
 
 const MINUTE = 60_000
+const DELHI  = { latitude: delhi.latitude, longitude: delhi.longitude }
 const window = spaced(Array(28).fill(400), delhi, '2026-10-11T01:00:00Z')
 
 /**
@@ -202,6 +205,149 @@ test('logs no line carrying the coordinates', async ({ launch, log }) => {
   expect(lines(log).join('\n')).not.toMatch(/28\.6|77\.2/)
 })
 
+test(
+  'registers one accessory per threshold entry beside Outside, each named for its entry under its own UUID',
+  async ({ bridge, launch }) => {
+    const sensors = [OUTSIDE, thresholdEntry({ name: 'Dusk' }), thresholdEntry({ name: 'Glare' })]
+
+    await launch({ ...DELHI, thresholds: [{ name: 'Dusk' }, { name: 'Glare', offLux: 2e4, onLux: 3e4 }] })
+
+    const registered = bridge.registerPlatformAccessories.mock.lastCall?.[2] ?? []
+
+    expect(registered.map(({ UUID, displayName }) => ({ UUID, displayName }))).toEqual(expect.arrayContaining(
+      sensors.map(({ name, serial }) => ({ UUID: bridge.hap.uuid.generate(serial), displayName: name }))
+    ))
+    expect(registered).toHaveLength(sensors.length)
+  }
+)
+
+test(
+  'switches a threshold sensor on the first reading, saving its accessory to the cache',
+  async ({ bridge, launch, log }) => {
+    await launch({ ...DELHI, thresholds: [{ name: 'Day', offLux: 5000, onLux: 1e4 }] })
+
+    const day = bridge.registerPlatformAccessories.mock.lastCall?.[2]
+      .find(({ displayName }) => displayName === 'Day')
+
+    expect(day && homebridge.detection(day).value).toBe(1)
+    expect(log.info).toHaveBeenCalledExactlyOnceWith(
+      '%s switches %s at a reading of %s lux',
+      'Day',
+      'on',
+      expect.any(String)
+    )
+    expect(bridge.updatePlatformAccessories).toHaveBeenCalledExactlyOnceWith([day])
+  }
+)
+
+test(
+  'keeps the state a restart restored where the first reading sits inside the gap',
+  async ({ bridge, launch, log }) => {
+    const accessory = threshold(bridge, 'Haze', 1)
+
+    await launch({ ...DELHI, thresholds: [{ name: 'Haze', offLux: 1e4, onLux: 5e4 }] }, accessory)
+
+    expect(homebridge.detection(accessory).value).toBe(1)
+    expect(log.info).not.toHaveBeenCalled()
+    expect(bridge.updatePlatformAccessories).not.toHaveBeenCalled()
+    expect(bridge.registerPlatformAccessories.mock.lastCall?.[2]).not.toContain(accessory)
+  }
+)
+
+test.for([
+  { names: [],               what: 'removed from the settings' },
+  { names: ['Dawn', 'Haze'], what: 'renamed' }
+])('unregisters the accessory of an entry $what', async ({ names }, { bridge, launch }) => {
+  const accessory = threshold(bridge, 'Dusk', 0)
+  const outside   = bridge.cached()
+
+  await launch({ ...DELHI, thresholds: names.map((name) => ({ name })) }, outside, accessory)
+
+  expect(bridge.unregisterPlatformAccessories).toHaveBeenCalledExactlyOnceWith(
+    'homebridge-luxout',
+    'Luxout',
+    [accessory]
+  )
+})
+
+test('keeps every accessory as it stands where the entries reorder', async ({ bridge, launch }) => {
+  const dawn = threshold(bridge, 'Dawn', 0)
+  const dusk = threshold(bridge, 'Dusk', 0)
+
+  await launch({ ...DELHI, thresholds: [{ name: 'Dusk' }, { name: 'Dawn' }] }, bridge.cached(), dawn, dusk)
+
+  expect(bridge.registerPlatformAccessories).not.toHaveBeenCalled()
+  expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
+})
+
+test(
+  'starts no sensor for an entry that fails, logging the one line that names it',
+  async ({ bridge, launch, log }) => {
+    await launch({ ...DELHI, thresholds: [{ name: 'Dusk', onLux: 0 }, { name: 'Dawn' }] })
+
+    expect(log.warn).toHaveBeenCalledWith('Dusk starts no sensor until its settings hold a valid onLux')
+    expect(bridge.registerPlatformAccessories.mock.lastCall?.[2].map(({ displayName }) => displayName))
+      .toEqual(expect.arrayContaining(['Dawn', 'Outside']))
+    expect(bridge.registerPlatformAccessories.mock.lastCall?.[2]).toHaveLength(2)
+  }
+)
+
+test(
+  'leaves the sensor of the first entry holding a name reading where a later entry repeats it',
+  async ({ bridge, launch, log }) => {
+    const accessory = threshold(bridge, 'Day', 1)
+    const block     = { ...DELHI, thresholds: [{ name: 'Day', offLux: 5000, onLux: 1e4 }, { name: 'Day' }] }
+
+    await launch(block, accessory)
+
+    expect(log.warn).toHaveBeenCalledWith(
+      'Day starts no second sensor, since an earlier entry holds its name'
+    )
+    expect(homebridge.detection(accessory)).toMatchObject({ statusCode: 0, value: 1 })
+  }
+)
+
+test(
+  'compares the first reading against the forecast the launch fetches, not the clear sky alone',
+  async ({ bridge, fetch, launch, log }) => {
+    fetch.mockResolvedValue(Response.json(spaced(Array(28).fill(200), delhi, '2026-10-11T01:00:00Z')))
+    await launch({ ...DELHI, thresholds: [{ name: 'Glare', offLux: 19000, onLux: 20000 }] })
+
+    const glare = bridge.registerPlatformAccessories.mock.lastCall?.[2]
+      .find(({ displayName }) => displayName === 'Glare')
+
+    expect(glare && homebridge.detection(glare).value).toBe(0)
+    expect(log.info).not.toHaveBeenCalled()
+  }
+)
+
+test(
+  'keeps the cached accessory of an entry that fails registered, marked No Response',
+  async ({ bridge, launch }) => {
+    const accessory = threshold(bridge, 'Dusk', 1)
+    const block     = { ...DELHI, thresholds: [{ name: 'Dusk', offLux: 9, onLux: 9 }] }
+
+    await launch(block, bridge.cached(), accessory)
+
+    expect(homebridge.detection(accessory).statusCode).toBe(homebridge.NO_RESPONSE)
+    expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
+  }
+)
+
+test(
+  'keeps every cached accessory registered, marked No Response, while the block fails',
+  ({ bridge, start }) => {
+    const outside = restored(bridge)
+    const dusk    = threshold(bridge, 'Dusk', 1)
+
+    start({ thresholds: [{ name: 'Dusk' }] }, outside, dusk)
+
+    expect(homebridge.level(outside).statusCode).toBe(homebridge.NO_RESPONSE)
+    expect(homebridge.detection(dusk).statusCode).toBe(homebridge.NO_RESPONSE)
+    expect(bridge.unregisterPlatformAccessories).not.toHaveBeenCalled()
+  }
+)
+
 test('logs an error the launch raises', async ({ bridge, log, start }) => {
   const error = new Error('The bridge refused the accessory')
 
@@ -228,6 +374,19 @@ function lines(log: Logging): string[] {
   ]
 
   return calls.map(([message, ...parameters]) => format(message, ...parameters))
+}
+
+/**
+ * Builds the accessory of the threshold entry `name` as a restart restores it,
+ * its Occupancy Sensor holding `state`.
+ */
+function threshold(bridge: homebridge.Bridge, name: string, state: number): PlatformAccessory {
+  const accessory = bridge.cached(name, thresholdEntry({ name }).serial)
+
+  new Sensor(accessory, bridge.api, 'occupancy')
+  homebridge.detection(accessory).updateValue(state)
+
+  return accessory
 }
 
 /**
