@@ -4,8 +4,9 @@ import schema                   from '../../config.schema.json' with { type: 'js
 import { bounded, keysAtFault } from './fields.js'
 
 /**
- * Matches a name HomeKit accepts, starting and ending with a letter or a
- * number, the rule HAP-NodeJS checks every accessory and service name against.
+ * Matches the rule HAP-NodeJS checks every accessory and service name against,
+ * two or more letters, numbers, spaces, apostrophes, and the marks
+ * `&!._:;()/,-` that start and end on a letter or a number.
  */
 const HOMEKIT_NAME = /^[\p{L}\p{N}][\p{L}\p{N}\p{Zs}\u2019'&!._:;()/,-]*[\p{L}\p{N}]$/u
 const fields       = schema.schema.properties.thresholds.items.properties
@@ -29,10 +30,10 @@ export class ThresholdEntry {
 
   /**
    * Parses the entry at the zero-based `position` under `thresholds`, failing
-   * a name that is missing, longer than `config.schema.json` allows, or not
-   * starting and ending with a letter or a number as HomeKit names must, a
-   * level outside the bounds the schema declares, and two levels that leave no
-   * gap between them. A level left out takes the placeholder the schema shows.
+   * a name that is missing, longer than `config.schema.json` allows, or outside
+   * the rule HAP-NodeJS checks names against, a level outside the bounds the
+   * schema declares, and two levels that leave no gap between them. A level
+   * left out takes the placeholder the schema shows.
    */
   static parse(raw: unknown, position: number): ThresholdEntry | ThresholdFault {
     const parsed = entry.try(raw, { mode: 'strip' })

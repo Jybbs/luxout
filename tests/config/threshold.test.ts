@@ -17,6 +17,10 @@ it('holds the name and both levels an entry sets', () => {
   expect(thresholdEntry(GLARE)).toMatchObject(GLARE)
 })
 
+it('holds an entry carrying a key it does not read', () => {
+  expect(thresholdEntry({ ...GLARE, levelLux: 400 })).toMatchObject(GLARE)
+})
+
 it('takes the Dark Outside levels where an entry sets no level', () => {
   expect(thresholdEntry({ name: 'Dark Outside' })).toMatchObject(DARK)
 })
@@ -61,9 +65,12 @@ it.each([
   { holds: false, name: ' Dusk' },
   { holds: false, name: 'Dusk!' },
   { holds: false, name: 'Dusk 🌙' }
-])('accepts the name $name only where it starts and ends with a letter or a number', ({ holds, name }) => {
-  expect(ThresholdEntry.parse({ name }, 0) instanceof ThresholdEntry).toBe(holds)
-})
+])(
+  'accepts the name $name only where it follows the rule HAP-NodeJS checks names against',
+  ({ holds, name }) => {
+    expect(ThresholdEntry.parse({ name }, 0) instanceof ThresholdEntry).toBe(holds)
+  }
+)
 
 it('derives the serial of an entry from its name alone, whatever its levels', () => {
   const { serial } = thresholdEntry({ name: 'Dusk' })
@@ -125,10 +132,11 @@ it.each([
 test.prop([lux, lux, fc.boolean(), fc.double({ max: 1, min: 0, noNaN: true })])(
   'holds its state while the reading stays inside the gap between its levels',
   (offLux, onLux, detected, share) => {
-    const low = Math.min(offLux, onLux)
-    const gap = low + (Math.max(offLux, onLux) - low) * share
+    const low  = Math.min(offLux, onLux)
+    const high = Math.max(offLux, onLux)
+    const gap  = low + (high - low) * share
 
-    fc.pre(gap !== offLux && gap !== onLux)
+    fc.pre(low < gap && gap < high)
 
     expect(thresholdEntry({ name: 'Gap', offLux, onLux }).detects(detected, gap)).toBe(detected)
   }

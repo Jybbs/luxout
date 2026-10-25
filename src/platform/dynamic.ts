@@ -26,7 +26,8 @@ interface Collaborators {
  * the light outdoors on it each minute. A block that fails leaves the platform
  * idle apart from one line naming the settings at fault, with every cached
  * accessory marked "No Response". An entry that fails starts no sensor and logs
- * one line, marking the cached accessory its name identifies the same way.
+ * one line, and where no earlier entry holds its name, the cached accessory
+ * that name identifies is marked the same way.
  */
 export class LuxoutPlatform implements DynamicPlatformPlugin {
   readonly #accessories   : Map<string, PlatformAccessory>

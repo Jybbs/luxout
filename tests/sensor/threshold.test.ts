@@ -42,11 +42,11 @@ it('adds one Occupancy Sensor named for its entry, and finds it again once the u
 })
 
 it.each([
-  { lux: 2.99, start: false, state: 'on' },
-  { lux: 700,  start: true,  state: 'off' }
+  { lux: 2.99,   shown: '2.99',  start: false, state: 'on' },
+  { lux: 662.48, shown: '662.5', start: true,  state: 'off' }
 ])(
-  'switches $state at a reading of $lux lux, logging it and saving the accessory',
-  ({ lux, start, state }) => {
+  'switches $state at a reading of $lux lux, logging it as $shown and saving the accessory',
+  ({ lux, shown, start, state }) => {
     const { accessory, bridge, log, sensor } = built(start)
 
     sensor.compare(lux)
@@ -56,7 +56,7 @@ it.each([
       '%s switches %s at a reading of %s lux',
       'Dusk',
       state,
-      String(lux)
+      shown
     )
     expect(bridge.updatePlatformAccessories).toHaveBeenCalledExactlyOnceWith([accessory])
   }
