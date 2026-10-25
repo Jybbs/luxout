@@ -1,9 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { join }                from 'node:path'
 
-import type { Block, Run }                   from '../../../.mise/vet/homebridge.ts'
-import { test }                             from '../../common/scratch.js'
-import { type Acts, TUNING, install, stage } from '../../common/vet.js'
+import type { Block, Run }                         from '../../../.mise/vet/homebridge.ts'
+import { type Acts, TUNING, install, stage, test } from '../../common/vet.js'
 
 const BLOCK = { name: 'Outside', platform: 'Luxout' }
 
@@ -139,7 +138,7 @@ test.concurrent('kills the run once its signal aborts', async ({ expect, scratch
   expect(run.exited).toBe(true)
 })
 
-test.concurrent('names each error the checks fail a run on that the output carries', async ({
+test.concurrent('names each error the replay fails a run on that the output carries', async ({
   expect,
   scratch
 }) => {
@@ -159,11 +158,12 @@ test.concurrent('reads the platform as initialized where the output says so', as
 
 test.concurrent('names a path written outside the storage, and none written inside it', async ({
   expect,
+  outside,
   scratch
 }) => {
-  const outside = join(scratch, 'outside.json')
+  const file = join(outside, 'outside.json')
 
-  expect((await stopped(scratch, { writes: outside })).writes).toEqual([outside])
+  expect((await stopped(scratch, { writes: file })).writes).toEqual([file])
 })
 
 test.concurrent.for([

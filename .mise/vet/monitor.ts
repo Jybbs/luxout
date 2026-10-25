@@ -1,8 +1,9 @@
-import { writeSync }     from 'node:fs'
-import { isIP }          from 'node:net'
-import { tmpdir }        from 'node:os'
-import { resolve, sep }  from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { writeSync }         from 'node:fs'
+import { isIP }              from 'node:net'
+import { tmpdir }            from 'node:os'
+import { resolve, sep }      from 'node:path'
+import { fileURLToPath }     from 'node:url'
+import { getSystemErrorMap } from 'node:util'
 
 type Report = (line: string) => void
 
@@ -47,9 +48,9 @@ export class Writes {
   }
 
   /**
-   * Wraps each call on `fs` and `fs.promises` that creates or replaces a path,
-   * in its callback, synchronous, and promise forms, reading the path from the
-   * argument `WRITES` names.
+   * Wraps each call `WRITES` lists on `fs` and `fs.promises`, in its callback,
+   * synchronous, and promise forms, reading the path from the argument `WRITES`
+   * names for it.
    */
   watch(fs: object & { promises: object }): void {
     for (const [name, index] of Object.entries(WRITES)) {
@@ -104,6 +105,7 @@ function stderr(line: string): void {
  */
 export function failLookups(resolver: Resolver, report: Report = stderr): void {
   const { lookup, promises } = resolver
+  const errno                = getSystemErrorMap().entries().find(([, [name]]) => name === 'EAI_NONAME')?.[0]
   const promised             = promises.lookup
 
   const failure = (hostname: string): Error => {
@@ -111,6 +113,7 @@ export function failLookups(resolver: Resolver, report: Report = stderr): void {
 
     return Object.assign(new Error(`getaddrinfo ${resolver.NOTFOUND} ${hostname}`), {
       code     : resolver.NOTFOUND,
+      errno    : errno,
       hostname : hostname,
       syscall  : 'getaddrinfo'
     })

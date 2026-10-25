@@ -28,15 +28,25 @@ export class VetManifests {
   /**
    * Holds the `homebridge` pin under `tests/vet/floor` to the floor of the
    * oldest line `engines.homebridge` admits, and the one under
-   * `tests/vet/pinned` to the release the `homebridge` devDependency pins.
+   * `tests/vet/pinned` to the release the `homebridge` devDependency pins,
+   * reporting either manifest missing.
    */
   findings(manifest: PackageManifest): Finding[] {
     const sources = new Map([
       ['floor', { release: manifest.homebridge, source: '`engines.homebridge` sets its floor at' }],
       ['pinned', { release: manifest.pin('homebridge'), source: 'the `homebridge` devDependency pins' }]
     ])
+    const roles   = new Set(this.#files.map(({ file }) => basename(dirname(file))))
+    const missing = sources.entries()
+      .filter(([role]) => !roles.has(role))
+      .map(([role, held]) => new Finding(
+        `\`tests/vet/${role}/package.json\` is missing, whereas ${held.source} ${held.release ?? 'nothing'}`,
+        { file: `tests/vet/${role}/package.json`, line: 1 },
+        TITLE
+      ))
+      .toArray()
 
-    return this.#files.flatMap((file) => {
+    return [...missing, ...this.#files.flatMap((file) => {
       const role  = basename(dirname(file.file))
       const entry = file.at('dependencies', 'homebridge')
       const pin   = typeof entry?.value === 'string' ? entry.value : undefined
@@ -56,6 +66,6 @@ export class VetManifests {
         entry ?? file.start,
         TITLE
       )]]
-    })
+    })]
   }
 }

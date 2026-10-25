@@ -8,7 +8,7 @@ import * as scenario  from './scenario.ts'
 
 type Write = (line: string) => void
 
-export const HELD = [51826, 8581]  // HAP's default bridge port and the Homebridge UI's default port
+export const HELD = [51826, 8581]  // Homebridge's sample bridge port and the Homebridge UI's default port
 const TUNING      = { grace: 12_000, observe: 30_000, settle: 1_500 }
 const conjunction = new Intl.ListFormat('en', { type: 'conjunction' })
 

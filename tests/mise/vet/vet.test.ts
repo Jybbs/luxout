@@ -91,7 +91,20 @@ test('hands each run an empty storage directory of its own and a port no other r
   })
 })
 
-test('draws each port excluding those a local Homebridge and its UI hold by default', async ({ scratch }) => {
+test('holds each run to the checks’ 30-second window and 12-second grace by default', async ({
+  scratch
+}) => {
+  const stub  = check('no config')
+  const write = vi.fn<(line: string) => void>()
+
+  await new Vet([stub], scratch, [new Homebridge(scratch, '2.4.0')], undefined, write).run()
+
+  expect(stub.run.mock.calls[0]?.[2]).toEqual({ grace: 12_000, observe: 30_000, settle: 1_500 })
+})
+
+test('draws each port clear of Homebridge’s sample bridge port and the UI’s default port', async ({
+  scratch
+}) => {
   const write = vi.fn<(line: string) => void>()
 
   await new Vet([check('no config')], scratch, [new Homebridge(scratch, '2.4.0')], TUNING, write).run()

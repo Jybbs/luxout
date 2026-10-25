@@ -103,6 +103,11 @@ it.each([
     .toEqual({ platform: 'Luxout', setting: value })
 })
 
+it('values an array’s item under the key `item`, as the checks do', () => {
+  expect(full({ ports: { items: { type: 'integer' }, type: 'array' } }))
+    .toEqual({ platform: 'Luxout', ports: [1] })
+})
+
 it('values a date-time string at the instant the blocks are built', ({ onTestFinished }) => {
   vi.setSystemTime(new Date('2026-06-21T12:00:00Z'))
   onTestFinished(() => {

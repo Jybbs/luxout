@@ -1,26 +1,27 @@
-import { readFile } from 'node:fs/promises'
-import { join }     from 'node:path'
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { join }                         from 'node:path'
 
 import getPort from 'get-port'
 
-import { Homebridge } from '../../.mise/vet/homebridge.ts'
-import type { Stage } from '../../.mise/vet/scenario.ts'
-import { HELD }       from '../../.mise/vet/vet.ts'
-import { plant }      from './scratch.js'
+import { Homebridge }             from '../../.mise/vet/homebridge.ts'
+import type { Stage }             from '../../.mise/vet/scenario.ts'
+import { HELD }                   from '../../.mise/vet/vet.ts'
+import { plant, test as scratch } from './scratch.js'
 
 /**
  * How the stand-in Homebridge acts, each act off where unset.
  */
 export interface Acts {
-  conflicts?   : boolean
-  exits?       : boolean
-  fetches?     : string
-  initializes? : boolean
-  lingers?     : boolean
-  logs?        : string
-  mute?        : boolean
-  silent?      : boolean
-  writes?      : string
+  conflicts?     : boolean
+  conflictsLate? : boolean
+  exits?         : boolean
+  fetches?       : string
+  initializes?   : boolean
+  lingers?       : boolean
+  logs?          : string
+  mute?          : boolean
+  silent?        : boolean
+  writes?        : string
 }
 
 /**
@@ -28,7 +29,22 @@ export interface Acts {
  * stand-in to start on a busy machine.
  */
 export const TUNING = { grace: 3_000, observe: 4_000, settle: 100 }
+const cache         = join(import.meta.dirname, '..', '..', '.cache')
 const standIn       = join(import.meta.dirname, '..', 'mise', 'fixtures', 'homebridge.js')
+/**
+ * Extends the scratch fixture with `outside`, a directory under the worktree's
+ * `.cache/` that neither the system temp directory nor `/tmp` holds, removed
+ * once the case ends.
+ */
+export const test = scratch.extend('outside', async ({ onTestFinished }) => {
+  await mkdir(cache, { recursive: true })
+
+  const outside = await mkdtemp(join(cache, 'vet-'))
+
+  onTestFinished(() => rm(outside, { force: true, recursive: true }))
+
+  return outside
+})
 
 /**
  * Installs the stand-in Homebridge into `dir` as the release `version`, as

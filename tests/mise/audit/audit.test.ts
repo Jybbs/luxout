@@ -7,6 +7,7 @@ import { mise }            from '../../common/mise.js'
 import { plant, test }     from '../../common/scratch.js'
 
 const CONFIG = '[tools]\nnode = "26.10.0"\n'
+const VET    = { 'tests/vet/floor/package.json': '{}', 'tests/vet/pinned/package.json': '{}' }
 
 const manifest = (coverage: string): string => JSON.stringify(
   { devDependencies: { '@vitest/coverage-v8': coverage, vitest: '5.0.3' }, engines: { node: '^26.10.0' } },
@@ -27,7 +28,7 @@ test.for([
 ])('prints each finding and exits $status', async ({ coverage, status, written }, { scratch }) => {
   const write = vi.fn<(line: string) => void>()
 
-  await plant(scratch, { '.mise/config.toml': CONFIG, 'package.json': manifest(coverage) })
+  await plant(scratch, { ...VET, '.mise/config.toml': CONFIG, 'package.json': manifest(coverage) })
 
   expect(new Audit(scratch, mise([]), write).report()).toBe(status)
   expect(write.mock.calls.flat()).toEqual(written)
@@ -37,6 +38,7 @@ test('prints a finding against the site’s manifest where the checkout holds on
   const write = vi.fn<(line: string) => void>()
 
   await plant(scratch, {
+    ...VET,
     '.mise/config.toml' : CONFIG,
     'package.json'      : manifest('5.0.3'),
     'site/package.json' : manifest('5.0.4')
@@ -54,6 +56,7 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   const write = vi.fn<(line: string) => void>()
 
   await plant(scratch, {
+    ...VET,
     '.github/actions/a/action.yml' : 'runs:\n  steps:\n    - &a\n      run: x\n',
     '.github/workflows/ci.yml'     : 'on: pull_request\njobs:\n  a:\n    timeout-minutes: 1\n',
     '.mise/config.toml'            : CONFIG,
@@ -77,6 +80,7 @@ test('prints what the rulesets report against the gates of the workflows', async
   ]
 
   await plant(scratch, {
+    ...VET,
     '.github/rulesets/main.json' : JSON.stringify({ name: 'main', rules }),
     '.mise/config.toml'          : CONFIG,
     'package.json'               : manifest('5.0.3')
@@ -93,6 +97,7 @@ test('prints what the label registry and the files naming its labels report', as
   const write = vi.fn<(line: string) => void>()
 
   await plant(scratch, {
+    ...VET,
     '.github/ISSUE_TEMPLATE/spec.md' : '---\nlabels: 🦖 rex\n---\n',
     '.github/labels.toml'            : '["🐞 bug"]\ncolor = "c62d42"\ndescription = "A defect."\n',
     '.github/release.yml'            : 'changelog:\n  categories: []\n',
@@ -115,6 +120,7 @@ test('prints what the manifests of the releases the vet installs report', async 
   const write = vi.fn<(line: string) => void>()
 
   await plant(scratch, {
+    ...VET,
     '.mise/config.toml'             : CONFIG,
     'package.json'                  : manifest('5.0.3'),
     'tests/vet/pinned/package.json' : JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2)

@@ -2,11 +2,10 @@ import { join } from 'node:path'
 
 import { expect, it, vi } from 'vitest'
 
-import type { Block }                        from '../../../.mise/vet/homebridge.ts'
-import { Scenario, Shutdown, checks }        from '../../../.mise/vet/scenario.ts'
-import schema                               from '../../../config.schema.json' with { type: 'json' }
-import { test }                             from '../../common/scratch.js'
-import { type Acts, TUNING, install, stage } from '../../common/vet.js'
+import type { Block }                              from '../../../.mise/vet/homebridge.ts'
+import { Scenario, Shutdown, checks }              from '../../../.mise/vet/scenario.ts'
+import schema                                      from '../../../config.schema.json' with { type: 'json' }
+import { type Acts, TUNING, install, stage, test } from '../../common/vet.js'
 
 const BLOCK = { platform: 'Luxout' }
 
@@ -66,11 +65,11 @@ test.concurrent.for<{ acts: Acts, block?: Block, failure: string }>([
   expect((await verdict(new Scenario('Luxout', 'run', block), scratch, acts)).failures).toEqual([failure])
 })
 
-test.concurrent('fails a run that writes outside its storage', async ({ expect, scratch }) => {
-  const outside = join(scratch, 'outside.json')
+test.concurrent('fails a run that writes outside its storage', async ({ expect, outside, scratch }) => {
+  const file = join(outside, 'outside.json')
 
-  expect((await verdict(new Scenario('Luxout', 'run', BLOCK), scratch, { writes: outside })).failures)
-    .toEqual([`writes ${outside} outside the storage directory`])
+  expect((await verdict(new Scenario('Luxout', 'run', BLOCK), scratch, { writes: file })).failures)
+    .toEqual([`writes ${file} outside the storage directory`])
 })
 
 test.concurrent('fails a run that outlasts the grace after SIGTERM', async ({ expect, scratch }) => {
@@ -101,6 +100,14 @@ test.concurrent('fails a second start that meets EADDRINUSE', async ({ expect, s
   const launch     = await stage(scratch, { conflicts: true })
 
   expect((await new Shutdown(BLOCK).run(homebridge, launch, TUNING)).failures)
+    .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
+})
+
+test.concurrent('fails a second start that meets EADDRINUSE once it listens', async ({ expect, scratch }) => {
+  const homebridge = await install(join(scratch, 'release'))
+  const launch     = await stage(scratch, { conflictsLate: true })
+
+  expect((await new Shutdown(BLOCK).run(homebridge, launch, { ...TUNING, settle: 1_000 })).failures)
     .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
 })
 

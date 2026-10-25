@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { expect, it, vi } from 'vitest'
 
 import * as monitor from '../../../.mise/vet/monitor.ts'
-import { test }     from '../../common/scratch.js'
+import { test }     from '../../common/vet.js'
 
 const vet = join(import.meta.dirname, '..', '..', '..', '.mise', 'vet')
 
@@ -19,12 +19,15 @@ function watched() {
   const call    = (name: string) => vi.fn<(...args: unknown[]) => string>(() => name)
   const promise = (name: string) => vi.fn<(...args: unknown[]) => Promise<string>>(async () => name)
   const fs      = {
-    copyFile      : call('copyFile'),
-    mkdirSync     : call('mkdirSync'),
-    readFile      : call('readFile'),
-    rename        : call('rename'),
-    writeFileSync : call('writeFileSync'),
-    promises      : { appendFile: promise('appendFile'), writeFile: promise('writeFile') }
+    copyFile          : call('copyFile'),
+    cp                : call('cp'),
+    createWriteStream : call('createWriteStream'),
+    mkdirSync         : call('mkdirSync'),
+    mkdtemp           : call('mkdtemp'),
+    readFile          : call('readFile'),
+    rename            : call('rename'),
+    writeFileSync     : call('writeFileSync'),
+    promises          : { appendFile: promise('appendFile'), writeFile: promise('writeFile') }
   }
 
   new monitor.Writes('/storage', report).watch(fs)
@@ -55,7 +58,10 @@ it.each([
   { args: ['/elsewhere/a.json', '{}'], name: 'writeFileSync', path: '/elsewhere/a.json' },
   { args: ['/storage/a.json', '/elsewhere/b.json'], name: 'copyFile', path: '/elsewhere/b.json' },
   { args: ['/storage/a.json', '/elsewhere/c.json'], name: 'rename', path: '/elsewhere/c.json' },
-  { args: [new URL('file:///elsewhere/d')], name: 'mkdirSync', path: '/elsewhere/d' }
+  { args: [new URL('file:///elsewhere/d')], name: 'mkdirSync', path: '/elsewhere/d' },
+  { args: ['/storage/e', '/elsewhere/e'], name: 'cp', path: '/elsewhere/e' },
+  { args: ['/elsewhere/f.log'], name: 'createWriteStream', path: '/elsewhere/f.log' },
+  { args: ['/elsewhere/g-'], name: 'mkdtemp', path: '/elsewhere/g-' }
 ])('reports $name reaching $path and passes the call on', ({ args, name, path }) => {
   const { fs, report } = watched()
 
@@ -126,6 +132,7 @@ it('fails the lookup of a host as ENOTFOUND without resolving it', async () => {
   }).toEqual({
     error    : expect.objectContaining({
       code     : 'ENOTFOUND',
+      errno    : -3008,
       hostname : 'api.open-meteo.com',
       message  : 'getaddrinfo ENOTFOUND api.open-meteo.com',
       syscall  : 'getaddrinfo'
@@ -161,10 +168,13 @@ it.each(['localhost', '127.0.0.1', '::1'])('resolves %s as it would have', async
   })
 })
 
-test('reports a write the write preload sees from a module importing fs by name', async ({ scratch }) => {
-  const outside = join(scratch, 'outside.json')
-  const script  = "import { writeFile } from 'node:fs/promises'\n"
-                + `await writeFile(${JSON.stringify(outside)}, '')`
+test('reports a write the write preload sees from a module importing fs by name', async ({
+  outside,
+  scratch
+}) => {
+  const file   = join(outside, 'outside.json')
+  const script = "import { writeFile } from 'node:fs/promises'\n"
+               + `await writeFile(${JSON.stringify(file)}, '')`
 
   const { stderr } = spawnSync(
     process.execPath,
@@ -172,7 +182,7 @@ test('reports a write the write preload sees from a module importing fs by name'
     { encoding: 'utf8', env: { ...process.env, HB_STORAGE_PATH: join(scratch, 'storage') } }
   )
 
-  expect(stderr).toBe(`${monitor.OUTSIDE} ${outside}\n`)
+  expect(stderr).toBe(`${monitor.OUTSIDE} ${file}\n`)
 })
 
 test('fails a fetch under the offline preload before it leaves the machine', () => {
