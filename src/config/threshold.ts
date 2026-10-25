@@ -4,9 +4,10 @@ import schema                   from '../../config.schema.json' with { type: 'js
 import { bounded, keysAtFault } from './fields.js'
 
 /**
- * Matches the rule HAP-NodeJS checks every accessory and service name against,
- * two or more letters, numbers, spaces, apostrophes, and the marks
- * `&!._:;()/,-` that start and end on a letter or a number.
+ * Matches a name that passes the check HAP-NodeJS runs on every accessory and
+ * service name, which takes two or more characters starting and ending on a
+ * letter or a number, with only letters, numbers, spaces, apostrophes, and the
+ * marks `&!._:;()/,-` between them.
  */
 const HOMEKIT_NAME = /^[\p{L}\p{N}][\p{L}\p{N}\p{Zs}\u2019'&!._:;()/,-]*[\p{L}\p{N}]$/u
 const fields       = schema.schema.properties.thresholds.items.properties

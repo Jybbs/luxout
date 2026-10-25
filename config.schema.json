@@ -30,7 +30,7 @@
           "properties": {
             "name": {
               "title": "Name",
-              "description": "The name the sensor takes in the Home app, where a new name adds a new sensor in place of the old one. It runs at least two characters, starts and ends on a letter or a number, and holds only letters, numbers, spaces, apostrophes, and & ! . _ : ; ( ) / , -",
+              "description": "The name the sensor takes in the Home app, where a new name adds a new sensor in place of the old one. It is at least two characters long, starts and ends on a letter or a number, and holds only letters, numbers, spaces, apostrophes, and & ! . _ : ; ( ) / , -",
               "type": "string",
               "maxLength": 47
             },

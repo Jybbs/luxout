@@ -1,6 +1,6 @@
-import { fc, test }   from '@fast-check/vitest'
-import * as hap       from '@homebridge/hap-nodejs'
-import { expect, it } from 'vitest'
+import { fc, test }       from '@fast-check/vitest'
+import * as hap           from '@homebridge/hap-nodejs'
+import { expect, it, vi } from 'vitest'
 
 import schema                             from '../../config.schema.json' with { type: 'json' }
 import { ThresholdEntry, ThresholdFault } from '../../src/config/threshold.js'
@@ -58,19 +58,14 @@ it('caps the name so the serial it gives fits the length SerialNumber accepts', 
 })
 
 it.each([
-  { holds: true,  name: 'Dark Outside' },
-  { holds: true,  name: 'Café 2' },
-  { holds: true,  name: "Jo's Porch, East" },
-  { holds: false, name: 'D' },
-  { holds: false, name: ' Dusk' },
-  { holds: false, name: 'Dusk!' },
-  { holds: false, name: 'Dusk 🌙' }
-])(
-  'accepts the name $name only where it follows the rule HAP-NodeJS checks names against',
-  ({ holds, name }) => {
-    expect(ThresholdEntry.parse({ name }, 0) instanceof ThresholdEntry).toBe(holds)
-  }
-)
+  'Dark Outside', 'Café 2', "Jo's Porch, East", 'D', ' Dusk', 'Dusk!', 'Dusk 🌙'
+])('accepts the name %s only where HAP-NodeJS accepts it', (name) => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+  new hap.Service.OccupancySensor(name)
+
+  expect(ThresholdEntry.parse({ name }, 0) instanceof ThresholdEntry).toBe(warn.mock.calls.length === 0)
+})
 
 it('derives the serial of an entry from its name alone, whatever its levels', () => {
   const { serial } = thresholdEntry({ name: 'Dusk' })
