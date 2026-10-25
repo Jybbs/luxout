@@ -35,13 +35,14 @@ class Accessory extends hap.Accessory {
 /**
  * Stands in for the `api` Homebridge hands the platform, serving the real HAP,
  * firing each lifecycle event a test emits, and recording each accessory the
- * platform registers or unregisters.
+ * platform registers, unregisters, or saves to the cache.
  */
 export class Bridge extends EventEmitter {
   readonly hap                           = hap
   readonly platformAccessory             = Accessory
   readonly registerPlatformAccessories   = vi.fn<API['registerPlatformAccessories']>()
   readonly unregisterPlatformAccessories = vi.fn<API['unregisterPlatformAccessories']>()
+  readonly updatePlatformAccessories     = vi.fn<API['updatePlatformAccessories']>()
   readonly user                          : { storagePath: () => string }
 
   constructor(storage: string) {
@@ -59,6 +60,16 @@ export class Bridge extends EventEmitter {
   cached(name = OUTSIDE.name, serial = OUTSIDE.serial): PlatformAccessory {
     return new Accessory(name, hap.uuid.generate(serial)) as unknown as PlatformAccessory
   }
+}
+
+/**
+ * Finds the occupancy the Occupancy Sensor of `accessory` holds.
+ */
+export function detection(accessory: PlatformAccessory): Characteristic {
+  const sensor = accessory.getService(hap.Service.OccupancySensor)
+
+  return sensor?.getCharacteristic(hap.Characteristic.OccupancyDetected)
+      ?? expect.unreachable('The accessory holds no Occupancy Sensor')
 }
 
 /**

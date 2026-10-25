@@ -2,6 +2,11 @@
   "bridge": { "name": "Luxout", "username": "4C:55:58:4F:55:54", "port": 51826, "pin": "031-45-154" },
   "platforms": [
     { "platform": "config", "name": "Config", "port": 8581 },
-    { "platform": "Luxout", "latitude": 42.36, "longitude": -71.06 }
+    {
+      "platform": "Luxout",
+      "latitude": 42.36,
+      "longitude": -71.06,
+      "thresholds": [{ "name": "Dark Outside" }]
+    }
   ]
 }
