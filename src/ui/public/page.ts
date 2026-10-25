@@ -18,11 +18,11 @@ const MINUS = '−'  // The minus sign the page writes a negative degree with
 const TYPED = /^([+-]?\d+(?:\.\d+)?)\s*[,\s]\s*([+-]?\d+(?:\.\d+)?)$/u
 
 /**
- * Runs the settings page, which searches for a place by the zip code, the city,
- * or the coordinates the user types. The coordinates of each place the user
- * confirms pass the server script's check and reach the Homebridge UI in the
- * whole block, beside the place's name, region, and country, and the modal's
- * Save writes that block to `config.json`.
+ * Runs the settings page, which searches for a place by the zip code or the
+ * city the user types and keeps typed coordinates without a search. The
+ * coordinates of each place the user confirms pass the server script's check
+ * and reach the Homebridge UI in the whole block, beside the place's name,
+ * region, and country, and the modal's Save writes that block to `config.json`.
  */
 export class LocationPage {
   #block               : PluginBlock
@@ -185,6 +185,8 @@ export class LocationPage {
   async #submit(): Promise<void> {
     const query = this.#query.value.trim()
     const typed = TYPED.exec(query.replaceAll(MINUS, '-'))
+
+    if (query === '') return
 
     this.#list([])
 

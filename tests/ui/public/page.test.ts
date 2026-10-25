@@ -114,6 +114,16 @@ it('holds the UI’s spinner until a search answers, then lists each match by it
   expect(screen.getByText('Matches appear here').hidden).toBe(true)
 })
 
+it('sends no search for an empty query', async () => {
+  const fetch             = answering(Response.json(search))
+  const { submit, toast } = await open({ fetch })
+
+  await submit(' ')
+
+  expect(fetch).not.toHaveBeenCalled()
+  expect(toast).not.toHaveBeenCalled()
+})
+
 it('searches in the language the Homebridge UI runs in', async () => {
   const fetch      = answering(Response.json(search))
   const { submit } = await open({ fetch, language: 'pt-BR' })
@@ -167,15 +177,19 @@ it.each([
   { keys: '[Space]', selected: PARIS }
 ])('keeps the match $keys selects from the option the Tab key lands on', async ({ keys, selected }) => {
   const { update, user } = await searched()
+  const prevented: boolean[] = []
 
   await user.tab()
   await user.tab()
+  screen.getByRole('listbox').addEventListener('keydown', (event) => prevented.push(event.defaultPrevented))
 
   expect(document.activeElement).toBe(option(PARIS))
 
   await user.keyboard(keys)
 
   expect(document.activeElement).toBe(option(selected, true))
+  expect(new Set(prevented)).toStrictEqual(new Set([true]))
+  expect([...document.querySelectorAll('.list-group-item-highlight')]).toStrictEqual([option(selected, true)])
   await vi.waitFor(() => {
     expect(kept().place).toBe(selected)
   })
@@ -260,6 +274,24 @@ it('writes back each change the form below the page reported before the page’s
   })
 })
 
+it('writes back a change the form below reported while the check answered', async () => {
+  const { homebridge, update, user } = await searched()
+  const request                      = homebridge.request.bind(homebridge)
+
+  vi.spyOn(homebridge, 'request').mockImplementation(async (path, body) => {
+    homebridge.dispatchEvent(new MessageEvent('configChanged', { data: [{ ...BOSTON, name: 'Outdoors' }] }))
+
+    return request(path, body)
+  })
+  await user.click(option(PARIS))
+
+  await vi.waitFor(() => {
+    expect(update).toHaveBeenCalledExactlyOnceWith([
+      expect.objectContaining({ latitude: 48.85, longitude: 2.35, name: 'Outdoors' })
+    ])
+  })
+})
+
 it('builds a block on the platform the schema names where the plugin has none yet', async () => {
   const { update, user } = await searched({ blocks: [] })
 
@@ -273,6 +305,21 @@ it('builds a block on the platform the schema names where the plugin has none ye
       platform  : schema.pluginAlias
     }])
   })
+})
+
+it('sets the name of a match apart in bold, in its option and in the place kept', async () => {
+  const { user } = await searched()
+
+  await user.click(option(ADDISON))
+
+  await vi.waitFor(() => {
+    expect(kept().place).toBe(ADDISON)
+  })
+
+  const names = [option(ADDISON), screen.getByRole('status', { name: 'Place' })]
+    .map((node) => node.querySelector('strong')?.textContent)
+
+  expect(names).toStrictEqual(['Addison', 'Addison'])
 })
 
 it('writes each name a search returns as text, whatever markup it holds', async () => {
