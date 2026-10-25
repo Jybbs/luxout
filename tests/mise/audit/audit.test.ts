@@ -111,6 +111,22 @@ test('prints what the label registry and the files naming its labels report', as
   ])
 })
 
+test('prints what the manifests of the releases the vet installs report', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.mise/config.toml'             : CONFIG,
+    'package.json'                  : manifest('5.0.3'),
+    'tests/vet/pinned/package.json' : JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2)
+  })
+
+  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=tests/vet/pinned/package.json,line=3,title=Vet pin::`homebridge` pins 2.4.0, '
+  + 'whereas the `homebridge` devDependency pins nothing'
+  ])
+})
+
 test('reads every file matching a pattern, keyed by its path in sorted order', async ({ scratch }) => {
   await plant(scratch, { 'a/x.yml': 'ax', 'a/y.yaml': 'ay', 'b/x.yml': 'bx', 'c.txt': 'c' })
 

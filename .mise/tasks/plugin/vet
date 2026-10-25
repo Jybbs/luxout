@@ -1,0 +1,23 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "vet"
+#MISE depends     = ["plugin:pack"]
+#MISE description = "Install each Homebridge release a manifest under `tests/vet` pins into `.cache/vet`, unpack the tarball `plugin:pack` writes beside them, and replay the runtime scenarios of Homebridge's verification checks on it under each release, failing where one does not hold"
+
+cache=.cache/vet
+plugin=$cache/plugins/$(jq --raw-output .name package.json)
+tarball=$(jq --raw-output '"\(.name)-\(.version).tgz"' package.json)
+releases=()
+
+rm -rf "$plugin"
+mkdir -p "$plugin"
+tar --directory "$plugin" --extract --file "$tarball" --strip-components 1
+
+for seed in tests/vet/*/; do
+  release=$cache/$(basename "$seed")
+  mkdir -p "$release"
+  cp "$seed"{bun.lock,bunfig.toml,package.json} "$release"
+  bun install --cwd "$release" --frozen-lockfile
+  releases+=("$release")
+done
+
+node .mise/vet/index.ts "$cache/plugins" "${releases[@]}"

@@ -83,6 +83,10 @@ jobs:
             task  : plugin:typecheck
             tools : bun node
 
+          - name  : 🔦 Verification
+            task  : plugin:vet
+            tools : bun jq node
+
           - name  : 🔭 Audit
             task  : repo:audit
             tools : bun node

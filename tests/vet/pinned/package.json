@@ -1,0 +1,5 @@
+{
+  "name": "luxout-vet-pinned",
+  "private": true,
+  "dependencies": { "homebridge": "2.4.0" }
+}
