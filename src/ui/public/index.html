@@ -1,4 +1,4 @@
-<div class="row g-4">
+<div class="gx-0 gy-4 row">
   <div class="col-sm">
     <form class="mb-4" id="search" role="search">
       <label class="font-monospace form-label grey-text small text-uppercase" for="query">
@@ -7,7 +7,7 @@
       <div class="input-group">
         <input
           autocomplete="off"
-          class="form-control"
+          class="custom-input form-control"
           id="query"
           name="query"
           placeholder="02115 or Boston"
@@ -17,20 +17,22 @@
       </div>
     </form>
     <p class="font-monospace form-label grey-text small text-uppercase" id="matches-label">Matches</p>
-    <p class="border grey-text mb-0 px-3 py-2 rounded" id="empty">Matches appear here</p>
+    <p class="border border-opacity-25 border-secondary grey-text mb-0 px-3 py-2 rounded" id="empty">
+      Matches appear here
+    </p>
     <ul aria-labelledby="matches-label" class="list-group" hidden id="matches" role="listbox"></ul>
   </div>
-  <div class="col-sm-auto">
-    <hr class="d-sm-none m-0">
+  <div class="col-sm-auto px-sm-4">
+    <div class="border-opacity-25 border-secondary border-top d-sm-none"></div>
     <div class="d-none d-sm-block h-100 vr"></div>
   </div>
   <div class="col-sm">
-    <dl class="mb-4 row">
+    <dl class="gx-0 mb-4 row">
       <div class="col">
         <dt class="font-monospace form-label grey-text small text-uppercase" id="latitude-label">Latitude</dt>
         <dd class="fs-2 fw-semibold lh-sm mb-0">
-          <output aria-labelledby="latitude-label" id="latitude"></output>
           <span class="fs-6 fw-normal grey-text" id="unkept">No place kept yet</span>
+          <output aria-labelledby="latitude-label" id="latitude"></output>
         </dd>
       </div>
       <div class="col">
@@ -46,18 +48,20 @@
     <output aria-labelledby="place-label" id="place"></output>
   </div>
   <div class="col-12">
-    <div class="border-top g-2 pt-3 row small">
+    <div class="border-opacity-25 border-secondary border-top column-gap-3 gx-0 gy-2 pt-3 row small">
       <p class="col-sm-auto font-monospace grey-text mb-0 text-uppercase">Attribution</p>
-      <p class="col-sm mb-0">
-        <a href="https://open-meteo.com/" rel="noopener" target="_blank">Weather data by Open-Meteo.com</a>
-        <span class="grey-text">under</span>
-        <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>
-        <span class="grey-text ms-3 text-nowrap">Location data from GeoNames</span>
+      <p class="col-sm column-gap-3 d-flex flex-wrap mb-0">
+        <span>
+          <a href="https://open-meteo.com/" rel="noopener" target="_blank">Weather data by Open-Meteo.com</a>
+          <span class="grey-text">under</span>
+          <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>
+        </span>
+        <span class="grey-text text-nowrap">Location data from GeoNames</span>
       </p>
     </div>
   </div>
 </div>
 <template id="option">
-  <li class="list-group-item list-group-item-action" role="option" tabindex="-1"></li>
+  <li class="list-group-item" role="option" tabindex="-1"></li>
 </template>
 <script src="index.js" type="module"></script>

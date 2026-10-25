@@ -13,11 +13,11 @@ const BLOCK  = {
   place    : { country: 'United States', name: 'Boston', region: 'Massachusetts' },
   platform : 'Luxout'
 }
-const written = Object.entries(
+const written = Object.keys(
   PluginBlock.from('Luxout', [])
     .located(BOSTON, new Match('Boston', BOSTON, 'United States', 'Massachusetts'))
     .blocks[0] ?? {}
-).filter(([key]) => key !== 'platform')
+).filter((key) => key !== 'platform')
 
 it('holds the first block the Homebridge UI reports, every key the form writes among them', () => {
   expect(PluginBlock.from('Luxout', [BLOCK, { platform: 'Luxout' }]).blocks).toStrictEqual([BLOCK])
@@ -86,11 +86,6 @@ it('leaves the block it was located from as it stood', () => {
   expect(block.blocks).toStrictEqual([BLOCK])
 })
 
-it.each(written)('keeps %s, a key it writes, out of view in the generated form', (key, value) => {
-  const hidden = { widget: 'hidden' }
-  const fields = value instanceof Object ? Object.keys(value).map((field) => [field, hidden]) : []
-
-  expect(schema.schema.properties).toMatchObject({
-    [key]: value instanceof Object ? { properties: Object.fromEntries(fields) } : hidden
-  })
+it.each(written)('keeps %s, a key it writes, out of view in the generated form', (key) => {
+  expect(schema.schema.properties).toMatchObject({ [key]: { condition: { functionBody: 'return false' } } })
 })
