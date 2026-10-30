@@ -307,7 +307,7 @@ it('builds a block on the platform the schema names where the plugin has none ye
   })
 })
 
-it('sets the name of a match apart in bold, in its option and in the place kept', async () => {
+it('sets the name of a match apart in semibold, in its option and in the place kept', async () => {
   const { user } = await searched()
 
   await user.click(option(ADDISON))
@@ -340,6 +340,10 @@ it.each([
   await open()
 
   expect(screen.getByRole('link', { name })).toMatchObject({ href, rel: 'noopener', target: '_blank' })
+})
+
+it('links the stylesheet plugin:build copies beside the page', () => {
+  expect(document.querySelector('link[rel="stylesheet"]')?.getAttribute('href')).toBe('index.css')
 })
 
 it('credits GeoNames for the location data', async () => {

@@ -184,9 +184,10 @@ export class LocationPage {
 
   async #submit(): Promise<void> {
     const query = this.#query.value.trim()
-    const typed = TYPED.exec(query.replaceAll(MINUS, '-'))
 
     if (query === '') return
+
+    const typed = TYPED.exec(query.replaceAll(MINUS, '-'))
 
     this.#list([])
 
@@ -213,7 +214,7 @@ function message(error: unknown): string {
 }
 
 /**
- * Writes the name of `match` in bold, followed by the rest of its label, or
+ * Writes the name of `match` in semibold, followed by the rest of its label, or
  * empties `node` where no match is given.
  */
 function name(node: Element, match?: Match): void {
