@@ -317,7 +317,7 @@ it('sets the name of a match apart in bold, in its option and in the place kept'
   })
 
   const names = [option(ADDISON), screen.getByRole('status', { name: 'Place' })]
-    .map((node) => node.querySelector('strong')?.textContent)
+    .map((node) => node.querySelector('strong.fw-semibold')?.textContent)
 
   expect(names).toStrictEqual(['Addison', 'Addison'])
 })

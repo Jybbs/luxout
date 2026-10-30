@@ -221,6 +221,7 @@ function name(node: Element, match?: Match): void {
 
   const strong = node.ownerDocument.createElement('strong')
 
+  strong.className   = 'fw-semibold'
   strong.textContent = match.name
   node.replaceChildren(strong, match.label.slice(match.name.length))
 }
