@@ -32,9 +32,9 @@ export const TUNING = { grace: 3_000, observe: 4_000, settle: 100 }
 const cache         = join(import.meta.dirname, '..', '..', '.cache')
 const standIn       = join(import.meta.dirname, '..', 'mise', 'fixtures', 'homebridge.js')
 /**
- * Extends the scratch fixture with `outside`, a directory under the worktree's
- * `.cache/` that neither the system temp directory nor `/tmp` holds, removed
- * once the case ends.
+ * Extends the scratch fixture with `outside`, a directory under the checkout's
+ * `.cache/` removed once the case ends, which lies outside the system temp
+ * directory and `/tmp` wherever the checkout does.
  */
 export const test = scratch.extend('outside', async ({ onTestFinished }) => {
   await mkdir(cache, { recursive: true })

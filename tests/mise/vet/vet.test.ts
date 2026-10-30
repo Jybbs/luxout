@@ -102,7 +102,7 @@ test('holds each run to the checks’ 30-second window and 12-second grace by de
   expect(stub.run.mock.calls[0]?.[2]).toEqual({ grace: 12_000, observe: 30_000, settle: 1_500 })
 })
 
-test('draws each port clear of Homebridge’s sample bridge port and the UI’s default port', async ({
+test('draws each port clear of Homebridge’s sample bridge port and the Homebridge UI’s default port', async ({
   scratch
 }) => {
   const write = vi.fn<(line: string) => void>()

@@ -48,9 +48,9 @@ export class Writes {
   }
 
   /**
-   * Wraps each call `WRITES` lists on `fs` and `fs.promises`, in its callback,
-   * synchronous, and promise forms, reading the path from the argument `WRITES`
-   * names for it.
+   * Wraps each call `WRITES` lists on `fs`, beside its `Sync` form and its form
+   * on `fs.promises` wherever Node has them, reading the path from the argument
+   * `WRITES` names for it.
    */
   watch(fs: object & { promises: object }): void {
     for (const [name, index] of Object.entries(WRITES)) {
