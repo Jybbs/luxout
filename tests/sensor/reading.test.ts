@@ -1,15 +1,17 @@
 import type { Logging, PlatformAccessory } from 'homebridge'
 import { expect, vi }                      from 'vitest'
 
-import type { Place }               from '../../src/config/place.js'
-import { ClearSky }                 from '../../src/daylight/clear-sky.js'
-import { Estimator }                from '../../src/daylight/estimator.js'
-import { Sun }                      from '../../src/daylight/sun.js'
-import { OutsideSensor }            from '../../src/sensor/outside.js'
-import { Reading }                  from '../../src/sensor/reading.js'
-import { type Bridge, level, test } from '../common/homebridge.js'
-import { angeles, boston, delhi }   from '../common/places.js'
-import { spaced }                   from '../common/window.js'
+import type { Place }                          from '../../src/config/place.js'
+import { ClearSky }                            from '../../src/daylight/clear-sky.js'
+import { Estimator }                           from '../../src/daylight/estimator.js'
+import { Sun }                                 from '../../src/daylight/sun.js'
+import { OutsideSensor }                       from '../../src/sensor/outside.js'
+import { Reading }                             from '../../src/sensor/reading.js'
+import { ThresholdSensor }                     from '../../src/sensor/threshold.js'
+import { type Bridge, detection, level, test } from '../common/homebridge.js'
+import { angeles, boston, delhi }              from '../common/places.js'
+import { thresholdEntry }                      from '../common/threshold.js'
+import { spaced }                              from '../common/window.js'
 
 const MINUTE = 60_000
 
@@ -163,6 +165,25 @@ test('keeps a twilight factor across a window replacing the one before it', ({ b
 
   expect(level(replaced.accessory).value).toBe(level(kept.accessory).value)
   expect(level(replaced.accessory).value).toBeLessThan(Number(level(unrelated.accessory).value))
+})
+
+test('switches each threshold sensor on the clamped reading Outside shows', ({ bridge, log }) => {
+  const floor     = thresholdEntry({ name: 'Floor', offLux: 1, onLux: 0.0001 })
+  const dark      = thresholdEntry({ name: 'Dark' })
+  const cached = [floor, dark].map((entry) => ({ accessory: bridge.cached(entry.name, entry.serial), entry }))
+  const estimator = new Estimator(new ClearSky(), new Sun(boston))
+  const sensors   = cached.map(({ accessory, entry }) =>
+    new ThresholdSensor(accessory, bridge.api, entry, log)
+  )
+
+  new Reading(estimator, log, new OutsideSensor(bridge.cached(), bridge.api), sensors)
+    .start(new AbortController().signal)
+
+  expect(cached.map(({ accessory }) => detection(accessory).value)).toEqual([1, 1])
+  expect(vi.mocked(log.info).mock.calls).toEqual([
+    ['%s switches %s at a reading of %s lux', 'Floor', 'on', '0.0001'],
+    ['%s switches %s at a reading of %s lux', 'Dark', 'on', '0.0001']
+  ])
 })
 
 test('logs an error a reading raises and reads again the next minute', ({ bridge, log }) => {

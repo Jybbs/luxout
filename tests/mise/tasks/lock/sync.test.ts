@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
 
-const BAKE = ['.', 'site', 'tests/vet/floor', 'tests/vet/pinned']
+const BAKE = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
   .map((dir) => ['bun', 'install', '--cwd', dir, '--lockfile-only'])
 const LOCK = [['mise', 'lock'], ['mise', 'ls', '--json', '--local', '--missing']]
 const VET  = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }

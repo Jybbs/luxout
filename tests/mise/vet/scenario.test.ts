@@ -20,7 +20,13 @@ async function verdict(check: Scenario | Shutdown, scratch: string, acts?: Acts,
 }
 
 it('builds each run the checks start from the schema, running a repeated block once', () => {
-  const block = { latitude: -90, longitude: -180, name: 'test-value', platform: 'Luxout' }
+  const block = {
+    latitude   : -90,
+    longitude  : -180,
+    name       : 'test-value',
+    platform   : 'Luxout',
+    thresholds : [{ name: 'test-value', offLux: 0.0001, onLux: 0.0001 }]
+  }
 
   expect(checks(schema).map(({ block, name }) => ({ block, name }))).toEqual([
     { block: undefined, name: 'no config' },

@@ -4,7 +4,7 @@ import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
 
 const CALLS = [
-  ...['.', 'site', 'tests/vet/floor', 'tests/vet/pinned']
+  ...['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
     .map((dir) => ['bun', 'install', '--cwd', dir, '--dry-run', '--frozen-lockfile']),
   ['mise', 'lock'],
   ['mise', 'install', '--dry-run', '--force', '--locked']

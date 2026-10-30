@@ -3,6 +3,7 @@
     "erasableSyntaxOnly": true,
     "lib": ["es2024", "es2025.collection", "es2025.iterator", "esnext.array"],
     "module": "nodenext",
+    "noEmitOnError": true,
     "noUncheckedIndexedAccess": true,
     "outDir": "../dist",
     "rootDir": ".",

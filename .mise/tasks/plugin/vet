@@ -3,6 +3,8 @@
 #MISE depends     = ["plugin:pack"]
 #MISE description = "Install each Homebridge release a manifest under `tests/vet` pins into `.cache/vet`, unpack the tarball `plugin:pack` writes beside them, and replay the runtime scenarios of Homebridge's verification checks on it under each release, failing where one does not hold"
 
+source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
+
 cache=.cache/vet
 plugin=$cache/plugins/$(jq --raw-output .name package.json)
 tarball=$(jq --raw-output '"\(.name)-\(.version).tgz"' package.json)
@@ -12,11 +14,9 @@ rm -rf "$plugin"
 mkdir -p "$plugin"
 tar --directory "$plugin" --extract --file "$tarball" --strip-components 1
 
-for seed in tests/vet/*/; do
+for seed in tests/vet/*; do
   release=$cache/$(basename "$seed")
-  mkdir -p "$release"
-  cp "$seed"{bun.lock,bunfig.toml,package.json} "$release"
-  bun install --cwd "$release" --frozen-lockfile
+  install_seed "$seed" "$release"
   releases+=("$release")
 done
 
