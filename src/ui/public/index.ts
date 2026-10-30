@@ -1,3 +1,5 @@
-import type {} from '@homebridge/plugin-ui-utils/ui.interface'
+import { LocationPage } from './page.js'
 
-window.homebridge.addEventListener('ready', () => window.homebridge.showSchemaForm())
+window.homebridge.addEventListener('ready', () => {
+  LocationPage.open(document, window.homebridge).catch(console.error)
+})

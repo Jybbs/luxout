@@ -8,6 +8,7 @@ export default defineConfig({
   cacheDir : '.cache/vite',
   root     : dirname(import.meta.dirname),
   test     : {
+    environmentOptions  : { happyDOM: { settings: { handleDisabledFileLoadingAsSuccess: true } } },
     expect              : { requireAssertions: true },
     include             : ['tests/**/*.test.ts'],
     resolveSnapshotPath : (testPath, extension) => testPath + extension,

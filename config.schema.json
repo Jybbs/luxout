@@ -2,6 +2,7 @@
   "pluginAlias": "Luxout",
   "pluginType": "platform",
   "singular": true,
+  "customUi": true,
   "customUiPath": "./dist/ui",
   "schema": {
     "type": "object",
@@ -12,14 +13,27 @@
         "description": "Degrees north of the equator, negative to the south",
         "type": "number",
         "minimum": -90,
-        "maximum": 90
+        "maximum": 90,
+        "condition": { "functionBody": "return false" }
       },
       "longitude": {
         "title": "Longitude",
         "description": "Degrees east of the prime meridian, negative to the west",
         "type": "number",
         "minimum": -180,
-        "maximum": 180
+        "maximum": 180,
+        "condition": { "functionBody": "return false" }
+      },
+      "place": {
+        "title": "Place",
+        "description": "The name, region, and country of the place whose coordinates the user confirmed",
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "region": { "type": "string" },
+          "country": { "type": "string" }
+        },
+        "condition": { "functionBody": "return false" }
       },
       "thresholds": {
         "title": "Threshold Sensors",

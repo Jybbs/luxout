@@ -1,1 +1,92 @@
+<link href="index.css" rel="stylesheet">
+<div class="gx-0 gy-4 row">
+  <div class="col-sm">
+    <form class="mb-4" id="search" role="search">
+      <label class="font-monospace form-label grey-text small text-uppercase" for="query">
+        Zip code, city, or coordinates
+      </label>
+      <div class="input-group">
+        <input
+          autocomplete="off"
+          class="custom-input form-control"
+          id="query"
+          name="query"
+          placeholder="02115 or Boston"
+          type="search"
+        >
+        <button class="btn btn-secondary text-uppercase" type="submit">Search</button>
+      </div>
+    </form>
+    <p class="font-monospace form-label grey-text small text-uppercase" id="matches-label">Matches</p>
+    <p class="border border-opacity-25 border-secondary grey-text mb-0 px-3 py-2 rounded" id="empty">
+      Matches appear here
+    </p>
+    <ul aria-labelledby="matches-label" class="list-group" hidden id="matches" role="listbox"></ul>
+  </div>
+  <div class="col-sm-auto px-sm-4">
+    <div class="border-opacity-25 border-secondary border-top d-sm-none"></div>
+    <div class="d-none d-sm-block h-100 vr"></div>
+  </div>
+  <div class="col-sm">
+    <dl class="gx-0 mb-4 row">
+      <div class="col">
+        <dt class="font-monospace form-label grey-text small text-uppercase" id="latitude-label">Latitude</dt>
+        <dd class="fs-2 fw-semibold lh-sm mb-0">
+          <span class="fs-6 fw-normal grey-text" id="unkept">No place kept yet</span>
+          <output aria-labelledby="latitude-label" id="latitude"></output>
+        </dd>
+      </div>
+      <div class="col">
+        <dt class="font-monospace form-label grey-text small text-uppercase" id="longitude-label">
+          Longitude
+        </dt>
+        <dd class="fs-2 fw-semibold lh-sm mb-0">
+          <output aria-labelledby="longitude-label" id="longitude"></output>
+        </dd>
+      </div>
+    </dl>
+    <p class="font-monospace form-label grey-text small text-uppercase" id="place-label">Place</p>
+    <output aria-labelledby="place-label" id="place"></output>
+  </div>
+  <div class="col-12">
+    <div class="border-opacity-25 border-secondary border-top column-gap-3 gx-0 gy-2 pt-3 row small">
+      <p class="col-sm-auto font-monospace grey-text mb-0 text-uppercase">Attribution</p>
+      <p class="col-sm column-gap-3 d-flex flex-wrap mb-0">
+        <span>
+          <a
+            class="text-decoration-underline text-reset"
+            href="https://open-meteo.com/"
+            rel="noopener"
+            target="_blank"
+          >Weather data by Open-Meteo.com</a>
+          <span class="grey-text">under</span>
+          <a
+            class="text-decoration-underline text-reset"
+            href="https://creativecommons.org/licenses/by/4.0/"
+            rel="noopener"
+            target="_blank"
+          >CC BY 4.0</a>
+        </span>
+        <span>
+          <a
+            class="text-decoration-underline text-reset"
+            href="https://www.geonames.org/"
+            rel="noopener"
+            target="_blank"
+          >Location data from GeoNames</a>
+          <span class="grey-text">under</span>
+          <a
+            class="text-decoration-underline text-reset"
+            href="https://creativecommons.org/licenses/by/4.0/"
+            rel="noopener"
+            target="_blank"
+          >CC BY 4.0</a>
+        </span>
+      </p>
+    </div>
+  </div>
+</div>
+<template id="option">
+  <li class="list-group-item" role="option" tabindex="-1"></li>
+</template>
 <script src="index.js" type="module"></script>
