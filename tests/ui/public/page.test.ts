@@ -334,22 +334,21 @@ it('writes each name a search returns as text, whatever markup it holds', async 
 })
 
 it.each([
-  { href: 'https://open-meteo.com/', name: 'Weather data by Open-Meteo.com' },
-  { href: 'https://creativecommons.org/licenses/by/4.0/', name: 'CC BY 4.0' }
-])('credits Open-Meteo with a link to $href that opens apart from the settings', async ({ href, name }) => {
+  { credit: 'Open-Meteo', href: 'https://open-meteo.com/', name: 'Weather data by Open-Meteo.com' },
+  { credit: 'Open-Meteo', href: 'https://creativecommons.org/licenses/by/4.0/', name: 'CC BY 4.0' },
+  { credit: 'GeoNames', href: 'https://www.geonames.org/', name: 'Location data from GeoNames' },
+  { credit: 'GeoNames', href: 'https://creativecommons.org/licenses/by/4.0/', name: 'CC BY 4.0' }
+])('credits $credit with a link to $href opening apart from the settings', async ({ credit, href, name }) => {
   await open()
 
-  expect(screen.getByRole('link', { name })).toMatchObject({ href, rel: 'noopener', target: '_blank' })
+  const links = screen.getAllByRole('link', { name })
+    .filter((link) => link.parentElement?.textContent.includes(credit))
+
+  expect(links).toMatchObject([{ href, rel: 'noopener', target: '_blank' }])
 })
 
 it('links the stylesheet plugin:build copies beside the page', () => {
   expect(document.querySelector('link[rel="stylesheet"]')?.getAttribute('href')).toBe('index.css')
-})
-
-it('credits GeoNames for the location data', async () => {
-  await open()
-
-  expect(screen.getByText('Location data from GeoNames').closest('[hidden]')).toBeNull()
 })
 
 it('fails to open on markup missing a part of the page, naming the part', async () => {
