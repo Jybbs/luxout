@@ -19,6 +19,7 @@ const PACKAGE = {
   '.github/README.md'         : '# Fixture\n',
   'config.schema.json'        : JSON.stringify({ customUiPath: './dist/ui' }),
   'dist/index.js'             : 'export default () => {}\n',
+  'dist/ui/public/index.css'  : '#query::placeholder { color: #666; }\n',
   'dist/ui/public/index.html' : '<script src="index.js" type="module"></script>\n',
   'dist/ui/server.js'         : "process.send({ action: 'ready' })\n",
   'package.json'              : JSON.stringify(MANIFEST)
@@ -53,7 +54,7 @@ test('copies the README to the root, prints the files, and imports the package',
     readme : '# Fixture\n',
     status : 0,
     stdout : expect.stringMatching(
-      /^README\.md\nconfig\.schema\.json\ndist\/index\.js\ndist\/ui\/public\/index\.html\ndist\/ui\/server\.js\npackage\.json\n/
+      /^README\.md\nconfig\.schema\.json\ndist\/index\.js\ndist\/ui\/public\/index\.css\ndist\/ui\/public\/index\.html\ndist\/ui\/server\.js\npackage\.json\n/
     )
   })
 }, 60_000)
@@ -114,6 +115,7 @@ test('fails a tarball whose files leave out README.md', async ({ scratch }) => {
 })
 
 test.for([
+  { file: 'dist/ui/public/index.css', reason: 'the settings page has no stylesheet to load' },
   { file: 'dist/ui/public/index.html', reason: 'the Homebridge UI has no settings page to show' },
   { file: 'dist/ui/server.js', reason: 'the settings page has no server script to answer it' }
 ])('fails a tarball leaving out $file', { timeout: 60_000 }, async ({ file, reason }, { scratch }) => {
