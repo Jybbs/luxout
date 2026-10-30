@@ -1,34 +1,37 @@
 import { Cron }         from 'croner'
 import type { Logging } from 'homebridge'
 
-import type { CloudFactor }    from '../daylight/cloud-factor.js'
-import type { Estimator }      from '../daylight/estimator.js'
-import type { ForecastWindow } from '../weather/window.js'
-import type { OutsideSensor }  from './outside.js'
-
-const figure = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits    : 4,
-  maximumSignificantDigits : 4,
-  roundingPriority         : 'lessPrecision',
-  useGrouping              : false
-})
+import type { CloudFactor }     from '../daylight/cloud-factor.js'
+import type { Estimator }       from '../daylight/estimator.js'
+import type { ForecastWindow }  from '../weather/window.js'
+import { figure }               from './figure.js'
+import type { OutsideSensor }   from './outside.js'
+import type { ThresholdSensor } from './threshold.js'
 
 /**
  * Reads the outdoor illuminance at launch and each minute after, shows it on
- * the Outside sensor, and logs every value behind it at debug level.
+ * the Outside sensor, compares it against each threshold sensor's levels, and
+ * logs every value behind it at debug level.
  */
 export class Reading {
-  readonly #estimator : Estimator
-  #factor             : CloudFactor | undefined
-  #fallback           : boolean
-  readonly #log       : Logging
-  readonly #sensor    : OutsideSensor
+  readonly #estimator  : Estimator
+  #factor              : CloudFactor | undefined
+  #fallback            : boolean
+  readonly #log        : Logging
+  readonly #sensor     : OutsideSensor
+  readonly #thresholds : readonly ThresholdSensor[]
 
-  constructor(estimator: Estimator, log: Logging, sensor: OutsideSensor) {
-    this.#estimator = estimator
-    this.#fallback  = false
-    this.#log       = log
-    this.#sensor    = sensor
+  constructor(
+    estimator  : Estimator,
+    log        : Logging,
+    sensor     : OutsideSensor,
+    thresholds : readonly ThresholdSensor[] = []
+  ) {
+    this.#estimator  = estimator
+    this.#fallback   = false
+    this.#log        = log
+    this.#sensor     = sensor
+    this.#thresholds = thresholds
   }
 
   /**
@@ -56,7 +59,8 @@ export class Reading {
   #read(): void {
     try {
       const estimate = this.#estimator.estimate(new Date(), this.#factor)
-      const lux      = figure.format(this.#sensor.report(estimate.lux))
+      const shown    = this.#sensor.report(estimate.lux)
+      const lux      = figure.format(shown)
       const altitude = figure.format(estimate.altitude)
       const clearSky = figure.format(estimate.clearSky)
       const fallback = estimate.steps === undefined
@@ -92,6 +96,8 @@ export class Reading {
       }
 
       this.#fallback = fallback
+
+      for (const threshold of this.#thresholds) threshold.compare(shown)
     } catch (error) {
       this.#log.error('Outside could not read the light outdoors: %s', error)
     }
