@@ -13,38 +13,34 @@ const TUNING      = { grace: 12_000, observe: 30_000, settle: 1_500 }
 const conjunction = new Intl.ListFormat('en', { type: 'conjunction' })
 
 /**
- * Replays the runtime scenarios of Homebridge's verification checks against an
- * unpacked plugin under each release of Homebridge it holds.
+ * Replays the runtime scenarios of Homebridge's verification checks against the
+ * plugin installed beside each release of Homebridge it holds.
  */
 export class Vet {
   readonly #checks   : scenario.Check[]
-  readonly #plugins  : string
   readonly #releases : Homebridge[]
   readonly #tuning   : scenario.Tuning
   readonly #write    : Write
 
   /**
    * Builds the checks from the `config.schema.json` under `root` and reads the
-   * release installed into each directory `args` names after its first, which
-   * names the directory holding the unpacked plugin.
+   * release installed into each directory `args` names, resolved against
+   * `root`.
    */
   static async read(args: string[], root: string, tuning?: scenario.Tuning, write?: Write): Promise<Vet> {
-    const [plugins = root, ...installs] = args.map((arg) => resolve(root, arg))
-    const releases                      = await Promise.all(installs.map((dir) => Homebridge.read(dir)))
-    const schema                        = await readFile(join(root, 'config.schema.json'), 'utf8')
+    const releases = await Promise.all(args.map((arg) => Homebridge.read(resolve(root, arg))))
+    const schema   = await readFile(join(root, 'config.schema.json'), 'utf8')
 
-    return new Vet(scenario.checks(JSON.parse(schema)), plugins, releases, tuning, write)
+    return new Vet(scenario.checks(JSON.parse(schema)), releases, tuning, write)
   }
 
   constructor(
     checks   : scenario.Check[],
-    plugins  : string,
     releases : Homebridge[],
     tuning   : scenario.Tuning = TUNING,
     write    : Write           = console.log
   ) {
     this.#checks   = checks
-    this.#plugins  = plugins
     this.#releases = releases
     this.#tuning   = tuning
     this.#write    = write
@@ -86,8 +82,7 @@ export class Vet {
     await rm(storage, { force: true, recursive: true })
     await mkdir(storage, { recursive: true })
 
-    const stage                = { plugins: this.#plugins, port, signal, storage }
-    const { failures, output } = await check.run(homebridge, stage, this.#tuning)
+    const { failures, output } = await check.run(homebridge, { port, signal, storage }, this.#tuning)
 
     return failures.length === 0
          ? { failed: false, line: `${label}: passes` }

@@ -38,6 +38,7 @@ interface Invocation {
 interface SyncSetup {
   args?   : string[]
   canned? : Record<string, Answer>
+  cwd?    : string
   env?    : NodeJS.ProcessEnv
   fail?   : string
   live?   : Record<string, unknown>
@@ -77,8 +78,9 @@ export async function confirm(
 }
 
 /**
- * Runs `task` with `args` in `scratch` under stand-ins for the programs it
- * calls, beside the variables `env` adds to the task's environment.
+ * Runs `task` with `args` in `cwd`, which defaults to `scratch`, under
+ * stand-ins for the programs it calls, beside the variables `env` adds to the
+ * task's environment.
  *
  * A stand-in `gh` answers a call to each endpoint `live` keys with that key's
  * value, read as pages where the call paginates, and fails each call naming
@@ -88,9 +90,9 @@ export async function confirm(
  * points mise's directories and the temporary directory under `scratch`.
  */
 export async function sync(
-  scratch                                               : string,
-  task                                                  : string,
-  { args = [], canned = {}, env = {}, fail, live = {} } : SyncSetup = {}
+  scratch : string,
+  task    : string,
+  { args = [], canned = {}, cwd = scratch, env = {}, fail, live = {} } : SyncSetup = {}
 ): Promise<SyncRun> {
   const programs = new Set(Object.keys(canned).map((call) => call.replace(/ .*/, '')))
 
@@ -102,7 +104,7 @@ export async function sync(
   ])
 
   const { status, stderr, stdout } = spawnSync(join(root, source(task)), args, {
-    cwd      : scratch,
+    cwd      : cwd,
     encoding : 'utf8',
     env      : {
       ...env,

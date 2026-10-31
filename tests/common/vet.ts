@@ -74,5 +74,5 @@ export async function stage(
 
   await plant(storage, { 'acts.json': JSON.stringify(acts) })
 
-  return { plugins: join(scratch, 'plugins'), port, signal, storage }
+  return { port, signal, storage }
 }

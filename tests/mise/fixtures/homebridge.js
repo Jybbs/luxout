@@ -1,7 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { createServer }                              from 'node:net'
-import { join }                                      from 'node:path'
-import { parseArgs }                                 from 'node:util'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { createServer }                                           from 'node:net'
+import { join }                                                   from 'node:path'
+import { pathToFileURL }                                          from 'node:url'
+import { parseArgs }                                              from 'node:util'
 
 const { values } = parseArgs({
   options: {
@@ -20,6 +21,20 @@ const marker   = file('started')
 const again    = existsSync(marker)
 const block    = config.platforms[0]
 const conflict = `Error: listen EADDRINUSE: address already in use :::${config.bridge.port}`
+const plugins  = values['plugin-path'] ?? ''
+let loaded     = true
+
+for (const name of existsSync(plugins) ? readdirSync(plugins) : []) {
+  if (!name.startsWith('homebridge-')) continue
+
+  const { main } = JSON.parse(readFileSync(join(plugins, name, 'package.json'), 'utf8'))
+
+  await import(pathToFileURL(join(plugins, name, main)).href).catch((error) => {
+    console.error(`ERROR LOADING PLUGIN ${name}:`)
+    console.error(error)
+    loaded = false
+  })
+}
 
 writeFileSync(marker, '')
 setInterval(() => {}, 60_000)
@@ -27,7 +42,7 @@ process.on('SIGTERM', () => acts.lingers || process.exit(0))
 console.log(`Started with ${process.argv.slice(2).join(' ')}`)
 console.log(`Preloaded with ${process.execArgv.join(' ')}`)
 
-if ((block && !acts.silent) || acts.initializes) console.log('Initializing Luxout platform...')
+if (loaded && ((block && !acts.silent) || acts.initializes)) console.log('Initializing Luxout platform...')
 if (acts.logs) console.error(acts.logs)
 if (acts.writes) writeFileSync(acts.writes, '')
 if (acts.fetches) await fetch(acts.fetches).catch(({ cause }) => console.error('Fetch failed:', cause?.code))

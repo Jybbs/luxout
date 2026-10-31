@@ -17,8 +17,7 @@ interface Resolver {
 }
 
 /**
- * Opens the line a preload prints for each path written outside the storage
- * directory and the system temp directory.
+ * Opens the line a preload prints for each path `Writes` reports.
  */
 export const OUTSIDE = 'Writes outside the storage directory:'
 const WRITES         = {
@@ -33,18 +32,23 @@ const WRITES         = {
 }
 
 /**
- * Reports each path a write reaches outside the storage directory and the
- * system temp directory, once a path.
+ * Reports each path a write reaches outside the storage directory, once a path,
+ * passing a path in the system temp directory or `/tmp` unless it lies in
+ * `area`, the test area Homebridge runs from.
  */
 export class Writes {
+  readonly #area     : string
   readonly #report   : Report
   readonly #reported : Set<string>
-  readonly #roots    : string[]
+  readonly #storage  : string
+  readonly #temp     : string[]
 
-  constructor(storage: string, report: Report = stderr) {
+  constructor(storage: string, area: string, report: Report = stderr) {
+    this.#area     = resolve(area)
     this.#report   = report
     this.#reported = new Set()
-    this.#roots    = [storage, tmpdir(), '/tmp'].map((root) => resolve(root))
+    this.#storage  = resolve(storage)
+    this.#temp     = [tmpdir(), '/tmp'].map((root) => resolve(root))
   }
 
   /**
@@ -65,7 +69,8 @@ export class Writes {
 
     if (path === undefined) return
 
-    const kept = this.#roots.some((root) => path === root || path.startsWith(root + sep))
+    const within = (root: string): boolean => path === root || path.startsWith(root + sep)
+    const kept   = within(this.#storage) || (!within(this.#area) && this.#temp.some(within))
 
     if (kept || this.#reported.has(path)) return
 

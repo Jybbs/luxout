@@ -12,9 +12,9 @@ const vet = join(import.meta.dirname, '..', '..', '..', '.mise', 'vet')
 
 /**
  * Builds a stand-in for `fs` whose every write call returns its name, and
- * watches it for writes outside `/storage`.
+ * watches it for writes outside `storage`, where `area` names the test area.
  */
-function watched() {
+function watched(storage = '/storage', area = '/area') {
   const report  = vi.fn<(line: string) => void>()
   const call    = (name: string) => vi.fn<(...args: unknown[]) => string>(() => name)
   const promise = (name: string) => vi.fn<(...args: unknown[]) => Promise<string>>(async () => name)
@@ -30,7 +30,7 @@ function watched() {
     promises          : { appendFile: promise('appendFile'), writeFile: promise('writeFile') }
   }
 
-  new monitor.Writes('/storage', report).watch(fs)
+  new monitor.Writes(storage, area, report).watch(fs)
 
   return { fs, report }
 }
@@ -91,6 +91,19 @@ it.each([
   fs.writeFileSync(path, '')
 
   expect(report).not.toHaveBeenCalled()
+})
+
+it('reports a write into the test area lying in the temp directory, passing its storage', () => {
+  const area           = join(tmpdir(), 'area')
+  const { fs, report } = watched(join(area, 'storage'), area)
+
+  fs.writeFileSync(join(area, 'node_modules', 'homebridge-luxout', 'cache.json'), '')
+  fs.writeFileSync(join(area, 'storage', 'luxout-forecast.json'), '')
+  fs.writeFileSync(join(tmpdir(), 'scratch.json'), '')
+
+  expect(report.mock.calls.flat()).toEqual([
+    `${monitor.OUTSIDE} ${join(area, 'node_modules', 'homebridge-luxout', 'cache.json')}`
+  ])
 })
 
 it('reports a path once however often it is written', () => {
@@ -183,6 +196,21 @@ test('reports a write the write preload sees from a module importing fs by name'
   )
 
   expect(stderr).toBe(`${monitor.OUTSIDE} ${file}\n`)
+})
+
+test('reports a write the write preload sees inside the directory Homebridge runs from', ({ scratch }) => {
+  const script = "import { mkdirSync, writeFileSync } from 'node:fs'\n"
+               + "mkdirSync('storage')\n"
+               + "writeFileSync('storage/kept.json', '')\n"
+               + "writeFileSync('written.json', '')"
+
+  const { stderr } = spawnSync(
+    process.execPath,
+    ['--import', pathToFileURL(join(vet, 'writes.ts')).href, '--input-type=module', '--eval', script],
+    { cwd: scratch, encoding: 'utf8', env: { ...process.env, HB_STORAGE_PATH: join(scratch, 'storage') } }
+  )
+
+  expect(stderr).toBe(`${monitor.OUTSIDE} ${join(scratch, 'written.json')}\n`)
 })
 
 test('fails a fetch under the offline preload before it leaves the machine', () => {

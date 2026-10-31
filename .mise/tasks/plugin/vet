@@ -1,23 +1,32 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "vet"
 #MISE depends     = ["plugin:pack"]
-#MISE description = "Install each Homebridge release a manifest under `tests/vet` pins into `.cache/vet`, unpack the tarball `plugin:pack` writes beside them, and replay the runtime scenarios of Homebridge's verification checks on it under each release, failing where one does not hold"
+#MISE description = "Install each Homebridge release a manifest under `tests/vet` pins into a test area under the system temp directory, unpack the tarball `plugin:pack` writes beside each release's `homebridge`, install the tarball's `dependencies` there from `bun.lock`, and replay the runtime scenarios of Homebridge's verification checks on it under each release, failing where one does not hold or where the test area lies inside the checkout"
 
 source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
 
-cache=.cache/vet
-plugin=$cache/plugins/$(jq --raw-output .name package.json)
+area=$(realpath "$(mktemp -d --tmpdir)")
+trap 'rm -rf "$area"' EXIT
+
+if [[ "$area" == "$(pwd -P)"/* ]]; then
+  echo "The test area $area lies inside the checkout, where the unpacked plugin would resolve packages from the checkout's \`node_modules\`, so point TMPDIR outside the checkout" >&2
+  exit 1
+fi
+
+name=$(jq --raw-output .name package.json)
 tarball=$(jq --raw-output '"\(.name)-\(.version).tgz"' package.json)
 releases=()
 
-rm -rf "$plugin"
-mkdir -p "$plugin"
-tar --directory "$plugin" --extract --file "$tarball" --strip-components 1
-
 for seed in tests/vet/*; do
-  release=$cache/$(basename "$seed")
+  release=$area/$(basename "$seed")
+  plugin=$release/node_modules/$name
+
   install_seed "$seed" "$release"
+  mkdir -p "$plugin"
+  tar --directory "$plugin" --extract --file "$tarball" --strip-components 1
+  cp bun.lock bunfig.toml "$plugin"
+  bun install --cwd "$plugin" --frozen-lockfile --production
   releases+=("$release")
 done
 
-node .mise/vet/index.ts "$cache/plugins" "${releases[@]}"
+node .mise/vet/index.ts "${releases[@]}"

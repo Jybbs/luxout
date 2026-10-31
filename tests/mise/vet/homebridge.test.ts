@@ -65,18 +65,19 @@ test.concurrent('lists no platform where it starts with no block', async ({ expe
   expect(JSON.parse(await readFile(join(launch.storage, 'config.json'), 'utf8')).platforms).toEqual([])
 })
 
-test.concurrent('starts on the storage, loading only the plugins under its path', async ({
+test.concurrent('starts on the storage, loading only the plugins installed beside the release', async ({
   expect,
   scratch
 }) => {
   const { launch, run } = await start(scratch, {}, BLOCK)
   const started         = await run.started(TUNING.observe)
+  const plugins         = join(scratch, 'release', 'node_modules')
 
   await run.stop(TUNING.grace)
 
   expect({ output: run.output, started }).toEqual({
     output  : expect.stringContaining(
-      `Started with -P ${launch.plugins} -Q -U ${launch.storage} --strict-plugin-resolution\n`
+      `Started with -P ${plugins} -Q -U ${launch.storage} --strict-plugin-resolution\n`
     ),
     started : true
   })

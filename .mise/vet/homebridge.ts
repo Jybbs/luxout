@@ -14,7 +14,6 @@ export type Block = Record<string, unknown>
  * What one start of Homebridge runs against.
  */
 export interface Launch {
-  plugins  : string
   port     : number
   signal   : AbortSignal
   storage  : string
@@ -52,10 +51,10 @@ export class Homebridge {
 
   /**
    * Writes the run's `config.json` into `storage` and starts Homebridge on it,
-   * loading only the plugins under `plugins`, with the write preload and, where
-   * `offline` is set, the offline preload.
+   * loading only the plugins installed beside it under `node_modules`, with the
+   * write preload and, where `offline` is set, the offline preload.
    */
-  async start({ block, offline = false, plugins, port, signal, storage }: Launch): Promise<Run> {
+  async start({ block, offline = false, port, signal, storage }: Launch): Promise<Run> {
     const imports = offline ? [preloads.writes, preloads.offline] : [preloads.writes]
     const config  = {
       accessories : [],
@@ -69,7 +68,7 @@ export class Homebridge {
       process.execPath,
       [
         ...imports.flatMap((preload) => ['--import', preload]),
-        bin, '-P', plugins, '-Q', '-U', storage, '--strict-plugin-resolution'
+        bin, '-P', join(this.dir, 'node_modules'), '-Q', '-U', storage, '--strict-plugin-resolution'
       ],
       {
         cwd        : this.dir,

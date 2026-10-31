@@ -39,7 +39,7 @@ test('prints a passing line for each check under each release and exits 0', asyn
     new Homebridge(join(scratch, 'floor'), '1.8.5'),
     new Homebridge(join(scratch, 'pinned'), '2.4.0')
   ]
-  const status   = await new Vet(checks, scratch, releases, TUNING, write).run()
+  const status   = await new Vet(checks, releases, TUNING, write).run()
 
   expect({ lines: write.mock.calls.flat(), status }).toEqual({
     lines  : [
@@ -57,7 +57,7 @@ test('prints each failure and the output of a failing check and exits 1', async 
   const failing  = check('full config', ['logs TypeError', 'never initializes the Luxout platform'])
   const releases = [new Homebridge(join(scratch, 'pinned'), '2.4.0')]
 
-  expect(await new Vet([check('no config'), failing], scratch, releases, TUNING, write).run()).toBe(1)
+  expect(await new Vet([check('no config'), failing], releases, TUNING, write).run()).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     'Homebridge 2.4.0, no config: passes',
     'Homebridge 2.4.0, full config: fails, since it logs TypeError '
@@ -72,19 +72,17 @@ test('hands each run an empty storage directory of its own and a port no other r
   const releases = [new Homebridge(join(scratch, 'pinned'), '2.4.0')]
 
   await plant(scratch, { 'pinned/storage/no-config/stale.json': '' })
-  await new Vet(checks, join(scratch, 'plugins'), releases, TUNING, vi.fn<(line: string) => void>()).run()
+  await new Vet(checks, releases, TUNING, vi.fn<(line: string) => void>()).run()
 
   const stages = checks.flatMap(({ stages }) => stages)
 
   expect({
     aborted  : stages.map(({ signal }) => signal.aborted),
-    plugins  : stages.map(({ plugins }) => plugins),
     ports    : new Set(stages.map(({ port }) => port)).size,
     stale    : await readdir(join(scratch, 'pinned', 'storage', 'no-config')),
     storages : stages.map(({ storage }) => storage)
   }).toEqual({
     aborted  : [true, true],
-    plugins  : [join(scratch, 'plugins'), join(scratch, 'plugins')],
     ports    : 2,
     stale    : [],
     storages : ['no-config', 'full-config'].map((name) => join(scratch, 'pinned', 'storage', name))
@@ -97,7 +95,7 @@ test('holds each run to the checks’ 30-second window and 12-second grace by de
   const stub  = check('no config')
   const write = vi.fn<(line: string) => void>()
 
-  await new Vet([stub], scratch, [new Homebridge(scratch, '2.4.0')], undefined, write).run()
+  await new Vet([stub], [new Homebridge(scratch, '2.4.0')], undefined, write).run()
 
   expect(stub.run.mock.calls[0]?.[2]).toEqual({ grace: 12_000, observe: 30_000, settle: 1_500 })
 })
@@ -107,7 +105,7 @@ test('draws each port clear of Homebridge’s sample bridge port and the Homebri
 }) => {
   const write = vi.fn<(line: string) => void>()
 
-  await new Vet([check('no config')], scratch, [new Homebridge(scratch, '2.4.0')], TUNING, write).run()
+  await new Vet([check('no config')], [new Homebridge(scratch, '2.4.0')], TUNING, write).run()
 
   expect(getPort).toHaveBeenCalledWith({ exclude: [51826, 8581], reserve: true })
 })
@@ -119,7 +117,7 @@ test('reads the schema and each release from directories resolved against the ro
   await install(join(scratch, 'releases', 'pinned'), '2.4.0')
   await plant(scratch, { 'releases/pinned/node_modules/.bin/homebridge': 'process.exit(3)\n' })
 
-  const vet    = await Vet.read(['plugins', 'releases/pinned'], scratch, TUNING, write)
+  const vet    = await Vet.read(['releases/pinned'], scratch, TUNING, write)
   const status = await vet.run()
 
   expect({ lines: write.mock.calls.flat().map((line) => line.split(':')[0]), status }).toEqual({
