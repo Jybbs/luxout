@@ -1,6 +1,7 @@
 import { defineConfig } from 'knip/config'
 
 export default defineConfig({
-  ignoreDependencies : ['oxlint', 'oxlint-tsgolint'],
+  entry              : ['.vitepress/lib/**/*.data.ts'],
+  ignoreDependencies : ['@homebridge/hap-nodejs', 'oxlint', 'oxlint-tsgolint'],
   vitest             : { config: ['.vitepress/vitest.config.ts'] }
 })

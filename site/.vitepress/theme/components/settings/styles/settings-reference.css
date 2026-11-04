@@ -1,0 +1,166 @@
+.settings-reference {
+  --columns : var(--key) minmax(0, 1fr) 4.75rem 5.5rem 12px;
+  --gap     : 14px;
+  --inset   : 12px;
+  --key     : 11rem;
+}
+
+.settings-reference-head, .settings-reference-row {
+  display               : grid;
+  align-items           : baseline;
+  column-gap            : var(--gap);
+  grid-template-columns : var(--columns);
+  padding-inline        : var(--inset);
+}
+
+.settings-reference-head {
+  padding-bottom : 7px;
+  border-bottom  : 1px solid color-mix(in srgb, var(--widget-ink) 45%, transparent);
+}
+
+.settings-reference-head.widget-caps { font-size: 0.625rem; }
+
+.settings-reference-list {
+  display       : grid;
+  align-content : start;
+  min-width     : 0;
+}
+
+.settings-reference-item {
+  border-bottom : 1px solid var(--widget-rule);
+  transition    : background-color var(--timing-fade) var(--timing-ease),
+                  box-shadow var(--timing-fade) var(--timing-ease);
+}
+
+.settings-reference-item.above { border-bottom-color: transparent; }
+
+.settings-reference-item.open {
+  border-bottom-color : transparent;
+  border-radius       : 8px;
+  background          : var(--widget-raised);
+  box-shadow          : 0 0 0 1px var(--widget-rule), 0 10px 24px -20px var(--widget-shadow);
+}
+
+.vp-doc .settings-reference-item h3 {
+  margin         : 0;
+  padding        : 0;
+  border         : 0;
+  font           : inherit;
+  letter-spacing : normal;
+}
+
+.settings-reference-row {
+  width         : 100%;
+  padding-block : 8px;
+  border-radius : 8px;
+  color         : var(--widget-ink);
+  font          : 400 0.9rem/1.4 var(--vp-font-family-base);
+  text-align    : left;
+  transition    : background-color var(--timing-hover) var(--timing-ease);
+}
+
+.settings-reference-item:not(.open) .settings-reference-row:hover {
+  background-color: color-mix(in srgb, var(--widget-ink) 4%, transparent);
+}
+
+.settings-reference-row[aria-disabled='true'] { cursor: default; }
+
+.settings-reference-row:focus-visible { outline-offset: -2px; }
+
+.settings-reference-row > * { min-width: 0; }
+
+.vp-doc .settings-reference-row code {
+  padding    : 0;
+  background : none;
+  color      : inherit;
+}
+
+.vp-doc .settings-reference-key { font: 600 0.84rem/1.4 var(--vp-font-family-mono); }
+
+.vp-doc :is(.settings-reference-type, .settings-reference-default) {
+  font: 400 0.8rem/1.4 var(--vp-font-family-mono);
+}
+
+.settings-reference-mark {
+  position   : relative;
+  align-self : center;
+  width      : 10px;
+  height     : 10px;
+}
+
+.settings-reference-mark::before, .settings-reference-mark::after {
+  position      : absolute;
+  height        : 1.5px;
+  border-radius : 1px;
+  background    : var(--widget-muted);
+  content       : '';
+  inset         : 4px 0 auto;
+}
+
+.settings-reference-mark::after {
+  rotate     : 90deg;
+  transition : rotate var(--timing-move) var(--timing-ease);
+}
+
+.settings-reference-item.open .settings-reference-mark::after { rotate: 180deg; }
+
+.settings-reference-panel {
+  display            : grid;
+  grid-template-rows : 0fr;
+  transition         : grid-template-rows var(--timing-settle) var(--timing-ease);
+}
+
+.settings-reference-item.open .settings-reference-panel { grid-template-rows: 1fr; }
+
+.settings-reference-clip {
+  overflow   : hidden;
+  min-height : 0;
+}
+
+.settings-reference-body {
+  display : grid;
+  gap     : 7px;
+  padding : 0 var(--inset) 14px calc(var(--inset) + var(--key) + var(--gap));
+}
+
+.settings-reference-narrow {
+  display   : none;
+  color     : var(--widget-muted);
+  font-size : 0.84rem;
+}
+
+.vp-doc .settings-reference-does {
+  margin      : 0;
+  font-size   : 0.9rem;
+  line-height : 1.55;
+}
+
+.vp-doc .settings-reference-line {
+  justify-self  : start;
+  max-width     : 100%;
+  padding       : 4px 10px;
+  border-radius : 6px;
+  background    : var(--widget-sunken);
+  color         : var(--widget-ink);
+  font          : 400 0.76rem/1.6 var(--vp-font-family-mono);
+  overflow-wrap : break-word;
+  white-space   : pre-wrap;
+}
+
+.settings-reference-key, .settings-reference-string { white-space: nowrap; }
+
+.settings-reference-punctuation { color: var(--widget-muted); }
+
+@container (width < 38rem) {
+  .settings-reference > * {
+    --columns : minmax(0, 1fr) 4.75rem 12px;
+    --gap     : 10px;
+    --inset   : 10px;
+  }
+
+  .settings-reference-wide { display: none; }
+
+  .settings-reference-narrow { display: block; }
+
+  .settings-reference-body { padding-left: var(--inset); }
+}

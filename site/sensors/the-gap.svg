@@ -1,0 +1,102 @@
+<svg aria-label="The reading from 11:15 to 13:00 against the gap from 70,000 to 74,000 lux, crossing 74,000 5 times, at 11:42, 11:50, 12:06, 12:21, and 12:53, and falling no lower than 70,495 lux after 11:42. Without a gap, the sensor is on from 11:42 to 11:50, from 12:06 to 12:21, and from 12:53 to 13:00, switching 5 times. With a gap, the sensor is on from 11:42 to 13:00, switching once" class="the-gap-drawing" role="img" viewBox="0 0 620 344" xmlns="http://www.w3.org/2000/svg"><rect class="the-gap-band" height="43.7" width="474" x="34" y="46.7"></rect><path class="the-gap-edge" d="M34 90.4H508"></path><path class="the-gap-edge" d="M34 46.7H508"></path><path class="the-gap-tie" d="M155.9 46.7V134M155.9 174V212M155.9 268V306"></path><path class="the-gap-tie" d="M192 46.7V134M192 174V212M192 268V306"></path><path class="the-gap-tie" d="M264.2 46.7V134M264.2 174V212M264.2 268V306"></path><path class="the-gap-tie" d="M331.9 46.7V134M331.9 174V212M331.9 268V306"></path><path class="the-gap-tie" d="M476.4 46.7V134M476.4 174V212M476.4 268V306"></path><path class="the-gap-halo" d="M34,114.6L38.5,111.3L43,108L47.5,104.7L52.1,101.4L56.6,98.2L61.1,94.9L65.6,91.7L70.1,88.4L74.6,85.2L79.1,82L83.7,78.8L88.2,75.7L92.7,72.5L97.2,69.3L101.7,66.2L106.2,64.5L110.7,62.7L115.3,61L119.8,59.3L124.3,57.6L128.8,56L133.3,54.3L137.8,52.7L142.3,51.1L146.9,49.5L151.4,48L155.9,46.4L160.4,44.9L164.9,43.4L169.4,41.9L173.9,42.9L178.5,44L183,45L187.5,46.1L192,47.2L196.5,48.4L201,49.5L205.5,50.7L210.1,51.9L214.6,53.2L219.1,54.4L223.6,55.7L228.1,57L232.6,58.4L237.1,59.7L241.7,57.5L246.2,55.2L250.7,53L255.2,50.8L259.7,48.6L264.2,46.4L268.7,44.3L273.3,42.1L277.8,40L282.3,37.9L286.8,35.9L291.3,33.8L295.8,31.8L300.3,29.8L304.9,27.8L309.4,31.4L313.9,35.1L318.4,38.8L322.9,42.5L327.4,46.3L331.9,50L336.5,53.8L341,57.6L345.5,61.5L350,65.3L354.5,69.2L359,73.1L363.5,77.1L368.1,81L372.6,85L377.1,83.1L381.6,81.3L386.1,79.4L390.6,77.6L395.1,75.8L399.7,74.1L404.2,72.3L408.7,70.6L413.2,68.9L417.7,67.2L422.2,65.6L426.7,63.9L431.3,62.3L435.8,60.7L440.3,59.1L444.8,57.3L449.3,55.5L453.8,53.7L458.3,52L462.9,50.2L467.4,48.5L471.9,46.8L476.4,45.1L480.9,43.5L485.4,41.9L489.9,40.3L494.5,38.7L499,37.1L503.5,35.6L508,34.1"></path><path class="the-gap-reading" d="M34,114.6L38.5,111.3L43,108L47.5,104.7L52.1,101.4L56.6,98.2L61.1,94.9L65.6,91.7L70.1,88.4L74.6,85.2L79.1,82L83.7,78.8L88.2,75.7L92.7,72.5L97.2,69.3L101.7,66.2L106.2,64.5L110.7,62.7L115.3,61L119.8,59.3L124.3,57.6L128.8,56L133.3,54.3L137.8,52.7L142.3,51.1L146.9,49.5L151.4,48L155.9,46.4L160.4,44.9L164.9,43.4L169.4,41.9L173.9,42.9L178.5,44L183,45L187.5,46.1L192,47.2L196.5,48.4L201,49.5L205.5,50.7L210.1,51.9L214.6,53.2L219.1,54.4L223.6,55.7L228.1,57L232.6,58.4L237.1,59.7L241.7,57.5L246.2,55.2L250.7,53L255.2,50.8L259.7,48.6L264.2,46.4L268.7,44.3L273.3,42.1L277.8,40L282.3,37.9L286.8,35.9L291.3,33.8L295.8,31.8L300.3,29.8L304.9,27.8L309.4,31.4L313.9,35.1L318.4,38.8L322.9,42.5L327.4,46.3L331.9,50L336.5,53.8L341,57.6L345.5,61.5L350,65.3L354.5,69.2L359,73.1L363.5,77.1L368.1,81L372.6,85L377.1,83.1L381.6,81.3L386.1,79.4L390.6,77.6L395.1,75.8L399.7,74.1L404.2,72.3L408.7,70.6L413.2,68.9L417.7,67.2L422.2,65.6L426.7,63.9L431.3,62.3L435.8,60.7L440.3,59.1L444.8,57.3L449.3,55.5L453.8,53.7L458.3,52L462.9,50.2L467.4,48.5L471.9,46.8L476.4,45.1L480.9,43.5L485.4,41.9L489.9,40.3L494.5,38.7L499,37.1L503.5,35.6L508,34.1"></path><text class="the-gap-figure" dominant-baseline="central" x="526" y="46.7">74,000</text><text class="the-gap-word" dominant-baseline="central" x="526" y="68.6">gap</text><text class="the-gap-figure" dominant-baseline="central" x="526" y="90.4">70,000</text><path class="the-gap-off" d="M34 206H508"></path><rect class="the-gap-on" height="26" width="36.1" x="155.9" y="180"></rect><rect class="the-gap-on" height="26" width="67.7" x="264.2" y="180"></rect><rect class="the-gap-on" height="26" width="31.6" x="476.4" y="180"></rect><circle class="the-gap-ring" cx="155.9" cy="193" r="4.5"></circle><circle class="the-gap-ring" cx="192" cy="193" r="4.5"></circle><circle class="the-gap-ring" cx="264.2" cy="193" r="4.5"></circle><circle class="the-gap-ring" cx="331.9" cy="193" r="4.5"></circle><circle class="the-gap-ring" cx="476.4" cy="193" r="4.5"></circle><rect class="the-gap-chip" height="18" rx="9" width="110.3" x="34" y="151"></rect><text class="the-gap-chip-name" dominant-baseline="central" x="43" y="160">Without a gap</text><text class="the-gap-word" dominant-baseline="central" text-anchor="end" x="26" y="184">on</text><text class="the-gap-word" dominant-baseline="central" text-anchor="end" x="26" y="202">off</text><text class="the-gap-count" dominant-baseline="central" font-size="36" x="526" y="191">5</text><text class="the-gap-word" dominant-baseline="central" x="526" y="228">switches</text><path class="the-gap-off" d="M34 300H508"></path><rect class="the-gap-on" height="26" width="352.1" x="155.9" y="274"></rect><circle class="the-gap-ring" cx="155.9" cy="287" r="4.5"></circle><rect class="the-gap-chip" height="18" rx="9" width="89" x="34" y="245"></rect><text class="the-gap-chip-name" dominant-baseline="central" x="43" y="254">With a gap</text><text class="the-gap-word" dominant-baseline="central" text-anchor="end" x="26" y="278">on</text><text class="the-gap-word" dominant-baseline="central" text-anchor="end" x="26" y="296">off</text><text class="the-gap-count" dominant-baseline="central" font-size="36" x="526" y="285">1</text><text class="the-gap-word" dominant-baseline="central" x="526" y="322">switch</text><text class="the-gap-word" dominant-baseline="central" x="34" y="336">11:15</text><text class="the-gap-word" dominant-baseline="central" text-anchor="middle" x="237.1" y="336">12:00</text><text class="the-gap-word" dominant-baseline="central" text-anchor="end" x="508" y="336">13:00</text><style>.the-gap-drawing {
+  background           : #f2f1ee;
+  font-family          : ui-monospace, monospace;
+  font-variant-numeric : tabular-nums;
+}
+
+.the-gap-band { fill: #bdd5e8; }
+
+.the-gap-edge {
+  stroke       : #1a1a1a;
+  stroke-width : 1.2;
+}
+
+.the-gap-tie {
+  stroke           : #5c5c58;
+  stroke-dasharray : 2 3;
+  stroke-width     : 1;
+}
+
+.the-gap-halo, .the-gap-reading {
+  fill            : none;
+  stroke-linecap  : round;
+  stroke-linejoin : round;
+}
+
+.the-gap-halo {
+  stroke       : #f2f1ee;
+  stroke-width : 6;
+}
+
+.the-gap-reading {
+  stroke       : #5069ad;
+  stroke-width : 2;
+}
+
+.the-gap-on {
+  fill         : #b2cfe6;
+  stroke       : #1a1a1a;
+  stroke-width : 1.2;
+}
+
+.the-gap-off {
+  stroke       : #5c5c58;
+  stroke-width : 1.2;
+}
+
+.the-gap-ring {
+  fill         : #f2f1ee;
+  stroke       : #1a1a1a;
+  stroke-width : 1.5;
+}
+
+.the-gap-chip {
+  fill         : #e7e6e2;
+  stroke       : #d5d4d0;
+  stroke-width : 1;
+}
+
+.the-gap-word, .the-gap-figure { font-size: 11px; }
+
+.the-gap-word { fill: #5c5c58; }
+
+.the-gap-figure { fill: #1a1a1a; }
+
+.the-gap-chip-name {
+  fill           : #1a1a1a;
+  font-size      : 10px;
+  font-weight    : 600;
+  letter-spacing : 0.08em;
+  text-transform : uppercase;
+}
+
+.the-gap-count {
+  fill        : #1a1a1a;
+  font-weight : 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .the-gap-drawing { background: #1a1a1a; }
+
+  .the-gap-band { fill: #475f73; }
+
+  .the-gap-edge, .the-gap-on, .the-gap-ring { stroke: #f2f1ee; }
+
+  .the-gap-tie, .the-gap-off { stroke: #a6a6a1; }
+
+  .the-gap-halo { stroke: #1a1a1a; }
+
+  .the-gap-on { fill: #506e87; }
+
+  .the-gap-ring { fill: #1a1a1a; }
+
+  .the-gap-chip {
+    fill   : #262624;
+    stroke : #3d3d3b;
+  }
+
+  .the-gap-word { fill: #a6a6a1; }
+
+  .the-gap-figure, .the-gap-chip-name, .the-gap-count { fill: #f2f1ee; }
+}
+</style></svg>

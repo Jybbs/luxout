@@ -1,0 +1,43 @@
+.widget {
+  --widget-accent   : var(--vp-c-brand-1);
+  --widget-display  : var(--luxout-font-display, var(--vp-font-family-base));
+  --widget-estimate : var(--luxout-accent-1, #5069ad);
+  --widget-ground   : var(--vp-c-bg);
+  --widget-ink      : var(--vp-c-text-1);
+  --widget-muted    : var(--vp-c-text-2);
+  --widget-raised   : var(--vp-c-bg-elv);
+  --widget-rule     : var(--vp-c-divider);
+  --widget-sensor   : var(--luxout-accent-5, #7db3e0);
+  --widget-shadow   : color-mix(in srgb, var(--vp-c-text-1) 30%, transparent);
+  --widget-sunken   : var(--vp-c-bg-soft);
+
+  container-type : inline-size;
+  margin-block   : 16px;
+  min-width      : 0;
+}
+
+.widget :is(button, [tabindex]):focus-visible { outline: 2px solid var(--widget-accent); }
+
+.widget [role='tabpanel']:focus-visible {
+  border-radius  : 6px;
+  outline-offset : 4px;
+}
+
+.widget-num {
+  font-family          : var(--vp-font-family-mono);
+  font-variant-numeric : tabular-nums;
+}
+
+.widget-caps {
+  color          : var(--widget-muted);
+  font           : 500 0.7rem/1.45 var(--vp-font-family-mono);
+  letter-spacing : 0.1em;
+  text-transform : uppercase;
+}
+
+.vp-doc .widget-note {
+  margin      : 0;
+  color       : var(--widget-muted);
+  font-size   : 0.86rem;
+  line-height : 1.5;
+}
