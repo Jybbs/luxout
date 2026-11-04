@@ -2,9 +2,10 @@ import type { Audit } from './audit.ts'
 import { YamlFile }   from './files.ts'
 import { Finding }    from './finding.ts'
 
-const FLOOR    = /(?<=\^)\d[\d.]*/g
-const MANIFEST = 'package.json'
-const SITE     = 'site/package.json'
+const FLOOR          = /(?<=\^)\d[\d.]*/g
+const MANIFEST       = 'package.json'
+const SITE           = 'site/package.json'
+export const numeric = new Intl.Collator('en', { numeric: true })
 
 export class PackageManifest {
   readonly #file: YamlFile
@@ -26,7 +27,14 @@ export class PackageManifest {
   }
 
   get floors(): string[] {
-    return String(this.#file.at('engines', 'node')?.value).match(FLOOR) ?? []
+    return this.#floors('node')
+  }
+
+  /**
+   * Reads the floor of the oldest Homebridge line `engines` admits.
+   */
+  get homebridge(): string | undefined {
+    return this.#floors('homebridge').toSorted(numeric.compare)[0]
   }
 
   get #coverage(): Finding[] {
@@ -43,5 +51,18 @@ export class PackageManifest {
 
   floor(release: string): string | undefined {
     return this.floors.find((floor) => floor.split('.')[0] === release.split('.')[0])
+  }
+
+  /**
+   * Reads the release `devDependencies` pins `name` to.
+   */
+  pin(name: string): string | undefined {
+    const pin = this.#file.at('devDependencies', name)?.value
+
+    return typeof pin === 'string' ? pin : undefined
+  }
+
+  #floors(engine: string): string[] {
+    return String(this.#file.at('engines', engine)?.value).match(FLOOR) ?? []
   }
 }

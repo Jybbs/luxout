@@ -3,12 +3,10 @@ import { expect } from 'vitest'
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
 
-const BAKE = [
-  ['bun', 'install', '--cwd', '.', '--lockfile-only'],
-  ['bun', 'install', '--cwd', 'site', '--lockfile-only'],
-  ['bun', 'install', '--cwd', 'tests/homebridge', '--lockfile-only']
-]
+const BAKE = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
+  .map((dir) => ['bun', 'install', '--cwd', dir, '--lockfile-only'])
 const LOCK = [['mise', 'lock'], ['mise', 'ls', '--json', '--local', '--missing']]
+const VET  = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }
 
 /**
  * Runs the task in `scratch` under stand-ins for `mise` and `bun`, where
@@ -24,16 +22,14 @@ async function relock(
 ): Promise<{ calls: string[][], status: number | null }> {
   const lacking = Object.fromEntries(missing.map((tool) => [tool, []]))
 
-  await plant(scratch, { '.mise/mise.lock': '[[tools.bun]]\nversion = "1.4.2"\n' })
+  await plant(scratch, { ...VET, '.mise/mise.lock': '[[tools.bun]]\nversion = "1.4.2"\n' })
 
   const { invoked, status } = await sync(scratch, 'lock:sync', {
     canned: {
-      'bun install --cwd . --lockfile-only'                : {},
-      'bun install --cwd site --lockfile-only'             : {},
-      'bun install --cwd tests/homebridge --lockfile-only' : {},
-      [['mise install', ...missing].join(' ')]             : {},
-      'mise lock'                                          : {},
-      'mise ls --json --local --missing'                   : { stdout: JSON.stringify(lacking) }
+      ...Object.fromEntries(BAKE.map((call) => [call.join(' '), {}])),
+      [['mise install', ...missing].join(' ')] : {},
+      'mise lock'                              : {},
+      'mise ls --json --local --missing'       : { stdout: JSON.stringify(lacking) }
     }
   })
 

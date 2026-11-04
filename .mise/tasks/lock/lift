@@ -201,7 +201,7 @@ nodes() {
 packages() {
   local audit dir follows leader manifest manifests={} named pin rows target version
 
-  for dir in $(bun_packages); do
+  for dir in $(lifted_packages); do
     manifest=$dir/package.json
     manifests=$(
       jq \

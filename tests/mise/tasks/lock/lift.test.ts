@@ -54,6 +54,7 @@ const FILES = {
   'tests/homebridge/package.json': JSON.stringify({
     dependencies: { 'homebridge-config-ui-x': '5.29.0' }
   }, null, 2) + '\n',
+  'tests/vet/pinned/package.json': JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2) + '\n',
 
   '.github/workflows/ci.yml': [
     'jobs:',
@@ -101,12 +102,14 @@ const LIVE: Record<string, unknown> = {
 const release = (days: number, version: string): Answer => json([{ created_at: ago(days), version }])
 const CANNED: Record<string, Answer> = {
   'bun audit --cwd site --json'                    : json({}),
+  'bun audit --cwd tests/homebridge --json'        : json({}),
+  'bun audit --cwd tests/vet/pinned --json'        : json({}),
   'bun info --json @types/node time'               : json({ '26.6.5': ago(8) }),
   'bun info --json unbash time'                    : json({ '6.0.0': ago(1) }),
   'bun info --json vitest time'                    : json({ '5.0.5': ago(2) }),
-  'bun audit --cwd tests/homebridge --json'        : json({}),
   'bun outdated --cwd site'                        : outdated(['vitest (dev)', '5.0.3', '5.0.5']),
   'bun outdated --cwd tests/homebridge'            : outdated(),
+  'bun outdated --cwd tests/vet/pinned'            : outdated(),
   'mise config get --file .mise/config.toml min_version': { stdout: '2026.9.18\n' },
   'mise config get --file .mise/config.toml tools.node': { stdout: '26.10.0\n' },
   'mise latest node@22'                            : { stdout: '22.23.3\n' },
@@ -571,6 +574,43 @@ test('moves only the pin each edit names where another pin in its manifest share
   expect({ pins: manifest.devDependencies, status }).toEqual({
     pins   : { '@vitest/coverage-v8': '5.0.5', vitest: '5.0.3' },
     status : 0
+  })
+}, 60_000)
+
+test('moves the pinned Homebridge with the devDependency, leaving the floor out of the walk', async ({
+  scratch
+}) => {
+  const floor    = JSON.stringify({ dependencies: { homebridge: '1.8.5' } }, null, 2) + '\n'
+  const manifest = JSON.stringify({ devDependencies: { homebridge: '2.4.0' } }, null, 2) + '\n'
+  const { invoked, status, stdout } = await lift(scratch, {
+    args   : ['--write'],
+    files  : { 'package.json': manifest, 'tests/vet/floor/package.json': floor },
+    live   : SETTLED,
+    canned : {
+      ...CURRENT,
+      'bun info --json homebridge time'     : json({ '2.5.0': ago(2) }),
+      'bun info --json homebridge@2.5.0'    : json({}),
+      'bun outdated --cwd .'                : outdated(['homebridge (dev)', '2.4.0', '2.5.0']),
+      'bun outdated --cwd tests/vet/pinned' : outdated(['homebridge', '2.4.0', '2.5.0'])
+    }
+  })
+  const files = await read(scratch)
+  const pins  = (file: string) => JSON.parse(files[file] ?? '{}')
+
+  expect({
+    floor  : await readFile(join(scratch, 'tests', 'vet', 'floor', 'package.json'), 'utf8'),
+    pinned : pins('tests/vet/pinned/package.json').dependencies,
+    root   : pins('package.json').devDependencies,
+    row    : row(stdout, 'homebridge').slice(0, 3),
+    status : status,
+    walked : invoked.some(({ args }) => args.includes('tests/vet/floor'))
+  }).toEqual({
+    floor  : floor,
+    pinned : { homebridge: '2.5.0' },
+    root   : { homebridge: '2.5.0' },
+    row    : ['homebridge', '2.4.0', '2.5.0'],
+    status : 0,
+    walked : false
   })
 }, 60_000)
 
