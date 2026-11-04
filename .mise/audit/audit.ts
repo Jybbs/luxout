@@ -11,6 +11,7 @@ import { ReleaseNotes }    from './release.ts'
 import { Rulesets }        from './rulesets.ts'
 import { TaskList }        from './tasks.ts'
 import { IssueTemplates }  from './templates.ts'
+import { VetManifests }    from './vet.ts'
 import { Workflows }       from './workflows.ts'
 
 type Output     = Pick<SpawnSyncReturns<string>, 'error' | 'stderr' | 'stdout'>
@@ -38,6 +39,7 @@ export class Audit {
       ...manifest.findings,
       ...PackageManifest.site(this)?.findings ?? [],
       ...MiseConfig.read(this).findings(manifest),
+      ...VetManifests.read(this).findings(manifest),
       ...tasks.findings(manifest),
       ...actions.findings,
       ...workflows.findings(actions, tasks),

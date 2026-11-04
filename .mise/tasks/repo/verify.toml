@@ -11,6 +11,7 @@ run         = [
     "plugin:pack",
     "plugin:scour",
     "plugin:typecheck",
+    "plugin:vet",
     "repo:audit",
     "repo:lint:workflows",
     "site:cover",

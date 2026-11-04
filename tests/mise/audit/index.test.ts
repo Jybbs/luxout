@@ -10,9 +10,11 @@ const entry = join(import.meta.dirname, '..', '..', '..', '.mise', 'audit', 'ind
 
 test('runs under Node’s type stripping and exits 1 on the annotations it prints', async ({ scratch }) => {
   await plant(scratch, {
-    '.mise/config.toml'       : '[tools]\nnode = "24.21.0"\n',
-    '.mise/tasks/plugin/bake' : '#!/usr/bin/env bash\nbun install\n',
-    'package.json'            : JSON.stringify({ engines: { node: '^24.21.0 || ^26.10.0' } })
+    '.mise/config.toml'             : '[tools]\nnode = "24.21.0"\n',
+    '.mise/tasks/plugin/bake'       : '#!/usr/bin/env bash\nbun install\n',
+    'package.json'                  : JSON.stringify({ engines: { node: '^24.21.0 || ^26.10.0' } }),
+    'tests/vet/floor/package.json'  : '{}',
+    'tests/vet/pinned/package.json' : '{}'
   })
   await chmod(join(scratch, '.mise', 'tasks', 'plugin', 'bake'), 0o755)
 

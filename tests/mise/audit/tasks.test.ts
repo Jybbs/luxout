@@ -53,6 +53,13 @@ describe('a bun install a task runs', () => {
     }] : [])
   })
 
+  test('reports an unfrozen install a function under .mise/lib runs', async ({ scratch }) => {
+    await plant(scratch, { '.mise/lib/lock.sh': 'seed() {\n  bun install\n}\n' })
+
+    expect(TaskList.read(new Audit(scratch, mise([]))).findings(manifest))
+      .toMatchObject([{ spot: { file: '.mise/lib/lock.sh', line: 2 }, title: 'Unfrozen install' }])
+  })
+
   test('reports an unfrozen install once where several tasks run its script', async ({ scratch }) => {
     await plant(scratch, {
       '.mise/tasks/plugin/lines.toml' : '["plugin:test:22"]\nfile = ".mise/tasks/plugin/test"\n',
