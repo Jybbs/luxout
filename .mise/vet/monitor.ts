@@ -34,7 +34,7 @@ const WRITES         = {
 /**
  * Reports each path a write reaches outside the storage directory, once a path,
  * passing a path in the system temp directory or `/tmp` unless it lies in
- * `area`, the test area Homebridge runs from.
+ * `area`, the directory Homebridge runs from.
  */
 export class Writes {
   readonly #area     : string

@@ -10,35 +10,36 @@ import { TUNING }      from '../../../common/vet.js'
 
 /**
  * A package the fixture checkout installs from a tarball of its own, exporting
- * `true` under each name `exports` lists.
+ * `true` under each name `exports` lists from a module of the form `type`
+ * names.
  */
 interface Vendored {
   exports : string[]
   name    : string
+  type    : 'commonjs' | 'module'
   version : string
 }
 
 /**
  * The source of a plugin that imports its one dependency and a value both
- * releases export, then writes into its storage through the path the storage
- * resolves to.
+ * releases export, then writes into its storage.
  */
-const CONTROL = "import { realpathSync, writeFileSync } from 'node:fs'\n"
+const CONTROL = "import { writeFileSync } from 'node:fs'\n"
               + "import { shared } from 'homebridge'\n"
               + "import { present } from 'present'\n"
-              + "writeFileSync(realpathSync(process.env.HB_STORAGE_PATH) + '/written', '')\n"
+              + "writeFileSync(process.env.HB_STORAGE_PATH + '/written', '')\n"
 const NEVER    = 'fails, since it never initializes the Luxout platform'
 const RELEASES = ['floor', 'pinned'] as const
 /**
  * The packages the fixture checkout installs, where `floor` stands in for
- * Homebridge 1.8.5 and `pinned` for 2.4.0, the one the checkout's
- * devDependencies install.
+ * Homebridge 1.8.5 as the CommonJS module that release is, and `pinned` for
+ * 2.4.0, the one the checkout's devDependencies install.
  */
 const VENDORED = {
-  absent  : { exports: ['absent'], name: 'absent', version: '1.0.0' },
-  floor   : { exports: ['shared'], name: 'homebridge', version: '1.8.5' },
-  pinned  : { exports: ['newer', 'shared'], name: 'homebridge', version: '2.4.0' },
-  present : { exports: ['present'], name: 'present', version: '1.0.0' }
+  absent  : { exports: ['absent'], name: 'absent', type: 'module', version: '1.0.0' },
+  floor   : { exports: ['shared'], name: 'homebridge', type: 'commonjs', version: '1.8.5' },
+  pinned  : { exports: ['newer', 'shared'], name: 'homebridge', type: 'module', version: '2.4.0' },
+  present : { exports: ['present'], name: 'present', type: 'module', version: '1.0.0' }
 } satisfies Record<string, Vendored>
 const fixtures = join(import.meta.dirname, '..', '..', 'fixtures')
 const root     = join(import.meta.dirname, '..', '..', '..', '..')
@@ -46,7 +47,9 @@ const root     = join(import.meta.dirname, '..', '..', '..', '..')
 /**
  * Builds a checkout under `scratch` whose packed plugin runs `source`, beside a
  * seed for each release and a `node_modules` holding every package its manifest
- * declares, the devDependencies `absent` and the 2.4.0 stand-in among them.
+ * declares, the devDependencies `absent` and the 2.4.0 stand-in among them. The
+ * manifest's failing `postinstall` fails any install that runs without the
+ * `ignoreScripts` of `bunfig.toml`.
  */
 async function checkout(scratch: string, source: string): Promise<string> {
   const dir      = join(scratch, 'checkout')
@@ -59,6 +62,7 @@ async function checkout(scratch: string, source: string): Promise<string> {
     devDependencies : { absent: tarball('absent'), homebridge: tarball('pinned') },
     main            : 'index.js',
     name            : 'homebridge-luxout',
+    scripts         : { postinstall: 'exit 1' },
     type            : 'module',
     version         : '1.2.3'
   })
@@ -67,13 +71,16 @@ async function checkout(scratch: string, source: string): Promise<string> {
     [`tests/vet/${release}/package.json`, JSON.stringify({ dependencies: { homebridge: tarball(release) } })]
   ])
 
-  for (const [key, { exports, name, version }] of Object.entries(VENDORED)) {
-    const bin = name === 'homebridge' ? { bin: { homebridge: 'bin.js' } } : {}
+  for (const [key, { exports, name, type, version }] of Object.entries(VENDORED)) {
+    const bin  = name === 'homebridge' ? { bin: { homebridge: 'bin.mjs' } } : {}
+    const line = type === 'module'
+               ? (value: string): string => `export const ${value} = true\n`
+               : (value: string): string => `exports.${value} = true\n`
 
     await plant(join(scratch, 'vendor', key, 'package'), {
-      'bin.js'       : standIn,
-      'index.js'     : exports.map((value) => `export const ${value} = true\n`).join(''),
-      'package.json' : JSON.stringify({ ...bin, main: 'index.js', name, type: 'module', version })
+      'bin.mjs'      : standIn,
+      'index.js'     : exports.map(line).join(''),
+      'package.json' : JSON.stringify({ ...bin, main: 'index.js', name, type, version })
     })
     pack(join(scratch, 'vendor', key), tarball(key))
   }
@@ -104,8 +111,8 @@ async function checkout(scratch: string, source: string): Promise<string> {
 }
 
 /**
- * Packs the `package` directory under `dir` into the tarball `file`, laid out as
- * `npm pack` lays one out.
+ * Packs the `package` directory under `dir` into the tarball `file`, laid out
+ * as `npm pack` lays one out.
  */
 function pack(dir: string, file: string): void {
   execFileSync('tar', ['--create', '--directory', dir, '--file', file, '--gzip', 'package'])
@@ -113,24 +120,26 @@ function pack(dir: string, file: string): void {
 
 /**
  * Runs `plugin:vet` from `cwd` on the short waits a stand-in starts within,
- * under a TMPDIR reached through a symlink, and reads back what the task left in
- * the directory the symlink names, beside the verdict it printed for each
- * release's run with the platform block alone.
+ * under a TMPDIR reached through a symlink and named to open on the checkout's
+ * path, and reads back what the task left in the directory the symlink names
+ * and in the storage of the floor's run with the platform block alone, beside
+ * the verdict it printed for each release's run with that block.
  */
 async function vet(scratch: string, cwd: string) {
-  const temp = join(scratch, 'temp')
+  const temp = join(scratch, 'checkout-temp')
 
   await mkdir(temp)
   await symlink(temp, join(scratch, 'tmp'))
 
   const run = await sync(scratch, 'plugin:vet', {
     cwd : cwd,
-    env : { BUN_INSTALL_CACHE_DIR: join(scratch, 'cache'), TUNING: JSON.stringify(TUNING) }
+    env : { BUN_INSTALL_CACHE_DIR: join(scratch, 'cache'), PWD: cwd, TUNING: JSON.stringify(TUNING) }
   })
 
   return {
     ...run,
     left     : await readdir(temp),
+    stored   : await readdir(join(cwd, '.cache', 'vet', 'floor', 'platform-only')).catch(() => []),
     temp     : temp,
     verdicts : run.stdout.match(/^Homebridge [\d.]+, platform only: .+/gm)
   }
@@ -139,11 +148,12 @@ async function vet(scratch: string, cwd: string) {
 test('passes a plugin importing its dependencies and what both releases export, removing the area', async ({
   scratch
 }) => {
-  const { left, status, verdicts } = await vet(scratch, await checkout(scratch, CONTROL))
+  const { left, status, stored, verdicts } = await vet(scratch, await checkout(scratch, CONTROL))
 
-  expect({ left, status, verdicts }).toEqual({
+  expect({ left, status, stored, verdicts }).toEqual({
     left     : [],
     status   : 0,
+    stored   : expect.arrayContaining(['written']),
     verdicts : ['Homebridge 1.8.5, platform only: passes', 'Homebridge 2.4.0, platform only: passes']
   })
 }, 120_000)
@@ -158,27 +168,34 @@ test.for([
   },
   {
     floor   : NEVER,
-    message : "does not provide an export named 'newer'",
+    message : "Named export 'newer' not found",
     name    : 'a value Homebridge 1.8.5 does not export',
     pinned  : 'passes',
     source  : "import { newer } from 'homebridge'\n"
   }
 ])(
-  'fails a plugin importing $name under each release lacking it',
+  'fails a plugin importing $name under each release lacking it, keeping the storage',
   { timeout: 120_000 },
   async ({ floor, message, pinned, source }, { scratch }) => {
-    const { status, stdout, verdicts } = await vet(scratch, await checkout(scratch, source))
+    const { status, stdout, stored, verdicts } = await vet(scratch, await checkout(scratch, source))
 
-    expect({ status, stdout, verdicts }).toEqual({
+    expect({ status, stdout, stored, verdicts }).toEqual({
       status   : 1,
       stdout   : expect.stringContaining(message),
+      stored   : expect.arrayContaining(['config.json']),
       verdicts : [`Homebridge 1.8.5, platform only: ${floor}`, `Homebridge 2.4.0, platform only: ${pinned}`]
     })
   }
 )
 
-test('fails before installing anything where the test area lies inside the checkout', async ({ scratch }) => {
-  const { left, status, stderr, stdout, temp } = await vet(scratch, scratch)
+test('fails before installing where the test area lies inside a checkout reached through a symlink', async ({
+  scratch
+}) => {
+  const link = join(scratch, 'link')
+
+  await symlink(scratch, link)
+
+  const { left, status, stderr, stdout, temp } = await vet(scratch, link)
 
   expect({ left, status, stderr: stderr.replace(/\/tmp\.\w+ /, '/tmp.X '), stdout }).toEqual({
     left   : [],

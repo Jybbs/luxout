@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "vet"
 #MISE depends     = ["plugin:pack"]
-#MISE description = "Install each Homebridge release a manifest under `tests/vet` pins into a test area under the system temp directory, unpack the tarball `plugin:pack` writes beside each release's `homebridge`, install the tarball's `dependencies` there from `bun.lock`, and replay the runtime scenarios of Homebridge's verification checks on it under each release, failing where one does not hold or where the test area lies inside the checkout"
+#MISE description = "Install each Homebridge release a manifest under `tests/vet` pins into a test area under the system temp directory, unpack the tarball `plugin:pack` writes beside each release's `homebridge`, install the tarball's `dependencies` there from `bun.lock`, and replay the runtime scenarios of Homebridge's verification checks on it under each release with a storage directory per run under `.cache/vet`, failing where one does not hold or where the test area lies inside the checkout"
 
 source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
 

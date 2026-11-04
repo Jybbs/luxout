@@ -1,5 +1,5 @@
-import { readdir } from 'node:fs/promises'
-import { join }    from 'node:path'
+import { readdir }        from 'node:fs/promises'
+import { join, relative } from 'node:path'
 
 import getPort        from 'get-port'
 import { expect, vi } from 'vitest'
@@ -39,7 +39,7 @@ test('prints a passing line for each check under each release and exits 0', asyn
     new Homebridge(join(scratch, 'floor'), '1.8.5'),
     new Homebridge(join(scratch, 'pinned'), '2.4.0')
   ]
-  const status   = await new Vet(checks, releases, TUNING, write).run()
+  const status   = await new Vet(checks, releases, scratch, TUNING, write).run()
 
   expect({ lines: write.mock.calls.flat(), status }).toEqual({
     lines  : [
@@ -57,7 +57,7 @@ test('prints each failure and the output of a failing check and exits 1', async 
   const failing  = check('full config', ['logs TypeError', 'never initializes the Luxout platform'])
   const releases = [new Homebridge(join(scratch, 'pinned'), '2.4.0')]
 
-  expect(await new Vet([check('no config'), failing], releases, TUNING, write).run()).toBe(1)
+  expect(await new Vet([check('no config'), failing], releases, scratch, TUNING, write).run()).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     'Homebridge 2.4.0, no config: passes',
     'Homebridge 2.4.0, full config: fails, since it logs TypeError '
@@ -65,27 +65,35 @@ test('prints each failure and the output of a failing check and exits 1', async 
   ])
 })
 
-test('hands each run an empty storage directory of its own and a port no other run holds', async ({
+test('hands each run an empty storage directory under .cache/vet and a port no other run holds', async ({
   scratch
 }) => {
   const checks   = [check('no config'), check('full config')]
-  const releases = [new Homebridge(join(scratch, 'pinned'), '2.4.0')]
+  const releases = [
+    new Homebridge(join(scratch, 'floor'), '1.8.5'),
+    new Homebridge(join(scratch, 'pinned'), '2.4.0')
+  ]
 
-  await plant(scratch, { 'pinned/storage/no-config/stale.json': '' })
-  await new Vet(checks, releases, TUNING, vi.fn<(line: string) => void>()).run()
+  await plant(scratch, { '.cache/vet/pinned/no-config/stale.json': '' })
+  await new Vet(checks, releases, scratch, TUNING, vi.fn<(line: string) => void>()).run()
 
   const stages = checks.flatMap(({ stages }) => stages)
 
   expect({
     aborted  : stages.map(({ signal }) => signal.aborted),
     ports    : new Set(stages.map(({ port }) => port)).size,
-    stale    : await readdir(join(scratch, 'pinned', 'storage', 'no-config')),
-    storages : stages.map(({ storage }) => storage)
+    stale    : await readdir(join(scratch, '.cache', 'vet', 'pinned', 'no-config')),
+    storages : stages.map(({ storage }) => relative(scratch, storage)).toSorted()
   }).toEqual({
-    aborted  : [true, true],
-    ports    : 2,
+    aborted  : [true, true, true, true],
+    ports    : 4,
     stale    : [],
-    storages : ['no-config', 'full-config'].map((name) => join(scratch, 'pinned', 'storage', name))
+    storages : [
+      '.cache/vet/floor/full-config',
+      '.cache/vet/floor/no-config',
+      '.cache/vet/pinned/full-config',
+      '.cache/vet/pinned/no-config'
+    ]
   })
 })
 
@@ -95,7 +103,7 @@ test('holds each run to the checks’ 30-second window and 12-second grace by de
   const stub  = check('no config')
   const write = vi.fn<(line: string) => void>()
 
-  await new Vet([stub], [new Homebridge(scratch, '2.4.0')], undefined, write).run()
+  await new Vet([stub], [new Homebridge(scratch, '2.4.0')], scratch, undefined, write).run()
 
   expect(stub.run.mock.calls[0]?.[2]).toEqual({ grace: 12_000, observe: 30_000, settle: 1_500 })
 })
@@ -105,7 +113,7 @@ test('draws each port clear of Homebridge’s sample bridge port and the Homebri
 }) => {
   const write = vi.fn<(line: string) => void>()
 
-  await new Vet([check('no config')], [new Homebridge(scratch, '2.4.0')], TUNING, write).run()
+  await new Vet([check('no config')], [new Homebridge(scratch, '2.4.0')], scratch, TUNING, write).run()
 
   expect(getPort).toHaveBeenCalledWith({ exclude: [51826, 8581], reserve: true })
 })

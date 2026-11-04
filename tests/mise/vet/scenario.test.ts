@@ -117,7 +117,7 @@ test.concurrent('fails a second start that meets EADDRINUSE once it listens', as
     .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
 })
 
-test.concurrent('stops at a first start that never listens', async ({ expect, scratch }) => {
+test('stops at a first start that never listens', async ({ scratch }) => {
   const homebridge   = await install(join(scratch, 'release'))
   const start        = vi.spyOn(homebridge, 'start')
   const { failures } = await new Shutdown(BLOCK).run(homebridge, await stage(scratch, { mute: true }), {

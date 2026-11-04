@@ -1,5 +1,5 @@
-import { mkdir, readFile, rm } from 'node:fs/promises'
-import { join, resolve }       from 'node:path'
+import { mkdir, readFile, rm }     from 'node:fs/promises'
+import { basename, join, resolve } from 'node:path'
 
 import getPort from 'get-port'
 
@@ -19,6 +19,7 @@ const conjunction = new Intl.ListFormat('en', { type: 'conjunction' })
 export class Vet {
   readonly #checks   : scenario.Check[]
   readonly #releases : Homebridge[]
+  readonly #root     : string
   readonly #tuning   : scenario.Tuning
   readonly #write    : Write
 
@@ -31,25 +32,28 @@ export class Vet {
     const releases = await Promise.all(args.map((arg) => Homebridge.read(resolve(root, arg))))
     const schema   = await readFile(join(root, 'config.schema.json'), 'utf8')
 
-    return new Vet(scenario.checks(JSON.parse(schema)), releases, tuning, write)
+    return new Vet(scenario.checks(JSON.parse(schema)), releases, root, tuning, write)
   }
 
   constructor(
     checks   : scenario.Check[],
     releases : Homebridge[],
+    root     : string,
     tuning   : scenario.Tuning = TUNING,
     write    : Write           = console.log
   ) {
     this.#checks   = checks
     this.#releases = releases
+    this.#root     = root
     this.#tuning   = tuning
     this.#write    = write
   }
 
   /**
-   * Runs every check under every release at once, each in a storage directory
-   * of its own under its release's directory and on a port no other run holds,
-   * then prints a line for each and the output of each that fails.
+   * Runs every check under every release at once, each on a port no other run
+   * holds and in a storage directory of its own under `.cache/vet` in the root,
+   * clearing what an earlier replay left there, then prints a line for each and
+   * the output of each that fails.
    *
    * Returns:
    *   1 where any check fails, and 0 otherwise.
@@ -76,7 +80,8 @@ export class Vet {
     signal     : AbortSignal
   ): Promise<{ failed: boolean, line: string }> {
     const label   = `Homebridge ${homebridge.version}, ${check.name}`
-    const storage = join(homebridge.dir, 'storage', check.name.replaceAll(' ', '-'))
+    const release = basename(homebridge.dir)
+    const storage = join(this.#root, '.cache', 'vet', release, check.name.replaceAll(' ', '-'))
     const port    = await getPort({ exclude: HELD, reserve: true })
 
     await rm(storage, { force: true, recursive: true })

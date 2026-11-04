@@ -12,7 +12,8 @@ const vet = join(import.meta.dirname, '..', '..', '..', '.mise', 'vet')
 
 /**
  * Builds a stand-in for `fs` whose every write call returns its name, and
- * watches it for writes outside `storage`, where `area` names the test area.
+ * watches it for writes outside `storage`, where `area` names the directory
+ * Homebridge runs from.
  */
 function watched(storage = '/storage', area = '/area') {
   const report  = vi.fn<(line: string) => void>()
@@ -93,18 +94,21 @@ it.each([
   expect(report).not.toHaveBeenCalled()
 })
 
-it('reports a write into the test area lying in the temp directory, passing its storage', () => {
-  const area           = join(tmpdir(), 'area')
-  const { fs, report } = watched(join(area, 'storage'), area)
+it(
+  'reports a write into the directory Homebridge runs from lying in the temp directory, passing its storage',
+  () => {
+    const area           = join(tmpdir(), 'area')
+    const { fs, report } = watched(join(area, 'storage'), area)
 
-  fs.writeFileSync(join(area, 'node_modules', 'homebridge-luxout', 'cache.json'), '')
-  fs.writeFileSync(join(area, 'storage', 'luxout-forecast.json'), '')
-  fs.writeFileSync(join(tmpdir(), 'scratch.json'), '')
+    fs.writeFileSync(join(area, 'node_modules', 'homebridge-luxout', 'cache.json'), '')
+    fs.writeFileSync(join(area, 'storage', 'luxout-forecast.json'), '')
+    fs.writeFileSync(join(tmpdir(), 'scratch.json'), '')
 
-  expect(report.mock.calls.flat()).toEqual([
-    `${monitor.OUTSIDE} ${join(area, 'node_modules', 'homebridge-luxout', 'cache.json')}`
-  ])
-})
+    expect(report.mock.calls.flat()).toEqual([
+      `${monitor.OUTSIDE} ${join(area, 'node_modules', 'homebridge-luxout', 'cache.json')}`
+    ])
+  }
+)
 
 it('reports a path once however often it is written', () => {
   const { fs, report } = watched()
@@ -207,7 +211,11 @@ test('reports a write the write preload sees inside the directory Homebridge run
   const { stderr } = spawnSync(
     process.execPath,
     ['--import', pathToFileURL(join(vet, 'writes.ts')).href, '--input-type=module', '--eval', script],
-    { cwd: scratch, encoding: 'utf8', env: { ...process.env, HB_STORAGE_PATH: join(scratch, 'storage') } }
+    {
+      cwd      : scratch,
+      encoding : 'utf8',
+      env      : { ...process.env, HB_STORAGE_PATH: join(scratch, 'storage'), TMPDIR: scratch }
+    }
   )
 
   expect(stderr).toBe(`${monitor.OUTSIDE} ${join(scratch, 'written.json')}\n`)
