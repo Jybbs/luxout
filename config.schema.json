@@ -7,7 +7,11 @@
   "schema": {
     "type": "object",
     "properties": {
-      "name": { "title": "Name", "type": "string" },
+      "name": {
+        "title": "Name",
+        "description": "The name Homebridge sets in brackets before each line the plugin logs",
+        "type": "string"
+      },
       "latitude": {
         "title": "Latitude",
         "description": "Degrees north of the equator, negative to the south",

@@ -8,6 +8,7 @@ import manifest            from '../../../package.json' with { type: 'json' }
 import { buildNavigation } from '../lib/config/navigation.ts'
 import { setFacts }        from '../lib/config/page-data.ts'
 import { SECTIONS }        from '../lib/config/sections.ts'
+import { luxRange }        from '../lib/daylight/homekit.ts'
 
 const site   = join(import.meta.dirname, '..', '..')
 const config = await resolveConfig(site, 'build', 'production')
@@ -21,7 +22,7 @@ it('names the site and describes it as package.json does', () => {
 })
 
 it('feeds the navigation bar and the sidebar from the one registry of sections', () => {
-  expect(config.site.themeConfig).toEqual(buildNavigation(SECTIONS))
+  expect(config.site.themeConfig).toEqual(buildNavigation(site, SECTIONS))
 })
 
 it('sets the facts package.json declares on every page', async () => {
@@ -34,7 +35,8 @@ it('sets the facts package.json declares on every page', async () => {
     title        : 'Luxout'
   }
 
-  expect(await config.transformPageData?.(page, { siteConfig: config })).toEqual(setFacts(manifest)(page))
+  expect(await config.transformPageData?.(page, { siteConfig: config }))
+    .toEqual(setFacts(manifest, luxRange, site, SECTIONS)(page))
 })
 
 it('renders the value transformPageData sets wherever a page interpolates a fact', () => {

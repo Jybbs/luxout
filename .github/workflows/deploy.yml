@@ -89,8 +89,10 @@ on:
       - .github/actions/provision/**
       - .github/workflows/deploy.yml
       - .mise/tasks/site/**
+      - config.schema.json
       - package.json
       - site/**
+      - src/**
 
   workflow_dispatch:
 
