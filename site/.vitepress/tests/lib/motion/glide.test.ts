@@ -21,6 +21,7 @@ it('eases to the goal through values between the two, and reports once it settle
   const write   = vi.fn<(value: number) => void>()
   const settled = vi.fn<() => void>()
   const glide   = new Glide(0, undefined, settled, write)
+  const start   = performance.now()
 
   glide.ease(10)
   vi.advanceTimersToNextFrame()
@@ -28,6 +29,7 @@ it('eases to the goal through values between the two, and reports once it settle
 
   const [between] = write.mock.lastCall!
 
+  expect(between).toBeLessThan(10 * (performance.now() - start) / DURATIONS.move)
   expect(between).toBeGreaterThan(0)
   expect(between).toBeLessThan(10)
   expect(settled).not.toHaveBeenCalled()

@@ -91,3 +91,15 @@ export function settingsTable(rows: readonly SettingRow[]): string {
     ])
   )
 }
+
+/**
+ * Writes the levels of a threshold entry as the Markdown list a page keeps for
+ * GitHub.
+ */
+export function thresholdLevels(rows: readonly SettingRow[]): string {
+  const prefix = 'thresholds[].'
+
+  return rows.filter(({ key }) => key.startsWith(prefix))
+    .map(({ does, key, title }) => `- \`${key.slice(prefix.length)}\`, the ${title} field. ${does}.`)
+    .join('\n')
+}

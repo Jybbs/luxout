@@ -16,6 +16,7 @@ import * as tables                   from './common/tables.ts'
 
 const framed            = PLACEMENTS.filter(({ frame }) => frame)
 const { gap, luxScale } = data
+const rows              = await settingRows()
 const site              = join(import.meta.dirname, '..', '..')
 const md                = await createMarkdownRenderer(site, config.markdown)
 const pageBlocks: Readonly<Record<string, Readonly<Record<string, string>>>> = {
@@ -29,8 +30,10 @@ const pageBlocks: Readonly<Record<string, Readonly<Record<string, string>>>> = {
 
   'settings/index.md': {
     'settings-block' : `\`\`\`json\n${JSON.stringify(await exampleBlock(), null, 2)}\n\`\`\``,
-    'settings-table' : tables.settingsTable(await settingRows())
-  }
+    'settings-table' : tables.settingsTable(rows)
+  },
+
+  'settings/thresholds.md': { 'threshold-levels': tables.thresholdLevels(rows) }
 }
 
 it.each(Object.entries(pageBlocks))('carries in %s what the declarations yield', async (page, blocks) => {

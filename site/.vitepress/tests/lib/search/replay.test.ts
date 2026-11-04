@@ -75,7 +75,7 @@ it('writes the block the settings page writes for the match', () => {
   })
 })
 
-it('matches the same place from the fields the note says the server script keeps', async () => {
+it('matches the same place from the fields the note says the server script reads', async () => {
   await expect(matches(kept)).resolves.toEqual([match])
 })
 
@@ -85,10 +85,10 @@ it.each(Object.keys(kept))('reads %s from the result', async (key) => {
   await expect(matches(without)).resolves.not.toEqual([match])
 })
 
-it('says how many of the recorded fields the server script keeps', () => {
+it('says how many of the recorded fields the server script reads', () => {
   const fields = Object.keys(recording.results[0]!).length
 
   expect(shown.stages[3]!.note).toBe(
-    `It holds 5 of the ${fields} fields in the recorded result, and the script reads none of the others.`
+    `It reads 5 of the ${fields} fields in the recorded result and rounds the coordinates to two decimals.`
   )
 })

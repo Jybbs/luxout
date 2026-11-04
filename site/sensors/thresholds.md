@@ -4,7 +4,7 @@ Each entry under [the threshold levels](../settings/thresholds.md) adds one acce
 
 ## The Gap
 
-A sensor switches on at one level and off only once the reading passes the other, and the span between the two is the gap, inside which the sensor holds the state it has. Each switch runs the automations built on that sensor, so without a gap, a reading wavering around one level runs them over and over.
+A sensor switches on at one level and off only once the reading passes the other, and the span between the two is the gap, inside which the sensor holds the state it has. Each switch can run an automation built on the state the sensor switched to, so without a gap, a reading wavering around one level runs it over and over.
 
 <!-- gap-direction -->
 
@@ -34,4 +34,4 @@ A restart alone switches nothing, since a sensor [Homebridge](https://homebridge
 Each automation below names a sensor and its levels, and [the Home app's own guide](https://support.apple.com/guide/iphone/use-automations-iph6d50ec543/ios) covers the steps. Automations run through a [home hub](https://support.apple.com/en-us/102313).
 
 - **A sensor named *Dark Outside*** with an on level of 2.99 and an off level of 662 turns on as the reading falls to the brightness of the end of civil twilight and off once it rises past the brightness of sunset the next morning, so an automation on it sets the lights to a quarter when it turns on.
-- **A sensor named *Glare*** with an on level of 74,000 and an off level of 70,000 turns on as the reading rises, so an automation on it can turn the television on while the room would otherwise sit in glare, and the gap keeps a passing cloud from turning it off.
+- **A sensor named *Glare*** with an on level of 74,000 and an off level of 70,000 turns on as the reading rises, so an automation on it can turn the television on while the room would otherwise sit in glare, and the sensor stays on while a cloud holds the reading at 70,000 or above.

@@ -24,7 +24,7 @@ Each decade is one tenfold step of lux, and on October 4, the reading spends hou
 | 10 to 100 lux | Public areas with dark surroundings at 20 to 50, Family living room lights at 50, Office building hallway lighting at 80 | The sun from −4.8° to −2.6° | 24 minutes, 06:25 to 06:37 and 18:31 to 18:43 |
 | 100 to 1,000 lux | Very dark overcast day at 100, Railway station platforms at 150, Office lighting at 320 to 500, Sunrise or sunset on a clear day at 400 | The sun from −2.6° to 0.0°, sunset at 662 | 31 minutes, 06:37 to 06:53 and 18:16 to 18:31 |
 | 1,000 to 10,000 lux | Overcast day at 1,000 | The sun from 0.0° to 9.3° | 108 minutes, 06:53 to 07:50 and 17:25 to 18:16 |
-| 10,000 to 100,000 lux | Full daylight, not direct sun at 10,000 to 25,000, Direct sunlight at 32,000 to 100,000 | The sun from 9.3° to 57.8°, sun at 10° at 11,231, sun at 30° at 51,321, noon on the sample day at 76,677, sun at 60° past the ceiling at 102,957 | 575 minutes, 07:50 to 17:25 |
+| 10,000 to 100,000 lux | Full daylight, not direct sun at 10,000 to 25,000, Direct sunlight at 32,000 to 100,000 | The sun from 9.3° to 57.8°, sun at 10° at 11,231, sun at 30° at 51,321, solar noon on the sample day at 76,677, sun at 60° past the ceiling at 102,957 | 575 minutes, 07:50 to 17:25 |
 
 <!-- /lux-decades -->
 
@@ -32,6 +32,6 @@ The everyday light comes from the Illuminance table of [Wikipedia's Lux article]
 
 ## Using the Reading
 
-The Home app can trigger an automation when a light sensor's reading passes a level, as [About iOS 15 Updates](https://support.apple.com/en-us/108051) describes. That automation runs again at each crossing, so a reading wavering around its level as clouds pass runs it again and again. [Threshold Sensors](./thresholds.md) exist to hold through those crossings.
+The Home app can trigger an automation when a light sensor's reading passes a level, as [About iOS 15 Updates](https://support.apple.com/en-us/108051) describes. That automation can run again each time the reading moves back past the level, so a reading wavering around its level as clouds pass can run it again and again. [Threshold Sensors](./thresholds.md) exist to hold through those crossings.
 
 [^janiczek1987]: Janiczek and DeYoung. 1987. "Computer Programs for Sun and Moon Illuminance With Contingent Tables and Diagrams." U.S. Naval Observatory, Circular 171. <https://archive.org/details/DTIC_ADA182110>

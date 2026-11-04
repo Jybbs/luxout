@@ -140,7 +140,7 @@ test('stops the replay when a reader chooses a stage', async ({ mount }) => {
   fireEvent.click(host.querySelector('.location-search-play')!)
   await advance(100)
   await choose(host, 3)
-  await advance(4000)
+  await advance(8000)
 
   expect(shownStage(host)).toBe(3)
 })
@@ -193,12 +193,16 @@ test.for(stages)('draws the $name stage of the page from its fields', async ({ i
 
   expect({
     activity : [...host.querySelector('.location-search-page')!.classList].slice(1),
+    caret    : host.querySelector('.location-search-input .location-search-caret') !== null,
     chosen   : host.querySelector('.location-search-match.chosen') !== null,
+    figures  : host.querySelector('.location-search-stored .layer.shown .location-search-figure') !== null,
     kept     : host.querySelector('.location-search-kept .layer.shown')!.textContent !== '',
     listed   : host.querySelector('.location-search-list .layer.shown .location-search-match') !== null
   }).toEqual({
     activity : page.activity ? [page.activity] : [],
+    caret    : page.activity === 'typing',
     chosen   : page.match === 'chosen',
+    figures  : page.match === 'chosen',
     kept     : page.match === 'chosen',
     listed   : page.match !== 'none'
   })

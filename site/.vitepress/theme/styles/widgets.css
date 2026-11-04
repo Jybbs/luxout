@@ -9,7 +9,7 @@
   --widget-rule     : var(--vp-c-divider);
   --widget-sensor   : var(--luxout-accent-5, #7db3e0);
   --widget-shadow   : color-mix(in srgb, var(--vp-c-text-1) 30%, transparent);
-  --widget-sunken   : var(--vp-c-bg-soft);
+  --widget-sunken   : var(--luxout-sunken, var(--vp-c-bg-soft));
 
   container-type : inline-size;
   margin-block   : 16px;

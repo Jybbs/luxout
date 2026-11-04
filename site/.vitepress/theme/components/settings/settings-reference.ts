@@ -1,5 +1,5 @@
 import { useElementSize } from '@vueuse/core'
-import { sum }            from 'd3-array'
+import { max, sum }       from 'd3-array'
 import { type VNode, defineComponent, h, onMounted, shallowRef, useId, watch } from 'vue'
 
 import type { SettingRow } from '../../../lib/settings/rows.ts'
@@ -23,9 +23,10 @@ class Accordion {
     if (!list) return
 
     const items  = list.querySelectorAll('.settings-reference-item')
-    const height = (item: Element, part: string) => item.querySelector(part)!.getBoundingClientRect().height
-    const heads  = sum(items, (item) => height(item, 'h3'))
-    const most   = Math.max(...Array.from(items, (item) => height(item, '.settings-reference-body')))
+    const height = (element: Element) => element.getBoundingClientRect().height
+    const part   = (item: Element, name: string) => height(item.querySelector(`.settings-reference-${name}`)!)
+    const heads  = sum(items, (item) => height(item) - part(item, 'panel'))
+    const most   = max(items, (item) => part(item, 'body'))!
 
     this.tallest.value = Math.ceil(heads + most)
   }

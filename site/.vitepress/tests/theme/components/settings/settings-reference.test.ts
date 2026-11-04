@@ -13,6 +13,24 @@ function heads(host: HTMLElement): HTMLElement[] {
   return getAllByRole(host, 'button')
 }
 
+/**
+ * Lays out every row as the sheet does, with a heading above a 1px border and
+ * only the open row's panel showing its body.
+ */
+function laidOut(heading: number, body: number): void {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    const panel = this.closest('.settings-reference-item.open') ? body : 0
+    const parts = [
+      ['h3', heading],
+      ['.settings-reference-body', body],
+      ['.settings-reference-panel', panel],
+      ['.settings-reference-item', heading + 1 + panel]
+    ] as const
+
+    return { height: parts.find(([selector]) => this.matches(selector))![1] } as DOMRect
+  })
+}
+
 function observed(): { disconnect: Mock<() => void>, report: (width: number) => void } {
   const disconnect                          = vi.fn<() => void>()
   const callbacks: ResizeObserverCallback[] = []
@@ -105,6 +123,13 @@ test('stops observing the list once unmounted', async ({ mount, unmount }) => {
   expect(disconnect).toHaveBeenCalledOnce()
 })
 
+test('labels the needed rows on their cards', ({ mount }) => {
+  const host = mount(SettingsReference)
+
+  expect(rows[0]!.needed).toBe(true)
+  expect(host.querySelector('.settings-reference-item.open .widget-note')!.textContent).toContain('Needed')
+})
+
 test('labels the optional rows on their cards', async ({ mount }) => {
   const host  = mount(SettingsReference)
   const place = rows.findIndex(({ needed }) => !needed)
@@ -130,22 +155,21 @@ test('holds the list at the height of its tallest row, measured again at a new w
   const { report } = observed()
   const host       = mount(SettingsReference)
   const list       = host.querySelector<HTMLElement>('.settings-reference-list')!
-  const rect       = vi.spyOn(Element.prototype, 'getBoundingClientRect')
-    .mockReturnValue({ height: 10 } as DOMRect)
 
+  laidOut(30, 100)
   await nextTick()
   report(600)
   await nextTick()
-  expect(list.style.minHeight).toBe(`${rows.length * 10 + 10}px`)
+  expect(list.style.minHeight).toBe(`${rows.length * 31 + 100}px`)
 
-  rect.mockReturnValue({ height: 20 } as DOMRect)
+  laidOut(40, 200)
   report(600)
   await nextTick()
-  expect(list.style.minHeight).toBe(`${rows.length * 10 + 10}px`)
+  expect(list.style.minHeight).toBe(`${rows.length * 31 + 100}px`)
 
   report(500)
   await nextTick()
-  expect(list.style.minHeight).toBe(`${rows.length * 20 + 20}px`)
+  expect(list.style.minHeight).toBe(`${rows.length * 41 + 200}px`)
 })
 
 test('ignores the fonts loading once unmounted', async ({ mount, unmount }) => {
@@ -172,15 +196,15 @@ test('measures the list again at the same width once the fonts load', async ({ m
 
   const host = mount(SettingsReference)
   const list = host.querySelector<HTMLElement>('.settings-reference-list')!
-  const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ height: 10 } as DOMRect)
 
+  laidOut(30, 100)
   await nextTick()
   report(600)
   await nextTick()
-  rect.mockReturnValue({ height: 20 } as DOMRect)
+  laidOut(40, 200)
   fonts.resolve()
   await fonts.promise
   await nextTick()
 
-  expect(list.style.minHeight).toBe(`${rows.length * 20 + 20}px`)
+  expect(list.style.minHeight).toBe(`${rows.length * 41 + 200}px`)
 })

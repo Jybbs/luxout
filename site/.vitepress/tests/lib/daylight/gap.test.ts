@@ -37,6 +37,13 @@ it('reaches the count of each sensor at the last minute', () => {
   )
 })
 
+it('names the switch a sensor makes at the minute it counts it', () => {
+  const cells = (clock: string) => gap.minutes.find((minute) => minute.clock === clock)!.cells
+
+  expect(cells('11:42')[1]).toEqual({ count: '1 of 1', mark: 'ring', word: 'Turns on' })
+  expect(cells('11:50')[0]).toEqual({ count: '2 of 5', mark: 'ring', word: 'Turns off' })
+})
+
 it('sets the mark beside each word a sensor shows', () => {
   const pairs = gap.minutes.flatMap(({ cells }) => cells.map(({ mark, word }) => `${mark}: ${word}`))
 

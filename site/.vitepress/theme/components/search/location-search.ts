@@ -150,11 +150,10 @@ function settingsPage({ activity, input, match }: SearchPage, typed?: number): V
       part('query', [
         caps(labels.search),
         h('span', { class: 'location-search-field' }, [
-          h(
-            'span',
-            { class: 'location-search-input' },
-            shown || h('span', { class: 'location-search-hint' }, labels.placeholder)
-          ),
+          h('span', { class: 'location-search-input' }, [
+            shown || h('span', { class: 'location-search-hint' }, labels.placeholder),
+            activity === 'typing' ? h('span', { class: 'location-search-caret' }) : undefined
+          ]),
           h('span', { class: 'location-search-button' }, labels.button)
         ])
       ]),

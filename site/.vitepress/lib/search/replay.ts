@@ -155,10 +155,10 @@ export async function replaySearch(): Promise<SearchReplay> {
       {
         code  : jsonLines(kept),
         hold  : HOLD,
-        label : 'The result the server script keeps',
+        label : 'The fields the server script reads',
         name  : 'Match',
-        note  : `It holds ${KEPT.length} of the ${Object.keys(result).length} fields in the recorded result, `
-              + 'and the script reads none of the others.',
+        note  : `It reads ${KEPT.length} of the ${Object.keys(result).length} fields in the recorded result `
+              + 'and rounds the coordinates to two decimals.',
         page  : { ...typed, match: 'listed' },
         shows : `${match.label} under Matches`
       },

@@ -80,7 +80,7 @@ function curveMarks({ altitudes, sky }: SampleDay): CurveMark[] {
     { altitude: -5 / 6, name: 'sunset' },
     { altitude: 10, name: 'sun at 10°' },
     { altitude: 30, name: 'sun at 30°' },
-    { altitude: Math.max(...altitudes), name: 'noon on the sample day' },
+    { altitude: Math.max(...altitudes), name: 'solar noon on the sample day' },
     { altitude: 60, name: 'sun at 60° past the ceiling' }
   ].map(({ altitude, name }) => ({ lux: sky.illuminance(altitude), name }))
 }

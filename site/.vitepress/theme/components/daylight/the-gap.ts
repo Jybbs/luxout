@@ -200,7 +200,8 @@ export const TheGap = defineComponent({
       h('div', { class: 'the-gap-below' }, [
         h('p', { class: 'widget-note' }, [
           swatch('ring'),
-          'Each ring is a switch, which runs the automations built on that sensor in the Home app.'
+          'Each ring is a switch, which can run an automation in the Home app built on the state the sensor '
+          + 'switched to.'
         ]),
         h(GapTable, { minute: pointer.minute })
       ]),

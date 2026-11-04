@@ -1,5 +1,6 @@
-import { sort, sum }  from 'd3-array'
-import { expect, it } from 'vitest'
+import { wcagLuminance } from 'culori'
+import { sort, sum }     from 'd3-array'
+import { expect, it }    from 'vitest'
 
 import { luxRange }  from '../../../lib/daylight/homekit.ts'
 import { luxScale }  from '../../../lib/daylight/lux-scale.ts'
@@ -10,6 +11,12 @@ const scale = luxScale(day)
 
 it('sets one tile per decade of the range the characteristic accepts', () => {
   expect(scale.decades).toHaveLength(Math.log10(luxRange.max / luxRange.min))
+})
+
+it('shades the tiles from dark to bright', () => {
+  const luminance = scale.decades.map(({ fill }) => wcagLuminance(fill))
+
+  expect(luminance).toEqual(sort(luminance))
 })
 
 it('accounts for every minute of the day across the decades', () => {
