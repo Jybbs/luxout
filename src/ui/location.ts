@@ -6,7 +6,7 @@ import type { Place }   from '../config/place.js'
 import { Settings }     from '../config/settings.js'
 import { FetchFailure } from '../weather/failure.js'
 import { Geocoder }     from './geocoder.js'
-import type { Match }   from './match.js'
+import type { Match }   from './public/match.js'
 
 const { latitude, longitude } = schema.schema.properties
 const searchRequest           = v.object({ language: v.string().chain(locale), query: v.string() })
@@ -52,7 +52,10 @@ export class LocationService {
 
     if (matches instanceof FetchFailure) throw new RequestError(matches.line, matches)
     if (matches.length === 0) {
-      throw new RequestError(`No place matches “${query}”, so search by the city’s name instead`, { query })
+      throw new RequestError(
+        `No place matches “${query}”, so search by the city’s name instead`,
+        { query }
+      )
     }
 
     return matches

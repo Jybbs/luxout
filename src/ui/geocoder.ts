@@ -3,7 +3,7 @@ import * as v from '@badrap/valita'
 import { Place }             from '../config/place.js'
 import { OpenMeteoClient }   from '../weather/client.js'
 import type { FetchFailure } from '../weather/failure.js'
-import { Match }             from './match.js'
+import { Match }             from './public/match.js'
 
 type Tuning = typeof TUNING
 

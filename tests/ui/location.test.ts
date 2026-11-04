@@ -4,7 +4,7 @@ import { expect, it, vi } from 'vitest'
 import { Place }           from '../../src/config/place.js'
 import { Geocoder }        from '../../src/ui/geocoder.js'
 import { LocationService } from '../../src/ui/location.js'
-import { Match }           from '../../src/ui/match.js'
+import { Match }           from '../../src/ui/public/match.js'
 import { answering }       from '../common/fetch.js'
 import search              from './fixtures/search.json' with { type: 'json' }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "pack"
 #MISE depends     = ["plugin:build"]
-#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, or the settings page or its server script under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait for the ready message of the server script it forks"
+#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, or the settings page, its stylesheet, or its server script under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait for the ready message of the server script it forks"
 
 packed() {
   grep --fixed-strings --line-regexp --quiet "$1" <<<"$files" && return
@@ -19,6 +19,7 @@ ui=$(jq --raw-output '.customUiPath | ltrimstr("./")' config.schema.json)
 
 packed README.md "npm shows no README for the package"
 packed "$ui/public/index.html" "the Homebridge UI has no settings page to show"
+packed "$ui/public/index.css" "the settings page has no stylesheet to load"
 packed "$ui/server.js" "the settings page has no server script to answer it"
 
 name=$(jq --raw-output '.[0].name' <<<"$pack")

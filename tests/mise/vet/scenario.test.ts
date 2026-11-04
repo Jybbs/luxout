@@ -24,6 +24,7 @@ it('builds each run the checks start from the schema, running a repeated block o
     latitude   : -90,
     longitude  : -180,
     name       : 'test-value',
+    place      : { country: 'test-value', name: 'test-value', region: 'test-value' },
     platform   : 'Luxout',
     thresholds : [{ name: 'test-value', offLux: 0.0001, onLux: 0.0001 }]
   }
