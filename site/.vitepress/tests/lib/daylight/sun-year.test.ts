@@ -57,6 +57,15 @@ it('moves the clock time of the top of the path by the hour the clock changes', 
   expect(Math.abs(july.peak.minute - march.peak.minute - 60)).toBeLessThan(20)
 })
 
+it.each([
+  { change: 'spring', month: 2, date: 8 },
+  { change: 'fall', month: 10, date: 1 }
+])('keeps the $change change of the clock’s afternoon on the new clock', ({ date, month }) => {
+  const [changed, after] = [days[dayOf(month, date)]!, days[dayOf(month, date + 1)]!]
+
+  expect(Math.abs(changed.peak.minute - after.peak.minute)).toBeLessThan(5)
+})
+
 it('finds the peak of the sample day from its minutes and writes it in the lede', () => {
   const { altitudes, date } = SampleDay.record()
 

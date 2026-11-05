@@ -49,13 +49,13 @@ const SHARES = [
 ] as const
 const monthWord = new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' })
 
-function crossing(altitudes: readonly number[], index: number, step: number): number {
+function crossing(altitudes: readonly number[], index: number): number {
   const before = altitudes[index - 1]!
 
-  return Math.ceil((index - 1 + (curve.SUNSET - before) / (altitudes[index]! - before)) * step)
+  return Math.ceil((index - 1 + (curve.SUNSET - before) / (altitudes[index]! - before)) * curve.SUN_GRID)
 }
 
-function dayFigures(altitudes: readonly number[], step: number): Omit<curve.SunDay, 'altitudes'> {
+function dayFigures(altitudes: readonly number[]): Omit<curve.SunDay, 'altitudes'> {
   const [up, down] = crossings(altitudes, curve.SUNSET)
 
   const top       = maxIndex(altitudes)
@@ -63,11 +63,11 @@ function dayFigures(altitudes: readonly number[], step: number): Omit<curve.SunD
   const bend      = a - 2 * b + c
 
   return {
-    rise : crossing(altitudes, up, step),
-    set  : crossing(altitudes, down, step),
+    rise : crossing(altitudes, up),
+    set  : crossing(altitudes, down),
     peak : {
       altitude : tenth(b - (a - c) ** 2 / (8 * bend)),
-      minute   : Math.round((top + (a - c) / (2 * bend)) * step)
+      minute   : Math.round((top + (a - c) / (2 * bend)) * curve.SUN_GRID)
     }
   }
 }
@@ -90,18 +90,11 @@ function sunDay(day: SampleDay, index: number, sample: number): curve.SunDay {
   )
 
   return {
-    ...(index === sample ? dayFigures(day.altitudes, 1) : dayFigures(exact, curve.SUN_GRID)),
+    ...dayFigures(exact),
     altitudes: exact.map(tenth)
   }
 }
 
-/**
- * Samples the sun at the sample day's place through every day of that day's
- * year on the local clock, moving each minute from 02:00 by the hour a change
- * of the clock that night adds or removes, and names the curves the year keeps:
- * the equinoxes, the solstices, the sample day, and the 21st of the other
- * months.
- */
 /**
  * Writes `fraction` as the nearest plain share, leaning under or over it where
  * the two differ by a hundredth or more.
@@ -114,6 +107,13 @@ export function shareWords(fraction: number): string {
   return `${lean} ${name}`
 }
 
+/**
+ * Samples the sun at the sample day's place through every day of that day's
+ * year on the local clock, moving each minute from 02:00 by the hour a change
+ * of the clock that night adds or removes, and names the curves the year keeps:
+ * the equinoxes, the solstices, the sample day, and the 21st of the other
+ * months.
+ */
 export function sunYear(day: SampleDay): SunYear {
   const opening = instant(0)
   const year    = opening.getUTCFullYear()

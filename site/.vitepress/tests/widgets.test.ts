@@ -252,3 +252,24 @@ it('holds the roof and the cut in the frame at 3:1 on the wash in each scheme', 
 it.each(GROUNDS)('holds the bridge’s words at 4.5:1 on the $name wash', ({ bridge, selector }) => {
   expect(wcagContrast(token('--widget-ink', selector), washOf(bridge, selector))).toBeGreaterThanOrEqual(4.5)
 })
+
+it.each([
+  { property: 'color', selector: '.day-estimate-hub.peeked .day-estimate-figure', value: 'var(--widget-muted)' },
+  { property: 'opacity', selector: '.day-estimate-layer[data-peek]', value: '1' },
+  {
+    property : 'stroke',
+    selector : '.day-estimate-layer[data-peek]:not([data-on]) .day-estimate-bracket',
+    value    : 'var(--widget-muted)'
+  },
+  { property: 'fill', selector: '.sun-path-wash', value: 'var(--widget-geometry)' },
+  { property: 'fill-opacity', selector: '.sun-path-wash', value: '0.16' },
+  {
+    property : 'stroke',
+    selector : '.sun-path-hair',
+    value    : 'color-mix(in oklab, var(--widget-muted) 80%, var(--widget-ground))'
+  },
+  { property: 'stroke-dasharray', selector: '.sun-path-month', value: '2 3' },
+  { property: 'stroke-width', selector: '.sun-path.year .sun-path-curve', value: '3.4' }
+])('declares $property on $selector as $value', ({ property, selector, value }) => {
+  expect(declared(sheet, property, selector)).toEqual([value])
+})

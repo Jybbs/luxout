@@ -223,6 +223,13 @@ function mean(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length
 }
 
+it('finds no more daylight steps than the tuning passed to the constructor allows', () => {
+  const tuning  = { ...CLOUD_TUNING, nearest: 2 }
+  const nearest = new CloudFactor(sky, new Sun(delhi), morning, undefined, tuning).nearest(morning.times[0]!)
+
+  expect(nearest).toHaveLength(2)
+})
+
 function tuned(above: number): CloudFactor {
   const sun   = new Sun(delhi)
   const floor = sky.refracted(sun.altitude(new Date('2026-10-11T01:30:00Z'))) + above

@@ -1,12 +1,11 @@
 import * as clock from './clock.ts'
 
-const FACTOR_DIGITS          = 3     // The decimals a cloud factor other than exactly 1 takes
-const SMALLEST               = 1e-4  // The lux below which a value takes scientific notation
-const SUPERSCRIPTS           = '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'
-const clockFormat            = clock.clockFormatIn('UTC')
-export const clockListFormat = new Intl.ListFormat('en-US')
-const dayFormat              = clock.dateFormatIn('UTC')
-const degreeFormat           = new Intl.NumberFormat('en-US', {
+const FACTOR_DIGITS = 3     // The decimals a cloud factor other than exactly 1 takes
+const SMALLEST      = 1e-4  // The lux below which a value takes scientific notation
+const SUPERSCRIPTS  = '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'
+const clockFormat   = clock.clockFormatIn('UTC')
+const dayFormat     = clock.dateFormatIn('UTC')
+const degreeFormat  = new Intl.NumberFormat('en-US', {
   maximumFractionDigits : 1,
   minimumFractionDigits : 1,
   signDisplay           : 'negative',
@@ -14,9 +13,10 @@ const degreeFormat           = new Intl.NumberFormat('en-US', {
   unit                  : 'degree',
   unitDisplay           : 'narrow'
 })
-const preciseFormat = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 3 })
-const tinyFormat    = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1, notation: 'scientific' })
-const wholeFormat   = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+export const listFormat = new Intl.ListFormat('en-US')
+const preciseFormat     = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 3 })
+const tinyFormat        = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1, notation: 'scientific' })
+const wholeFormat       = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
 /**
  * Writes `minute` past a midnight as a 24-hour clock time, in the minutes of a

@@ -2,10 +2,10 @@ import { bisectRight, minIndex } from 'd3-array'
 import { scaleLinear }           from 'd3-scale'
 import { line }                  from 'd3-shape'
 
-import { ThresholdEntry }             from '../../../../src/config/threshold.ts'
-import { clockListFormat, formatLux } from './format.ts'
-import { SampleDay, runsOf }          from './sample-day.ts'
-import { tenth }                      from './tenth.ts'
+import { ThresholdEntry }        from '../../../../src/config/threshold.ts'
+import { formatLux, listFormat } from './format.ts'
+import { SampleDay, runsOf }     from './sample-day.ts'
+import { tenth }                 from './tenth.ts'
 
 /**
  * What the gap's drawing and its table show.
@@ -128,7 +128,7 @@ class SensorRun {
     const held = this.spans.map(([start, end]) => `from ${this.#day.clock(start)} to ${this.#day.clock(end)}`)
 
     return {
-      label    : `${name}, the sensor is on ${clockListFormat.format(held)}, switching ${times(count)}`,
+      label    : `${name}, the sensor is on ${listFormat.format(held)}, switching ${times(count)}`,
       name     : name,
       offBelow : formatLux(offLux),
       onAt     : formatLux(onLux),
@@ -263,7 +263,7 @@ export function theGap(day: SampleDay): Gap {
     label     : `The reading from ${day.clock(FROM)} to ${day.clock(TO)} against the gap from `
               + `${formatLux(OFF_LUX)} to ${formatLux(ON_LUX)} lux, crossing ${formatLux(ON_LUX)} `
               + `${times(crossing.length)}, `
-              + `at ${clockListFormat.format(crossing.map((minute) => day.clock(minute)))}, `
+              + `at ${listFormat.format(crossing.map((minute) => day.clock(minute)))}, `
               + `and falling no lower than ${formatLux(day.readings[rest]!)} lux after ${day.clock(first)}`,
     layouts   : LAYOUTS.map((layout) => drawing(layout, readings, runs)),
     minutes   : readings.map((lux, index) => minuteFacts(day, lux, FROM + index, runs)),

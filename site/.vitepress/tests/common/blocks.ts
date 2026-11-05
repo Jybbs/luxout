@@ -40,7 +40,7 @@ function spanWords(milliseconds: number): string {
   const hours   = Math.floor(milliseconds / HOUR)
   const minutes = (milliseconds - hours * HOUR) / MINUTE
 
-  return format.clockListFormat.format([
+  return format.listFormat.format([
     ...hours ? [amount(hours, 'hour')] : [],
     ...minutes ? [amount(minutes, 'minute')] : []
   ])
@@ -141,8 +141,8 @@ export function factorTable({ minutes, rest, terms }: FactorDay): string {
 export function fetchReach({ forecast }: typeof REQUEST_TUNING): string {
   const reach = (forecast - 1) * STEP_MINUTES * MINUTE
 
-  return `A window's last step starts ${spanWords(reach)} after its fetch, which carries the reading through `
-       + `${Math.floor(reach / HOUR)} failed hourly fetches in a row.`
+  return `A window's last step starts ${spanWords(reach)} after the step its fetch falls in, which carries `
+       + `the reading through ${Math.floor(reach / HOUR)} failed hourly fetches in a row.`
 }
 
 /**
@@ -246,9 +246,9 @@ export function nightWords({ decades }: DecadeScale): string {
 
   return `Moonlight and light pollution sit outside the model. A clear full moon gives ${moon.lux} lux, per `
        + "the [Illuminance table of Wikipedia's Lux article]"
-       + '(https://en.wikipedia.org/wiki/Lux#Illuminance), while the reading falls toward '
+       + '(https://en.wikipedia.org/wiki/Lux#Illuminance), while the reading reaches '
        + "[HomeKit's floor](https://developers.homebridge.io/#/characteristic/CurrentAmbientLightLevel) "
-       + `of ${floor} lux after astronomical twilight.`
+       + `of ${floor} lux before astronomical twilight ends.`
 }
 
 /**

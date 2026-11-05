@@ -174,6 +174,23 @@ test('resumes from a minute already inside the morning', async ({ mount }) => {
   expect(Number(slider.getAttribute('aria-valuenow'))).toBeGreaterThanOrEqual(rest)
 })
 
+test('speaks the minute the morning pauses on', async ({ mount }) => {
+  const host   = mount(ThreeFactors)
+  const button = getByRole(host, 'button', { name: 'Play the morning' })
+
+  press(host, 'Home')
+  fireEvent.click(button)
+  await nextTick()
+  vi.advanceTimersByTime(PAUSES.speech * 2)
+  fireEvent.click(button)
+  vi.advanceTimersByTime(PAUSES.speech)
+  await nextTick()
+
+  const now = Number(getByRole(host, 'slider').getAttribute('aria-valuenow'))
+
+  expect(host.querySelector('[aria-live=polite]')!.textContent).toContain(minutes[now])
+})
+
 test('pauses on a second press, and on a key', async ({ mount }) => {
   const host   = mount(ThreeFactors)
   const button = getByRole(host, 'button', { name: 'Play the morning' })

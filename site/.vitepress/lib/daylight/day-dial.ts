@@ -72,8 +72,7 @@ export function dayDial(day: SampleDay): DayDial {
   const decades       = (minute: number) => Math.log10(readings[minute]! / luxRange.min).toFixed(1)
   const climb         = altitudes[rise]! - altitudes[floorRise]!
   const perDegree     = (Math.log10(clearSkies[rise]! / luxRange.min) / climb).toFixed(2)
-  const lit           = cloud.steps.filter(({ time }) => day.litAt(time))
-  const [least, most] = extent(lit, ({ factor }) => factor) as [number, number]
+  const [least, most] = extent(cloud.steps, ({ factor }) => factor) as [number, number]
   const borrowed      = cloud.steps[0]!.factor
   const reached       = DEPTHS.map((level) => crossings(altitudes, level))
   const edges         = [[0, SampleDay.MINUTES], ...reached] as const

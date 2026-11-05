@@ -3,11 +3,11 @@ import { fireEvent, getAllByRole, getByRole } from '@testing-library/dom'
 import { expect, vi }                         from 'vitest'
 import { nextTick }                           from 'vue'
 
-import { DIAL, type Half }   from '../../../../lib/daylight/dial-lens.ts'
-import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { DayEstimate }       from '../../../../theme/components/daylight/day-estimate.ts'
-import { data }              from '../../../common/data/day-dial.ts'
-import { test }              from '../../../common/mount.ts'
+import { DIAL, DialPlot, type Half } from '../../../../lib/daylight/dial-lens.ts'
+import { DURATIONS, PAUSES }         from '../../../../lib/motion/timing.ts'
+import { DayEstimate }               from '../../../../theme/components/daylight/day-estimate.ts'
+import { data }                      from '../../../common/data/day-dial.ts'
+import { test }                      from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/daylight/day-dial.data.ts', () => import('../../../common/data/day-dial.ts'))
 
@@ -151,21 +151,31 @@ test('peeks at the stretch whose name holds the focus, then closes the peek on b
   expect(hub.classList.contains('peeked')).toBe(false)
 })
 
-test('eases a peeked twilight a third of the way, short of what a click opens', async ({ mount }) => {
+test('peeks at nothing while the focus rests on the picked name', async ({ mount }) => {
+  const host = mount(DayEstimate)
+  const tab  = getAllByRole(host, 'tab')[opens]!
+
+  fireEvent.focus(tab)
+  await settle()
+
+  expect(tab.classList.contains('peeked')).toBe(false)
+  expect(host.querySelector('.day-estimate-hub')!.classList.contains('peeked')).toBe(false)
+})
+
+test('eases a peeked twilight a third of the way, and a click opens it to its quarter', async ({ mount }) => {
   const host = mount(DayEstimate)
   const tabs = getAllByRole(host, 'tab')
-  const shut = skyPath(host, 1)
+  const sky  = (open: number) => new DialPlot(data.marks).paths(1, open)[data.marks.washes.length]
 
   fireEvent.focus(tabs[DUSK]!)
   await settle()
 
-  const peeked = skyPath(host, 1)
+  expect(skyPath(host, 1)).toBe(sky(1 / 3))
 
   fireEvent.click(tabs[DUSK]!)
   await settle()
 
-  expect(peeked).not.toBe(shut)
-  expect(skyPath(host, 1)).not.toBe(peeked)
+  expect(skyPath(host, 1)).toBe(sky(1))
 })
 
 test('peeks at the stretch under a pointer only after it rests for the dwell pause', async ({ mount }) => {

@@ -63,7 +63,7 @@ const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, style
 function borrowedWords(clock: string, day: SampleDay, factor: number, sun: string, time: number): StepWords {
   const near  = sort(day.cloud.nearest(time), (step) => step.time)
   const terms = near.map((step) => format.formatFactor(step.factor)).join(' + ')
-  const whole = format.clockListFormat.format(near.map(({ time }) => day.clockAt(time)))
+  const whole = format.listFormat.format(near.map(({ time }) => day.clockAt(time)))
 
   return {
     how  : `At ${clock}, the sun stands ${sun} once refracted, too low for the comparison to carry signal, `

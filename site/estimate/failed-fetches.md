@@ -16,7 +16,7 @@ The reading keeps using the [stored window](./forecast-window.md) from one fetch
 
 <!-- fetch-reach -->
 
-A window's last step starts 5 hours and 45 minutes after its fetch, which carries the reading through 5 failed hourly fetches in a row.
+A window's last step starts 5 hours and 45 minutes after the step its fetch falls in, which carries the reading through 5 failed hourly fetches in a row.
 
 <!-- /fetch-reach -->
 

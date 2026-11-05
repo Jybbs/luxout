@@ -69,6 +69,15 @@ test('moves the picked step on a key and speaks its share', async ({ mount }) =>
   expect(host.querySelector('[aria-live=polite]')!.textContent).toBe(`${step.share}${step.lead}`)
 })
 
+test('moves the picked step an hour on Page Up', async ({ mount }) => {
+  const slider = getByRole(mount(TheCloudFactor), 'slider')
+
+  fireEvent.keyDown(slider, { key: 'PageUp' })
+  await nextTick()
+
+  expect(slider.getAttribute('aria-valuenow')).toBe(String(opens + 4))
+})
+
 test('picks the step under a pointer, clamped to the strip', async ({ mount }) => {
   const slider = getByRole(mount(TheCloudFactor), 'slider')
 

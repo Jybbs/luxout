@@ -110,7 +110,7 @@ export function twilightBridge(sky: ClearSky): TwilightBridge {
     grid    : DECADES.map((lux) => `M0 ${tenth(y(lux))}H${WIDTH}`).join(''),
     height  : HEIGHT,
     high    : high,
-    label   : `The clear-sky curve from ${tickWord(FLOOR)} to a low sun at ${tickWord(LOW_SUN)} on a `
+    label   : `The clear-sky curve from ${tickWord(FLOOR)} to ${tickWord(LOW_SUN)} on a `
             + `logarithmic lux scale, climbing from ${low.word} to ${high.word} across the span up to `
             + `${curve.SUNSET_WORD} and through that cutoff without a step, with a slider that moves the `
             + 'sun along it.',

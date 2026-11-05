@@ -84,6 +84,39 @@ test('marks the widget while the sun stands under the horizon', ({ mount }) => {
   expect(root.hasAttribute('data-down')).toBe(true)
 })
 
+test('marks the widget from the first minute the sun stands under the horizon', ({ mount }) => {
+  const host                   = mount(SunPath)
+  const slider                 = clockOf(host)
+  const root                   = host.querySelector('.sun-path')!
+  const [, svg]                = host.querySelectorAll('.sun-path-drawing')
+  const { left, right, width } = curve.SUN_LAYOUTS[1]
+  const up                     = minutes.findIndex((altitude) => altitude >= 0)
+  const pressAt                = (minute: number) => {
+    fireEvent.pointerDown(slider, {
+      button    : 0,
+      clientX   : left + (right - left) * minute / (minutes.length - 2),
+      pointerId : 1
+    })
+    settle()
+  }
+
+  pressable(slider, svg!, { left: 0, width })
+
+  pressAt(up)
+  expect(root.hasAttribute('data-down')).toBe(false)
+
+  pressAt(up - 1)
+  expect(root.hasAttribute('data-down')).toBe(true)
+})
+
+test('steps the clock an hour on Page Up', ({ mount }) => {
+  const slider = clockOf(mount(SunPath))
+
+  press(slider, 'PageUp')
+
+  expect(slider.getAttribute('aria-valuenow')).toBe(String(rest + 60))
+})
+
 test('speaks the minute once a key’s motion settles', async ({ mount }) => {
   const host = mount(SunPath)
 
@@ -129,6 +162,24 @@ test('names the chosen day over the top of its path while the year stands open',
   expect(host.querySelector('.sun-path-peak text')!.textContent).toBe(
     `October 4 · ${curve.peakWord(days[sample]!)}`
   )
+})
+
+test('sets the chosen day’s word over the drawing while the year stands open', async ({ mount }) => {
+  const host   = mount(SunPath)
+  const layout = curve.SUN_LAYOUTS[0]
+
+  await openYear(host)
+
+  expect(host.querySelector('.sun-path-peak')!.getAttribute('transform'))
+    .toBe(`translate(${layout.xOf(days[sample]!.peak.minute)} ${layout.yOf(90) + 17})`)
+})
+
+test('marks each named day on the year’s track', async ({ mount }) => {
+  const host = mount(SunPath)
+
+  await openYear(host)
+
+  expect(host.querySelectorAll('.sun-path-named')).toHaveLength(marks.filter(({ named }) => named).length)
 })
 
 test('moves to another day on a key, redrawing its curve and its marks', async ({ mount }) => {
@@ -260,6 +311,21 @@ test('places the sun once for a one-minute step across a motion’s frames', ({ 
   press(clockOf(host), 'ArrowRight')
 
   expect(place).toHaveBeenCalledOnce()
+})
+
+test('builds the year’s moves once across two openings', async ({ mount }) => {
+  const host  = mount(SunPath)
+  const moves = vi.spyOn(curve.SUN_LAYOUTS[0], 'moveOver')
+
+  await openYear(host)
+
+  const built = moves.mock.calls.length
+
+  fireEvent.click(getByRole(host, 'button', { name: 'The year' }))
+  await nextTick()
+  await openYear(host)
+
+  expect(moves.mock.calls.length - built).toBeLessThan(days.length)
 })
 
 test('reads a day’s altitude off its samples and the sample day’s off its minutes', async ({ mount }) => {

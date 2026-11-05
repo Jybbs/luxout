@@ -6,7 +6,7 @@ These pages rest on the works below, and the plugin rests on the two services cr
 
 [Weather data by Open-Meteo.com](https://open-meteo.com/), offered under [Attribution 4.0 International (CC BY 4.0)](https://open-meteo.com/en/licence). Open-Meteo's forecast API serves every forecast the plugin reads and the forecast behind this site's sample day, and its geocoding API serves each result of the settings page's location search.[^zippenfenig2023]
 
-Location data from [GeoNames](https://www.geonames.org/), offered under Creative Commons Attribution 4.0. GeoNames is the source of the geocoding results that search shows.[^geonames]
+Location data from [GeoNames](https://www.geonames.org/), offered under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). GeoNames is the source of the geocoding results that search shows.[^geonames]
 
 ## Works
 
