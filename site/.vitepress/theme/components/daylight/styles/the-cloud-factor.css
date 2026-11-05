@@ -1,0 +1,198 @@
+.the-cloud-factor {
+  --cloud-borrowed: color-mix(in srgb, var(--widget-forecast) 34%, var(--widget-ground));
+
+  display : grid;
+  gap     : 16px;
+}
+
+.vp-doc .the-cloud-factor-lead {
+  margin      : 0;
+  font-size   : 1.12rem;
+  line-height : 1.5;
+  text-wrap   : pretty;
+}
+
+.the-cloud-factor-share {
+  font                 : 600 1.45em/0 var(--widget-display);
+  font-variant-numeric : lining-nums;
+  white-space          : nowrap;
+}
+
+.the-cloud-factor-bars {
+  display               : grid;
+  align-items           : center;
+  gap                   : 10px 12px;
+  grid-template-columns : 5.2rem minmax(0, 1fr) 6.6rem;
+}
+
+.the-cloud-factor-label {
+  color       : var(--widget-muted);
+  font-size   : 0.82rem;
+  line-height : 1.3;
+  white-space : nowrap;
+}
+
+.the-cloud-factor-value {
+  font-size   : 0.84rem;
+  font-weight : 500;
+  line-height : 1.3;
+  text-align  : right;
+  white-space : nowrap;
+}
+
+.the-cloud-factor-lane {
+  position : relative;
+  height   : 14px;
+}
+
+.the-cloud-factor-bar {
+  position      : absolute;
+  inset         : 0 auto 0 0;
+  border-radius : 2px;
+  transition    : width var(--timing-settle) var(--timing-ease);
+}
+
+.the-cloud-factor-bar.the-cloud-factor-clear, .the-cloud-factor-swatch.the-cloud-factor-clear {
+  background : var(--widget-sky-fill);
+  box-shadow : inset 0 0 0 1px var(--widget-ink);
+}
+
+.the-cloud-factor-bar.the-cloud-factor-forecast, .the-cloud-factor-swatch.the-cloud-factor-forecast {
+  background: var(--widget-forecast);
+}
+
+.the-cloud-factor-bars.borrowed .the-cloud-factor-bar {
+  background     : none;
+  box-shadow     : none;
+  outline        : 1px dashed var(--widget-geometry);
+  outline-offset : -1px;
+}
+
+.the-cloud-factor-picker {
+  display     : grid;
+  gap         : 6px;
+  padding-top : 8px;
+}
+
+.the-cloud-factor-strip {
+  position     : relative;
+  cursor       : pointer;
+  touch-action : pan-y;
+}
+
+.the-cloud-factor-marks {
+  position : absolute;
+  inset    : 0;
+  width    : 100%;
+  height   : 100%;
+}
+
+.the-cloud-factor-marks :is(path, rect) { vector-effect: non-scaling-stroke; }
+
+.the-cloud-factor-picked { fill: var(--widget-sunken); }
+
+.the-cloud-factor-grid {
+  stroke       : var(--widget-rule);
+  stroke-width : 1;
+}
+
+.the-cloud-factor-axis {
+  stroke       : var(--widget-muted);
+  stroke-width : 1;
+}
+
+rect.the-cloud-factor-forecast { fill: var(--widget-forecast); }
+
+rect.the-cloud-factor-borrowed {
+  fill             : var(--cloud-borrowed);
+  stroke           : var(--widget-geometry);
+  stroke-dasharray : 2 2;
+  stroke-width     : 1;
+}
+
+.the-cloud-factor-marks rect.on {
+  stroke           : var(--widget-ink);
+  stroke-dasharray : none;
+  stroke-width     : 1.5;
+}
+
+.the-cloud-factor-hour {
+  position  : absolute;
+  top       : 33px;
+  color     : var(--widget-muted);
+  font      : 500 0.64rem/1 var(--vp-font-family-mono);
+  translate : -50% 0;
+}
+
+.the-cloud-factor-hour:last-child { translate: -100% 0; }
+
+.the-cloud-factor-foot {
+  display               : grid;
+  align-items           : start;
+  gap                   : 12px;
+  grid-template-columns : minmax(0, 1fr) auto;
+  padding-top           : 12px;
+  border-top            : 1px solid var(--widget-rule);
+}
+
+.the-cloud-factor-keys {
+  display       : flex;
+  align-content : start;
+  flex-wrap     : wrap;
+  gap           : 6px 18px;
+  color         : var(--widget-muted);
+  font-size     : 0.8rem;
+  line-height   : 1.4;
+}
+
+.the-cloud-factor-key {
+  display     : inline-flex;
+  align-items : center;
+  gap         : 7px;
+  white-space : nowrap;
+}
+
+.the-cloud-factor-swatch {
+  flex          : none;
+  width         : 22px;
+  height        : 8px;
+  border-radius : 1.5px;
+}
+
+.the-cloud-factor-swatch.the-cloud-factor-borrowed {
+  background     : var(--cloud-borrowed);
+  outline        : 1px dashed var(--widget-geometry);
+  outline-offset : -1px;
+}
+
+.the-cloud-factor-how {
+  display : grid;
+  gap     : 4px;
+}
+
+.the-cloud-factor-sum {
+  font-size   : 0.9rem;
+  font-weight : 500;
+  line-height : 1.4;
+}
+
+.the-cloud-factor-why {
+  color       : var(--widget-muted);
+  font-size   : 0.84rem;
+  line-height : 1.5;
+}
+
+@container (width < 38rem) {
+  .vp-doc .the-cloud-factor-lead { font-size: 1.04rem; }
+
+  .the-cloud-factor-bars {
+    gap                   : 10px 8px;
+    grid-template-columns : 4.6rem minmax(0, 1fr) 6.2rem;
+  }
+
+  .the-cloud-factor-foot .widget-more {
+    gap       : 0;
+    padding   : 6px;
+    font-size : 0;
+  }
+}

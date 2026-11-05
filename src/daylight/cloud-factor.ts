@@ -21,16 +21,16 @@ interface StepFactor {
   time   : number
 }
 
-type Tuning = typeof TUNING
+type Tuning = typeof CLOUD_TUNING
 
-const HAURWITZ_ATTENUATION = 0.057  // The attenuation coefficient of equation 18 in SAND2012-2389
-const HAURWITZ_PEAK        = 1098   // The irradiance that equation scales by cos z, in watts per square meter
-const TUNING               = {
+export const CLOUD_TUNING = {
   ahead   : 14_400_000,  // Four hours in milliseconds, the span after a step below the floor
   behind  : 43_200_000,  // Twelve hours in milliseconds, the span before it
   floor   : 5,           // The refracted altitude in degrees below which the ratio carries no signal
   nearest : 4            // The count of daylight steps whose mean factor a step below the floor takes
 }
+const HAURWITZ_ATTENUATION = 0.057  // The attenuation coefficient of equation 18 in SAND2012-2389
+const HAURWITZ_PEAK        = 1098   // The irradiance that equation scales by cos z, in watts per square meter
 
 /**
  * Derives the cloud factor at each step of a forecast window, as the ratio of
@@ -47,8 +47,9 @@ const TUNING               = {
  * place.
  */
 export class CloudFactor {
+  readonly steps     : readonly StepFactor[]
   readonly #daylight : readonly StepFactor[]
-  readonly #steps    : readonly StepFactor[]
+  readonly #tuning   : Tuning
   readonly #window   : ForecastWindow
 
   constructor(
@@ -56,7 +57,7 @@ export class CloudFactor {
     sun      : Sun,
     window   : ForecastWindow,
     earlier? : CloudFactor,
-    tuning   : Tuning = TUNING
+    tuning   : Tuning = CLOUD_TUNING
   ) {
     const first   = window.times[0] ?? Infinity
     const carried = earlier !== undefined && earlier.#window.place.equals(window.place)
@@ -72,13 +73,14 @@ export class CloudFactor {
       return [{ factor: Math.min(Math.max(share, 0), 1), time }]
     })
 
+    this.#tuning   = tuning
     this.#window   = window
     this.#daylight = [
       ...carried.filter(({ time }) => time < first && time >= first - tuning.behind),
       ...daylight
     ]
-    this.#steps = window.times.map((time) => daylight.find((step) => step.time === time)
-                                          ?? { factor: nearest(this.#daylight, time, tuning), time })
+    this.steps = window.times.map((time) => daylight.find((step) => step.time === time)
+                                         ?? { factor: meanFactor(this.nearest(time)), time })
   }
 
   /**
@@ -90,7 +92,7 @@ export class CloudFactor {
    *   `instant`.
    */
   at(instant: Date): Interpolation | undefined {
-    const [before, after] = this.#window.bracket(instant)?.map((index) => this.#steps[index]) ?? []
+    const [before, after] = this.#window.bracket(instant)?.map((index) => this.steps[index]) ?? []
 
     if (before === undefined || after === undefined) return undefined
 
@@ -98,27 +100,31 @@ export class CloudFactor {
 
     return { factor: before.factor + (after.factor - before.factor) * fraction, steps: [before, after] }
   }
+
+  /**
+   * Finds the daylight steps nearest `time`, closest first, within the span the
+   * tuning sets around it.
+   */
+  nearest(time: number): readonly StepFactor[] {
+    const { ahead, behind, nearest } = this.#tuning
+    const offset                     = (step: StepFactor): number => step.time - time
+
+    return this.#daylight.filter((step) => offset(step) >= -behind && offset(step) <= ahead)
+      .toSorted((one, other) => Math.abs(offset(one)) - Math.abs(offset(other)))
+      .slice(0, nearest)
+  }
+}
+
+function meanFactor(steps: readonly StepFactor[]): number {
+  return steps.length === 0 ? 1 : steps.reduce((sum, step) => sum + step.factor, 0) / steps.length
 }
 
 /**
  * Computes the clear-sky irradiance of the Haurwitz model in watts per square
  * meter, for the sun at the refracted `altitude` in degrees.
  */
-function haurwitz(altitude: number): number {
+export function haurwitz(altitude: number): number {
   const cosine = Math.sin(altitude * DEG2RAD)
 
   return HAURWITZ_PEAK * cosine * Math.exp(-HAURWITZ_ATTENUATION / cosine)
-}
-
-/**
- * Takes the mean factor of the daylight steps nearest `time` within the span
- * the tuning sets around it, or 1 where none lies in that span.
- */
-function nearest(daylight: readonly StepFactor[], time: number, tuning: Tuning): number {
-  const offset = (step: StepFactor): number => step.time - time
-  const near   = daylight.filter((step) => offset(step) >= -tuning.behind && offset(step) <= tuning.ahead)
-    .toSorted((one, other) => Math.abs(offset(one)) - Math.abs(offset(other)))
-    .slice(0, tuning.nearest)
-
-  return near.length === 0 ? 1 : near.reduce((sum, step) => sum + step.factor, 0) / near.length
 }

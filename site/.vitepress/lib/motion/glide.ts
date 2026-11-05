@@ -1,42 +1,45 @@
-import { type MaybeComputedElementRef, clamp } from '@vueuse/core'
+import type { MaybeComputedElementRef } from '@vueuse/core'
 
-import { FrameClock }               from './frame-clock.ts'
-import { DURATIONS, motionReduced } from './timing.ts'
+import { FrameClock } from './frame-clock.ts'
+import * as timing    from './timing.ts'
 
 /**
- * Moves a value along smoothstep to each new goal over the `move` duration,
- * starting from wherever the value stands when the goal arrives, writing the
- * value on each frame and reporting once the motion ends.
+ * Moves a value along smoothstep to each new goal over `duration`, starting
+ * from the value it holds when the goal arrives, writing the value on each
+ * frame and reporting once the motion ends.
  */
 export class Glide {
-  goal              : number
-  readonly #clock   : FrameClock
-  #from             : number
-  readonly #settled : () => void
-  #start            : number
-  #value            : number
-  readonly #write   : (value: number) => void
+  goal               : number
+  readonly #clock    : FrameClock
+  readonly #duration : number
+  #from              : number
+  readonly #settled  : () => void
+  #start             : number
+  #value             : number
+  readonly #write    : (value: number) => void
 
   constructor(
-    value   : number,
-    watched : MaybeComputedElementRef,
-    settled : () => void,
-    write   : (value: number) => void
+    value    : number,
+    watched  : MaybeComputedElementRef,
+    settled  : () => void,
+    write    : (value: number) => void,
+    duration : number = timing.DURATIONS.move
   ) {
-    this.goal     = value
-    this.#clock   = new FrameClock(watched, (now) => this.#advance(now))
-    this.#from    = value
-    this.#settled = settled
-    this.#start   = 0
-    this.#value   = value
-    this.#write   = write
+    this.goal      = value
+    this.#clock    = new FrameClock(watched, (now) => this.#advance(now))
+    this.#duration = duration
+    this.#from     = value
+    this.#settled  = settled
+    this.#start    = 0
+    this.#value    = value
+    this.#write    = write
   }
 
   /**
    * Eases toward `goal`, or snaps to it under `prefers-reduced-motion`.
    */
   ease(goal: number): void {
-    if (motionReduced()) {
+    if (timing.motionReduced()) {
       this.snap(goal)
 
       return
@@ -48,6 +51,14 @@ export class Glide {
     this.#clock.start()
   }
 
+  /**
+   * Eases toward `goal` where `eased` holds, and snaps to it otherwise.
+   */
+  move(goal: number, eased: boolean): void {
+    if (eased) this.ease(goal)
+    else this.snap(goal)
+  }
+
   snap(goal: number): void {
     this.#clock.stop()
     this.goal   = goal
@@ -57,9 +68,9 @@ export class Glide {
   }
 
   #advance(now: number): boolean {
-    const done = clamp((now - this.#start) / DURATIONS.move, 0, 1)
+    const done = (now - this.#start) / this.#duration
 
-    this.#value = this.#from + (this.goal - this.#from) * done * done * (3 - 2 * done)
+    this.#value = this.#from + (this.goal - this.#from) * timing.smoothstep(done)
     this.#write(this.#value)
 
     if (done < 1) return true

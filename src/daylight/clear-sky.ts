@@ -7,6 +7,11 @@ const SKYLIGHT       = 0.0289     // Circular 171's coefficient of the empirical
 const SKY_EXTINCTION = 0.042      // Circular 171's extinction coefficient of the skylight term per air mass
 const SUNLIGHT       = 133775     // Circular 171's sun illuminance at the top of the atmosphere, in lux
 const UNREFRACTED    = -5 / 6     // Circular 171's altitude in degrees below which no refraction is added
+/**
+ * The altitudes in degrees between which the curve bridges the circular's step,
+ * from the lower limit of civil twilight to the refraction cutoff.
+ */
+export const BRIDGE_SPAN = [CIVIL_TWILIGHT, UNREFRACTED] as const
 
 /**
  * Evaluates the sun illuminance model of U.S. Naval Observatory Circular 171

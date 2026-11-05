@@ -1,0 +1,169 @@
+.sun-path {
+  display : grid;
+  gap     : 12px;
+}
+
+.vp-doc .sun-path-lede p {
+  margin      : 0;
+  font-size   : 1.125rem;
+  line-height : 1.5;
+  text-wrap   : pretty;
+}
+
+.sun-path-lede strong {
+  font-variant-numeric : lining-nums tabular-nums;
+  font-weight          : 600;
+  white-space          : nowrap;
+}
+
+.sun-path-plot { position: relative; }
+
+.sun-path-drawing {
+  display              : none;
+  overflow             : hidden;
+  width                : 100%;
+  height               : auto;
+  font-family          : var(--vp-font-family-mono);
+  font-variant-numeric : tabular-nums;
+}
+
+.sun-path-drawing:nth-of-type(1) { display: block; }
+
+.sun-path-word, .sun-path-figure { font-size: 11px; }
+
+.sun-path-word { fill: var(--widget-muted); }
+
+.sun-path-figure { fill: var(--widget-ink); }
+
+.sun-path-grid {
+  stroke       : var(--widget-rule);
+  stroke-width : 1;
+}
+
+.sun-path-glow-inner {
+  stop-color   : var(--widget-sky);
+  stop-opacity : 0.55;
+}
+
+.sun-path-glow-outer {
+  stop-color   : var(--widget-sky);
+  stop-opacity : 0;
+}
+
+.sun-path-sun {
+  fill         : var(--widget-sky);
+  stroke       : var(--widget-ink);
+  stroke-width : 1;
+}
+
+.sun-path-ground { fill: var(--widget-sunken); }
+
+.sun-path-horizon {
+  stroke       : var(--widget-ink);
+  stroke-width : 1.2;
+}
+
+.sun-path-curve, .sun-path-hair, .sun-path-wash { vector-effect: non-scaling-stroke; }
+
+.sun-path-curve {
+  fill            : none;
+  stroke          : var(--widget-geometry);
+  stroke-linecap  : round;
+  stroke-linejoin : round;
+  stroke-width    : 2.4;
+  transition      : stroke-width var(--timing-fade) var(--timing-ease);
+}
+
+.sun-path.year .sun-path-curve { stroke-width: 3.4; }
+
+.sun-path-crossing { fill: var(--widget-geometry); }
+
+.sun-path-year {
+  opacity    : 0;
+  transition : opacity var(--timing-fade) var(--timing-ease);
+}
+
+.sun-path.year .sun-path-year { opacity: 1; }
+
+.sun-path-wash {
+  fill         : var(--widget-geometry);
+  fill-opacity : 0.16;
+}
+
+.sun-path-hair {
+  fill            : none;
+  stroke          : color-mix(in oklab, var(--widget-muted) 80%, var(--widget-ground));
+  stroke-linejoin : round;
+  stroke-width    : 1;
+}
+
+.sun-path-month { stroke-dasharray: 2 3; }
+
+.sun-path-grip { visibility: hidden; }
+
+.sun-path[data-down] .sun-path-grip { visibility: visible; }
+
+.sun-path-grip-face {
+  fill         : var(--widget-raised);
+  stroke       : var(--widget-ink);
+  stroke-width : 1.5;
+}
+
+.sun-path-foot {
+  display               : grid;
+  align-items           : start;
+  gap                   : 12px;
+  grid-template-columns : minmax(0, 1fr) auto;
+  padding-top           : 10px;
+  border-top            : 1px solid var(--widget-rule);
+}
+
+.vp-doc .sun-path-note {
+  min-height  : 2lh;
+  margin      : 0;
+  font-size   : 0.9rem;
+  line-height : 1.45;
+}
+
+.sun-path-clock { font-weight: 600; }
+
+.sun-path-track { margin-inline: 8px; }
+
+.widget-tick.sun-path-named {
+  top        : 16px;
+  width      : 2px;
+  height     : 7px;
+  background : var(--widget-geometry);
+  translate  : -50% 0;
+}
+
+.sun-path-months {
+  position      : relative;
+  height        : 1.2em;
+  margin-inline : 8px;
+  color         : var(--widget-muted);
+  font          : 500 0.6rem/1 var(--vp-font-family-mono);
+}
+
+.sun-path-months span {
+  position  : absolute;
+  top       : 0;
+  translate : -50% 0;
+}
+
+@container (width >= 38rem) {
+  .sun-path-drawing:nth-of-type(1) { display: none; }
+
+  .sun-path-drawing:nth-of-type(2) { display: block; }
+}
+
+@container (width < 38rem) {
+  .vp-doc .sun-path-note { min-height: 3lh; }
+
+  .sun-path-foot { grid-template-columns: minmax(0, 1fr); }
+
+  .sun-path-foot .widget-more {
+    grid-row     : 1;
+    justify-self : start;
+  }
+}

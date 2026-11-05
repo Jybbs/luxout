@@ -99,3 +99,32 @@ it('stops a motion under way when told to snap', () => {
 
   expect(write).toHaveBeenCalledExactlyOnceWith(4)
 })
+
+it('runs a motion over the duration it is built with', () => {
+  const settled = vi.fn<() => void>()
+  const glide   = new Glide(0, undefined, settled, vi.fn<(value: number) => void>(), DURATIONS.settle)
+
+  glide.ease(10)
+  frames()
+
+  expect(settled).not.toHaveBeenCalled()
+
+  vi.advanceTimersByTime(DURATIONS.settle)
+
+  expect(settled).toHaveBeenCalledOnce()
+})
+
+it('eases on a move whose `eased` holds, and snaps on one whose `eased` does not', () => {
+  const write = vi.fn<(value: number) => void>()
+  const glide = new Glide(0, undefined, vi.fn<() => void>(), write)
+
+  glide.move(10, true)
+  expect(write).not.toHaveBeenCalled()
+
+  frames()
+  expect(write).toHaveBeenLastCalledWith(10)
+
+  glide.move(4, false)
+  expect(write).toHaveBeenLastCalledWith(4)
+  expect(glide.goal).toBe(4)
+})

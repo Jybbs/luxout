@@ -3,10 +3,14 @@ import { fireEvent }                                        from '@testing-libra
 import { type Mock, afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { effectScope }                                      from 'vue'
 
-import { PAUSES }     from '../../../lib/motion/timing.ts'
-import { PlotSlider } from '../../../theme/controls/plot-slider.ts'
+import { PAUSES }                  from '../../../lib/motion/timing.ts'
+import { PlotSlider, shareAcross } from '../../../theme/controls/plot-slider.ts'
 
 const AT = 40
+
+function restless(): PlotSlider {
+  return new PlotSlider({ count: 10, page: 3, position: () => AT, set: () => undefined, value: () => 5 })
+}
 
 function slider(value = 5): {
   capture : Mock<HTMLElement['setPointerCapture']>
@@ -30,12 +34,10 @@ function slider(value = 5): {
   document.body.append(element)
   element.tabIndex          = 0
   element.setPointerCapture = capture
-  element.addEventListener('blur', instance.onBlur)
-  element.addEventListener('keydown', instance.onKeydown)
-  element.addEventListener('pointerdown', instance.onPointerdown)
-  element.addEventListener('pointerleave', instance.onPointerleave)
-  element.addEventListener('pointermove', instance.onPointermove)
-  element.addEventListener('pointerup', instance.onPointerup)
+
+  for (const [name, listener] of Object.entries(instance.listeners)) {
+    element.addEventListener(name.slice(2).toLowerCase(), listener as EventListener)
+  }
 
   return { capture, element, rest, set }
 }
@@ -66,14 +68,14 @@ it.each([
 })
 
 it.each([
-  { expected: 9, key: 'PageUp', value: 9 },
-  { expected: 0, key: 'PageDown', value: 0 }
-])('holds the value inside the range on $key at $value', ({ expected, key, value }) => {
+  { key: 'PageUp', value: 9 },
+  { key: 'PageDown', value: 0 }
+])('holds the value inside the range on $key at $value', ({ key, value }) => {
   const { element, set } = slider(value)
 
   fireEvent.keyDown(element, { key })
 
-  expect(set).toHaveBeenCalledExactlyOnceWith(expected, true)
+  expect(set).toHaveBeenCalledExactlyOnceWith(value, true)
 })
 
 it('leaves every other key to the browser', () => {
@@ -207,4 +209,65 @@ it('cancels every pause once its scope stops', () => {
 
   expect(rest).not.toHaveBeenCalled()
   expect(set).not.toHaveBeenCalled()
+})
+
+it('does nothing on a blur or a leave where a slider holds no resting value', () => {
+  const { listeners } = restless()
+  const element       = document.createElement('div')
+
+  expect(() => {
+    listeners.onBlur()
+    listeners.onPointerleave({ currentTarget: element } as unknown as PointerEvent)
+    vi.advanceTimersByTime(PAUSES.leave)
+  }).not.toThrow()
+})
+
+it('ends a drag when the pointer is cancelled', () => {
+  const { element, set } = slider()
+
+  fireEvent.pointerDown(element, { button: 0, clientX: AT, pointerId: 1 })
+  fireEvent.pointerCancel(element, { pointerId: 1 })
+  fireEvent.pointerMove(element, { clientX: AT, pointerType: 'touch' })
+
+  expect(set).toHaveBeenCalledOnce()
+})
+
+it('builds the attributes of an ARIA slider, reading its maximum from its count', () => {
+  const instance = restless()
+
+  expect(instance.attributes('Some value', 4, 'four')).toEqual({
+    'aria-label'     : 'Some value',
+    'aria-valuemax'  : 9,
+    'aria-valuemin'  : 0,
+    'aria-valuenow'  : 4,
+    'aria-valuetext' : 'four',
+    role             : 'slider',
+    tabindex         : 0,
+    ...instance.listeners
+  })
+})
+
+it.each([
+  { clientX: 250, expected: 0.5, name: 'the middle' },
+  { clientX: 0, expected: 0, name: 'a pointer before the left edge' },
+  { clientX: 900, expected: 1, name: 'a pointer past the right edge' }
+])('finds the share across the whole element at $name', ({ clientX, expected }) => {
+  const element = document.createElement('div')
+
+  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ left: 100, width: 300 } as DOMRect)
+
+  expect(shareAcross(element, clientX)).toBe(expected)
+})
+
+it.each([
+  { clientX: 75, expected: 0, name: 'the plot’s left edge' },
+  { clientX: 250, expected: 0.5, name: 'the plot’s middle' },
+  { clientX: 425, expected: 1, name: 'the plot’s right edge' },
+  { clientX: 480, expected: 1, name: 'the margin past the plot' }
+])('finds the share across an inset plot at $name', ({ clientX, expected }) => {
+  const element = document.createElement('div')
+
+  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 500 } as DOMRect)
+
+  expect(shareAcross(element, clientX, { left: 150, right: 850, width: 1000 })).toBe(expected)
 })

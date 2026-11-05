@@ -1,12 +1,11 @@
-import { clamp } from '@vueuse/core'
 import { type PropType, type ShallowRef, type VNode, defineComponent, h, onMounted, shallowRef } from 'vue'
 
-import { data }       from '../../../lib/daylight/daylight.data.ts'
-import type * as gap  from '../../../lib/daylight/gap.ts'
-import { Glide }      from '../../../lib/motion/glide.ts'
-import { Announcer }  from '../../controls/announcer.ts'
-import { PlotSlider } from '../../controls/plot-slider.ts'
-import { gapDrawing } from './gap-drawing.ts'
+import { data }                    from '../../../lib/daylight/daylight.data.ts'
+import type * as gap               from '../../../lib/daylight/gap.ts'
+import { Glide }                   from '../../../lib/motion/glide.ts'
+import { Announcer }               from '../../controls/announcer.ts'
+import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
+import { gapDrawing }              from './gap-drawing.ts'
 
 import './styles/the-gap.css'
 
@@ -46,11 +45,7 @@ class GapPlot {
    * Finds the minute under a pointer at `clientX`, clamped to the span drawn.
    */
   minuteAt(clientX: number): number {
-    const { left, right, width }        = this.#layout
-    const { left: start, width: drawn } = this.#svg.getBoundingClientRect()
-    const along                         = ((clientX - start) * width / drawn - left) / (right - left)
-
-    return Math.round(clamp(along, 0, 1) * (this.#moves.length - 1))
+    return Math.round(shareAcross(this.#svg, clientX, this.#layout) * (this.#moves.length - 1))
   }
 
   place(minute: number): void {
@@ -89,9 +84,7 @@ class Pointer {
       value    : () => this.#glide.goal,
       set      : (value, eased) => {
         this.root.value!.toggleAttribute('data-pointing', true)
-
-        if (eased) this.#glide.ease(value)
-        else this.#glide.snap(value)
+        this.#glide.move(value, eased)
       }
     })
 
@@ -104,7 +97,7 @@ class Pointer {
     this.#plots = Array.from(root.querySelectorAll<SVGSVGElement>('.the-gap-drawing'), (svg, index) =>
       new GapPlot(data.gap.layouts[index]!, svg)
     )
-    this.#handle = root.querySelector<HTMLElement>('[role=slider]')!
+    this.#handle = root.querySelector('.widget-slider')!
   }
 
   #rest(): void {
@@ -173,28 +166,18 @@ const GapTable = defineComponent({
 export const TheGap = defineComponent({
   name: 'TheGap',
   setup() {
-    const pointer    = new Pointer()
-    const { slider } = pointer
+    const pointer = new Pointer()
 
     return () => h('div', { class: 'widget the-gap', ref: pointer.root }, [
       h('div', { class: 'the-gap-plot' }, [
         data.gap.layouts.map((layout) => gapDrawing(layout, data.gap, cursor(layout))),
         h('div', {
-          'aria-label'     : 'Minute of the late morning',
-          'aria-valuemax'  : data.gap.minutes.length - 1,
-          'aria-valuemin'  : 0,
-          'aria-valuenow'  : data.gap.rest,
-          'aria-valuetext' : data.gap.minutes[data.gap.rest]!.reading,
-          class            : 'the-gap-slider',
-          onBlur           : slider.onBlur,
-          onKeydown        : slider.onKeydown,
-          onPointercancel  : slider.onPointerup,
-          onPointerdown    : slider.onPointerdown,
-          onPointerleave   : slider.onPointerleave,
-          onPointermove    : slider.onPointermove,
-          onPointerup      : slider.onPointerup,
-          role             : 'slider',
-          tabindex         : 0
+          class: 'widget-slider',
+          ...pointer.slider.attributes(
+            'Minute of the late morning',
+            data.gap.rest,
+            data.gap.minutes[data.gap.rest]!.reading
+          )
         })
       ]),
       h('div', { class: 'the-gap-below' }, [

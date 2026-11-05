@@ -1,0 +1,67 @@
+<svg aria-label="The sun’s height through October 4 as one curve across the clock, rising over the horizon at 06:45, highest at 43.1° at 12:33, and setting at 18:21, with a slider across the year that draws the chosen day as the one heavy line with the sky beneath it washed, every other curve a hairline." class="sun-path-drawing" role="img" viewBox="0 0 620 236" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="sun-path-glow"><stop class="sun-path-glow-inner" offset="0.35"></stop><stop class="sun-path-glow-outer" offset="1"></stop></radialGradient></defs><path class="sun-path-grid" d="M30 138.7H612M30 79.3H612M30 20H612"></path><svg height="178" preserveAspectRatio="none" viewBox="0 -90 1440 90" width="582" x="30" y="20" class="sun-path-year"><path class="sun-path-wash" d="M0,51.3L30,52L60,51.5L90,49.9L120,47.4L150,44L180,39.9L210,35.4L240,30.5L270,25.4L300,20L330,14.6L360,9.1L390,3.5L420,-2L450,-7.4L480,-12.7L510,-17.9L540,-22.8L570,-27.5L600,-31.7L630,-35.5L660,-38.6L690,-41L720,-42.5L750,-43.1L780,-42.7L810,-41.3L840,-39.1L870,-36.1L900,-32.4L930,-28.3L960,-23.7L990,-18.8L1020,-13.7L1050,-8.3L1080,-2.9L1110,2.6L1140,8.1L1170,13.7L1200,19.2L1230,24.5L1260,29.7L1290,34.7L1320,39.3L1350,43.5L1380,47.1L1410,49.8L1440,51.7"></path><path class="sun-path-hair sun-path-month" d="M0,67.5L30,66.4L60,63.7L90,60L120,55.5L150,50.5L180,45.3L210,39.9L240,34.4L270,28.8L300,23.3L330,17.8L360,12.4L390,7.2L420,2L450,-2.9L480,-7.5L510,-11.8L540,-15.8L570,-19.3L600,-22.4L630,-24.8L660,-26.5L690,-27.6L720,-27.8L750,-27.3L780,-26.1L810,-24.2L840,-21.6L870,-18.4L900,-14.7L930,-10.7L960,-6.2L990,-1.5L1020,3.5L1050,8.6L1080,13.9L1110,19.3L1140,24.8L1170,30.4L1200,35.9L1230,41.4L1260,46.7L1290,51.9L1320,56.7L1350,61L1380,64.5L1410,66.7L1440,67.3"></path><path class="sun-path-hair sun-path-month" d="M0,58.2L30,57.4L60,55.4L90,52.3L120,48.5L150,44L180,39.2L210,34L240,28.7L270,23.2L300,17.7L330,12.2L360,6.6L390,1.2L420,-4.2L450,-9.3L480,-14.3L510,-19L540,-23.4L570,-27.3L600,-30.7L630,-33.5L660,-35.6L690,-36.9L720,-37.3L750,-36.8L780,-35.4L810,-33.2L840,-30.3L870,-26.8L900,-22.8L930,-18.4L960,-13.7L990,-8.7L1020,-3.5L1050,1.9L1080,7.3L1110,12.8L1140,18.4L1170,23.9L1200,29.3L1230,34.6L1260,39.7L1290,44.5L1320,48.8L1350,52.6L1380,55.5L1410,57.3L1440,57.8"></path><path class="sun-path-hair" d="M0,46.2L30,47.5L60,47.8L90,46.9L120,45.1L150,42.4L180,38.9L210,34.8L240,30.3L270,25.4L300,20.3L330,15L360,9.6L390,4.1L420,-1.5L450,-7L480,-12.5L510,-17.9L540,-23.1L570,-28.1L600,-32.8L630,-37L660,-40.8L690,-43.8L720,-46.1L750,-47.4L780,-47.6L810,-46.8L840,-45L870,-42.3L900,-38.8L930,-34.8L960,-30.3L990,-25.4L1020,-20.3L1050,-15L1080,-9.6L1110,-4.1L1140,1.5L1170,7L1200,12.5L1230,17.8L1260,23L1290,28L1320,32.6L1350,36.9L1380,40.6L1410,43.7L1440,45.9"></path><path class="sun-path-hair sun-path-month" d="M0,34.9L30,35.7L60,35.6L90,34.7L120,33L150,30.5L180,27.3L210,23.6L240,19.4L270,14.9L300,10.1L330,5L360,-0.3L390,-5.7L420,-11.1L450,-16.7L480,-22.2L510,-27.7L540,-33.1L570,-38.4L600,-43.4L630,-48.1L660,-52.3L690,-55.8L720,-58.3L750,-59.5L780,-59.4L810,-58L840,-55.4L870,-51.8L900,-47.5L930,-42.8L960,-37.8L990,-32.5L1020,-27L1050,-21.5L1080,-16L1110,-10.5L1140,-5L1170,0.4L1200,5.6L1230,10.6L1260,15.4L1290,19.9L1320,23.9L1350,27.5L1380,30.6L1410,33L1440,34.6"></path><path class="sun-path-hair sun-path-month" d="M0,26.8L30,27.4L60,27.3L90,26.4L120,24.8L150,22.6L180,19.7L210,16.3L240,12.4L270,8.2L300,3.6L330,-1.3L360,-6.3L390,-11.6L420,-16.9L450,-22.4L480,-27.9L510,-33.4L540,-39L570,-44.4L600,-49.7L630,-54.7L660,-59.4L690,-63.4L720,-66.3L750,-67.8L780,-67.6L810,-65.6L840,-62.4L870,-58.2L900,-53.4L930,-48.3L960,-42.9L990,-37.5L1020,-31.9L1050,-26.4L1080,-20.9L1110,-15.5L1140,-10.2L1170,-5L1200,0L1230,4.8L1260,9.3L1290,13.4L1320,17.1L1350,20.4L1380,23.1L1410,25.2L1440,26.6"></path><path class="sun-path-hair" d="M0,23.4L30,24.1L60,24.1L90,23.4L120,22L150,20L180,17.3L210,14.1L240,10.4L270,6.4L300,2L330,-2.7L360,-7.6L390,-12.7L420,-18L450,-23.4L480,-28.9L510,-34.4L540,-39.9L570,-45.4L600,-50.9L630,-56.1L660,-61L690,-65.4L720,-68.8L750,-70.8L780,-70.9L810,-69L840,-65.6L870,-61.3L900,-56.5L930,-51.2L960,-45.8L990,-40.3L1020,-34.8L1050,-29.3L1080,-23.8L1110,-18.4L1140,-13.1L1170,-8L1200,-3.1L1230,1.7L1260,6.1L1290,10.2L1320,13.9L1350,17.1L1380,19.8L1410,21.9L1440,23.3"></path><path class="sun-path-hair sun-path-month" d="M0,26.1L30,27L60,27.1L90,26.5L120,25.2L150,23.1L180,20.5L210,17.2L240,13.5L270,9.4L300,5L330,0.2L360,-4.8L390,-9.9L420,-15.3L450,-20.7L480,-26.2L510,-31.7L540,-37.2L570,-42.7L600,-48.1L630,-53.2L660,-58L690,-62.2L720,-65.6L750,-67.6L780,-67.9L810,-66.5L840,-63.6L870,-59.7L900,-55.1L930,-50L960,-44.7L990,-39.3L1020,-33.8L1050,-28.2L1080,-22.7L1110,-17.2L1140,-11.9L1170,-6.6L1200,-1.6L1230,3.3L1260,7.9L1290,12.1L1320,16L1350,19.4L1380,22.3L1410,24.6L1440,26.3"></path><path class="sun-path-hair sun-path-month" d="M0,34.4L30,35.4L60,35.5L90,34.7L120,33.1L150,30.7L180,27.7L210,24L240,20L270,15.5L300,10.7L330,5.7L360,0.5L390,-4.9L420,-10.4L450,-15.9L480,-21.4L510,-26.9L540,-32.4L570,-37.6L600,-42.7L630,-47.4L660,-51.7L690,-55.3L720,-57.9L750,-59.4L780,-59.5L810,-58.2L840,-55.7L870,-52.3L900,-48.1L930,-43.4L960,-38.4L990,-33.1L1020,-27.7L1050,-22.2L1080,-16.7L1110,-11.1L1140,-5.6L1170,-0.2L1200,5L1230,10.1L1260,14.9L1290,19.5L1320,23.7L1350,27.4L1380,30.5L1410,33L1440,34.8"></path><path class="sun-path-hair" d="M0,46.5L30,47.3L60,47L90,45.7L120,43.4L150,40.4L180,36.6L210,32.4L240,27.7L270,22.7L300,17.5L330,12.1L360,6.7L390,1.1L420,-4.4L450,-9.9L480,-15.3L510,-20.6L540,-25.7L570,-30.6L600,-35L630,-39.1L660,-42.5L690,-45.2L720,-47L750,-47.7L780,-47.4L810,-46.1L840,-43.8L870,-40.7L900,-36.9L930,-32.6L960,-27.9L990,-22.9L1020,-17.7L1050,-12.3L1080,-6.8L1110,-1.3L1140,4.3L1170,9.8L1200,15.2L1230,20.5L1260,25.6L1290,30.5L1320,35L1350,39L1380,42.4L1410,45.1L1440,46.9"></path><path class="sun-path-hair" d="M0,51.3L30,52L60,51.5L90,49.9L120,47.4L150,44L180,39.9L210,35.4L240,30.5L270,25.4L300,20L330,14.6L360,9.1L390,3.5L420,-2L450,-7.4L480,-12.7L510,-17.9L540,-22.8L570,-27.5L600,-31.7L630,-35.5L660,-38.6L690,-41L720,-42.5L750,-43.1L780,-42.7L810,-41.3L840,-39.1L870,-36.1L900,-32.4L930,-28.3L960,-23.7L990,-18.8L1020,-13.7L1050,-8.3L1080,-2.9L1110,2.6L1140,8.1L1170,13.7L1200,19.2L1230,24.5L1260,29.7L1290,34.7L1320,39.3L1350,43.5L1380,47.1L1410,49.8L1440,51.7"></path><path class="sun-path-hair sun-path-month" d="M0,57.7L30,58.3L60,57.6L90,55.6L120,52.6L150,48.8L180,44.4L210,39.5L240,34.4L270,29.1L300,23.6L330,18.1L360,12.5L390,7L420,1.6L450,-3.7L480,-8.9L510,-13.9L540,-18.6L570,-22.9L600,-26.8L630,-30.2L660,-33L690,-35.1L720,-36.4L750,-36.8L780,-36.3L810,-34.9L840,-32.8L870,-29.9L900,-26.5L930,-22.5L960,-18.1L990,-13.4L1020,-8.4L1050,-3.2L1080,2.1L1110,7.6L1140,13.1L1170,18.6L1200,24.2L1230,29.6L1260,35L1290,40.1L1320,44.9L1350,49.4L1380,53.2L1410,56.1L1440,58.1"></path><path class="sun-path-hair sun-path-month" d="M0,66.7L30,64.2L60,60.6L90,56.2L120,51.3L150,46.1L180,40.8L210,35.3L240,29.7L270,24.2L300,18.7L330,13.3L360,8L390,2.9L420,-2L450,-6.7L480,-11.1L510,-15.1L540,-18.7L570,-21.8L600,-24.3L630,-26.1L660,-27.2L690,-27.6L720,-27.2L750,-26.1L780,-24.3L810,-21.8L840,-18.7L870,-15.1L900,-11.1L930,-6.7L960,-2L990,2.9L1020,8L1050,13.3L1080,18.7L1110,24.2L1140,29.8L1170,35.3L1200,40.8L1230,46.2L1260,51.4L1290,56.3L1320,60.7L1350,64.4L1380,66.9L1410,67.8L1440,66.9"></path><path class="sun-path-hair" d="M0,70.7L30,68.6L60,65.1L90,60.7L120,55.8L150,50.6L180,45.1L210,39.6L240,34.1L270,28.6L300,23.1L330,17.7L360,12.5L390,7.3L420,2.4L450,-2.2L480,-6.6L510,-10.7L540,-14.3L570,-17.5L600,-20.1L630,-22.1L660,-23.5L690,-24.1L720,-24.1L750,-23.3L780,-21.8L810,-19.7L840,-16.9L870,-13.7L900,-10L930,-5.9L960,-1.4L990,3.3L1020,8.2L1050,13.4L1080,18.6L1110,24L1140,29.5L1170,35.1L1200,40.6L1230,46.1L1260,51.5L1290,56.7L1320,61.5L1350,65.8L1380,69.1L1410,70.9L1440,70.7"></path></svg><svg height="178" preserveAspectRatio="none" viewBox="0 -90 1440 90" width="582" x="30" y="20"><path class="sun-path-curve" d="M0,51.3L30,52L60,51.5L90,49.9L120,47.4L150,44L180,39.9L210,35.4L240,30.5L270,25.4L300,20L330,14.6L360,9.1L390,3.5L420,-2L450,-7.4L480,-12.7L510,-17.9L540,-22.8L570,-27.5L600,-31.7L630,-35.5L660,-38.6L690,-41L720,-42.5L750,-43.1L780,-42.7L810,-41.3L840,-39.1L870,-36.1L900,-32.4L930,-28.3L960,-23.7L990,-18.8L1020,-13.7L1050,-8.3L1080,-2.9L1110,2.6L1140,8.1L1170,13.7L1200,19.2L1230,24.5L1260,29.7L1290,34.7L1320,39.3L1350,43.5L1380,47.1L1410,49.8L1440,51.7"></path></svg><g class="sun-path-cursor" transform="translate(272.5 0)"><g class="sun-path-height" transform="translate(0 135.3)"><circle fill="url(#sun-path-glow)" r="26"></circle><circle class="sun-path-sun" r="9"></circle></g></g><rect class="sun-path-ground" height="38" width="620" y="198"></rect><path class="sun-path-horizon" d="M0 198H620"></path><g class="sun-path-rise" transform="translate(193.7 0)"><circle class="sun-path-crossing" cy="198" r="3.5"></circle><text class="sun-path-figure" dominant-baseline="central" text-anchor="middle" x="0" y="211">Sunrise 06:45</text></g><g class="sun-path-set" transform="translate(475 0)"><circle class="sun-path-crossing" cy="198" r="3.5"></circle><text class="sun-path-figure" dominant-baseline="central" text-anchor="middle" x="0" y="211">Sunset 18:21</text></g><circle class="sun-path-crossing sun-path-top" r="3.5" transform="translate(334.3 112.8)"></circle><g class="sun-path-peak" transform="translate(334.3 100.8)"><text class="sun-path-figure" dominant-baseline="central" text-anchor="middle" x="0" y="0">43.1° at 12:33</text></g><text class="sun-path-word" dominant-baseline="central" text-anchor="end" x="25" y="138.7">30°</text><text class="sun-path-word" dominant-baseline="central" text-anchor="end" x="25" y="79.3">60°</text><text class="sun-path-word" dominant-baseline="central" text-anchor="end" x="25" y="20">90°</text><text class="sun-path-word" dominant-baseline="central" text-anchor="end" x="612" y="10">Straight overhead</text><text class="sun-path-word" dominant-baseline="central" x="30" y="188">Horizon</text><text class="sun-path-word" dominant-baseline="central" text-anchor="middle" x="30" y="228">00</text><text class="sun-path-word" dominant-baseline="central" text-anchor="middle" x="175.5" y="228">06</text><text class="sun-path-word" dominant-baseline="central" text-anchor="middle" x="321" y="228">12</text><text class="sun-path-word" dominant-baseline="central" text-anchor="middle" x="466.5" y="228">18</text><text class="sun-path-word" dominant-baseline="central" text-anchor="middle" x="612" y="228">24</text><style>.sun-path-drawing {
+  background           : #f2f1ee;
+  font-family          : ui-monospace, monospace;
+  font-variant-numeric : tabular-nums;
+}
+
+.sun-path-year { opacity: 0; }
+
+.sun-path-word, .sun-path-figure { font-size: 11px; }
+
+.sun-path-word { fill: #5c5c58; }
+
+.sun-path-figure { fill: #1a1a1a; }
+
+.sun-path-grid {
+  stroke       : #d5d4d0;
+  stroke-width : 1;
+}
+
+.sun-path-glow-inner {
+  stop-color   : #e8c840;
+  stop-opacity : 0.55;
+}
+
+.sun-path-glow-outer {
+  stop-color   : #e8c840;
+  stop-opacity : 0;
+}
+
+.sun-path-sun {
+  fill         : #e8c840;
+  stroke       : #1a1a1a;
+  stroke-width : 1;
+}
+
+.sun-path-ground { fill: #e7e6e2; }
+
+.sun-path-horizon {
+  stroke       : #1a1a1a;
+  stroke-width : 1.2;
+}
+
+.sun-path-curve {
+  fill            : none;
+  stroke          : #8a80cb;
+  stroke-linecap  : round;
+  stroke-linejoin : round;
+  stroke-width    : 2.4;
+  vector-effect   : non-scaling-stroke;
+}
+
+.sun-path-crossing { fill: #8a80cb; }
+
+@media (prefers-color-scheme: dark) {
+  .sun-path-drawing { background: #1a1a1a; }
+
+  .sun-path-word { fill: #a6a6a1; }
+
+  .sun-path-figure { fill: #f2f1ee; }
+
+  .sun-path-grid { stroke: #3d3d3b; }
+
+  .sun-path-sun, .sun-path-horizon { stroke: #f2f1ee; }
+
+  .sun-path-ground { fill: #262624; }
+}
+</style></svg>

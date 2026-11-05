@@ -1,3 +1,5 @@
+import { clamp } from '@vueuse/core'
+
 /**
  * The length in milliseconds of each transition, which falls to `1` under
  * `prefers-reduced-motion`.
@@ -16,6 +18,15 @@ const REDUCED       = '(prefers-reduced-motion: reduce)'
  */
 export function motionReduced(): boolean {
   return matchMedia(REDUCED).matches
+}
+
+/**
+ * Eases `place` along smoothstep, holding at 0 below the span and 1 above it.
+ */
+export function smoothstep(place: number): number {
+  const at = clamp(place, 0, 1)
+
+  return at * at * (3 - 2 * at)
 }
 
 /**

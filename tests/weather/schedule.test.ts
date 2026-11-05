@@ -5,13 +5,13 @@ import { fc }                    from '@fast-check/vitest'
 import type { Logging }          from 'homebridge'
 import { type Mock, expect, vi } from 'vitest'
 
-import type { Reading }                from '../../src/sensor/reading.js'
-import { ForecastClient }              from '../../src/weather/client.js'
-import { FetchSchedule }               from '../../src/weather/schedule.js'
-import { WindowStore }                 from '../../src/weather/store.js'
-import { logging, test as homebridge } from '../common/homebridge.js'
-import { delhi }                       from '../common/places.js'
-import { spaced }                      from '../common/window.js'
+import type { Reading }                   from '../../src/sensor/reading.js'
+import { ForecastClient }                 from '../../src/weather/client.js'
+import { FetchSchedule, SCHEDULE_TUNING } from '../../src/weather/schedule.js'
+import { WindowStore }                    from '../../src/weather/store.js'
+import { logging, test as homebridge }    from '../common/homebridge.js'
+import { delhi }                          from '../common/places.js'
+import { spaced }                         from '../common/window.js'
 
 /**
  * Stands in for the `fetch` a schedule requests through, beside the instant
@@ -173,6 +173,22 @@ test.for([
     await vi.advanceTimersByTimeAsync(MINUTE + 5000)
 
     expect(sent).toEqual(expected)
+  }
+)
+
+test(
+  'waits the default tuning’s retry ahead of the first retry',
+  async ({ log, reading, shutdown, store }) => {
+    const { fetch, sent } = served(refusal)
+
+    await scheduled(fetch, log, reading, store).start(shutdown.signal)
+    await vi.advanceTimersByTimeAsync(SCHEDULE_TUNING.retry - 1)
+
+    expect(sent).toHaveLength(1)
+
+    await vi.advanceTimersByTimeAsync(1)
+
+    expect(sent).toHaveLength(2)
   }
 )
 

@@ -1,10 +1,10 @@
 import { expect, it, vi } from 'vitest'
 
-import { Place }          from '../../src/config/place.js'
-import { ForecastClient } from '../../src/weather/client.js'
-import { answering }      from '../common/fetch.js'
-import { parsed }         from '../common/window.js'
-import forecast           from './fixtures/forecast.json' with { type: 'json' }
+import { Place }                          from '../../src/config/place.js'
+import { ForecastClient, REQUEST_TUNING } from '../../src/weather/client.js'
+import { answering }                      from '../common/fetch.js'
+import { parsed }                         from '../common/window.js'
+import forecast                           from './fixtures/forecast.json' with { type: 'json' }
 
 const ADDRESS = 'https://api.open-meteo.com/v1/forecast'
               + '?forecast_minutely_15=24&latitude=42.36&longitude=-71.06'
@@ -36,6 +36,14 @@ it('sends each request through the global fetch unless it is given another', asy
   await new ForecastClient().fetch(place)
 
   expect(fetch).toHaveBeenCalledOnce()
+})
+
+it('times each request out after the default tuning’s limit', async () => {
+  const timeout = vi.spyOn(AbortSignal, 'timeout')
+
+  await new ForecastClient(answering(Response.json(forecast))).fetch(place)
+
+  expect(timeout).toHaveBeenCalledExactlyOnceWith(REQUEST_TUNING.timeout)
 })
 
 it('reads the steps and the timeout from the tuning record it receives', async () => {

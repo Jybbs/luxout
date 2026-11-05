@@ -35,5 +35,13 @@ export const SECTIONS: readonly Section[] = [
           + 'without it.',
     label : 'Settings',
     slug  : 'settings'
+  },
+  {
+    asks  : 'Where does the reading come from, and where does it stop?',
+    holds : 'This section covers the altitude of the sun, the clear-sky curve, the cloud factor, the '
+          + 'forecast window, what the reading uses while fetches fail, the limits of an estimate, and the '
+          + 'bibliography that credits its sources.',
+    label : 'Estimate',
+    slug  : 'estimate'
   }
 ]

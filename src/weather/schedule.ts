@@ -9,9 +9,9 @@ import type { ForecastClient } from './client.js'
 import { FetchFailure }        from './failure.js'
 import type { WindowStore }    from './store.js'
 
-type Tuning = typeof TUNING
+type Tuning = typeof SCHEDULE_TUNING
 
-const TUNING = { retry: 60_000 }  // The milliseconds a failed fetch waits before its first retry
+export const SCHEDULE_TUNING = { retry: 60_000 }  // The milliseconds before a failed fetch's first retry
 
 /**
  * Fetches the forecast for a place each hour, at a second and a minute drawn
@@ -37,7 +37,7 @@ export class FetchSchedule {
     reading : Pick<Reading, 'use'>,
     store   : WindowStore,
     random  : (max: number) => number = randomInt,
-    tuning  : Tuning                  = TUNING
+    tuning  : Tuning                  = SCHEDULE_TUNING
   ) {
     this.#client = client
     this.#fail   = (error: unknown) => log.error('Outside could not refresh the forecast: %s', error)

@@ -35,3 +35,14 @@ export const test = base.extend('apps', (): App[] => [])
       return host
     }
   })
+
+/**
+ * Lays `plot` out as `rect` and lets `slider` take a pointer, moving the clock
+ * past the render, since Vue drops an event no later than the moment its
+ * listener attached.
+ */
+export function pressable(slider: HTMLElement, plot: Element, rect: Partial<DOMRect>): void {
+  slider.setPointerCapture = vi.fn<HTMLElement['setPointerCapture']>()
+  vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue(rect as DOMRect)
+  vi.advanceTimersByTime(1)
+}

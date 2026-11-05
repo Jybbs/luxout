@@ -1,16 +1,12 @@
 import { type VNode, h } from 'vue'
 
-import type * as gap from '../../../lib/daylight/gap.ts'
-import { tenth }     from '../../../lib/daylight/tenth.ts'
-
-interface WordStyle {
-  readonly anchor? : 'end' | 'middle'
-  readonly name?   : string
-  readonly size?   : number
-}
+import type * as gap              from '../../../lib/daylight/gap.ts'
+import { tenth }                  from '../../../lib/daylight/tenth.ts'
+import { plotDrawing, plotWords } from '../../controls/plot-marks.ts'
 
 const CHIP_CHARACTER = 7.1  // Width of one letter of a chip's label, in the drawing's units
 const CHIP_PADDING   = 18
+const word           = plotWords('the-gap-word')
 
 function clockWords({ height, left, right, x }: gap.GapLayout, { minutes, noon, span }: gap.Gap): VNode[] {
   const y = height - 8
@@ -50,26 +46,6 @@ function lane(
   ]
 }
 
-function word(
-  text                                    : number | string,
-  x                                       : number,
-  y                                       : number,
-  { anchor, name = 'the-gap-word', size } : WordStyle = {}
-): VNode {
-  return h(
-    'text',
-    {
-      class               : name,
-      'dominant-baseline' : 'central',
-      'font-size'         : size,
-      'text-anchor'       : anchor,
-      x                   : x,
-      y                   : tenth(y)
-    },
-    text
-  )
-}
-
 /**
  * Draws the reading over the gap with the two sensors as lanes on one clock,
  * each switch ringed and each lane's count set large at its end, at the
@@ -79,15 +55,9 @@ export function gapDrawing(layout: gap.GapLayout, sample: gap.Gap, ...cursor: re
   const { height, left, levelX, offY, onY, path, right, ties, width } = layout
 
   const { offBelow, onAt } = sample.sensors[1]
-  const frame              = {
-    'aria-label' : [sample.label, ...sample.sensors.map(({ label }) => label)].join('. '),
-    class        : 'the-gap-drawing',
-    role         : 'img',
-    viewBox      : `0 0 ${width} ${height}`,
-    xmlns        : 'http://www.w3.org/2000/svg'
-  }
+  const label              = [sample.label, ...sample.sensors.map((sensor) => sensor.label)].join('. ')
 
-  return h('svg', frame, [
+  return plotDrawing('the-gap-drawing', label, width, height, [
     h('rect', {
       class  : 'the-gap-band',
       height : tenth(offY - onY),

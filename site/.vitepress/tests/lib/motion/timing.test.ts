@@ -47,3 +47,14 @@ it('reports the reader’s preference', () => {
 it('keeps a pause out of the durations reduced motion shortens', () => {
   expect(Object.keys(timing.PAUSES).filter((name) => name in timing.DURATIONS)).toEqual([])
 })
+
+it.each([
+  { expected: 0, place: -1 },
+  { expected: 0, place: 0 },
+  { expected: 0.15625, place: 0.25 },
+  { expected: 0.5, place: 0.5 },
+  { expected: 1, place: 1 },
+  { expected: 1, place: 2 }
+])('eases $place along smoothstep to $expected', ({ expected, place }) => {
+  expect(timing.smoothstep(place)).toBe(expected)
+})

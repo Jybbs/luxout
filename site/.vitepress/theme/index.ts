@@ -1,6 +1,6 @@
-import { type Theme, inBrowser } from 'vitepress'
-import DefaultTheme              from 'vitepress/theme-without-fonts'
-import type { Component }        from 'vue'
+import { type Theme, inBrowser }                from 'vitepress'
+import DefaultTheme                             from 'vitepress/theme-without-fonts'
+import { type Component, defineAsyncComponent } from 'vue'
 
 import { writeTiming }       from '../lib/motion/timing.ts'
 import type { WidgetName }   from '../lib/widgets/placements.ts'
@@ -16,7 +16,27 @@ const WIDGETS = {
   LocationSearch    : LocationSearch,
   LuxScale          : LuxScale,
   SettingsReference : SettingsReference,
-  TheGap            : TheGap
+  TheGap            : TheGap,
+
+  DayEstimate: defineAsyncComponent(async () =>
+    (await import('./components/daylight/day-estimate.ts')).DayEstimate
+  ),
+
+  SunPath: defineAsyncComponent(async () =>
+    (await import('./components/daylight/sun-path.ts')).SunPath
+  ),
+
+  TheCloudFactor: defineAsyncComponent(async () =>
+    (await import('./components/daylight/the-cloud-factor.ts')).TheCloudFactor
+  ),
+
+  ThreeFactors: defineAsyncComponent(async () =>
+    (await import('./components/daylight/three-factors.ts')).ThreeFactors
+  ),
+
+  TwilightBridge: defineAsyncComponent(async () =>
+    (await import('./components/daylight/twilight-bridge.ts')).TwilightBridge
+  )
 } satisfies Record<WidgetName, Component>
 
 export default {

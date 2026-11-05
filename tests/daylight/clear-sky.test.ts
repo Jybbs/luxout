@@ -1,9 +1,9 @@
 import { fc, test }   from '@fast-check/vitest'
 import { expect, it } from 'vitest'
 
-import { ClearSky } from '../../src/daylight/clear-sky.js'
-import { Sun }      from '../../src/daylight/sun.js'
-import { boston }   from '../common/places.js'
+import { BRIDGE_SPAN, ClearSky } from '../../src/daylight/clear-sky.js'
+import { Sun }                   from '../../src/daylight/sun.js'
+import { boston }                from '../common/places.js'
 
 /**
  * The sun illuminance that U.S. Naval Observatory Circular 171 prints under sky
@@ -54,6 +54,10 @@ it.each([
 ])('meets the circular’s $lux lux without a step $edge', ({ altitude, lux }) => {
   expect(sky.illuminance(altitude) / lux).toBeCloseTo(1, 2)
   expect(sky.illuminance(altitude - 1e-9) / sky.illuminance(altitude + 1e-9)).toBeCloseTo(1, 6)
+})
+
+it('names the span the curve bridges, from civil twilight’s lower limit to the refraction cutoff', () => {
+  expect(BRIDGE_SPAN).toEqual([-6, -5 / 6])
 })
 
 test.prop([fc.double({ max: -5 / 6, maxExcluded: true, min: -6, minExcluded: true, noNaN: true })])(
