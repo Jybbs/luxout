@@ -66,7 +66,7 @@ it.each([
   expect(Math.abs(changed.peak.minute - after.peak.minute)).toBeLessThan(5)
 })
 
-it('finds the peak of the sample day from its minutes and writes it in the lede', () => {
+it('finds the sample day’s peak within 0.05 degrees of its minutes, and writes it in the lede', () => {
   const { altitudes, date } = SampleDay.record()
 
   expect(days[sample]!.peak.altitude).toBeCloseTo(max(altitudes)!, 1)
