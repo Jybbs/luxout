@@ -3,4 +3,11 @@
 #MISE depends     = ["plugin:bake"]
 #MISE description = "Run the plugin's suites, passing any further arguments to Vitest"
 
+release=$(mise tasks info --json "$MISE_TASK_NAME" | jq -r '.tools.node // empty')
+
+if [[ -n "$release" && "$(node --version)" != "v$release" ]]; then
+  echo "$MISE_TASK_NAME runs on Node $release, which mise has not installed, so run \`mise install --include-task-tools\` first" >&2
+  exit 1
+fi
+
 vitest run --config tests/vitest.config.ts "$@"

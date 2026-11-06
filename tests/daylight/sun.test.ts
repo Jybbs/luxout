@@ -30,6 +30,6 @@ const SPA = [
 it.each(SPA)(
   'holds the altitude at $latitude, $longitude on $time within 0.001° of SPA',
   ({ altitude, latitude, longitude, time }) => {
-    expect(Math.abs(new Sun(latitude, longitude).altitude(new Date(time)) - altitude)).toBeLessThan(0.001)
+    expect(Math.abs(new Sun({ latitude, longitude }).altitude(new Date(time)) - altitude)).toBeLessThan(0.001)
   }
 )

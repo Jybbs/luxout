@@ -1,10 +1,9 @@
-import type { Audit }           from './audit.ts'
-import { TomlFile }             from './files.ts'
-import { Finding }              from './finding.ts'
-import type { PackageManifest } from './package.ts'
+import type { Audit }                    from './audit.ts'
+import { TomlFile }                      from './files.ts'
+import { Finding }                       from './finding.ts'
+import { type PackageManifest, numeric } from './package.ts'
 
 export const CONFIG = '.mise/config.toml'
-const numeric       = new Intl.Collator('en', { numeric: true })
 
 export class MiseConfig {
   readonly #file: TomlFile

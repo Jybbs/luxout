@@ -1,0 +1,13 @@
+.layers {
+  display   : grid;
+  min-width : 0;
+}
+
+.layer {
+  grid-area  : 1 / 1;
+  min-width  : 0;
+  opacity    : 0;
+  transition : opacity var(--timing-fade) var(--timing-ease);
+}
+
+.layer.shown { opacity: 1; }

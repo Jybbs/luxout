@@ -26,6 +26,7 @@ interface Script extends Spot {
 }
 
 const INSTALL = new Set(['i', 'install'])
+const LIBRARY = '.mise/lib/*.sh'
 const LISTING = { file: CONFIG, line: 1 }
 const LOCKED  = new Set(['frozen-lockfile', 'lockfile-only'])
 const OPTIONS = { cwd: { type: 'string' } } as const
@@ -120,8 +121,9 @@ class Task {
 }
 
 export class TaskList {
-  readonly #errors : Finding[]
-  readonly #tasks  : Map<string, Task>
+  readonly #errors  : Finding[]
+  readonly #library : Script[]
+  readonly #tasks   : Map<string, Task>
 
   static read(audit: Audit): TaskList {
     let defects : Defect[]
@@ -134,14 +136,17 @@ export class TaskList {
       return new TaskList([new Finding(String(error), LISTING, 'Task listing')], [])
     }
 
+    const library  = Object.entries(audit.readAll(LIBRARY)).map(([file, text]) => ({ file, line: 1, text }))
     const reported = Map.groupBy(defects, (defect) => defect.task)
+    const tasks    = listed.map((task) => Task.read(audit, reported.get(task.name) ?? [], task))
 
-    return new TaskList([], listed.map((task) => Task.read(audit, reported.get(task.name) ?? [], task)))
+    return new TaskList([], tasks, library)
   }
 
-  constructor(errors: Finding[], tasks: Task[]) {
-    this.#errors = errors
-    this.#tasks  = new Map(tasks.map((task) => [task.name, task]))
+  constructor(errors: Finding[], tasks: Task[], library: Script[] = []) {
+    this.#errors  = errors
+    this.#library = library
+    this.#tasks   = new Map(tasks.map((task) => [task.name, task]))
   }
 
   get listed(): boolean {
@@ -153,8 +158,7 @@ export class TaskList {
   }
 
   get #shell(): Finding[] {
-    const scripts = new Map(this.#tasks.values()
-      .flatMap((task) => task.scripts)
+    const scripts = new Map([...this.#tasks.values().flatMap((task) => task.scripts), ...this.#library]
       .map((script) => [`${script.file}:${script.line}:${script.text}`, script]))
 
     return [...scripts.values()].flatMap(({ file, line, text }) => {

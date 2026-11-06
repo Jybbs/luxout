@@ -1,0 +1,8 @@
+/* Outranks the `!important` placeholder color the Homebridge UI gives every field. */
+#query::placeholder {
+  color: #666 !important;
+}
+
+body.dark-mode #query::placeholder {
+  color: #9e9e9e !important;
+}

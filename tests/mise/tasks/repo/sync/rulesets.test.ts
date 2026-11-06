@@ -8,6 +8,7 @@ import { plant, test }                            from '../../../../common/scrat
 
 const MANIFEST = JSON.stringify({
   description : 'A light sensor',
+  homepage    : 'https://luxout.fyi',
   keywords    : ['homebridge-plugin', 'supports-hap']
 })
 
@@ -43,7 +44,8 @@ const LISTING = { args: ['api', '--jq', '.[].name', '--paginate', RULESETS], bod
 
 /**
  * Runs the task over `files` in `scratch` beside a manifest naming a
- * description and the topics, passing `options` to the stand-in `gh`.
+ * description, a homepage, and the topics, passing `options` to the stand-in
+ * `gh`.
  */
 async function rulesets(
   files   : Record<string, string>,
@@ -149,6 +151,7 @@ describe('the settings', () => {
         send('PATCH', 'repos/{owner}/{repo}', {
           description           : 'A light sensor',
           has_wiki              : false,
+          homepage              : 'luxout.fyi',
           security_and_analysis : { secret_scanning: { status: 'enabled' } }
         }),
         send('PUT', 'repos/{owner}/{repo}/topics', TOPICS),
@@ -169,11 +172,11 @@ describe('the settings', () => {
     })
   })
 
-  test('sends the description and the topics where the file declares no table', async ({ scratch }) => {
+  test('sends the description, homepage, and topics where the file holds no table', async ({ scratch }) => {
     const { calls } = await rulesets({ ...ruleset, '.github/settings.toml': '' }, scratch)
 
     expect(calls.slice(2, 4)).toEqual([
-      send('PATCH', 'repos/{owner}/{repo}', { description: 'A light sensor' }),
+      send('PATCH', 'repos/{owner}/{repo}', { description: 'A light sensor', homepage: 'luxout.fyi' }),
       send('PUT', 'repos/{owner}/{repo}/topics', TOPICS)
     ])
   })

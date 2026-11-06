@@ -1,8 +1,6 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
-  "categories": {
-    "correctness": "error"
-  },
+  "categories": { "correctness": "error" },
   "rules": {
     "eslint/no-restricted-imports": ["error", {
       "paths": [

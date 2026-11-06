@@ -1,0 +1,5 @@
+{
+  "name": "luxout-vet-floor",
+  "private": true,
+  "dependencies": { "homebridge": "1.8.5" }
+}

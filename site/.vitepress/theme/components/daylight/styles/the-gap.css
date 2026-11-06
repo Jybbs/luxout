@@ -1,0 +1,183 @@
+.the-gap {
+  display : grid;
+  gap     : 16px;
+}
+
+.the-gap-plot { position: relative; }
+
+.the-gap-drawing {
+  display              : none;
+  overflow             : visible;
+  width                : 100%;
+  height               : auto;
+  font-family          : var(--vp-font-family-mono);
+  font-variant-numeric : tabular-nums;
+}
+
+.the-gap-drawing:nth-of-type(1) { display: block; }
+
+.the-gap-band { fill: color-mix(in srgb, var(--widget-sensor) 45%, var(--widget-ground)); }
+
+.the-gap-edge {
+  stroke       : var(--widget-ink);
+  stroke-width : 1.2;
+}
+
+.the-gap-tie, .the-gap-guide {
+  stroke           : var(--widget-muted);
+  stroke-dasharray : 2 3;
+  stroke-width     : 1;
+}
+
+.the-gap-guide { stroke: var(--widget-ink); }
+
+.the-gap-halo, .the-gap-reading {
+  fill            : none;
+  stroke-linecap  : round;
+  stroke-linejoin : round;
+}
+
+.the-gap-halo {
+  stroke       : var(--widget-ground);
+  stroke-width : 6;
+}
+
+.the-gap-reading {
+  stroke       : var(--widget-estimate);
+  stroke-width : 2;
+}
+
+.the-gap-on {
+  fill         : color-mix(in srgb, var(--widget-sensor) 55%, var(--widget-ground));
+  stroke       : var(--widget-ink);
+  stroke-width : 1.2;
+}
+
+.the-gap-off {
+  stroke       : var(--widget-muted);
+  stroke-width : 1.2;
+}
+
+.the-gap-ring {
+  fill         : var(--widget-ground);
+  stroke       : var(--widget-ink);
+  stroke-width : 1.5;
+}
+
+.the-gap-chip {
+  fill         : var(--widget-sunken);
+  stroke       : var(--widget-rule);
+  stroke-width : 1;
+}
+
+.the-gap-word, .the-gap-figure { font-size: 11px; }
+
+.the-gap-word { fill: var(--widget-muted); }
+
+.the-gap-figure { fill: var(--widget-ink); }
+
+.the-gap-chip-name {
+  fill           : var(--widget-ink);
+  font-size      : 10px;
+  font-weight    : 600;
+  letter-spacing : 0.08em;
+  text-transform : uppercase;
+}
+
+.the-gap-count {
+  fill        : var(--widget-ink);
+  font-weight : 600;
+}
+
+.the-gap-guide, .the-gap-dot { visibility: hidden; }
+
+.the-gap[data-pointing] :is(.the-gap-guide, .the-gap-dot) { visibility: visible; }
+
+.the-gap-dot {
+  fill         : var(--widget-estimate);
+  stroke       : var(--widget-ground);
+  stroke-width : 1.5;
+}
+
+.the-gap-thumb {
+  fill         : var(--widget-estimate);
+  stroke       : var(--widget-ground);
+  stroke-width : 2;
+}
+
+.the-gap-below {
+  display     : grid;
+  gap         : 12px;
+  padding-top : 14px;
+  border-top  : 1px solid var(--widget-rule);
+}
+
+.the-gap-swatch {
+  display        : inline-block;
+  width          : 14px;
+  height         : 12px;
+  margin-right   : 8px;
+  vertical-align : -0.05em;
+}
+
+.vp-doc .the-gap-table {
+  display         : table;
+  border-collapse : collapse;
+  color           : inherit;
+  font-size       : 0.88rem;
+  line-height     : 1.5;
+  margin          : 0;
+  table-layout    : fixed;
+  width           : 100%;
+}
+
+.vp-doc .the-gap-table caption {
+  caption-side   : top;
+  min-height     : calc(1lh + 8px);
+  padding-bottom : 8px;
+  text-align     : left;
+}
+
+.the-gap-names { width: 5.5rem; }
+
+.vp-doc .the-gap-table :is(th, td, tr) {
+  padding        : 7px 12px 7px 0;
+  background     : none;
+  border         : 0;
+  font-size      : inherit;
+  text-align     : left;
+  vertical-align : baseline;
+}
+
+.vp-doc .the-gap-table thead tr { border-bottom: 1.5px solid var(--widget-ink); }
+
+.vp-doc .the-gap-table thead th {
+  padding-top : 0;
+  color       : var(--widget-ink);
+  font-weight : 600;
+}
+
+.vp-doc .the-gap-table tbody tr { border-bottom: 1px solid var(--widget-rule); }
+
+.vp-doc .the-gap-table tbody th {
+  color       : var(--widget-muted);
+  font-weight : 400;
+}
+
+.vp-doc .the-gap-table tbody td { color: var(--widget-ink); }
+
+.vp-doc .the-gap-table td.the-gap-ask { color: var(--widget-muted); }
+
+@container (width >= 30rem) {
+  .the-gap-drawing:nth-of-type(1) { display: none; }
+
+  .the-gap-drawing:nth-of-type(2) { display: block; }
+}
+
+@container (width >= 38rem) {
+  .the-gap-drawing:nth-of-type(2) { display: none; }
+
+  .the-gap-drawing:nth-of-type(3) { display: block; }
+
+  .the-gap-names { width: 6.5rem; }
+}

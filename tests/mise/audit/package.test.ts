@@ -53,6 +53,22 @@ it.each([
     .toBe(floor)
 })
 
+it.each([
+  { engines: { homebridge: '^1.8.5 || ^2.0.0' }, floor: '1.8.5' },
+  { engines: { homebridge: '^2.0.0 || ^1.10.0 || ^1.8.5' }, floor: '1.8.5' },
+  { engines: { homebridge: '>=1.8.0' }, floor: undefined },
+  { engines: {}, floor: undefined }
+])('reads $floor as the floor of the oldest line $engines.homebridge admits', ({ engines, floor }) => {
+  expect(new PackageManifest(JSON.stringify({ engines })).homebridge).toBe(floor)
+})
+
+it.each([
+  { devDependencies: { homebridge: '2.4.0' }, pin: '2.4.0' },
+  { devDependencies: {}, pin: undefined }
+])('reads the release $pin the devDependencies pin homebridge to', ({ devDependencies, pin }) => {
+  expect(new PackageManifest(JSON.stringify({ devDependencies })).pin('homebridge')).toBe(pin)
+})
+
 it('reports a key the manifest names twice, which JSON.parse would take the last of', () => {
   const text = '{\n  "devDependencies": {},\n  "devDependencies": {}\n}\n'
 

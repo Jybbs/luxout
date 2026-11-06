@@ -5,6 +5,7 @@ import { expect, vi } from 'vitest'
 
 import { Place }       from '../../src/config/place.js'
 import { WindowStore } from '../../src/weather/store.js'
+import { boston }      from '../common/places.js'
 import { test }        from '../common/scratch.js'
 import { parsed }      from '../common/window.js'
 import forecast        from './fixtures/forecast.json' with { type: 'json' }
@@ -17,15 +18,14 @@ vi.mock(import('node:fs/promises'), async (original) => {
 
 const FILE   = 'luxout-forecast.json'
 const other  = new Place(40.71, -74.01)
-const place  = new Place(42.35843, -71.05977)
-const window = parsed(forecast, place)
+const window = parsed(forecast, boston)
 
 test('reads back the window it writes', async ({ scratch }) => {
   const store = new WindowStore(scratch)
 
   await store.write(window)
 
-  await expect(store.read(place)).resolves.toEqual(window)
+  await expect(store.read(boston)).resolves.toEqual(window)
 })
 
 test('writes one file under the storage directory and nothing beside it', async ({ scratch }) => {
@@ -54,11 +54,11 @@ test('keeps the previous window when a write stops partway', async ({ scratch })
   })
 
   await expect(store.write(parsed(forecast, other))).rejects.toThrow('ENOSPC')
-  await expect(store.read(place)).resolves.toEqual(window)
+  await expect(store.read(boston)).resolves.toEqual(window)
 })
 
 test('reads no window from a storage directory holding none', async ({ scratch }) => {
-  await expect(new WindowStore(scratch).read(place)).resolves.toBeUndefined()
+  await expect(new WindowStore(scratch).read(boston)).resolves.toBeUndefined()
 })
 
 test.for([
@@ -71,7 +71,7 @@ test.for([
 ])('reads no window from $name', async ({ contents }, { scratch }) => {
   await writeFile(join(scratch, FILE), contents)
 
-  await expect(new WindowStore(scratch).read(place)).resolves.toBeUndefined()
+  await expect(new WindowStore(scratch).read(boston)).resolves.toBeUndefined()
 })
 
 test('reads no window fetched for other coordinates', async ({ scratch }) => {
@@ -85,5 +85,5 @@ test('reads no window fetched for other coordinates', async ({ scratch }) => {
 test('rejects on a read error other than a missing file', async ({ scratch }) => {
   await mkdir(join(scratch, FILE))
 
-  await expect(new WindowStore(scratch).read(place)).rejects.toMatchObject({ code: 'EISDIR' })
+  await expect(new WindowStore(scratch).read(boston)).rejects.toMatchObject({ code: 'EISDIR' })
 })

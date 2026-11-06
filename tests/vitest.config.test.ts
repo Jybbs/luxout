@@ -13,9 +13,9 @@ it('fails a case with no assertion, shuffles the order, and undoes every spy and
   })
 })
 
-it('measures coverage over the audit and src/**/*.ts and reports it under .cache/coverage', () => {
+it('measures coverage over .mise/**/*.ts and src/**/*.ts and reports it under .cache/coverage', () => {
   expect(config.test?.coverage).toMatchObject({
-    include          : ['.mise/audit/**/*.ts', 'src/**/*.ts'],
+    include          : ['.mise/**/*.ts', 'src/**/*.ts'],
     reportsDirectory : '.cache/coverage'
   })
 })

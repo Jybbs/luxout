@@ -1,0 +1,18 @@
+.table-fold {
+  margin-top : 12px;
+  color      : var(--vp-c-text-2);
+  font-size  : 0.875rem;
+}
+
+.table-fold > summary {
+  cursor     : pointer;
+  transition : color var(--timing-hover) var(--timing-ease);
+}
+
+.table-fold > summary:hover { color: var(--vp-c-text-1); }
+
+.table-fold > summary:focus-visible {
+  border-radius  : 4px;
+  outline        : 2px solid var(--vp-c-brand-1);
+  outline-offset : 2px;
+}

@@ -1,0 +1,6 @@
+["@homebridge/hap-nodejs"]
+follows = "homebridge"
+reason  = "Moves to the release `homebridge` names, since a second copy fails `tsc`"
+
+["@types/node"]
+reason = "Stays on the oldest Node line `engines` admits, so `tsc` rejects a newer API"

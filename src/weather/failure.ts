@@ -1,16 +1,16 @@
 type Kind = keyof typeof LINES
 
 const LINES = {
-  body    : 'Open-Meteo sent a forecast that fails validation',
+  body    : 'Open-Meteo sent an answer that fails validation',
   network : 'Open-Meteo could not be reached',
   status  : 'Open-Meteo answered with an error',
-  timeout : 'Open-Meteo sent no forecast before the request timed out'
+  timeout : 'Open-Meteo sent no answer before the request timed out'
 }
 
 /**
- * Names why a request for the forecast returned no window. Its `line` is the
- * one line the caller logs, holding neither the request's address nor the
- * coordinates it carried.
+ * Names why a request to Open-Meteo returned nothing the caller can use. Its
+ * `line` is the one line the caller logs or shows, leaving out the request's
+ * address and the coordinates or search it carried.
  */
 export class FetchFailure {
   readonly kind    : Kind

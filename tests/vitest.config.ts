@@ -8,6 +8,7 @@ export default defineConfig({
   cacheDir : '.cache/vite',
   root     : dirname(import.meta.dirname),
   test     : {
+    environmentOptions  : { happyDOM: { settings: { handleDisabledFileLoadingAsSuccess: true } } },
     expect              : { requireAssertions: true },
     include             : ['tests/**/*.test.ts'],
     resolveSnapshotPath : (testPath, extension) => testPath + extension,
@@ -17,7 +18,7 @@ export default defineConfig({
     unstubGlobals       : true,
 
     coverage: {
-      include          : ['.mise/audit/**/*.ts', 'src/**/*.ts'],
+      include          : ['.mise/**/*.ts', 'src/**/*.ts'],
       provider         : 'v8',
       reportOnFailure  : true,
       reportsDirectory : '.cache/coverage',

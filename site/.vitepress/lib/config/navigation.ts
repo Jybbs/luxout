@@ -1,12 +1,22 @@
 import type { DefaultTheme } from 'vitepress'
 
+import { sectionPages } from './pages.ts'
 import type { Section } from './sections.ts'
 
-export function buildNavigation(sections: readonly Section[]): Pick<DefaultTheme.Config, 'nav' | 'sidebar'> {
-  const links = sections.map(({ label, slug }) => ({ link: `/${slug}/`, text: label }))
-
+/**
+ * Builds the nav bar and one sidebar per section, each sidebar opening on the
+ * section's overview and listing its pages.
+ */
+export function buildNavigation(
+  root     : string,
+  sections : readonly Section[]
+): Pick<DefaultTheme.Config, 'nav' | 'sidebar'> {
   return {
-    nav     : links.map(({ link, text }) => ({ activeMatch: `^${link}`, link, text })),
-    sidebar : Object.fromEntries(links.map((item) => [item.link, [item]]))
+    nav: sections.map(({ label, slug }) => ({ activeMatch: `^/${slug}/`, link: `/${slug}/`, text: label })),
+    sidebar: Object.fromEntries(sections.map((section) => {
+      const link = `/${section.slug}/`
+
+      return [link, [{ link, text: section.label }, ...sectionPages(root, section)]]
+    }))
   }
 }
