@@ -2,23 +2,19 @@ import { range } from 'd3-array'
 
 import { Place }          from '../../../../src/config/place.ts'
 import { ClearSky }       from '../../../../src/daylight/clear-sky.ts'
+import { CLOUD_TUNING, type CloudFactor, type Interpolation } from '../../../../src/daylight/cloud-factor.ts'
 import { Estimator }      from '../../../../src/daylight/estimator.ts'
 import { Sun }            from '../../../../src/daylight/sun.ts'
 import { ForecastWindow } from '../../../../src/weather/window.ts'
 import recording          from '../search/recording.json' with { type: 'json' }
+import * as clock         from './clock.ts'
 import forecast           from './forecast.json' with { type: 'json' }
 import { clampLux }       from './homekit.ts'
 
 const MIDNIGHT                          = Date.UTC(2026, 9, 4, 4)  // October 4, 2026, in `timezone`
-const MINUTE                            = 60_000                   // Milliseconds
 const { latitude, longitude, timezone } = recording.results[0]!
-const clockFormat                       = new Intl.DateTimeFormat('en-US', {
-  hour      : '2-digit',
-  hourCycle : 'h23',
-  minute    : '2-digit',
-  timeZone  : timezone
-})
-const dateFormat = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'long', timeZone: timezone })
+const clockFormat                       = clock.clockFormatIn(timezone)
+const dateFormat                        = clock.dateFormatIn(timezone)
 /**
  * The place the sample day and the Location Search both use, holding the
  * coordinates of the recorded result as the plugin stores them.
@@ -31,12 +27,19 @@ const place = new Place(latitude, longitude)
  * the morning, and the clear-sky curve stands alone outside it.
  */
 export class SampleDay {
-  static readonly MINUTES = 1440
+  static readonly MINUTES = clock.DAY_MINUTES
   static readonly NOON    = 720
-  readonly altitudes : readonly number[]  // The sun's altitude in degrees at each minute from midnight
-  readonly date      : string
-  readonly readings  : readonly number[]  // The clamped lux at each minute from midnight
-  readonly sky       : ClearSky
+  static readonly REST    = 600  // 10:00, in minutes from midnight
+  readonly altitudes  : readonly number[]  // The sun's altitude in degrees at each minute from midnight
+  readonly clearSkies : readonly number[]  // The unclamped clear-sky lux at each minute from midnight
+  readonly cloud      : CloudFactor
+  readonly date       : string
+  readonly factors    : readonly number[]  // The cloud factor at each minute from midnight
+  readonly readings   : readonly number[]  // The clamped lux at each minute from midnight
+  readonly sky        : ClearSky
+  readonly steps      : readonly (Interpolation['steps'] | undefined)[]  // The steps around each minute
+  readonly sun        : Sun
+  readonly window     : ForecastWindow
 
   /**
    * Builds the day from the recorded forecast, failing where it no longer
@@ -52,16 +55,32 @@ export class SampleDay {
 
   private constructor(window: ForecastWindow) {
     const sky       = new ClearSky()
-    const estimator = new Estimator(sky, new Sun(place))
+    const sun       = new Sun(place)
+    const estimator = new Estimator(sky, sun)
     const factor    = estimator.derive(window)
     const estimates = range(SampleDay.MINUTES + 1).map((minute) =>
       estimator.estimate(instant(minute), factor)
     )
 
-    this.altitudes = estimates.map(({ altitude }) => altitude)
-    this.date      = dateFormat.format(instant(0))
-    this.readings  = estimates.map(({ lux }) => clampLux(lux))
-    this.sky       = sky
+    this.altitudes  = estimates.map(({ altitude }) => altitude)
+    this.clearSkies = estimates.map(({ clearSky }) => clearSky)
+    this.cloud      = factor
+    this.date       = dateFormat.format(instant(0))
+    this.factors    = estimates.map(({ factor }) => factor)
+    this.readings   = estimates.map(({ lux }) => clampLux(lux))
+    this.sky        = sky
+    this.steps      = estimates.map(({ steps }) => steps)
+    this.sun        = sun
+    this.window     = window
+  }
+
+  /**
+   * The minutes past midnight of the window's first and last steps.
+   */
+  get span(): readonly [from: number, to: number] {
+    const { times } = this.window
+
+    return [this.minuteOf(times[0]!), this.minuteOf(times.at(-1)!)]
   }
 
   /**
@@ -70,10 +89,53 @@ export class SampleDay {
   clock(minute: number): string {
     return clockFormat.format(instant(minute))
   }
+
+  /**
+   * Writes `time`, in milliseconds since the Unix epoch, as a 24-hour clock
+   * time.
+   */
+  clockAt(time: number): string {
+    return this.clock(this.minuteOf(time))
+  }
+
+  /**
+   * Tests whether the sun at `time`, in milliseconds since the Unix epoch,
+   * stands at or above the floor under which a step borrows its factor.
+   */
+  litAt(time: number): boolean {
+    return this.refractedAt(time) >= CLOUD_TUNING.floor
+  }
+
+  /**
+   * Finds the minutes past midnight of `time`, in milliseconds since the Unix
+   * epoch.
+   */
+  minuteOf(time: number): number {
+    return (time - MIDNIGHT) / clock.MINUTE
+  }
+
+  /**
+   * Finds the sun's refracted altitude in degrees at `time`, in milliseconds
+   * since the Unix epoch.
+   */
+  refractedAt(time: number): number {
+    return this.sky.refracted(this.sun.altitude(new Date(time)))
+  }
 }
 
-function instant(minute: number): Date {
-  return new Date(MIDNIGHT + minute * MINUTE)
+/**
+ * Finds the first index in `altitudes` at or above `level` and the first index
+ * after it back below `level`.
+ */
+export function crossings(altitudes: readonly number[], level: number): readonly [number, number] {
+  return runsOf(altitudes.map((altitude) => altitude >= level))[0]!
+}
+
+/**
+ * Finds the instant `minute` past the sample day's midnight.
+ */
+export function instant(minute: number): Date {
+  return new Date(MIDNIGHT + minute * clock.MINUTE)
 }
 
 /**

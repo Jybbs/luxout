@@ -6,7 +6,7 @@ import { nextTick }             from 'vue'
 import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
 import { TheGap }            from '../../../../theme/components/daylight/the-gap.ts'
 import { data }              from '../../../common/data/daylight.ts'
-import { test }              from '../../../common/mount.ts'
+import { pressable, test }   from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/daylight/daylight.data.ts', () => import('../../../common/data/daylight.ts'))
 
@@ -29,10 +29,8 @@ function pointTo(host: HTMLElement): HTMLElement {
 function sliderOverPlot(host: HTMLElement): HTMLElement {
   const slider = getByRole(host, 'slider')
   const plot   = [...host.querySelectorAll('.the-gap-drawing')].at(-1)!
-  const rect   = { left: 0, width: wide.width } as DOMRect
 
-  slider.setPointerCapture = vi.fn<HTMLElement['setPointerCapture']>()
-  vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue(rect)
+  pressable(slider, plot, { left: 0, width: wide.width })
 
   return slider
 }

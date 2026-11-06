@@ -16,18 +16,6 @@
 
 .the-gap-drawing:nth-of-type(1) { display: block; }
 
-.the-gap-slider {
-  position     : absolute;
-  cursor       : ew-resize;
-  inset        : 0;
-  touch-action : pan-y;
-}
-
-.the-gap-slider:focus-visible {
-  border-radius  : 6px;
-  outline-offset : 2px;
-}
-
 .the-gap-band { fill: color-mix(in srgb, var(--widget-sensor) 45%, var(--widget-ground)); }
 
 .the-gap-edge {

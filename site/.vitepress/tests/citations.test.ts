@@ -14,3 +14,10 @@ it.each(pages)('%s carries the footnote text site:cite writes from references.bi
 
   await expect(bibliography.cite(await readFile(path, 'utf8'))).toMatchFileSnapshot(path)
 })
+
+it('cites every work on the bibliography page', async () => {
+  const page = await readFile(join(srcDir, 'estimate', 'bibliography.md'), 'utf8')
+  const keys = (await readFile(join(srcDir, 'references.bib'), 'utf8')).matchAll(/^@\w+\{(\w+),$/gm)
+
+  expect(keys.filter(([, key]) => !page.includes(`[^${key!}]`)).toArray()).toEqual([])
+})

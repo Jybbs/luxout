@@ -4,10 +4,10 @@ import type { Place }     from '../config/place.js'
 import { FetchFailure }   from './failure.js'
 import { ForecastWindow } from './window.js'
 
-type Tuning = typeof TUNING
+type Tuning = typeof REQUEST_TUNING
 
-const ENDPOINT = 'https://api.open-meteo.com/v1/forecast'
-const TUNING   = {
+const ENDPOINT              = 'https://api.open-meteo.com/v1/forecast'
+export const REQUEST_TUNING = {
   forecast : 24,     // The 15-minute steps a request covers from the current one on
   past     : 4,      // The 15-minute steps a request covers before the current one
   timeout  : 10_000  // The milliseconds a request runs before it times out
@@ -66,7 +66,7 @@ export abstract class OpenMeteoClient {
 export class ForecastClient extends OpenMeteoClient {
   readonly #tuning: Tuning
 
-  constructor(fetch: typeof globalThis.fetch = globalThis.fetch, tuning: Tuning = TUNING) {
+  constructor(fetch: typeof globalThis.fetch = globalThis.fetch, tuning: Tuning = REQUEST_TUNING) {
     super(ENDPOINT, fetch, tuning.timeout)
     this.#tuning = tuning
   }

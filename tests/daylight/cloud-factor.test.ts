@@ -1,15 +1,15 @@
 import { fc, test }   from '@fast-check/vitest'
 import { expect, it } from 'vitest'
 
-import { Place }               from '../../src/config/place.js'
-import { ClearSky }            from '../../src/daylight/clear-sky.js'
-import { CloudFactor }         from '../../src/daylight/cloud-factor.js'
-import { Sun }                 from '../../src/daylight/sun.js'
-import type { ForecastWindow } from '../../src/weather/window.js'
-import { angeles, delhi }      from '../common/places.js'
-import { parsed, spaced }      from '../common/window.js'
-import dawn                    from './fixtures/dawn.json' with { type: 'json' }
-import dusk                    from './fixtures/dusk.json' with { type: 'json' }
+import { Place }                               from '../../src/config/place.js'
+import { ClearSky }                            from '../../src/daylight/clear-sky.js'
+import { CLOUD_TUNING, CloudFactor, haurwitz } from '../../src/daylight/cloud-factor.js'
+import { Sun }                                 from '../../src/daylight/sun.js'
+import type { ForecastWindow }                 from '../../src/weather/window.js'
+import { angeles, delhi }                      from '../common/places.js'
+import { parsed, spaced }                      from '../common/window.js'
+import dawn                                    from './fixtures/dawn.json' with { type: 'json' }
+import dusk                                    from './fixtures/dusk.json' with { type: 'json' }
 
 /**
  * The factors of the four daylight steps that close the evening in `dusk.json`,
@@ -33,6 +33,29 @@ const sky     = new ClearSky()
 const tromso  = new Place(69.6489, 18.95508)
 const evening = parsed(dusk, angeles)
 const morning = parsed(dawn, delhi)
+
+it('computes the Haurwitz irradiance of equation 18 for a sun straight overhead', () => {
+  expect(haurwitz(90)).toBeCloseTo(1098 * Math.exp(-0.057), 9)
+})
+
+it('takes the four nearest daylight steps from 12 hours behind to 4 hours ahead, above 5 degrees', () => {
+  expect(CLOUD_TUNING).toEqual({ ahead: 4 * HOUR, behind: 12 * HOUR, floor: 5, nearest: 4 })
+})
+
+it('holds one factor per step of the window, in the window’s order', () => {
+  const { steps } = new CloudFactor(sky, new Sun(angeles), evening)
+
+  expect(steps.map(({ time }) => time)).toEqual(evening.times)
+})
+
+it('finds the daylight steps nearest a time, closest first, no more than the tuning’s count', () => {
+  const time    = morning.times[0]!
+  const nearest = new CloudFactor(sky, new Sun(delhi), morning).nearest(time)
+  const offsets = nearest.map((step) => Math.abs(step.time - time))
+
+  expect(offsets).toHaveLength(CLOUD_TUNING.nearest)
+  expect(offsets).toEqual(offsets.toSorted((one, other) => one - other))
+})
 
 it('divides a daylight step’s irradiance by the Haurwitz irradiance of equation 18', () => {
   expect(factors(evening).slice(0, 4)).toEqual(EVENING.map((share) => expect.closeTo(share, 6)))
@@ -199,6 +222,13 @@ function later(window: ForecastWindow, steps: number): ForecastWindow {
 function mean(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length
 }
+
+it('finds no more daylight steps than the tuning passed to the constructor allows', () => {
+  const tuning  = { ...CLOUD_TUNING, nearest: 2 }
+  const nearest = new CloudFactor(sky, new Sun(delhi), morning, undefined, tuning).nearest(morning.times[0]!)
+
+  expect(nearest).toHaveLength(2)
+})
 
 function tuned(above: number): CloudFactor {
   const sun   = new Sun(delhi)

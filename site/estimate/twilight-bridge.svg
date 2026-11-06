@@ -1,0 +1,102 @@
+<svg aria-label="The clear-sky curve from −6° to 12° on a logarithmic lux scale, climbing from 2.99 lux to 662 lux across the span up to −5/6° and through that cutoff without a step, with a slider that moves the sun along it." class="twilight-bridge-drawing" role="img" viewBox="0 0 620 308" xmlns="http://www.w3.org/2000/svg"><svg aria-hidden="true" class="twilight-bridge-marks" preserveAspectRatio="none" viewBox="0 0 540 260" height="260" width="540" x="64" y="20"><rect class="twilight-bridge-wash" height="260" width="155"></rect><path class="twilight-bridge-sky" d="M0,232.4L3,229.7L6,227.1L9,224.5L12,221.8L15,219.2L18,216.5L21,213.9L24,211.3L27,208.6L30,206L33,203.4L36,200.7L39,198.1L42,195.5L45,192.8L48,190.2L51,187.6L54,184.9L57,182.3L60,179.7L63,177L66,174.4L69,171.7L72,169.1L75,166.5L78,163.8L81,161.2L84,158.6L87,155.9L90,153.3L93,150.7L96,148L99,145.4L102,142.8L105,140.1L108,137.5L111,134.9L114,132.2L117,129.6L120,126.9L123,124.3L126,121.7L129,119L132,116.4L135,113.8L138,111.1L141,108.5L144,105.9L147,103.2L150,100.6L153,98L155,96.2L156,95.7L159,94.4L162,93.1L165,91.9L168,90.7L171,89.5L174,88.4L177,87.3L180,86.2L183,85.1L186,84.1L189,83.1L192,82.1L195,81.2L198,80.2L201,79.3L204,78.4L207,77.5L210,76.7L213,75.9L216,75L219,74.2L222,73.5L225,72.7L228,71.9L231,71.2L234,70.4L237,69.7L240,69L243,68.3L246,67.6L249,66.9L252,66.2L255,65.5L258,64.8L261,64.1L264,63.4L267,62.8L270,62.1L273,61.4L276,60.8L279,60.1L282,59.4L285,58.8L288,58.1L291,57.5L294,56.8L297,56.2L300,55.5L303,54.9L306,54.3L309,53.6L312,53L315,52.4L318,51.7L321,51.1L324,50.5L327,49.9L330,49.3L333,48.7L336,48.1L339,47.5L342,46.9L345,46.3L348,45.7L351,45.1L354,44.6L357,44L360,43.4L363,42.9L366,42.3L369,41.8L372,41.2L375,40.7L378,40.1L381,39.6L384,39.1L387,38.6L390,38L393,37.5L396,37L399,36.5L402,36L405,35.5L408,35.1L411,34.6L414,34.1L417,33.6L420,33.2L423,32.7L426,32.2L429,31.8L432,31.4L435,30.9L438,30.5L441,30L444,29.6L447,29.2L450,28.8L453,28.3L456,27.9L459,27.5L462,27.1L465,26.7L468,26.3L471,25.9L474,25.5L477,25.2L480,24.8L483,24.4L486,24L489,23.7L492,23.3L495,22.9L498,22.6L501,22.2L504,21.9L507,21.5L510,21.2L513,20.8L516,20.5L519,20.2L522,19.8L525,19.5L528,19.2L531,18.8L534,18.5L537,18.2L540,17.9L540,260L537,260L534,260L531,260L528,260L525,260L522,260L519,260L516,260L513,260L510,260L507,260L504,260L501,260L498,260L495,260L492,260L489,260L486,260L483,260L480,260L477,260L474,260L471,260L468,260L465,260L462,260L459,260L456,260L453,260L450,260L447,260L444,260L441,260L438,260L435,260L432,260L429,260L426,260L423,260L420,260L417,260L414,260L411,260L408,260L405,260L402,260L399,260L396,260L393,260L390,260L387,260L384,260L381,260L378,260L375,260L372,260L369,260L366,260L363,260L360,260L357,260L354,260L351,260L348,260L345,260L342,260L339,260L336,260L333,260L330,260L327,260L324,260L321,260L318,260L315,260L312,260L309,260L306,260L303,260L300,260L297,260L294,260L291,260L288,260L285,260L282,260L279,260L276,260L273,260L270,260L267,260L264,260L261,260L258,260L255,260L252,260L249,260L246,260L243,260L240,260L237,260L234,260L231,260L228,260L225,260L222,260L219,260L216,260L213,260L210,260L207,260L204,260L201,260L198,260L195,260L192,260L189,260L186,260L183,260L180,260L177,260L174,260L171,260L168,260L165,260L162,260L159,260L156,260L155,260L153,260L150,260L147,260L144,260L141,260L138,260L135,260L132,260L129,260L126,260L123,260L120,260L117,260L114,260L111,260L108,260L105,260L102,260L99,260L96,260L93,260L90,260L87,260L84,260L81,260L78,260L75,260L72,260L69,260L66,260L63,260L60,260L57,260L54,260L51,260L48,260L45,260L42,260L39,260L36,260L33,260L30,260L27,260L24,260L21,260L18,260L15,260L12,260L9,260L6,260L3,260L0,260Z"></path><path class="twilight-bridge-grid" d="M0 260H540M0 201.9H540M0 143.9H540M0 85.8H540M0 27.7H540"></path><path class="twilight-bridge-axis" d="M0 260H540M0 260v4M155 260v4M360 260v4M540 260v4"></path><path class="twilight-bridge-axis twilight-bridge-minor" d="M270 260v4M450 260v4"></path><path class="twilight-bridge-roof" d="M0 0H155"></path><path class="twilight-bridge-cut" d="M155 0V96.2"></path><path class="twilight-bridge-edge" d="M0,232.4L3,229.7L6,227.1L9,224.5L12,221.8L15,219.2L18,216.5L21,213.9L24,211.3L27,208.6L30,206L33,203.4L36,200.7L39,198.1L42,195.5L45,192.8L48,190.2L51,187.6L54,184.9L57,182.3L60,179.7L63,177L66,174.4L69,171.7L72,169.1L75,166.5L78,163.8L81,161.2L84,158.6L87,155.9L90,153.3L93,150.7L96,148L99,145.4L102,142.8L105,140.1L108,137.5L111,134.9L114,132.2L117,129.6L120,126.9L123,124.3L126,121.7L129,119L132,116.4L135,113.8L138,111.1L141,108.5L144,105.9L147,103.2L150,100.6L153,98L155,96.2L156,95.7L159,94.4L162,93.1L165,91.9L168,90.7L171,89.5L174,88.4L177,87.3L180,86.2L183,85.1L186,84.1L189,83.1L192,82.1L195,81.2L198,80.2L201,79.3L204,78.4L207,77.5L210,76.7L213,75.9L216,75L219,74.2L222,73.5L225,72.7L228,71.9L231,71.2L234,70.4L237,69.7L240,69L243,68.3L246,67.6L249,66.9L252,66.2L255,65.5L258,64.8L261,64.1L264,63.4L267,62.8L270,62.1L273,61.4L276,60.8L279,60.1L282,59.4L285,58.8L288,58.1L291,57.5L294,56.8L297,56.2L300,55.5L303,54.9L306,54.3L309,53.6L312,53L315,52.4L318,51.7L321,51.1L324,50.5L327,49.9L330,49.3L333,48.7L336,48.1L339,47.5L342,46.9L345,46.3L348,45.7L351,45.1L354,44.6L357,44L360,43.4L363,42.9L366,42.3L369,41.8L372,41.2L375,40.7L378,40.1L381,39.6L384,39.1L387,38.6L390,38L393,37.5L396,37L399,36.5L402,36L405,35.5L408,35.1L411,34.6L414,34.1L417,33.6L420,33.2L423,32.7L426,32.2L429,31.8L432,31.4L435,30.9L438,30.5L441,30L444,29.6L447,29.2L450,28.8L453,28.3L456,27.9L459,27.5L462,27.1L465,26.7L468,26.3L471,25.9L474,25.5L477,25.2L480,24.8L483,24.4L486,24L489,23.7L492,23.3L495,22.9L498,22.6L501,22.2L504,21.9L507,21.5L510,21.2L513,20.8L516,20.5L519,20.2L522,19.8L525,19.5L528,19.2L531,18.8L534,18.5L537,18.2L540,17.9"></path><path class="twilight-bridge-drop" d="M90 153.3V260"></path></svg><text class="twilight-bridge-word" text-anchor="end" x="58" y="20">lux</text><text class="twilight-bridge-word" text-anchor="end" x="58" y="280">1</text><text class="twilight-bridge-word" text-anchor="end" x="58" y="221.9">10</text><text class="twilight-bridge-word" text-anchor="end" x="58" y="163.9">100</text><text class="twilight-bridge-word" text-anchor="end" x="58" y="105.8">1,000</text><text class="twilight-bridge-word" text-anchor="end" x="58" y="47.7">10,000</text><text class="twilight-bridge-word" text-anchor="middle" x="64" y="296">−6°</text><text class="twilight-bridge-word" text-anchor="middle" x="219" y="296">−5/6°</text><text class="twilight-bridge-word" text-anchor="middle" x="334" y="296">3°</text><text class="twilight-bridge-word" text-anchor="middle" x="424" y="296">6°</text><text class="twilight-bridge-word" text-anchor="middle" x="514" y="296">9°</text><text class="twilight-bridge-word" text-anchor="middle" x="604" y="296">12°</text><text class="twilight-bridge-caps" text-anchor="start" x="70" y="34">THE BRIDGE</text><circle class="twilight-bridge-node" cx="64" cy="252.4" r="3"></circle><circle class="twilight-bridge-node" cx="219" cy="116.2" r="3"></circle><text class="twilight-bridge-end" text-anchor="end" x="54" y="252.4">2.99 lux</text><text class="twilight-bridge-end" text-anchor="end" x="211" y="104.2">662 lux</text><circle class="twilight-bridge-sun" cx="154" cy="173.3" r="7"></circle><style>.twilight-bridge-drawing {
+  background           : #f2f1ee;
+  font-family          : ui-monospace, monospace;
+  font-variant-numeric : tabular-nums;
+}
+
+.twilight-bridge-wash { fill: #dddae7; }
+
+.twilight-bridge-sky { fill: #ecd882; }
+
+.twilight-bridge-grid {
+  stroke       : #d5d4d0;
+  stroke-width : 1;
+}
+
+.twilight-bridge-axis {
+  fill         : none;
+  stroke       : #5c5c58;
+  stroke-width : 1;
+}
+
+.twilight-bridge-roof {
+  stroke       : #746ca8;
+  stroke-width : 2;
+}
+
+.twilight-bridge-cut {
+  stroke           : #746ca8;
+  stroke-dasharray : 3 3;
+  stroke-width     : 1.25;
+}
+
+.twilight-bridge-edge {
+  fill            : none;
+  stroke          : #1a1a1a;
+  stroke-linejoin : round;
+  stroke-width    : 1.5;
+}
+
+.twilight-bridge-drop {
+  fill             : none;
+  stroke           : #1a1a1a;
+  stroke-dasharray : 2 3;
+  stroke-width     : 1;
+}
+
+.twilight-bridge-word, .twilight-bridge-end, .twilight-bridge-caps {
+  dominant-baseline : central;
+  font-size         : 11px;
+}
+
+.twilight-bridge-word { fill: #5c5c58; }
+
+.twilight-bridge-end {
+  fill        : #1a1a1a;
+  font-weight : 600;
+}
+
+.twilight-bridge-caps {
+  fill           : #1a1a1a;
+  font-weight    : 500;
+  letter-spacing : 0.1em;
+}
+
+.twilight-bridge-node { fill: #1a1a1a; }
+
+.twilight-bridge-sun {
+  fill         : #e8c840;
+  stroke       : #1a1a1a;
+  stroke-width : 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .twilight-bridge-drawing { background: #1a1a1a; }
+
+  .twilight-bridge-wash { fill: #373548; }
+
+  .twilight-bridge-sky { fill: #77682b; }
+
+  .twilight-bridge-grid { stroke: #3d3d3b; }
+
+  .twilight-bridge-axis { stroke: #a6a6a1; }
+
+  .twilight-bridge-roof { stroke: #9f97d2; }
+
+  .twilight-bridge-cut { stroke: #9f97d2; }
+
+  .twilight-bridge-edge { stroke: #f2f1ee; }
+
+  .twilight-bridge-drop { stroke: #f2f1ee; }
+
+  .twilight-bridge-word { fill: #a6a6a1; }
+
+  .twilight-bridge-end { fill: #f2f1ee; }
+
+  .twilight-bridge-caps { fill: #f2f1ee; }
+
+  .twilight-bridge-node { fill: #f2f1ee; }
+
+  .twilight-bridge-sun { stroke: #f2f1ee; }
+}
+</style></svg>

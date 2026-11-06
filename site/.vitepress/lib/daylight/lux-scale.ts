@@ -105,7 +105,7 @@ function decadeAt(
 
   return {
     clearSky : [sun, ...passed].join(', '),
-    day      : `${minutes} minutes, ${format.clockListFormat.format(held)}`,
+    day      : `${minutes} minutes, ${format.listFormat.format(held)}`,
     everyday : EVERYDAY.filter(({ high, low }) => within(Math.sqrt(low * (high ?? low)))).map(everydayRow),
     fill     : fill,
     floor    : format.formatLux(low),

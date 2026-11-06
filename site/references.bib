@@ -1,3 +1,24 @@
+@software{geonames,
+  annote    = {The open gazetteer behind the place names and coordinates Open-Meteo's geocoding API returns, which the settings page's location search shows.},
+  author    = {{GeoNames}},
+  publisher = {GeoNames},
+  title     = {GeoNames Gazetteer},
+  url       = {https://www.geonames.org/},
+  year      = {2026}
+}
+
+@article{hufkens2023,
+  annote  = {The citation the skylight R package gives, whose test suite pins two cases of Circular 171's Table A that the plugin's suite checks the clear-sky curve against.},
+  author  = {Hufkens, Koen and Meier, Christoph M. and Evens, Ruben and Paredes, Josefa Arán and Karaardiç, Hakan and Vercauteren, Stef and Van Gysel, Ann and Fox, James W. and Pacheco, Carlos Miguel and da Silva, Luis P. and Fernandes, Sandra and Henriques, Pedro and Elias, Gonçalo and Costa, Luís T. and Poot, Martin and Kearsley, Lyndon},
+  doi     = {10.1098/rspb.2023.0957},
+  journal = {Proceedings of the Royal Society B},
+  number  = {2010},
+  pages   = {20230957},
+  title   = {Evaluating the effects of moonlight on the vertical flight profiles of three western palaearctic swifts},
+  volume  = {290},
+  year    = {2023}
+}
+
 @techreport{janiczek1987,
   annote      = {The sun illuminance model of an average clear sky, which the plugin evaluates for the sun's altitude each minute and scales by the share of sunlight the forecast reports.},
   author      = {Janiczek, P. M. and DeYoung, J. A.},
@@ -6,4 +27,33 @@
   title       = {Computer Programs for Sun and Moon Illuminance With Contingent Tables and Diagrams},
   url         = {https://archive.org/details/DTIC_ADA182110},
   year        = {1987}
+}
+
+@techreport{reda2008,
+  annote      = {The Solar Position Algorithm, the reference the plugin's suite holds the sun's altitude to.},
+  author      = {Reda, Ibrahim and Andreas, Afshin},
+  doi         = {10.2172/15003974},
+  institution = {National Renewable Energy Laboratory},
+  number      = {NREL/TP-560-34302},
+  title       = {Solar Position Algorithm for Solar Radiation Applications (Revised)},
+  year        = {2008}
+}
+
+@techreport{reno2012,
+  annote      = {The report giving the constants of the Haurwitz clear-sky model, which the plugin divides each step of the forecast by to reach the cloud factor.},
+  author      = {Reno, Matthew J. and Hansen, Clifford W. and Stein, Joshua S.},
+  doi         = {10.2172/1039404},
+  institution = {Sandia National Laboratories},
+  number      = {SAND2012-2389},
+  title       = {Global Horizontal Irradiance Clear Sky Models: Implementation and Analysis},
+  year        = {2012}
+}
+
+@software{zippenfenig2023,
+  annote    = {The citation Open-Meteo's license gives for its Weather API, which serves every forecast the plugin reads and each geocoding result the settings page shows.},
+  author    = {Zippenfenig, Patrick},
+  doi       = {10.5281/zenodo.7970649},
+  publisher = {Zenodo},
+  title     = {Open-Meteo.com Weather API},
+  year      = {2023}
 }

@@ -1,0 +1,66 @@
+.sun-path-drawing {
+  background           : #f2f1ee;
+  font-family          : ui-monospace, monospace;
+  font-variant-numeric : tabular-nums;
+}
+
+.sun-path-year { opacity: 0; }
+
+.sun-path-word, .sun-path-figure { font-size: 11px; }
+
+.sun-path-word { fill: #5c5c58; }
+
+.sun-path-figure { fill: #1a1a1a; }
+
+.sun-path-grid {
+  stroke       : #d5d4d0;
+  stroke-width : 1;
+}
+
+.sun-path-glow-inner {
+  stop-color   : #e8c840;
+  stop-opacity : 0.55;
+}
+
+.sun-path-glow-outer {
+  stop-color   : #e8c840;
+  stop-opacity : 0;
+}
+
+.sun-path-sun {
+  fill         : #e8c840;
+  stroke       : #1a1a1a;
+  stroke-width : 1;
+}
+
+.sun-path-ground { fill: #e7e6e2; }
+
+.sun-path-horizon {
+  stroke       : #1a1a1a;
+  stroke-width : 1.2;
+}
+
+.sun-path-curve {
+  fill            : none;
+  stroke          : #8a80cb;
+  stroke-linecap  : round;
+  stroke-linejoin : round;
+  stroke-width    : 2.4;
+  vector-effect   : non-scaling-stroke;
+}
+
+.sun-path-crossing { fill: #8a80cb; }
+
+@media (prefers-color-scheme: dark) {
+  .sun-path-drawing { background: #1a1a1a; }
+
+  .sun-path-word { fill: #a6a6a1; }
+
+  .sun-path-figure { fill: #f2f1ee; }
+
+  .sun-path-grid { stroke: #3d3d3b; }
+
+  .sun-path-sun, .sun-path-horizon { stroke: #f2f1ee; }
+
+  .sun-path-ground { fill: #262624; }
+}

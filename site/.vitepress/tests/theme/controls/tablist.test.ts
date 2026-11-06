@@ -3,9 +3,9 @@ import { fireEvent, getAllByRole } from '@testing-library/dom'
 import { expect, vi }              from 'vitest'
 import { h, nextTick }             from 'vue'
 
-import { PAUSES }            from '../../../lib/motion/timing.ts'
-import { Tablist, tabPanel } from '../../../theme/controls/tablist.ts'
-import { test }              from '../../common/mount.ts'
+import { PAUSES }                   from '../../../lib/motion/timing.ts'
+import { Tablist, tabId, tabPanel } from '../../../theme/controls/tablist.ts'
+import { test }                     from '../../common/mount.ts'
 
 const TABS = [{ label: 'One', style: { color: 'red' } }, { label: 'Two' }, { label: 'Three' }]
 
@@ -27,6 +27,12 @@ test('names each tab for its panel and its label, with the style the tab sets', 
   expect(tab!.getAttribute('aria-controls')).toBe('row-panel')
   expect(tab!.getAttribute('aria-label')).toBe('One')
   expect(tab!.style.color).toBe('red')
+})
+
+test('writes the id each tab carries', ({ mount }) => {
+  const tabs = getAllByRole(mount(Tablist, props(vi.fn())), 'tab')
+
+  expect(tabs.map((tab) => tab.id)).toEqual(TABS.map((_, index) => tabId('row', index)))
 })
 
 test('labels the panel with the tab that controls it', ({ mount }) => {

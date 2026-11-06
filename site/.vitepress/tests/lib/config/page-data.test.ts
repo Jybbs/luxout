@@ -36,14 +36,15 @@ it('replaces a package key a page declares with the facts package.json declares'
 
 it.each([
   { link: '/sensors/', page: 'install/home.md', text: 'Sensors' },
-  { link: '/settings/', page: 'sensors/thresholds.md', text: 'Settings' }
+  { link: '/settings/', page: 'sensors/thresholds.md', text: 'Settings' },
+  { link: '/estimate/', page: 'settings/thresholds.md', text: 'Estimate' }
 ])('closes $page on a card into $text', ({ link, page, text }) => {
   expect(transform({ frontmatter: {}, relativePath: page }).frontmatter.next).toEqual({ link, text })
 })
 
 it.each([
   { name: 'a page inside a section', page: 'install/place.md' },
-  { name: 'the last section, which has none to lead to', page: 'settings/thresholds.md' }
+  { name: 'the last section, which has none to lead to', page: 'estimate/failed-fetches.md' }
 ])('sets no card on $name', ({ page }) => {
   expect(transform({ frontmatter: {}, relativePath: page }).frontmatter.next).toBeUndefined()
 })

@@ -1,31 +1,52 @@
 import { glob, readFile } from 'node:fs/promises'
-import { join }           from 'node:path'
+import { basename, join } from 'node:path'
 
 import { formatHex, interpolate, wcagContrast } from 'culori'
 import { cross, min }                           from 'd3-array'
 import postcss, { type Root }                   from 'postcss'
 import { expect, it }                           from 'vitest'
 
-import { WIDGET_NAMES } from '../lib/widgets/placements.ts'
+import { PLACEMENTS, WIDGET_NAMES } from '../lib/widgets/placements.ts'
 
 /**
  * The widths a container query may name, each where a widget reflows inside its
  * column.
  */
 const CONTAINER_WIDTHS = new Set(['30rem', '38rem'])
-const GROUNDS          = [{ name: 'light', selector: ':root' }, { name: 'dark', selector: '.dark' }]
+/**
+ * The inks of each frame, by the class name after the frame's own name, the
+ * fills being words and the strokes being marks.
+ */
+const FRAME_MARKS = {
+  'day-estimate'    : { fills: ['caption', 'figure', 'name'], strokes: ['cover', 'edge', 'fall', 'line'] },
+  'sun-path'        : { fills: ['figure', 'word'], strokes: ['curve', 'horizon'] },
+  'the-gap'         : { fills: ['figure', 'word'], strokes: ['edge', 'reading'] },
+  'twilight-bridge' : { fills: ['caps', 'end', 'word'], strokes: ['cut', 'drop', 'edge', 'roof'] }
+}
+const GROUNDS = [
+  { bridge: '.twilight-bridge', name: 'light', selector: ':root', widget: '.widget' },
+  { bridge: '.dark .twilight-bridge', name: 'dark', selector: '.dark', widget: '.dark .widget' }
+]
 /**
  * The widths a media query may name, each one of VitePress's own breakpoints.
  */
 const MEDIA_WIDTHS = new Set(['40rem', '48rem', '60rem'])
 const theme        = join(import.meta.dirname, '..', 'theme')
-const paths        = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
-const texts        = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
-const sheet        = postcss.parse(texts.join('\n'))
 const vars         = new URL(import.meta.resolve('vitepress/dist/client/theme-default/styles/vars.css'))
-const palette      = postcss.parse(await readFile(vars, 'utf8'))
-const framing      = new URL('../lib/daylight/the-gap-frame.css', import.meta.url)
-const frame        = postcss.parse(await readFile(framing, 'utf8'))
+const frameInks    = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [
+  ...fills.map((word) => ({ floor: 4.5, name, property: 'fill', selector: `.${name}-${word}` })),
+  ...strokes.map((mark) => ({ floor: 3, name, property: 'stroke', selector: `.${name}-${mark}` }))
+])
+const frames = new Map(await Promise.all(Object.keys(FRAME_MARKS).map(async (name) => {
+  const framing = new URL(`../lib/daylight/${name}-frame.css`, import.meta.url)
+
+  return [name, postcss.parse(await readFile(framing, 'utf8'))] as const
+})))
+const palette = postcss.parse(await readFile(vars, 'utf8'))
+const paths   = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
+const texts   = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
+const sheet   = postcss.parse(texts.join('\n'))
+const ube     = fallback('--widget-geometry')
 
 function declared(root: Root, property: string, selector: string): string[] {
   const values: string[] = []
@@ -45,10 +66,18 @@ function fallback(name: string): string {
   return /#\w+/.exec(declared(sheet, name, '.widget')[0]!)![0]
 }
 
+function groundsOf(name: string): string[] {
+  return inFrame(name, 'background', `.${name}-drawing`)
+}
+
+function inFrame(name: string, property: string, selector: string): string[] {
+  return declared(frames.get(name)!, property, selector)
+}
+
 function mixed(ground: string, ink: string, property: string, selector: string): string {
   const [mix] = declared(sheet, property, selector)
 
-  return formatHex(interpolate([ground, ink], 'rgb')(Number(/(\d+)%/.exec(mix!)![1]) / 100))
+  return formatHex(interpolate([ground, ink], 'rgb')(Number(/([\d.]+)%/.exec(mix!)![1]) / 100))
 }
 
 function resolved(name: string, selector: string): string {
@@ -60,6 +89,10 @@ function resolved(name: string, selector: string): string {
 
 function token(name: string, selector: string): string {
   return resolved(/--vp[\w-]+/.exec(declared(sheet, name, '.widget')[0]!)![0], selector)
+}
+
+function washOf(bridge: string, selector: string): string {
+  return mixed(token('--widget-ground', selector), ube, '--bridge-wash', bridge)
 }
 
 function widths(name: 'container' | 'media'): Set<string> {
@@ -121,30 +154,122 @@ it.each(GROUNDS)('holds the replayed field’s line at 3:1 on the $name ground',
   expect(min(edges)).toBeGreaterThanOrEqual(3)
 })
 
-it.each(GROUNDS)('holds the estimate’s color at 3:1 on the $name ground', ({ selector }) => {
+it.each(GROUNDS)('holds the color of each mark at 3:1 on the $name ground', ({ selector }) => {
   const ground = token('--widget-ground', selector)
+  const marks  = ['--widget-estimate', '--widget-fallback', '--widget-forecast', '--widget-geometry']
+    .map(fallback)
 
-  expect(wcagContrast(fallback('--widget-estimate'), ground)).toBeGreaterThanOrEqual(3)
+  expect(min(marks, (mark) => wcagContrast(mark, ground))).toBeGreaterThanOrEqual(3)
 })
 
-it.each([
-  { floor: 4.5, property: 'fill', selector: '.the-gap-word' },
-  { floor: 4.5, property: 'fill', selector: '.the-gap-figure' },
-  { floor: 3, property: 'stroke', selector: '.the-gap-edge' },
-  { floor: 3, property: 'stroke', selector: '.the-gap-reading' }
-])('holds $selector in the frame at $floor:1 on each ground', ({ floor, property, selector }) => {
-  const inks  = declared(frame, property, selector)
-  const worst = min(declared(frame, 'background', '.the-gap-drawing'), (ground, index) =>
-    wcagContrast(inks[index] ?? inks[0]!, ground)
-  )
+it.each(GROUNDS)(
+  'holds the ink edge of the sky at 3:1 on the sky and on the $name ground',
+  ({ selector, widget }) => {
+    const ground = token('--widget-ground', selector)
+    const sky    = mixed(ground, fallback('--widget-sky'), '--widget-sky-fill', widget)
+
+    expect(min([ground, sky], (surface) => wcagContrast(token('--widget-ink', selector), surface)))
+      .toBeGreaterThanOrEqual(3)
+  }
+)
+
+it('holds the inks of each frame a placement opens on', () => {
+  const framed = PLACEMENTS.flatMap(({ frame }) => frame ? [basename(frame, '.svg')] : [])
+
+  expect(Object.keys(FRAME_MARKS).toSorted()).toEqual(framed.toSorted())
+})
+
+it.each(frameInks)('holds $selector in the frame at $floor:1 on each ground', ({
+  floor,
+  name,
+  property,
+  selector
+}) => {
+  const inks  = inFrame(name, property, selector)
+  const worst = min(groundsOf(name), (ground, index) => wcagContrast(inks[index] ?? inks[0]!, ground))
 
   expect(worst).toBeGreaterThanOrEqual(floor)
 })
 
-it.each(['.the-gap-band', '.the-gap-on'])('tints %s in the frame as the sheet mixes it', (selector) => {
-  const tints = declared(frame, 'background', '.the-gap-drawing').map((ground) =>
-    mixed(ground, fallback('--widget-sensor'), 'fill', selector)
+it.each([
+  { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-0' },
+  { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-1' },
+  { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-2' },
+  { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-3' },
+  { color: '--widget-sensor', name: 'the-gap', selector: '.the-gap-band' },
+  { color: '--widget-sensor', name: 'the-gap', selector: '.the-gap-on' }
+])('tints $selector in the frame as the sheet mixes it', ({ color, name, selector }) => {
+  const tints = groundsOf(name).map((ground) => mixed(ground, fallback(color), 'fill', selector))
+
+  expect(inFrame(name, 'fill', selector)).toEqual(tints)
+})
+
+it.each([
+  { name: 'day-estimate', selector: '.day-estimate-sky' },
+  { name: 'twilight-bridge', selector: '.twilight-bridge-sky' }
+])('fills $selector in the frame as the sheet mixes it in each scheme', ({ name, selector }) => {
+  const tints = groundsOf(name).map((ground, index) =>
+    mixed(ground, fallback('--widget-sky'), '--widget-sky-fill', GROUNDS[index]!.widget)
   )
 
-  expect(declared(frame, 'fill', selector)).toEqual(tints)
+  expect(inFrame(name, 'fill', selector)).toEqual(tints)
+})
+
+it('tints the bridge in the frame as the sheet mixes its wash and its line in each scheme', () => {
+  const inks   = inFrame('twilight-bridge', 'stroke', '.twilight-bridge-edge')
+  const washes = groundsOf('twilight-bridge').map((ground, index) =>
+    mixed(ground, ube, '--bridge-wash', GROUNDS[index]!.bridge)
+  )
+
+  expect(inFrame('twilight-bridge', 'fill', '.twilight-bridge-wash')).toEqual(washes)
+  expect(inFrame('twilight-bridge', 'stroke', '.twilight-bridge-roof')).toEqual(inks.map((ink) =>
+    mixed(ink, ube, '--bridge-line', '.twilight-bridge')
+  ))
+})
+
+it.each(GROUNDS)(
+  'holds the roof and the cut at 3:1 on the wash and on the $name ground',
+  ({ bridge, selector }) => {
+    const ground = token('--widget-ground', selector)
+    const line   = mixed(token('--widget-ink', selector), ube, '--bridge-line', '.twilight-bridge')
+
+    expect(min([ground, washOf(bridge, selector)], (surface) => wcagContrast(line, surface)))
+      .toBeGreaterThanOrEqual(3)
+  }
+)
+
+it.each(['.twilight-bridge-cut', '.twilight-bridge-roof'])('strokes %s in the bridge’s line', (selector) => {
+  expect(declared(sheet, 'stroke', selector)).toEqual(['var(--bridge-line)'])
+})
+
+it('holds the roof and the cut in the frame at 3:1 on the wash in each scheme', () => {
+  const lines  = inFrame('twilight-bridge', 'stroke', '.twilight-bridge-cut')
+  const washes = inFrame('twilight-bridge', 'fill', '.twilight-bridge-wash')
+
+  expect(min(washes, (wash, index) => wcagContrast(lines[index]!, wash))).toBeGreaterThanOrEqual(3)
+})
+
+it.each(GROUNDS)('holds the bridge’s words at 4.5:1 on the $name wash', ({ bridge, selector }) => {
+  expect(wcagContrast(token('--widget-ink', selector), washOf(bridge, selector))).toBeGreaterThanOrEqual(4.5)
+})
+
+it.each([
+  { property: 'color', selector: '.day-estimate-hub.peeked .day-estimate-figure', value: 'var(--widget-muted)' },
+  { property: 'opacity', selector: '.day-estimate-layer[data-peek]', value: '1' },
+  {
+    property : 'stroke',
+    selector : '.day-estimate-layer[data-peek]:not([data-on]) .day-estimate-bracket',
+    value    : 'var(--widget-muted)'
+  },
+  { property: 'fill', selector: '.sun-path-wash', value: 'var(--widget-geometry)' },
+  { property: 'fill-opacity', selector: '.sun-path-wash', value: '0.16' },
+  {
+    property : 'stroke',
+    selector : '.sun-path-hair',
+    value    : 'color-mix(in oklab, var(--widget-muted) 80%, var(--widget-ground))'
+  },
+  { property: 'stroke-dasharray', selector: '.sun-path-month', value: '2 3' },
+  { property: 'stroke-width', selector: '.sun-path.year .sun-path-curve', value: '3.4' }
+])('declares $property on $selector as $value', ({ property, selector, value }) => {
+  expect(declared(sheet, property, selector)).toEqual([value])
 })

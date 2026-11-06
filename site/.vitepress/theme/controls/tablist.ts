@@ -64,11 +64,17 @@ export const Tablist = defineComponent({
   }
 })
 
-function panelId(id: string): string {
+/**
+ * Writes the id of the panel the tablist `id` controls.
+ */
+export function panelId(id: string): string {
   return `${id}-panel`
 }
 
-function tabId(id: string, index: number): string {
+/**
+ * Writes the id of the tab at `index` in the tablist `id`.
+ */
+export function tabId(id: string, index: number): string {
   return `${id}-tab-${index}`
 }
 

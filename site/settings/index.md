@@ -5,7 +5,7 @@ What can I change, and what does each setting do? This section lists every setti
 - [The Location](./location.md) says how the plugin keeps your place.
 - [The Threshold Levels](./thresholds.md) says what each threshold value means.
 
-[Sensors](../sensors/) comes before this section with how each sensor switches at the levels set here.
+[Sensors](../sensors/) comes before this section with how each sensor switches at the levels set here, and [Estimate](../estimate/) follows it with where the reading comes from and where it stops.
 
 ## Settings Reference
 

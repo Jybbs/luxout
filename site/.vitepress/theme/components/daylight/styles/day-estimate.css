@@ -1,0 +1,206 @@
+.day-estimate-board {
+  display : grid;
+  gap     : 14px;
+}
+
+.day-estimate-plot { position: relative; }
+
+.day-estimate-drawing {
+  display : block;
+  width   : 100%;
+  height  : auto;
+}
+
+.day-estimate-wash-0 { fill: color-mix(in srgb, var(--widget-geometry) 12%, var(--widget-ground)); }
+
+.day-estimate-wash-1 { fill: color-mix(in srgb, var(--widget-geometry) 8%, var(--widget-ground)); }
+
+.day-estimate-wash-2 { fill: color-mix(in srgb, var(--widget-geometry) 5%, var(--widget-ground)); }
+
+.day-estimate-wash-3 { fill: color-mix(in srgb, var(--widget-geometry) 2.5%, var(--widget-ground)); }
+
+.day-estimate-sky { fill: var(--widget-sky-fill); }
+
+.day-estimate-edge {
+  fill         : none;
+  stroke       : var(--widget-ink);
+  stroke-width : 1.2;
+}
+
+.day-estimate-rim {
+  fill         : none;
+  stroke       : var(--widget-rule);
+  stroke-width : 1;
+}
+
+.day-estimate-floor {
+  fill             : none;
+  stroke           : var(--widget-muted);
+  stroke-dasharray : 3 3;
+  stroke-width     : 1;
+}
+
+.day-estimate-quiet {
+  fill            : none;
+  stroke          : var(--widget-muted);
+  stroke-linejoin : round;
+  stroke-width    : 1.4;
+}
+
+.day-estimate-cover {
+  fill         : none;
+  stroke       : var(--widget-forecast);
+  stroke-width : 2;
+}
+
+.day-estimate-fall {
+  fill             : none;
+  stroke           : var(--widget-fallback);
+  stroke-dasharray : 4 3;
+  stroke-width     : 1.5;
+}
+
+.day-estimate-tick {
+  fill           : none;
+  stroke         : var(--widget-muted);
+  stroke-linecap : round;
+  stroke-width   : 1.2;
+}
+
+.day-estimate-layer {
+  opacity    : 0;
+  transition : opacity var(--timing-fade) var(--timing-ease);
+}
+
+.day-estimate-layer[data-on], .day-estimate-layer[data-peek] { opacity: 1; }
+
+.day-estimate-bracket {
+  fill           : none;
+  stroke         : var(--widget-ink);
+  stroke-linecap : round;
+  stroke-width   : 2;
+  transition     : stroke var(--timing-hover) var(--timing-ease);
+}
+
+.day-estimate-line {
+  fill            : none;
+  stroke          : var(--widget-estimate);
+  stroke-linecap  : round;
+  stroke-linejoin : round;
+  stroke-width    : 2.25;
+  transition      : opacity var(--timing-fade) var(--timing-ease);
+}
+
+.day-estimate-layer[data-peek]:not([data-on]) .day-estimate-bracket { stroke: var(--widget-muted); }
+
+.day-estimate-layer[data-peek]:not([data-on]) .day-estimate-line { opacity: 0; }
+
+.day-estimate-names {
+  position       : absolute;
+  inset          : 0;
+  pointer-events : none;
+}
+
+.day-estimate-tab {
+  position       : absolute;
+  padding        : 2px 4px;
+  border-radius  : 4px;
+  color          : var(--widget-muted);
+  cursor         : pointer;
+  font-size      : 0.92rem;
+  font-weight    : 600;
+  line-height    : 1.3;
+  pointer-events : auto;
+  transition     : color var(--timing-hover) var(--timing-ease);
+  translate      : -50% -50%;
+  white-space    : nowrap;
+}
+
+.day-estimate-tab::before {
+  position : absolute;
+  content  : '';
+  inset    : -6px;
+}
+
+.day-estimate-tab:hover, .day-estimate-tab.peeked, .day-estimate-tab[aria-selected='true'] {
+  color: var(--widget-ink);
+}
+
+.day-estimate-tab[aria-selected='true'] {
+  cursor                : default;
+  text-decoration       : underline 2px;
+  text-underline-offset : 4px;
+}
+
+.day-estimate-hub {
+  position       : absolute;
+  top            : 50%;
+  left           : 50%;
+  width          : 31%;
+  pointer-events : none;
+  text-align     : center;
+  translate      : -50% -50%;
+}
+
+.day-estimate-hub-words {
+  display       : grid;
+  height        : 100%;
+  align-content : center;
+  gap           : 6px;
+  justify-items : center;
+}
+
+.day-estimate-figure {
+  font                 : 600 1.25rem/1 var(--widget-display);
+  font-variant-numeric : lining-nums tabular-nums;
+  transition           : color var(--timing-hover) var(--timing-ease);
+  white-space          : nowrap;
+}
+
+.day-estimate-hub.peeked .day-estimate-figure { color: var(--widget-muted); }
+
+.day-estimate-caption {
+  color       : var(--widget-muted);
+  font-size   : 0.72rem;
+  line-height : 1.3;
+  text-wrap   : balance;
+}
+
+.day-estimate-words {
+  display : grid;
+  gap     : 6px;
+}
+
+.vp-doc .day-estimate-head {
+  display     : flex;
+  align-items : baseline;
+  flex-wrap   : wrap;
+  gap         : 2px 10px;
+  margin      : 0;
+}
+
+.day-estimate-name { font: 600 1.05rem/1.3 var(--widget-display); }
+
+.day-estimate-span {
+  color     : var(--widget-muted);
+  font-size : 0.8rem;
+}
+
+.vp-doc .day-estimate-why {
+  margin      : 0;
+  color       : var(--widget-muted);
+  font-size   : 0.92rem;
+  line-height : 1.55;
+}
+
+@container (width >= 38rem) {
+  .day-estimate-board {
+    align-items           : center;
+    gap                   : 24px;
+    grid-template-columns : 384px minmax(0, 1fr);
+  }
+}
+
+@container (width < 38rem) {
+  .day-estimate-tab { font-size: 0.86rem; }
+}
