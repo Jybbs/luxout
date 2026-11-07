@@ -10,6 +10,14 @@ import { LocationSearch }    from './components/search/location-search.ts'
 import { SettingsReference } from './components/settings/settings-reference.ts'
 import { TableFold }         from './controls/table-fold.ts'
 
+import '@fontsource-variable/bodoni-moda/opsz.css'
+import '@fontsource-variable/bodoni-moda/opsz-italic.css'
+import '@fontsource-variable/jetbrains-mono/wght.css'
+import '@fontsource-variable/source-serif-4/opsz.css'
+import '@fontsource-variable/source-serif-4/opsz-italic.css'
+import './styles/tokens.css'
+import './styles/faces.css'
+import './styles/home.css'
 import './styles/widgets.css'
 
 const WIDGETS = {
