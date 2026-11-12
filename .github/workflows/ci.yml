@@ -99,7 +99,7 @@ jobs:
             task  : site:cover
             tools : bun node
 
-          - name  : 🏮 Bundle
+          - name  : 🎒 Bundle
             task  : site:inspect
             tools : bun node
 
