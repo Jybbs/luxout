@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { readFile } from 'node:fs/promises'
 import { join }     from 'node:path'
 
@@ -11,13 +12,10 @@ const MANIFEST = JSON.stringify({
   homepage    : 'https://luxout.fyi',
   keywords    : ['homebridge-plugin', 'supports-hap']
 })
-
 const OWN = [
   '.github/rulesets/main.json', '.github/rulesets/tags.json', '.github/settings.toml', 'package.json'
 ]
-
 const RULESETS = 'repos/{owner}/{repo}/rulesets'
-
 const SETTINGS = [
   '[graphql.updateRepository]',
   'hasDiscussionsEnabled = false',
@@ -38,7 +36,6 @@ const SETTINGS = [
   '["repos/{owner}/{repo}/immutable-releases"]',
   'enabled = true'
 ].join('\n')
-
 const TOPICS  = { names: ['homebridge-plugin'] }
 const LISTING = { args: ['api', '--jq', '.[].name', '--paginate', RULESETS], body: null }
 
@@ -267,4 +264,4 @@ test('sends the repository’s own rulesets and settings, each to its endpoint',
 
 test('asks before writing when run as rulesets, failing with no terminal to answer', async ({ scratch }) => {
   expect(await confirm('rulesets', scratch, 'repo:sync:rulesets')).toEqual({ asked: true, status: 1 })
-}, 30_000)
+})

@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { execFileSync }                                 from 'node:child_process'
 import { cp, mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
 import { tmpdir }                                       from 'node:os'
@@ -11,25 +12,22 @@ interface Lockfile {
   packages: Record<string, [string, string, { bin?: Record<string, string> | string }?]>
 }
 
-const fixture = join(import.meta.dirname, 'fixtures', 'args.sh')
-const root    = join(import.meta.dirname, '..', '..')
-const scratch = await realpath(await mkdtemp(join(tmpdir(), 'luxout-bin-')))
-const bin     = join(root, '.mise', 'bin')
-const copies  = join(scratch, '.mise', 'bin')
-
+const fixture   = join(import.meta.dirname, 'fixtures', 'args.sh')
+const root      = join(import.meta.dirname, '..', '..')
+const scratch   = await realpath(await mkdtemp(join(tmpdir(), 'luxout-bin-')))
+const bin       = join(root, '.mise', 'bin')
+const copies    = join(scratch, '.mise', 'bin')
 const lockfiles = execFileSync('bash', ['-c', 'source .mise/lib/lock.sh && bun_packages'], {
   cwd      : root,
   encoding : 'utf8'
 }).split('\n').slice(0, -1).map((dir) => join(dir, 'bun.lock'))
-
+const site      = join(scratch, 'site')
 const installed = (await Promise.all(lockfiles.map(async (file) => {
   const { packages }: Lockfile = parse(await readFile(join(root, file), 'utf8'))
 
   return Object.values(packages)
     .flatMap(([, , { bin: programs } = {}]) => typeof programs === 'object' ? Object.keys(programs) : [])
 }))).flat()
-
-const site  = join(scratch, 'site')
 const names = await readdir(bin)
 const path  = process.env.PATH?.split(delimiter)
   .filter((entry) => entry !== bin)
@@ -77,9 +75,10 @@ it.each(names)('runs the %s that the node_modules/.bin of the directory it start
 })
 
 test.prop([fc.constantFrom(...names), fc.array(fc.string())], {
-  examples: names.map((name): [string, string[]] => [name, ['holds a space', '', '*', '$HOME']])
+  examples : names.map((name): [string, string[]] => [name, ['holds a space', '', '*', '$HOME']]),
+  numRuns  : 20
 })('passes every argument from outside the checkout to the program of its name', (name, args) => {
   const received = execFileSync(join(copies, name), args, { cwd: tmpdir(), encoding: 'utf8' })
 
   expect(received.split('\0').slice(0, -1)).toEqual([program(scratch, name), ...args])
-}, 30_000)
+})

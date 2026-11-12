@@ -4,8 +4,7 @@ import { Actions }     from '../../../.mise/audit/actions.ts'
 import { Audit }       from '../../../.mise/audit/audit.ts'
 import { plant, test } from '../../common/scratch.js'
 
-const MANIFEST = '.github/actions/provision/action.yml'
-
+const MANIFEST  = '.github/actions/provision/action.yml'
 const PROVISION = [
   'name: Provision',
   'inputs:',
@@ -18,7 +17,6 @@ const PROVISION = [
   '      with:',
   '        install_args: ${{ inputs.tools }}'
 ].join('\n')
-
 const actions = new Actions({ [MANIFEST]: PROVISION })
 
 it('reports nothing on a manifest with no anchor and no step writing the step summary', () => {

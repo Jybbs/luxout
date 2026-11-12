@@ -16,6 +16,10 @@ it('clamps every reading into the range the characteristic accepts', () => {
   expect(day.readings.every((lux) => lux >= luxRange.min && lux <= luxRange.max)).toBe(true)
 })
 
+it('reads the sun in the east before its noon and in the west after it', () => {
+  expect([day.azimuth(480) < 180, day.azimuth(960) > 180]).toEqual([true, true])
+})
+
 it('names the day and writes a 24-hour clock in the zone of the sample place', () => {
   expect([day.date, day.clock(0), day.clock(675), day.clock(780)])
     .toEqual(['October 4', '00:00', '11:15', '13:00'])

@@ -1,0 +1,14 @@
+:root {
+  --ground : #f2f1ee;
+  --ink    : #1a1a1a;
+  --link   : var(--text);
+  --text   : var(--ink);
+}
+
+.dark {
+  --ink : #f2f1ee;
+}
+
+.VPHero {
+  --ground : #000000;
+}

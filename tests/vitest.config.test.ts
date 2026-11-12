@@ -1,7 +1,21 @@
+import { glob, readFile } from 'node:fs/promises'
+import { dirname, join }  from 'node:path'
+
 import { expect, it, vi } from 'vitest'
+import { defaultExclude } from 'vitest/config'
 
 import thresholds from './coverage.json' with { type: 'json' }
 import config     from './vitest.config.js'
+
+const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
+const root    = dirname(import.meta.dirname)
+const spawns  = /from '(?:node:child_process|[./]+\/common\/(?:sync|vet)\.js)'/
+const files   = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
+const sources = await Array.fromAsync(files, async (file) => ({
+  file : file,
+  text : await readFile(join(root, file), 'utf8')
+}))
+const spawning = sources.filter(({ text }) => spawns.test(text))
 
 it('fails a case with no assertion, shuffles the order, and undoes every spy and stub', () => {
   expect(config.test).toMatchObject({
@@ -52,4 +66,41 @@ it.each([
   const { default: fresh } = await import('./vitest.config.js')
 
   expect(fresh.test?.reporters).toEqual(reporters)
+})
+
+it('runs an untagged case under Vitest’s 5 s default', ({ task }) => {
+  expect(task.timeout).toBe(5000)
+})
+
+it('runs a case tagged spawns under 60 s', { tags: ['spawns'] }, ({ task }) => {
+  expect(task.timeout).toBe(60_000)
+})
+
+it('runs a case tagged spawns-many under 180 s', { tags: ['spawns-many'] }, ({ task }) => {
+  expect(task.timeout).toBe(180_000)
+})
+
+it.each(spawning)('opens $file, which runs a child process, on a tag that sets its limit', ({ text }) => {
+  const pragmas = config.test?.tags?.map(({ name }) => `/** @module-tag ${name} */`)
+
+  expect(text.slice(0, text.indexOf('\n'))).toBeOneOf(pragmas ?? [])
+})
+
+it.each(['tests/mise/bin.test.ts', 'tests/mise/tasks/lock/sync.test.ts', 'tests/mise/vet/vet.test.ts'])(
+  'finds %s among the test files importing node:child_process, the sync helper, or the vet helper',
+  (file) => {
+    expect(spawning).toContainEqual(expect.objectContaining({ file }))
+  }
+)
+
+it('reads a tag pragma off the first line of a test file alone', () => {
+  const stray = sources.filter(({ text }) => pragma.test(text.slice(text.indexOf('\n'))))
+
+  expect(stray.map(({ file }) => file)).toEqual([])
+})
+
+it('opens no test file but one that runs a child process on a tag', () => {
+  const tagged = sources.filter(({ text }) => pragma.test(text.slice(0, text.indexOf('\n'))))
+
+  expect(tagged.map(({ file }) => file)).toEqual(spawning.map(({ file }) => file))
 })

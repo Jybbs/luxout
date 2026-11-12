@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { spawnSync }     from 'node:child_process'
 import { tmpdir }        from 'node:os'
 import { join }          from 'node:path'
@@ -9,6 +10,25 @@ import * as monitor from '../../../.mise/vet/monitor.ts'
 import { test }     from '../../common/vet.js'
 
 const vet = join(import.meta.dirname, '..', '..', '..', '.mise', 'vet')
+
+/**
+ * Builds a stand-in for `dns` whose lookups resolve every host to 127.0.0.1,
+ * and fails its lookups.
+ */
+function failed() {
+  const report   = vi.fn<(line: string) => void>()
+  const promised = vi.fn<(host: string) => Promise<object>>(async () => ({ address: '127.0.0.1', family: 4 }))
+  const lookup   = vi.fn<(...args: unknown[]) => void>((...args) => {
+    const callback = args.at(-1)
+
+    if (typeof callback === 'function') callback(null, '127.0.0.1', 4)
+  })
+  const resolver = { NOTFOUND: 'ENOTFOUND', lookup, promises: { lookup: promised } }
+
+  monitor.failLookups(resolver, report)
+
+  return { lookup, promised, report, resolver }
+}
 
 /**
  * Builds a stand-in for `fs` whose every write call returns its name, and
@@ -34,25 +54,6 @@ function watched(storage = '/storage', area = '/area') {
   new monitor.Writes(storage, area, report).watch(fs)
 
   return { fs, report }
-}
-
-/**
- * Builds a stand-in for `dns` whose lookups resolve every host to 127.0.0.1,
- * and fails its lookups.
- */
-function failed() {
-  const report   = vi.fn<(line: string) => void>()
-  const promised = vi.fn<(host: string) => Promise<object>>(async () => ({ address: '127.0.0.1', family: 4 }))
-  const lookup   = vi.fn<(...args: unknown[]) => void>((...args) => {
-    const callback = args.at(-1)
-
-    if (typeof callback === 'function') callback(null, '127.0.0.1', 4)
-  })
-  const resolver = { NOTFOUND: 'ENOTFOUND', lookup, promises: { lookup: promised } }
-
-  monitor.failLookups(resolver, report)
-
-  return { lookup, promised, report, resolver }
 }
 
 it.each([

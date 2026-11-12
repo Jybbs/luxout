@@ -1,10 +1,10 @@
+/** @module-tag spawns */
 import { expect } from 'vitest'
 
 import { confirm, sync } from '../../../../common/sync.js'
 import { plant, test }   from '../../../../common/scratch.js'
 
 const ENDPOINT = 'repos/{owner}/{repo}/labels'
-
 const REGISTRY = [
   '["🐞 bug"]',
   'color       = "c62d42"',
@@ -14,7 +14,6 @@ const REGISTRY = [
   'color       = "8cc5a3"',
   String.raw`description = "-Quotes ' and \" and $HOME and \\ stay as written"`
 ].join('\n')
-
 const LISTING = ['api', '--jq', '.[].name', '--paginate', ENDPOINT]
 
 /**
@@ -87,4 +86,4 @@ test('fails without listing where reading the live labels fails', async ({ scrat
 
 test('asks before writing when run as labels, failing with no terminal to answer', async ({ scratch }) => {
   expect(await confirm('labels', scratch, 'repo:sync:labels')).toEqual({ asked: true, status: 1 })
-}, 30_000)
+})

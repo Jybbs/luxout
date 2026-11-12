@@ -22,17 +22,17 @@ const EVENING  = [0.454493, 0.701868, 0.521517, 0.373257] as const
 const MORNING  = [0.504787, 0.462013, 0.446452, 0.437864] as const
 const HOUR     = 3_600_000
 const STEP     = 900_000
+const evening  = parsed(dusk, angeles)
 const helsinki = new Place(60.16952, 24.93545)
 const instants = fc.date({
   max           : new Date('2026-10-11T06:45:00Z'),
   min           : new Date('2026-10-11T00:00:00Z'),
   noInvalidDate : true
 })
+const morning = parsed(dawn, delhi)
 const oslo    = new Place(59.91273, 10.74609)
 const sky     = new ClearSky()
 const tromso  = new Place(69.6489, 18.95508)
-const evening = parsed(dusk, angeles)
-const morning = parsed(dawn, delhi)
 
 it('computes the Haurwitz irradiance of equation 18 for a sun straight overhead', () => {
   expect(haurwitz(90)).toBeCloseTo(1098 * Math.exp(-0.057), 9)

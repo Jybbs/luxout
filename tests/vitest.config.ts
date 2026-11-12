@@ -27,6 +27,19 @@ export default defineConfig({
 
     reporters: process.env.GITHUB_ACTIONS
              ? ['default', ['github-actions', { jobSummary: { enabled: false } }]]
-             : ['default']
+             : ['default'],
+
+    tags: [
+      {
+        description : 'Runs a task, a wrapper, or a stand-in as a child process',
+        name        : 'spawns',
+        timeout     : 60_000
+      },
+      {
+        description : 'Runs a task that clones a checkout, packs the package, or installs Homebridge',
+        name        : 'spawns-many',
+        timeout     : 180_000
+      }
+    ]
   }
 })

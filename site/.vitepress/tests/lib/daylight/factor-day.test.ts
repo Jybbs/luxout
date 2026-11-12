@@ -8,9 +8,8 @@ import { SampleDay }               from '../../../lib/daylight/sample-day.ts'
 import { data }                    from '../../common/data/factor-day.ts'
 
 const { curve, factor, minutes, outside, range, rest, terms, track, width } = data
-
-const [clear, cloud, reading] = terms
 const day                     = SampleDay.record()
+const [clear, cloud, reading] = terms
 
 it('writes the three terms in the order the line sets them, the clear sky first', () => {
   expect(terms.map(({ name }) => name)).toEqual(['Clear sky', 'Cloud factor', 'Reading'])

@@ -19,10 +19,11 @@ import { gapDrawing }               from '../theme/components/daylight/gap-drawi
 import { sunDrawing }               from '../theme/components/daylight/sun-drawing.ts'
 import { plotDrawing }              from '../theme/controls/plot-marks.ts'
 import { data }                     from './common/data/daylight.ts'
+import { framed }                   from './common/outline.ts'
 
 const day     = SampleDay.record()
-const framed  = PLACEMENTS.filter(({ frame }) => frame)
 const { gap } = data
+const placed  = PLACEMENTS.filter(({ frame }) => frame)
 const site    = join(import.meta.dirname, '..', '..')
 const bridge  = twilightBridge(day.sky)
 const dial    = dayDial(day)
@@ -30,13 +31,13 @@ const year    = sunYear(day)
 
 /**
  * Writes a drawing's markup with the sheet that styles it outside the site, and
- * with the words the widget sets around it in HTML.
+ * with the words the widget sets around it in HTML, every word an outline.
  */
 async function frameOf(drawing: VNode, sheetName: string, words = ''): Promise<string> {
   const markup = await renderToString(createSSRApp({ render: () => drawing }))
   const sheet  = await readFile(new URL(`../lib/daylight/${sheetName}`, import.meta.url), 'utf8')
 
-  return `${markup.replace(/<\/svg>$/, `${words}<style>${sheet}</style></svg>`)}\n`
+  return framed(markup.replace(/<\/svg>$/, `${words}</svg>`), sheet)
 }
 
 /**
@@ -82,30 +83,30 @@ it('commits the frame The Day’s Estimate opens on, with its names and its figu
 it('commits the frame The Twilight Bridge opens on, with its words', async () => {
   const { decades, height, high, label, low, rest, ticks, width, x, y } = bridge
 
-  const placed = { height, width, x: 64, y: 20 }
+  const plot   = { height, width, x: 64, y: 20 }
   const text   = frameWord('twilight-bridge')
-  const across = (at: number) => placed.x + at
-  const up     = (at: number) => placed.y + at
+  const across = (at: number) => plot.x + at
+  const up     = (at: number) => plot.y + at
   const dot    = (name: string, at: number, level: number, r: number) =>
     `<circle class="twilight-bridge-${name}" cx="${across(at)}" cy="${up(level)}" r="${r}"></circle>`
   const words = [
     ...[{ at: 0, word: 'lux' }, ...decades].map(({ at, word }) =>
-      text('word', placed.x - 6, up(at), word, 'end')
+      text('word', plot.x - 6, up(at), word, 'end')
     ),
     ...ticks.map(({ at, word }) => text('word', across(at), up(height) + 16, word)),
-    text('caps', placed.x + 6, up(14), 'THE BRIDGE', 'start'),
+    text('caps', plot.x + 6, up(14), 'THE BRIDGE', 'start'),
     dot('node', low.x, low.y, 3),
     dot('node', high.x, high.y, 3),
-    text('end', placed.x - 10, up(low.y), low.word, 'end'),
+    text('end', plot.x - 10, up(low.y), low.word, 'end'),
     text('end', across(high.x) - 8, up(high.y) - 12, high.word, 'end'),
     dot('sun', x[rest]!, y[rest]!, 7)
   ]
   const drawing = plotDrawing(
     'twilight-bridge-drawing',
     label,
-    placed.x + width + 16,
-    placed.y + height + 28,
-    [cloneVNode(bridgeDrawing(bridge), placed)]
+    plot.x + width + 16,
+    plot.y + height + 28,
+    [cloneVNode(bridgeDrawing(bridge), plot)]
   )
 
   await expect(await frameOf(drawing, 'twilight-bridge-frame.css', words.join('')))
@@ -123,10 +124,16 @@ it('describes the bridge’s frame on estimate/clear-sky.md through the figures 
   )
 })
 
-it.each(framed)('writes the frame $widget opens on as well-formed XML', async ({ frame, page }) => {
+it.each(placed)('writes the frame $widget opens on as well-formed XML', async ({ frame, page }) => {
   const text   = await readFile(join(site, dirname(page), frame!), 'utf8')
   const parsed = new (new Window().DOMParser)().parseFromString(text, 'image/svg+xml')
 
   expect(parsed.querySelector('parsererror')).toBeNull()
   expect(parsed.documentElement.localName).toBe('svg')
+})
+
+it.each(placed)('sets no word of the frame $widget opens on in a reader’s font', async ({ frame, page }) => {
+  const text = await readFile(join(site, dirname(page), frame!), 'utf8')
+
+  expect(text).not.toMatch(/<text\b|font-family|font-size/)
 })

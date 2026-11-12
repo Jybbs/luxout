@@ -1,3 +1,4 @@
+/** @module-tag spawns-many */
 import { execFileSync }                      from 'node:child_process'
 import { mkdir, readFile, readdir, symlink } from 'node:fs/promises'
 import { join }                              from 'node:path'
@@ -158,7 +159,7 @@ test('passes a plugin importing its dependencies and what both releases export, 
     stored   : expect.arrayContaining(['written']),
     verdicts : ['Homebridge 1.8.5, platform only: passes', 'Homebridge 2.4.0, platform only: passes']
   })
-}, 120_000)
+})
 
 test.for([
   {
@@ -177,7 +178,6 @@ test.for([
   }
 ])(
   'fails a plugin importing $name under each release lacking it, keeping the storage',
-  { timeout: 120_000 },
   async ({ floor, message, pinned, source }, { scratch }) => {
     const { status, stdout, stored, verdicts } = await vet(scratch, await checkout(scratch, source))
 

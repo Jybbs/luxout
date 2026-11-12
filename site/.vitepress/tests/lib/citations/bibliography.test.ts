@@ -6,8 +6,8 @@ import { expect, it } from 'vitest'
 import { Bibliography } from '../../../lib/citations/bibliography.ts'
 
 const fixture      = join(import.meta.dirname, 'fixtures', 'references.bib')
-const bibliography = Bibliography.parse(await readFile(fixture, 'utf8'))
 const notes        = new Bibliography(new Map([['first', 'The first work.'], ['second', 'The second work.']]))
+const bibliography = Bibliography.parse(await readFile(fixture, 'utf8'))
 
 it.each([
   {

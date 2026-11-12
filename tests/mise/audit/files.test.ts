@@ -7,7 +7,6 @@ const JSON_TEXT = JSON.stringify(
   null,
   2
 )
-
 const TOML = [
   'min_version = "2026.9.18"',
   '',

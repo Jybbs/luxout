@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import dgram                from 'node:dgram'
 import { once }             from 'node:events'
 import { readdir }          from 'node:fs/promises'

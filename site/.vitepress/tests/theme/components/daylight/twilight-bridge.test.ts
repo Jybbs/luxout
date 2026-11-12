@@ -16,7 +16,6 @@ vi.mock(
 )
 
 const { cut, degrees, figures, height, label, phrases, rest, ticks, width, x, y } = data
-
 const LAST = x.length - 1
 
 function press(host: HTMLElement, key: string): void {
