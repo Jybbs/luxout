@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { readFile, readdir, readlink } from 'node:fs/promises'
 import { basename, join }              from 'node:path'
 
