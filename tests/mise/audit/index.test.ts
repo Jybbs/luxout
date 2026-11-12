@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { spawnSync } from 'node:child_process'
 import { chmod }     from 'node:fs/promises'
 import { join }      from 'node:path'
@@ -31,4 +32,4 @@ test('runs under Node’s type stripping and exits 1 on the annotations it print
            + '::error file=.mise/tasks/plugin/bake,line=2,title=Unfrozen install::`bun install` '
            + 'runs without `--frozen-lockfile` or `--lockfile-only`\n'
   })
-}, 30_000)
+})

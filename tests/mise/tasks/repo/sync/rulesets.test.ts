@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { readFile } from 'node:fs/promises'
 import { join }     from 'node:path'
 
@@ -267,4 +268,4 @@ test('sends the repository’s own rulesets and settings, each to its endpoint',
 
 test('asks before writing when run as rulesets, failing with no terminal to answer', async ({ scratch }) => {
   expect(await confirm('rulesets', scratch, 'repo:sync:rulesets')).toEqual({ asked: true, status: 1 })
-}, 30_000)
+})
