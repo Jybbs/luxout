@@ -5,7 +5,8 @@ import type { Block, Homebridge, Launch, Run } from './homebridge.ts'
 
 /**
  * A run of Homebridge under one block, held to what Homebridge's verification
- * checks require of the plugin.
+ * checks require of the plugin, or to the accessories the platform registers
+ * for the block.
  */
 export interface Check {
   block : Block | undefined

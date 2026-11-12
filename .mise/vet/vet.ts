@@ -14,8 +14,9 @@ const TUNING      = { grace: 12_000, observe: 30_000, settle: 1_500 }
 const conjunction = new Intl.ListFormat('en', { type: 'conjunction' })
 
 /**
- * Replays the runtime scenarios of Homebridge's verification checks against the
- * plugin installed beside each release of Homebridge it holds.
+ * Replays the runtime scenarios of Homebridge's verification checks, and reads
+ * the services a bridge exposes over HAP, against the plugin installed beside
+ * each release of Homebridge it holds.
  */
 export class Vet {
   readonly #checks   : scenario.Check[]

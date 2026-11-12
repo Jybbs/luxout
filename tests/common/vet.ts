@@ -35,7 +35,6 @@ export const BUILT = {
   'dist/config/settings.js' : 'export class Settings { static parse() { return { ok: false } } }\n',
   'dist/sensor/outside.js'  : 'export const OUTSIDE = {}\n'
 }
-
 /**
  * The waits a case runs on, short enough to keep it quick and long enough for a
  * stand-in to start on a busy machine.

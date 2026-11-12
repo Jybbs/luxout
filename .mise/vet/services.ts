@@ -69,19 +69,23 @@ class Accessory {
 }
 
 /**
- * Holds the accessories a bridge exposes over HAP by name, leaving out the
+ * Holds the accessories a bridge exposes over HAP by name, beside the ID of each
+ * accessory it lists with no service but Accessory Information, leaving out the
  * bridge itself.
  */
 export class Exposure {
-  readonly #accessories: Map<string, Accessory[]>
+  readonly #accessories : Map<string, Accessory[]>
+  readonly #bare        : number[]
 
   /**
-   * Reads every service the bridge listening on `port` at `127.0.0.1` exposes,
-   * reading none where the bridge refuses the request. A bridge answers without
-   * pairing only where Homebridge started insecure.
+   * Reads every accessory the bridge listening on `port` at `127.0.0.1` lists
+   * and every service it exposes, rejecting with the status of a bridge that
+   * refuses the request or the error the mDNS socket `HapClient` binds raises.
+   * A bridge answers without pairing only where Homebridge started insecure.
    */
   static async read(port: number): Promise<Exposure> {
     const client   = new HapClient({ config: { autoStartDiscovery: false }, logger: {}, pin: PIN })
+    const failed   = Promise.withResolvers<never>()
     const instance = {
       configurationNumber   : 0,
       connectionFailedCount : 0,
@@ -91,20 +95,36 @@ export class Exposure {
       services              : [],
       username              : ''
     }
+    const listed   = async (): Promise<Exposure> => {
+      const response = await fetch(`http://127.0.0.1:${port}/accessories`)
+
+      if (!response.ok) throw new Error(`the bridge answers /accessories with ${response.status}`)
+
+      const { accessories } = await response.json() as { accessories: { aid: number }[] }
+
+      return new Exposure(accessories.map(({ aid }) => aid), await client.getAllServices(instance))
+    }
+
+    // `HapClient` attaches no `error` listener to the mDNS socket it keeps private.
+    Reflect.get(Reflect.get(client, 'bonjour'), 'server').mdns.on('error', (error: Error) => {
+      failed.reject(new Error(`HapClient's mDNS socket fails with ${error.message}`, { cause: error }))
+    })
 
     try {
-      return new Exposure(await client.getAllServices(instance))
+      return await Promise.race([failed.promise, listed()])
     } finally {
       client.destroy()
     }
   }
 
-  constructor(services: ServiceType[]) {
+  constructor(listed: number[], services: ServiceType[]) {
+    const shown       = new Set(services.map(({ aid }) => aid))
     const accessories = Map.groupBy(services.filter(({ aid }) => aid !== BRIDGE), ({ aid }) => aid)
       .values()
       .map((group) => new Accessory(group))
 
     this.#accessories = Map.groupBy(accessories, ({ name }) => name)
+    this.#bare        = listed.filter((aid) => aid !== BRIDGE && !shown.has(aid))
   }
 
   /**
@@ -114,6 +134,7 @@ export class Exposure {
    * - An accessory the platform registers no sensor for, an entry that fails
    *   validation among them, one it registers that the bridge leaves out, or
    *   one it registers that the bridge exposes more than once
+   * - An accessory carrying no service but Accessory Information
    * - A mismatch `Accessory.mismatches` names
    * - A `CurrentAmbientLightLevel` on Outside outside the range its `props`
    *   declare
@@ -135,6 +156,7 @@ export class Exposure {
 
         return length === 1 ? [] : [`exposes ${length} accessories named ${name}`]
       }),
+      ...this.#bare.map((aid) => `exposes accessory ${aid} with no service but Accessory Information`),
       ...sensors.flatMap((sensor) =>
         exposed(sensor.name)?.mismatches(sensor, plugin.manifest) ?? [`exposes no ${sensor.name} accessory`]),
       ...level === undefined ? [] : range(plugin.outside.name, level),
@@ -214,8 +236,9 @@ export class Plugin {
 /**
  * Starts Homebridge insecure and offline under the block the local run starts
  * with, and reads every accessory it exposes over HAP once the observe window
- * ends. The check fails where those accessories differ from what the platform
- * registers for the block.
+ * ends. The check fails where the run config holds no block, where the read
+ * fails, or where those accessories differ from what the platform registers
+ * for the block.
  */
 export class Services implements scenario.Check {
   readonly block   : Block | undefined
@@ -233,19 +256,20 @@ export class Services implements scenario.Check {
     stage              : scenario.Stage,
     { grace, observe } : scenario.Tuning
   ): Promise<scenario.Verdict> {
+    if (this.block === undefined) return { failures: ['finds no Luxout block in the run config'], output: '' }
+
     const run       = await homebridge.start({ ...stage, block: this.block, insecure: true, offline: true })
     const [started] = await Promise.all([run.started(observe), run.wait(observe)])
-    const exposure  = started && !run.exited ? await Exposure.read(stage.port) : undefined
+    const failures  = started && !run.exited
+                    ? await Exposure.read(stage.port).then(
+                        (exposure) => exposure.differences(this.block, this.#plugin),
+                        (error: Error) => [`reads none of its accessories over HAP, because ${error.message}`]
+                      )
+                    : ['never exposes its accessories over HAP']
 
     await run.stop(grace)
 
-    return {
-      output   : run.output,
-      failures : [
-        ...exposure?.differences(this.block, this.#plugin) ?? ['never exposes its accessories over HAP'],
-        ...run.faults
-      ]
-    }
+    return { failures: [...failures, ...run.faults], output: run.output }
   }
 }
 
