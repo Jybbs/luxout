@@ -88,13 +88,11 @@ it('writes the preview of each page through the head hook', async () => {
   expect(await config.transformHead?.(context as never)).toEqual(transformHead(manifest.homepage)(context))
 })
 
-it('renders the site’s card into the build’s output through the build hook', async () => {
+it('renders the site’s card into the build’s output through the build hook', async ({ onTestFinished }) => {
   const outDir = await mkdtemp(join(tmpdir(), 'luxout-config-'))
 
+  onTestFinished(() => rm(outDir, { force: true, recursive: true }))
   await config.buildEnd?.({ ...config, outDir, pages: ['index.md'] })
 
-  const signature = (await readFile(join(outDir, 'cards', 'index.png'))).subarray(1, 4).toString()
-
-  await rm(outDir, { force: true, recursive: true })
-  expect(signature).toBe('PNG')
+  expect((await readFile(join(outDir, 'cards', 'index.png'))).subarray(1, 4).toString()).toBe('PNG')
 }, 60_000)

@@ -21,8 +21,8 @@ const HOME = 'index.md'
 
 /**
  * Reads the front page's hero from the page itself, as its title and the text
- * of the paragraph that opens it, parsed by a VitePress Markdown renderer for
- * the site's source directory.
+ * of the paragraph that opens it, through the one Markdown renderer VitePress
+ * holds, which it has already built from the site's `markdown` options.
  */
 async function heroOf({ filePath, title }: Page, srcDir: string): Promise<{ name: string, tagline: string }> {
   const md      = await createMarkdownRenderer(srcDir)
