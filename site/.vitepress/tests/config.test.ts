@@ -5,11 +5,21 @@ import { type PageData, resolveConfig } from 'vitepress'
 import { expect, it }                   from 'vitest'
 
 import manifest            from '../../../package.json' with { type: 'json' }
+import { transformHead }   from '../lib/config/head.ts'
 import { buildNavigation } from '../lib/config/navigation.ts'
-import { setFacts }        from '../lib/config/page-data.ts'
+import { transformPage }   from '../lib/config/page-data.ts'
 import { SECTIONS }        from '../lib/config/sections.ts'
 import { luxRange }        from '../lib/daylight/homekit.ts'
+import { test }            from './common/scratch.ts'
 
+const front: PageData = {
+  description  : '',
+  filePath     : 'index.md',
+  frontmatter  : {},
+  headers      : [],
+  relativePath : 'index.md',
+  title        : 'Luxout'
+}
 const site   = join(import.meta.dirname, '..', '..')
 const config = await resolveConfig(site, 'build', 'production')
 
@@ -22,21 +32,36 @@ it('names the site and describes it as package.json does', () => {
 })
 
 it('feeds the navigation bar and the sidebar from the one registry of sections', () => {
-  expect(config.site.themeConfig).toEqual(buildNavigation(site, SECTIONS))
+  expect(config.site.themeConfig).toMatchObject(buildNavigation(site, SECTIONS))
+})
+
+it('links each scheme’s mark as its favicon and shows each scheme’s title in the navigation bar', () => {
+  const icon = (scheme: string) => ['link', {
+    href  : `/logo/mark-${scheme}.svg`,
+    media : `(prefers-color-scheme: ${scheme})`,
+    rel   : 'icon',
+    type  : 'image/svg+xml'
+  }]
+
+  expect(config.site.head).toEqual(expect.arrayContaining([icon('dark'), icon('light')]))
+  expect(config.site.themeConfig).toMatchObject({
+    logo      : { alt: 'luxout', dark: '/logo/title-dark.svg', light: '/logo/title-light.svg' },
+    siteTitle : false
+  })
 })
 
 it('sets the facts package.json declares on every page', async () => {
-  const page: PageData = {
-    description  : '',
-    filePath     : 'index.md',
-    frontmatter  : {},
-    headers      : [],
-    relativePath : 'index.md',
-    title        : 'Luxout'
-  }
+  const context = { siteConfig: config }
 
-  expect(await config.transformPageData?.(page, { siteConfig: config }))
-    .toEqual(setFacts(manifest, luxRange, site, SECTIONS)(page))
+  expect(await config.transformPageData?.(front, context))
+    .toEqual(await transformPage(manifest, luxRange, site, SECTIONS)(front, context))
+})
+
+it('sets the front page hero to the title and the tagline the page opens on', async () => {
+  const data = await config.transformPageData?.(front, { siteConfig: config })
+
+  expect(data?.frontmatter.hero)
+    .toEqual({ name: 'Luxout', tagline: 'An outdoor light sensor for Apple Home.' })
 })
 
 it('renders the value transformPageData sets wherever a page interpolates a fact', () => {
@@ -55,3 +80,15 @@ it('caches the hashed files for a year, leaving every other file at the host’s
   expect(await readFile(join(config.publicDir, '_headers'), 'utf8'))
     .toBe(`/${config.assetsDir}/*\n  Cache-Control: public, max-age=31536000, immutable\n`)
 })
+
+it('writes the preview of each page through the head hook', async () => {
+  const context = { assets: [], description: 'A page.', pageData: front, siteData: config.site }
+
+  expect(await config.transformHead?.(context as never)).toEqual(transformHead(manifest.homepage)(context))
+})
+
+test('renders the site’s card into the build’s output through the build hook', async ({ scratch }) => {
+  await config.buildEnd?.({ ...config, outDir: scratch, pages: ['index.md'] })
+
+  expect((await readFile(join(scratch, 'cards', 'index.png'))).subarray(1, 4).toString()).toBe('PNG')
+}, 60_000)

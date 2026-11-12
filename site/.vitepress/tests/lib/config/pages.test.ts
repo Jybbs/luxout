@@ -1,10 +1,10 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir }                        from 'node:os'
-import { join }                          from 'node:path'
+import { writeFile } from 'node:fs/promises'
+import { join }      from 'node:path'
 
-import { test as base, expect } from 'vitest'
+import { expect } from 'vitest'
 
-import { sectionPages } from '../../../lib/config/pages.ts'
+import { sectionPages }           from '../../../lib/config/pages.ts'
+import { plant, test as scratch } from '../../common/scratch.ts'
 
 const PAGES = {
   'alpha.md' : '# *Alpha* Page\n',
@@ -12,12 +12,8 @@ const PAGES = {
   'zeta.md'  : '# Zeta Page\n'
 }
 const SECTION = { asks: '', holds: '', label: 'Guide', slug: 'guide' }
-const test    = base.extend('root', async ({ onTestFinished }) => {
-  const root = await mkdtemp(join(tmpdir(), 'luxout-'))
-
-  onTestFinished(() => rm(root, { force: true, recursive: true }))
-  await mkdir(join(root, 'guide'))
-  await Promise.all(Object.entries(PAGES).map(([name, text]) => writeFile(join(root, 'guide', name), text)))
+const test    = scratch.extend('root', async ({ scratch: root }) => {
+  await plant(join(root, 'guide'), PAGES)
 
   return root
 })

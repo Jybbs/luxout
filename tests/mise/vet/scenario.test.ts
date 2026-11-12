@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { join } from 'node:path'
 
 import { expect, it, vi } from 'vitest'

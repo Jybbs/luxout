@@ -1,8 +1,4 @@
-.twilight-bridge-drawing {
-  background           : #f2f1ee;
-  font-family          : ui-monospace, monospace;
-  font-variant-numeric : tabular-nums;
-}
+.twilight-bridge-drawing { background: #f2f1ee; }
 
 .twilight-bridge-wash { fill: #dddae7; }
 

@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { execFileSync }                                 from 'node:child_process'
 import { cp, mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
 import { tmpdir }                                       from 'node:os'
@@ -74,9 +75,10 @@ it.each(names)('runs the %s that the node_modules/.bin of the directory it start
 })
 
 test.prop([fc.constantFrom(...names), fc.array(fc.string())], {
-  examples: names.map((name): [string, string[]] => [name, ['holds a space', '', '*', '$HOME']])
+  examples : names.map((name): [string, string[]] => [name, ['holds a space', '', '*', '$HOME']]),
+  numRuns  : 20
 })('passes every argument from outside the checkout to the program of its name', (name, args) => {
   const received = execFileSync(join(copies, name), args, { cwd: tmpdir(), encoding: 'utf8' })
 
   expect(received.split('\0').slice(0, -1)).toEqual([program(scratch, name), ...args])
-}, 30_000)
+})

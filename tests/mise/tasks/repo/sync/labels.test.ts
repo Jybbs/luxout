@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { expect } from 'vitest'
 
 import { confirm, sync } from '../../../../common/sync.js'
@@ -85,4 +86,4 @@ test('fails without listing where reading the live labels fails', async ({ scrat
 
 test('asks before writing when run as labels, failing with no terminal to answer', async ({ scratch }) => {
   expect(await confirm('labels', scratch, 'repo:sync:labels')).toEqual({ asked: true, status: 1 })
-}, 30_000)
+})

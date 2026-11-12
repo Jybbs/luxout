@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { execFileSync } from 'node:child_process'
 import { join }         from 'node:path'
 

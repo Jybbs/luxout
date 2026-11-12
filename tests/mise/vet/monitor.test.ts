@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { spawnSync }     from 'node:child_process'
 import { tmpdir }        from 'node:os'
 import { join }          from 'node:path'

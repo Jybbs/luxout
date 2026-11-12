@@ -1,11 +1,10 @@
-import { spawnSync }                     from 'node:child_process'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir }                        from 'node:os'
-import { dirname, join }                 from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { join }      from 'node:path'
 
-import { test as base, expect, vi } from 'vitest'
+import { expect, vi } from 'vitest'
 
-import { Bundle } from '../../../lib/bundle/bundle.ts'
+import { Bundle }                 from '../../../lib/bundle/bundle.ts'
+import { plant, test as scratch } from '../../common/scratch.ts'
 
 const CLEAN = {
   '.vitepress/dist/assets/app.js'       : 'export const a=1;',
@@ -15,22 +14,13 @@ const CLEAN = {
   '.vitepress/theme/styles/widgets.css' : '.a {\n  color: color-mix(in srgb, var(--a) 30%, black);\n}\n'
 }
 const entry = join(import.meta.dirname, '..', '..', '..', 'lib', 'bundle', 'index.ts')
-const test  = base.extend('root', async ({ onTestFinished }) => {
-  const root = await mkdtemp(join(tmpdir(), 'luxout-'))
+const test  = scratch
+  .extend('root', async ({ scratch: root }) => {
+    await plant(root, CLEAN)
 
-  onTestFinished(() => rm(root, { force: true, recursive: true }))
-  await plant(root, CLEAN)
-
-  return root
-})
+    return root
+  })
   .extend('write', () => vi.fn<(line: string) => void>())
-
-async function plant(root: string, files: Record<string, string>): Promise<void> {
-  await Promise.all(Object.entries(files).map(async ([file, text]) => {
-    await mkdir(dirname(join(root, file)), { recursive: true })
-    await writeFile(join(root, file), text)
-  }))
-}
 
 test('writes nothing and returns 0 for a build carrying no defect', async ({ root, write }) => {
   expect(await Bundle.read(root).report(write)).toBe(0)

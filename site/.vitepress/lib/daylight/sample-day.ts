@@ -1,4 +1,5 @@
-import { range } from 'd3-array'
+import { Body, Equator, Horizon, Observer } from 'astronomy-engine'
+import { range }                            from 'd3-array'
 
 import { Place }          from '../../../../src/config/place.ts'
 import { ClearSky }       from '../../../../src/daylight/clear-sky.ts'
@@ -15,6 +16,7 @@ const MIDNIGHT                          = Date.UTC(2026, 9, 4, 4)  // October 4,
 const { latitude, longitude, timezone } = recording.results[0]!
 const clockFormat                       = clock.clockFormatIn(timezone)
 const dateFormat                        = clock.dateFormatIn(timezone)
+const observer                          = new Observer(latitude, longitude, 0)
 /**
  * The place the sample day and the Location Search both use, holding the
  * coordinates of the recorded result as the plugin stores them.
@@ -81,6 +83,17 @@ export class SampleDay {
     const { times } = this.window
 
     return [this.minuteOf(times[0]!), this.minuteOf(times.at(-1)!)]
+  }
+
+  /**
+   * Finds the sun's azimuth in degrees clockwise from north at `minute` past
+   * midnight, before any refraction.
+   */
+  azimuth(minute: number): number {
+    const time        = instant(minute)
+    const { dec, ra } = Equator(Body.Sun, time, observer, true, true)
+
+    return Horizon(time, observer, ra, dec).azimuth
   }
 
   /**
