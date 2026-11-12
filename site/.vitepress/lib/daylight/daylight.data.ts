@@ -14,7 +14,6 @@ declare const data: Daylight
 export { data }
 
 export default defineLoader({
-  watch: ['./forecast.json', '../search/recording.json'],
   load(): Daylight {
     const day = SampleDay.record()
 

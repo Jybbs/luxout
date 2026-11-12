@@ -2,12 +2,12 @@
 
 .sun-path-year { opacity: 0; }
 
-.sun-path-word { fill: #5c5c58; }
+.sun-path-word { fill: #5d5950; }
 
 .sun-path-figure { fill: #1a1a1a; }
 
 .sun-path-grid {
-  stroke       : #d5d4d0;
+  stroke       : #d6d2c8;
   stroke-width : 1;
 }
 
@@ -27,7 +27,7 @@
   stroke-width : 1;
 }
 
-.sun-path-ground { fill: #e7e6e2; }
+.sun-path-ground { fill: #e8e5de; }
 
 .sun-path-horizon {
   stroke       : #1a1a1a;
@@ -48,14 +48,14 @@
 @media (prefers-color-scheme: dark) {
   .sun-path-drawing { background: #1a1a1a; }
 
-  .sun-path-word { fill: #a6a6a1; }
+  .sun-path-word { fill: #b3ada1; }
 
   .sun-path-figure { fill: #f2f1ee; }
 
-  .sun-path-grid { stroke: #3d3d3b; }
+  .sun-path-grid { stroke: #3b3934; }
 
   .sun-path-sun, .sun-path-horizon { stroke: #f2f1ee; }
 
-  .sun-path-ground { fill: #262624; }
+  .sun-path-ground { fill: #121211; }
 }
 </style></svg>

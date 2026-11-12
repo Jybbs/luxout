@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 
-import { type Root, parse } from 'postcss'
+import type { Root } from 'postcss'
 
 import { FONT_FILES, Typeface } from '../../lib/type/typeface.ts'
 
@@ -48,12 +48,11 @@ function stripped(root: Root): string {
 
 /**
  * Sets each `<text>` in `markup` in JetBrains Mono as an outline, at the size,
- * the weight, the spacing, and the case `css` gives its class, and appends
- * `css` without those declarations, so the frame depends on no font a reader's
- * machine holds.
+ * the weight, the spacing, and the case `root` gives its class, and appends
+ * `root` without those declarations, so the frame depends on no font a
+ * reader's machine holds.
  */
-export function framed(markup: string, css: string): string {
-  const root = parse(css)
+export function framed(markup: string, root: Root): string {
   const body = markup.replace(TEXT, (_, attributes: string, word: string) => {
     const given    = new Map(attributes.matchAll(ATTRIBUTE).map(([, key, value]) => [key!, value!]))
     const name     = given.get('class')!

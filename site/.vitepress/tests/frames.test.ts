@@ -19,6 +19,7 @@ import { gapDrawing }               from '../theme/components/daylight/gap-drawi
 import { sunDrawing }               from '../theme/components/daylight/sun-drawing.ts'
 import { plotDrawing }              from '../theme/controls/plot-marks.ts'
 import { data }                     from './common/data/daylight.ts'
+import { frameSheet }               from './common/frames.ts'
 import { framed }                   from './common/outline.ts'
 
 const day     = SampleDay.record()
@@ -33,11 +34,10 @@ const year    = sunYear(day)
  * Writes a drawing's markup with the sheet that styles it outside the site, and
  * with the words the widget sets around it in HTML, every word an outline.
  */
-async function frameOf(drawing: VNode, sheetName: string, words = ''): Promise<string> {
+async function frameOf(drawing: VNode, name: string, words = ''): Promise<string> {
   const markup = await renderToString(createSSRApp({ render: () => drawing }))
-  const sheet  = await readFile(new URL(`../lib/daylight/${sheetName}`, import.meta.url), 'utf8')
 
-  return framed(markup.replace(/<\/svg>$/, `${words}</svg>`), sheet)
+  return framed(markup.replace(/<\/svg>$/, `${words}</svg>`), await frameSheet(name))
 }
 
 /**
@@ -51,12 +51,12 @@ function frameWord(widget: string) {
 it('commits the frame the gap opens on, as the widget draws it', async () => {
   const layout = gap.layouts.at(-1)!
 
-  await expect(await frameOf(gapDrawing(layout, gap), 'the-gap-frame.css'))
+  await expect(await frameOf(gapDrawing(layout, gap), 'the-gap'))
     .toMatchFileSnapshot(join(site, 'sensors', 'the-gap.svg'))
 })
 
 it('commits the frame The Sun’s Path opens on, as the widget draws it', async () => {
-  await expect(await frameOf(sunDrawing(SUN_LAYOUTS[1], year, 'sun-path-glow'), 'sun-path-frame.css'))
+  await expect(await frameOf(sunDrawing(SUN_LAYOUTS[1], year, 'sun-path-glow'), 'sun-path'))
     .toMatchFileSnapshot(join(site, 'estimate', 'sun-path.svg'))
 })
 
@@ -76,7 +76,7 @@ it('commits the frame The Day’s Estimate opens on, with its names and its figu
     text('caption', center.x, center.y + 16, opening.caption)
   ]
 
-  await expect(await frameOf(dialDrawing(dial, paths, dial.opens), 'day-estimate-frame.css', words.join('')))
+  await expect(await frameOf(dialDrawing(dial, paths, dial.opens), 'day-estimate', words.join('')))
     .toMatchFileSnapshot(join(site, 'estimate', 'day-estimate.svg'))
 })
 
@@ -109,7 +109,7 @@ it('commits the frame The Twilight Bridge opens on, with its words', async () =>
     [cloneVNode(bridgeDrawing(bridge), plot)]
   )
 
-  await expect(await frameOf(drawing, 'twilight-bridge-frame.css', words.join('')))
+  await expect(await frameOf(drawing, 'twilight-bridge', words.join('')))
     .toMatchFileSnapshot(join(site, 'estimate', 'twilight-bridge.svg'))
 })
 
