@@ -1,8 +1,4 @@
-.the-gap-drawing {
-  background           : #f2f1ee;
-  font-family          : ui-monospace, monospace;
-  font-variant-numeric : tabular-nums;
-}
+.the-gap-drawing { background: #f2f1ee; }
 
 .the-gap-band { fill: #bdd5e8; }
 

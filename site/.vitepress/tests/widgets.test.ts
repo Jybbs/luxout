@@ -6,6 +6,7 @@ import { cross, min }                           from 'd3-array'
 import postcss, { type Root }                   from 'postcss'
 import { expect, it }                           from 'vitest'
 
+import { type Scheme, Tokens }      from '../lib/theme/tokens.ts'
 import { PLACEMENTS, WIDGET_NAMES } from '../lib/widgets/placements.ts'
 
 /**
@@ -24,15 +25,14 @@ const FRAME_MARKS = {
   'twilight-bridge' : { fills: ['caps', 'end', 'word'], strokes: ['cut', 'drop', 'edge', 'roof'] }
 }
 const GROUNDS = [
-  { bridge: '.twilight-bridge', name: 'light', selector: ':root', widget: '.widget' },
-  { bridge: '.dark .twilight-bridge', name: 'dark', selector: '.dark', widget: '.dark .widget' }
-]
+  { bridge: '.twilight-bridge', scheme: 'light', widget: '.widget' },
+  { bridge: '.dark .twilight-bridge', scheme: 'dark', widget: '.dark .widget' }
+] as const
 /**
  * The widths a media query may name, each one of VitePress's own breakpoints.
  */
 const MEDIA_WIDTHS = new Set(['40rem', '48rem', '60rem'])
 const theme        = join(import.meta.dirname, '..', 'theme')
-const vars         = new URL(import.meta.resolve('vitepress/dist/client/theme-default/styles/vars.css'))
 const frameInks    = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [
   ...fills.map((word) => ({ floor: 4.5, name, property: 'fill', selector: `.${name}-${word}` })),
   ...strokes.map((mark) => ({ floor: 3, name, property: 'stroke', selector: `.${name}-${mark}` }))
@@ -42,7 +42,7 @@ const frames = new Map(await Promise.all(Object.keys(FRAME_MARKS).map(async (nam
 
   return [name, postcss.parse(await readFile(framing, 'utf8'))] as const
 })))
-const palette = postcss.parse(await readFile(vars, 'utf8'))
+const tokens  = await Tokens.read(new URL('../', import.meta.url))
 const paths   = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
 const texts   = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
 const sheet   = postcss.parse(texts.join('\n'))
@@ -80,19 +80,12 @@ function mixed(ground: string, ink: string, property: string, selector: string):
   return formatHex(interpolate([ground, ink], 'rgb')(Number(/([\d.]+)%/.exec(mix!)![1]) / 100))
 }
 
-function resolved(name: string, selector: string): string {
-  const value = declared(palette, name, selector).at(-1) ?? ''
-  const chain = /^var\((--[\w-]+)\)$/.exec(value)
-
-  return chain ? resolved(chain[1]!, selector) : value
+function token(name: string, scheme: Scheme): string {
+  return tokens.resolve(/--(?:luxout|vp)[\w-]+/.exec(declared(sheet, name, '.widget')[0]!)![0], scheme)
 }
 
-function token(name: string, selector: string): string {
-  return resolved(/--vp[\w-]+/.exec(declared(sheet, name, '.widget')[0]!)![0], selector)
-}
-
-function washOf(bridge: string, selector: string): string {
-  return mixed(token('--widget-ground', selector), ube, '--bridge-wash', bridge)
+function washOf(bridge: string, scheme: Scheme): string {
+  return mixed(token('--widget-ground', scheme), ube, '--bridge-wash', bridge)
 }
 
 function widths(name: 'container' | 'media'): Set<string> {
@@ -138,24 +131,24 @@ it('writes no color-mix toward black, which the minifier folds into another colo
   expect(found).toEqual([])
 })
 
-it.each(GROUNDS)('holds the widget’s text at 4.5:1 on each surface of the $name ground', ({ selector }) => {
-  const color    = (name: string) => token(name, selector)
+it.each(GROUNDS)('holds the widget’s text at 4.5:1 on each surface of the $scheme ground', ({ scheme }) => {
+  const color    = (name: string) => token(name, scheme)
   const inks     = ['--widget-ink', '--widget-muted'].map(color)
   const surfaces = ['--widget-ground', '--widget-raised', '--widget-sunken'].map(color)
 
   expect(min(cross(inks, surfaces, wcagContrast))).toBeGreaterThanOrEqual(4.5)
 })
 
-it.each(GROUNDS)('holds the replayed field’s line at 3:1 on the $name ground', ({ selector }) => {
-  const color = (name: string) => token(name, selector)
+it.each(GROUNDS)('holds the replayed field’s line at 3:1 on the $scheme ground', ({ scheme }) => {
+  const color = (name: string) => token(name, scheme)
   const line  = mixed(color('--widget-raised'), color('--widget-muted'), '--page-line', '.location-search')
   const edges = cross([line], ['--widget-ground', '--widget-raised'].map(color), wcagContrast)
 
   expect(min(edges)).toBeGreaterThanOrEqual(3)
 })
 
-it.each(GROUNDS)('holds the color of each mark at 3:1 on the $name ground', ({ selector }) => {
-  const ground = token('--widget-ground', selector)
+it.each(GROUNDS)('holds the color of each mark at 3:1 on the $scheme ground', ({ scheme }) => {
+  const ground = token('--widget-ground', scheme)
   const marks  = ['--widget-estimate', '--widget-fallback', '--widget-forecast', '--widget-geometry']
     .map(fallback)
 
@@ -163,12 +156,12 @@ it.each(GROUNDS)('holds the color of each mark at 3:1 on the $name ground', ({ s
 })
 
 it.each(GROUNDS)(
-  'holds the ink edge of the sky at 3:1 on the sky and on the $name ground',
-  ({ selector, widget }) => {
-    const ground = token('--widget-ground', selector)
+  'holds the ink edge of the sky at 3:1 on the sky and on the $scheme ground',
+  ({ scheme, widget }) => {
+    const ground = token('--widget-ground', scheme)
     const sky    = mixed(ground, fallback('--widget-sky'), '--widget-sky-fill', widget)
 
-    expect(min([ground, sky], (surface) => wcagContrast(token('--widget-ink', selector), surface)))
+    expect(min([ground, sky], (surface) => wcagContrast(token('--widget-ink', scheme), surface)))
       .toBeGreaterThanOrEqual(3)
   }
 )
@@ -228,12 +221,12 @@ it('tints the bridge in the frame as the sheet mixes its wash and its line in ea
 })
 
 it.each(GROUNDS)(
-  'holds the roof and the cut at 3:1 on the wash and on the $name ground',
-  ({ bridge, selector }) => {
-    const ground = token('--widget-ground', selector)
-    const line   = mixed(token('--widget-ink', selector), ube, '--bridge-line', '.twilight-bridge')
+  'holds the roof and the cut at 3:1 on the wash and on the $scheme ground',
+  ({ bridge, scheme }) => {
+    const ground = token('--widget-ground', scheme)
+    const line   = mixed(token('--widget-ink', scheme), ube, '--bridge-line', '.twilight-bridge')
 
-    expect(min([ground, washOf(bridge, selector)], (surface) => wcagContrast(line, surface)))
+    expect(min([ground, washOf(bridge, scheme)], (surface) => wcagContrast(line, surface)))
       .toBeGreaterThanOrEqual(3)
   }
 )
@@ -249,8 +242,8 @@ it('holds the roof and the cut in the frame at 3:1 on the wash in each scheme', 
   expect(min(washes, (wash, index) => wcagContrast(lines[index]!, wash))).toBeGreaterThanOrEqual(3)
 })
 
-it.each(GROUNDS)('holds the bridge’s words at 4.5:1 on the $name wash', ({ bridge, selector }) => {
-  expect(wcagContrast(token('--widget-ink', selector), washOf(bridge, selector))).toBeGreaterThanOrEqual(4.5)
+it.each(GROUNDS)('holds the bridge’s words at 4.5:1 on the $scheme wash', ({ bridge, scheme }) => {
+  expect(wcagContrast(token('--widget-ink', scheme), washOf(bridge, scheme))).toBeGreaterThanOrEqual(4.5)
 })
 
 it.each([

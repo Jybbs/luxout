@@ -1,8 +1,4 @@
-.sun-path-drawing {
-  background           : #f2f1ee;
-  font-family          : ui-monospace, monospace;
-  font-variant-numeric : tabular-nums;
-}
+.sun-path-drawing { background: #f2f1ee; }
 
 .sun-path-year { opacity: 0; }
 

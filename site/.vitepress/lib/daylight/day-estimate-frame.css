@@ -1,8 +1,4 @@
-.day-estimate-drawing {
-  background           : #f2f1ee;
-  font-family          : ui-monospace, monospace;
-  font-variant-numeric : tabular-nums;
-}
+.day-estimate-drawing { background: #f2f1ee; }
 
 .day-estimate-wash-0 { fill: #e6e3ea; }
 

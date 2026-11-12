@@ -16,7 +16,10 @@ interface SectionPage {
 const HEADING = /(?<=^# ).+$/m
 const LINK    = /(?<=\]\(\.\/)[\w-]+(?=\.md\))/g
 
-function title(path: string): string {
+/**
+ * Reads the first heading of the page at `path` as plain text.
+ */
+export function pageTitle(path: string): string {
   const heading = HEADING.exec(readFileSync(path, 'utf8'))
 
   if (!heading) throw new Error(`${path} opens on no first-level heading`)
@@ -40,7 +43,7 @@ export function sectionPages(root: string, { curated, slug }: Section): SectionP
 
   const pages = [...linked].map((name) => ({
     link : `/${slug}/${name}`,
-    text : title(join(folder, `${name}.md`))
+    text : pageTitle(join(folder, `${name}.md`))
   }))
 
   return curated ? pages : sort(pages, ({ text }) => text)
