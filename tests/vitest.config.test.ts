@@ -10,10 +10,13 @@ import config     from './vitest.config.js'
 const root  = dirname(import.meta.dirname)
 const files = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
 
-const spawning = (await Array.fromAsync(files, async (file) => ({
+const sources = await Array.fromAsync(files, async (file) => ({
   file : file,
   text : await readFile(join(root, file), 'utf8')
-}))).filter(({ text }) => /from '(?:node:child_process|[./]+\/common\/sync\.js)'/.test(text))
+}))
+
+const spawns   = /from '(?:node:child_process|[./]+\/common\/(?:sync|vet)\.js)'/
+const spawning = sources.filter(({ text }) => spawns.test(text))
 
 it('fails a case with no assertion, shuffles the order, and undoes every spy and stub', () => {
   expect(config.test).toMatchObject({
@@ -84,9 +87,16 @@ it.each(spawning)('opens $file, which runs a child process, on a tag that sets i
   expect(text.slice(0, text.indexOf('\n'))).toBeOneOf(pragmas ?? [])
 })
 
-it.each(['tests/mise/bin.test.ts', 'tests/mise/tasks/lock/sync.test.ts'])(
-  'finds %s among the test files that run a child process',
+it.each(['tests/mise/bin.test.ts', 'tests/mise/tasks/lock/sync.test.ts', 'tests/mise/vet/vet.test.ts'])(
+  'finds %s among the test files importing node:child_process, the sync helper, or the vet helper',
   (file) => {
     expect(spawning).toContainEqual(expect.objectContaining({ file }))
   }
 )
+
+it('reads a tag pragma off the first line of a test file alone', () => {
+  const pragma = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
+  const stray  = sources.filter(({ text }) => pragma.test(text.slice(text.indexOf('\n'))))
+
+  expect(stray.map(({ file }) => file)).toEqual([])
+})
