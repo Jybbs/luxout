@@ -44,7 +44,6 @@ export class Bundle {
     this.#sources = sources
   }
 
-
   /**
    * Writes each defect the build carries to `write`, one line apiece.
    *
@@ -78,6 +77,7 @@ export class Bundle {
       .filter((mix) => !minified(mix, css.lightningcss?.targets).some((kept) => built.has(kept)))
       .map((mix) => `${file}: the minifier folds ${flat(mix)} into a fixed color`))
   }
+
   /**
    * Lists each built rule keyed on an image address that matches no element
    * on any page, which is what a rule naming a source image does once Vite
@@ -98,7 +98,9 @@ export class Bundle {
 }
 
 /**
- * Writes `mix` on one line, with no space inside its parentheses.
+ * Collapses each run of whitespace in `mix` to one space and drops the space
+ * after an opening parenthesis or before a closing one, so the call reads on
+ * one line.
  */
 function flat(mix: string): string {
   return mix.replaceAll(/\s+/g, ' ').replaceAll(/(?<=\() | (?=\))/g, '')
@@ -109,8 +111,9 @@ function flat(mix: string): string {
  * `targets`, listing each `color-mix()` call the result holds.
  */
 function minified(mix: string, targets: Targets | undefined): string[] {
-  const pass = (code: string, minify: boolean): string =>
-    new TextDecoder().decode(transform({ code: Buffer.from(code), filename: 'mix.css', minify, targets }).code)
+  const pass = (code: string, minify: boolean): string => new TextDecoder().decode(
+    transform({ code: Buffer.from(code), filename: 'mix.css', minify, targets }).code
+  )
 
   return new Sheet('mix.css', pass(pass(`a{color:${mix}}`, false), true)).mixes
 }

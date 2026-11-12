@@ -15,7 +15,10 @@ const SITE   = ['mise', 'run', 'site:test', '--', '--changed', BASE]
  * Runs the task in `scratch` beside stand-ins for `git` and `mise`, where the
  * merge base is `BASE` and the call `failing` names exits 1.
  */
-async function run(scratch: string, failing?: string[]): Promise<{ calls: string[][], status: number | null }> {
+async function run(
+  scratch  : string,
+  failing? : string[]
+): Promise<{ calls: string[][], status: number | null }> {
   const { invoked, status } = await sync(scratch, 'repo:check', {
     canned : {
       [MERGE.join(' ')]  : { stdout: `${BASE}\n` },
@@ -40,9 +43,12 @@ test('runs the type and lint checks of the plugin and the site before its own bo
   })
 })
 
-test('runs the plugin tests and then the site tests Vitest selects against the merge base', async ({ scratch }) => {
-  expect(await run(scratch)).toEqual({ calls: [MERGE, PLUGIN, SITE], status: 0 })
-})
+test(
+  'runs the plugin tests and then the site tests Vitest selects against the merge base',
+  async ({ scratch }) => {
+    expect(await run(scratch)).toEqual({ calls: [MERGE, PLUGIN, SITE], status: 0 })
+  }
+)
 
 test.for([
   { calls: [MERGE], failing: MERGE, name: '`git merge-base`' },
