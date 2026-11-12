@@ -15,6 +15,7 @@ const sources = await Array.fromAsync(files, async (file) => ({
   text : await readFile(join(root, file), 'utf8')
 }))
 
+const pragma   = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const spawns   = /from '(?:node:child_process|[./]+\/common\/(?:sync|vet)\.js)'/
 const spawning = sources.filter(({ text }) => spawns.test(text))
 
@@ -95,8 +96,13 @@ it.each(['tests/mise/bin.test.ts', 'tests/mise/tasks/lock/sync.test.ts', 'tests/
 )
 
 it('reads a tag pragma off the first line of a test file alone', () => {
-  const pragma = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
-  const stray  = sources.filter(({ text }) => pragma.test(text.slice(text.indexOf('\n'))))
+  const stray = sources.filter(({ text }) => pragma.test(text.slice(text.indexOf('\n'))))
 
   expect(stray.map(({ file }) => file)).toEqual([])
+})
+
+it('opens no test file but one that runs a child process on a tag', () => {
+  const tagged = sources.filter(({ text }) => pragma.test(text.slice(0, text.indexOf('\n'))))
+
+  expect(tagged.map(({ file }) => file)).toEqual(spawning.map(({ file }) => file))
 })
