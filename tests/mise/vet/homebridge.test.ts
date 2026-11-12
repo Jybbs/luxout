@@ -2,28 +2,30 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { join }                from 'node:path'
 
-import type { Block, Run }                         from '../../../.mise/vet/homebridge.ts'
+import type { Block, Launch, Run }                 from '../../../.mise/vet/homebridge.ts'
 import { type Acts, TUNING, install, stage, test } from '../../common/vet.js'
+
+type Flags = Pick<Launch, 'insecure' | 'offline'>
 
 const BLOCK = { name: 'Outside', platform: 'Luxout' }
 
 /**
  * Starts the stand-in Homebridge installed under `scratch` under `block`,
- * acting as `acts` asks.
+ * acting as `acts` asks, with the launch's `flags` set.
  */
-async function start(scratch: string, acts?: Acts, block?: Block, offline = false) {
+async function start(scratch: string, acts?: Acts, block?: Block, flags: Flags = {}) {
   const homebridge = await install(join(scratch, 'release'), '2.4.0')
   const launch     = await stage(scratch, acts)
 
-  return { launch, run: await homebridge.start({ ...launch, block, offline }) }
+  return { launch, run: await homebridge.start({ ...launch, ...flags, block }) }
 }
 
 /**
  * Starts the stand-in as `start` does under the block, and stops it once it
  * listens.
  */
-async function stopped(scratch: string, acts?: Acts, offline = false): Promise<Run> {
-  const { run } = await start(scratch, acts, BLOCK, offline)
+async function stopped(scratch: string, acts?: Acts, flags?: Flags): Promise<Run> {
+  const { run } = await start(scratch, acts, BLOCK, flags)
 
   await run.started(TUNING.observe)
   await run.stop(TUNING.grace)
@@ -82,6 +84,12 @@ test.concurrent('starts on the storage, loading only the plugins installed besid
     ),
     started : true
   })
+})
+
+test.concurrent('starts insecure where the launch asks', async ({ expect, scratch }) => {
+  const run = await stopped(scratch, {}, { insecure: true })
+
+  expect(run.output).toEqual(expect.stringContaining('--strict-plugin-resolution -I\n'))
 })
 
 test.concurrent('reports an exit within the grace after SIGTERM', async ({ expect, scratch }) => {
@@ -175,14 +183,14 @@ test.concurrent.for([
   expect,
   scratch
 }) => {
-  const run  = await stopped(scratch, {}, offline)
+  const run  = await stopped(scratch, {}, { offline })
   const line = run.output.split('\n').find((line) => line.startsWith('Preloaded with')) ?? ''
 
   expect(line.match(/\w+\.ts/g)).toEqual(preloads)
 })
 
 test.concurrent('fails a request as ENOTFOUND where the run starts offline', async ({ expect, scratch }) => {
-  const run = await stopped(scratch, { fetches: 'https://api.open-meteo.com/v1/forecast' }, true)
+  const run = await stopped(scratch, { fetches: 'https://api.open-meteo.com/v1/forecast' }, { offline: true })
 
   expect(run.output).toEqual(expect.stringContaining('Fetch failed: ENOTFOUND\n'))
 })

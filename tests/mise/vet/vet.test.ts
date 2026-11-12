@@ -1,16 +1,16 @@
 /** @module-tag spawns */
-import { readdir }        from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { readFile, readdir } from 'node:fs/promises'
+import { join, relative }    from 'node:path'
 
 import getPort        from 'get-port'
 import { expect, vi } from 'vitest'
 
-import { Homebridge }      from '../../../.mise/vet/homebridge.ts'
-import type * as scenario  from '../../../.mise/vet/scenario.ts'
-import { Vet }             from '../../../.mise/vet/vet.ts'
-import schema              from '../../../config.schema.json' with { type: 'json' }
-import { plant, test }     from '../../common/scratch.js'
-import { TUNING, install } from '../../common/vet.js'
+import { Homebridge }                from '../../../.mise/vet/homebridge.ts'
+import type * as scenario            from '../../../.mise/vet/scenario.ts'
+import { Vet }                       from '../../../.mise/vet/vet.ts'
+import { plant, test }               from '../../common/scratch.js'
+import { TUNING, checkout, install } from '../../common/vet.js'
+import config                        from '../../homebridge/config.json' with { type: 'json' }
 
 vi.mock(import('get-port'), async (original) => {
   const actual = await original()
@@ -119,15 +119,19 @@ test('draws each port clear of Homebridge’s sample bridge port and the Homebri
   expect(getPort).toHaveBeenCalledWith({ exclude: [51826, 8581], reserve: true })
 })
 
-test('reads the schema and each release from directories resolved against the root', async ({ scratch }) => {
+test('reads the schema, the run config, the built plugin, and each release under the root', async ({
+  scratch
+}) => {
   const write = vi.fn<(line: string) => void>()
 
-  await plant(scratch, { 'config.schema.json': JSON.stringify(schema) })
+  await checkout(scratch)
   await install(join(scratch, 'releases', 'pinned'), '2.4.0')
   await plant(scratch, { 'releases/pinned/node_modules/.bin/homebridge': 'process.exit(3)\n' })
 
-  const vet    = await Vet.read(['releases/pinned'], scratch, TUNING, write)
-  const status = await vet.run()
+  const vet     = await Vet.read(['releases/pinned'], scratch, TUNING, write)
+  const status  = await vet.run()
+  const storage = join(scratch, '.cache', 'vet', 'pinned', 'services-over-HAP')
+  const started = JSON.parse(await readFile(join(storage, 'config.json'), 'utf8'))
 
   expect({ lines: write.mock.calls.flat().map((line) => line.split(':')[0]), status }).toEqual({
     lines  : [
@@ -135,8 +139,10 @@ test('reads the schema and each release from directories resolved against the ro
       'Homebridge 2.4.0, platform only',
       'Homebridge 2.4.0, full config',
       'Homebridge 2.4.0, network resilience',
-      'Homebridge 2.4.0, shutdown and restart'
+      'Homebridge 2.4.0, shutdown and restart',
+      'Homebridge 2.4.0, services over HAP'
     ],
     status : 1
   })
+  expect(started.platforms).toEqual(config.platforms.filter(({ platform }) => platform === 'Luxout'))
 })

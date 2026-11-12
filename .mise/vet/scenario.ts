@@ -5,7 +5,8 @@ import type { Block, Homebridge, Launch, Run } from './homebridge.ts'
 
 /**
  * A run of Homebridge under one block, held to what Homebridge's verification
- * checks require of the plugin.
+ * checks require of the plugin, or to the accessories the platform registers
+ * for the block.
  */
 export interface Check {
   block : Block | undefined
@@ -17,7 +18,7 @@ export interface Check {
 /**
  * Where a check starts Homebridge, whatever block it starts it with.
  */
-export type Stage = Omit<Launch, 'block' | 'offline'>
+export type Stage = Omit<Launch, 'block' | 'insecure' | 'offline'>
 
 /**
  * The milliseconds each wait of a check lasts:
@@ -36,7 +37,7 @@ export interface Tuning {
  * Each requirement a check found Homebridge failing, beside the output of each
  * run it started.
  */
-interface Verdict {
+export interface Verdict {
   failures : string[]
   output   : string
 }

@@ -1,11 +1,12 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { createServer }                                           from 'node:net'
+import { createServer }                                           from 'node:http'
 import { join }                                                   from 'node:path'
 import { pathToFileURL }                                          from 'node:url'
 import { parseArgs }                                              from 'node:util'
 
 const { values } = parseArgs({
   options: {
+    'insecure'                 : { short: 'I', type: 'boolean' },
     'no-qrcode'                : { short: 'Q', type: 'boolean' },
     'plugin-path'              : { short: 'P', type: 'string' },
     'strict-plugin-resolution' : { type: 'boolean' },
@@ -52,7 +53,11 @@ if (acts.conflicts && again) {
 }
 
 if (!acts.mute) {
-  createServer().listen(config.bridge.port, () => {
+  createServer((request, response) => {
+    const answered = values.insecure && request.url === '/accessories'
+
+    response.writeHead(answered ? 200 : 470).end(JSON.stringify({ accessories: acts.accessories ?? [] }))
+  }).listen(config.bridge.port, () => {
     console.log(`Homebridge v9.9.9 (${config.bridge.name}) is running on port ${config.bridge.port}.`)
 
     if (acts.exits) process.exit(1)
