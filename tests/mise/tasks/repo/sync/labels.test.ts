@@ -4,7 +4,6 @@ import { confirm, sync } from '../../../../common/sync.js'
 import { plant, test }   from '../../../../common/scratch.js'
 
 const ENDPOINT = 'repos/{owner}/{repo}/labels'
-
 const REGISTRY = [
   '["🐞 bug"]',
   'color       = "c62d42"',
@@ -14,7 +13,6 @@ const REGISTRY = [
   'color       = "8cc5a3"',
   String.raw`description = "-Quotes ' and \" and $HOME and \\ stay as written"`
 ].join('\n')
-
 const LISTING = ['api', '--jq', '.[].name', '--paginate', ENDPOINT]
 
 /**

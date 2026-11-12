@@ -5,8 +5,7 @@ import { Step, pinned } from '../../../.mise/audit/steps.ts'
 
 const COMMIT = '3d3c42e5aac5ba805825da76410c181273ba90b1'
 const OTHER  = '2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca'
-
-const STEPS = [
+const STEPS  = [
   'steps:',
   '  - name : Check out',
   `    uses : actions/checkout@${COMMIT}`,

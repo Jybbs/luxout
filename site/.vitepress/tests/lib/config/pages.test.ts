@@ -12,8 +12,7 @@ const PAGES = {
   'zeta.md'  : '# Zeta Page\n'
 }
 const SECTION = { asks: '', holds: '', label: 'Guide', slug: 'guide' }
-
-const test = base.extend('root', async ({ onTestFinished }) => {
+const test    = base.extend('root', async ({ onTestFinished }) => {
   const root = await mkdtemp(join(tmpdir(), 'luxout-'))
 
   onTestFinished(() => rm(root, { force: true, recursive: true }))

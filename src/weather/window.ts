@@ -9,7 +9,9 @@ type Bracket = readonly [before: number, after: number]
 
 type Steps = v.Infer<typeof forecastBody>['minutely_15']
 
-const STEP         = 900  // The seconds between two `minutely_15` steps
+const STEP        = 900  // The seconds between two `minutely_15` steps
+const storedPlace = v.object({ latitude: v.number(), longitude: v.number() })
+  .map(({ latitude, longitude }) => new Place(latitude, longitude))
 const forecastBody = v.object({
   minutely_15: v.object({
     shortwave_radiation_instant : v.array(v.number()),
@@ -24,8 +26,6 @@ const forecastBody = v.object({
       'the steps sit other than 900 seconds apart'
     )
 })
-const storedPlace  = v.object({ latitude: v.number(), longitude: v.number() })
-  .map(({ latitude, longitude }) => new Place(latitude, longitude))
 
 /**
  * Holds the shortwave irradiance Open-Meteo forecasts at the ground for a

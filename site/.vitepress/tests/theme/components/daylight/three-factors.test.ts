@@ -11,7 +11,6 @@ import { pressable, test }   from '../../../common/mount.ts'
 vi.mock('../../../../lib/daylight/factor-day.data.ts', () => import('../../../common/data/factor-day.ts'))
 
 const { height, minutes, outside, rest, terms, track } = data
-
 const LAST = minutes.length - 1
 
 function figures(host: HTMLElement): (string | null)[] {
