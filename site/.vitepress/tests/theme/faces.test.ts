@@ -17,7 +17,7 @@ it.for([
   async ({ axis, token }) => {
     const sheets = await Promise.all(source.matchAll(/^import '(@fontsource-variable\/[^']+)'$/gm)
       .map(([, name]) => readFile(new URL(import.meta.resolve(name!)), 'utf8')))
-    const faces  = sheets.flatMap((sheet) => parse(sheet).nodes
+    const faces = sheets.flatMap((sheet) => parse(sheet).nodes
       .filter((node) => node.type === 'atrule')
       .filter(({ name }) => name === 'font-face')
       .map((face) => Object.fromEntries(face.nodes!

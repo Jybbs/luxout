@@ -32,7 +32,7 @@ function headOf(woff2: Uint8Array): Uint8Array {
 
     return byte < 0x80 ? value * 0x80 + byte : base128(value * 0x80 + byte - 0x80)
   }
-  const tables  = Array.from({ length: view.getUint16(12) }, () => {
+  const tables = Array.from({ length: view.getUint16(12) }, () => {
     const flags = woff2[at++]!
     const known = flags & 0x3f
 
@@ -44,9 +44,9 @@ function headOf(woff2: Uint8Array): Uint8Array {
     // A transformed table, `glyf` or `loca` at version 0 and any other at 1, gives a second length.
     return { known, length: glyphs === flags < 0x40 ? base128() : length }
   })
-  const stream  = brotliDecompressSync(woff2.subarray(at, at + view.getUint32(20)))
-  const head    = tables.findIndex(({ known }) => known === KNOWN.head)
-  const start   = sum(tables.slice(0, head), ({ length }) => length)
+  const stream = brotliDecompressSync(woff2.subarray(at, at + view.getUint32(20)))
+  const head   = tables.findIndex(({ known }) => known === KNOWN.head)
+  const start  = sum(tables.slice(0, head), ({ length }) => length)
 
   return stream.subarray(start, start + tables[head]!.length)
 }
@@ -106,7 +106,7 @@ it('places the pen where the transform names, on a baseline whose y runs down', 
 })
 
 it.each(Object.entries(typeface.FONT_FILES).map(([name, file]) => ({ file, name })))(
-  'outlines the $name face at the font revision its Fontsource package serves',
+  'outlines the $name face at the font revision its Fontsource package ships',
   async ({ file }) => {
     const id             = basename(file, '.ttf')
     const [kept, served] = await Promise.all([
