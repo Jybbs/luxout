@@ -1,13 +1,14 @@
 import { glob, readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
-import { formatHex, interpolate, wcagContrast } from 'culori'
-import { cross, min }                           from 'd3-array'
-import postcss, { type Root }                   from 'postcss'
-import { expect, it }                           from 'vitest'
+import { formatHex, interpolate, wcagContrast }    from 'culori'
+import { cross, min }                              from 'd3-array'
+import postcss, { type ChildNode, type Container } from 'postcss'
+import { expect, it }                              from 'vitest'
 
 import { type Scheme, Tokens }      from '../lib/theme/tokens.ts'
 import { PLACEMENTS, WIDGET_NAMES } from '../lib/widgets/placements.ts'
+import { frameSheet }               from './common/frames.ts'
 
 /**
  * The widths a container query may name, each where a widget reflows inside its
@@ -37,33 +38,31 @@ const frameInks    = Object.entries(FRAME_MARKS).flatMap(([name, { fills, stroke
   ...fills.map((word) => ({ floor: 4.5, name, property: 'fill', selector: `.${name}-${word}` })),
   ...strokes.map((mark) => ({ floor: 3, name, property: 'stroke', selector: `.${name}-${mark}` }))
 ])
-const frames = new Map(await Promise.all(Object.keys(FRAME_MARKS).map(async (name) => {
-  const framing = new URL(`../lib/daylight/${name}-frame.css`, import.meta.url)
+const frames = new Map(await Promise.all(Object.keys(FRAME_MARKS).map(async (name) =>
+  [name, await frameSheet(name)] as const
+)))
+const tokens = await Tokens.read(new URL('../', import.meta.url))
+const paths  = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
+const texts  = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
+const sheet  = postcss.parse(texts.join('\n'))
 
-  return [name, postcss.parse(await readFile(framing, 'utf8'))] as const
-})))
-const tokens  = await Tokens.read(new URL('../', import.meta.url))
-const paths   = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
-const texts   = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
-const sheet   = postcss.parse(texts.join('\n'))
-const ube     = fallback('--widget-geometry')
-
-function declared(root: Root, property: string, selector: string): string[] {
-  const values: string[] = []
-
-  root.walkRules((rule) => {
-    if (!rule.selectors.includes(selector)) return
-
-    rule.walkDecls(property, ({ value }) => {
-      values.push(value)
-    })
-  })
-
-  return values
+function declared(root: Container, property: string, selector: string): string[] {
+  return descendants(root).flatMap((rule) => rule.type === 'rule' && rule.selectors.includes(selector)
+    ? descendants(rule).flatMap((node) => node.type === 'decl' && node.prop === property ? [node.value] : [])
+    : [])
 }
 
-function fallback(name: string): string {
-  return /#\w+/.exec(declared(sheet, name, '.widget')[0]!)![0]
+/**
+ * Lists every node beneath `root`, in the order the stylesheet sets them.
+ */
+function descendants(root: Container): ChildNode[] {
+  const nodes: ChildNode[] = []
+
+  root.walk((node) => {
+    nodes.push(node)
+  })
+
+  return nodes
 }
 
 function groundsOf(name: string): string[] {
@@ -80,24 +79,25 @@ function mixed(ground: string, ink: string, property: string, selector: string):
   return formatHex(interpolate([ground, ink], 'rgb')(Number(/([\d.]+)%/.exec(mix!)![1]) / 100))
 }
 
+/**
+ * Writes the class the widget `name` sets on its root, the name in kebab case.
+ */
+function rootSelector(name: string): string {
+  return `.${name.replaceAll(/\B[A-Z]/g, '-$&').toLowerCase()}`
+}
+
 function token(name: string, scheme: Scheme): string {
-  return tokens.resolve(/--(?:luxout|vp)[\w-]+/.exec(declared(sheet, name, '.widget')[0]!)![0], scheme)
+  return tokens.follow(declared(sheet, name, '.widget')[0]!, scheme)
 }
 
 function washOf(bridge: string, scheme: Scheme): string {
-  return mixed(token('--widget-ground', scheme), ube, '--bridge-wash', bridge)
+  return mixed(token('--widget-ground', scheme), token('--widget-geometry', scheme), '--bridge-wash', bridge)
 }
 
 function widths(name: 'container' | 'media'): Set<string> {
-  const found = new Set<string>()
-
-  sheet.walkAtRules(name, ({ params }) => {
-    const [, width] = /width\D*([\d.]+\w+)/.exec(params) ?? []
-
-    if (width) found.add(width)
-  })
-
-  return found
+  return new Set(descendants(sheet).flatMap((node) => node.type === 'atrule' && node.name === name
+    ? /width\D*([\d.]+\w+)/.exec(node.params)?.slice(1) ?? []
+    : []))
 }
 
 it('names each container query at a width from the one declared set', () => {
@@ -109,26 +109,18 @@ it('names each media query at a width from VitePress’s breakpoints', () => {
 })
 
 it('styles no widget’s root inside a container query, which reads the width of an ancestor', () => {
-  const roots = new Set(WIDGET_NAMES.map((name) => `.${name.replaceAll(/\B[A-Z]/g, '-$&').toLowerCase()}`))
-  const found: string[] = []
+  const roots   = new Set(WIDGET_NAMES.map(rootSelector))
+  const queried = descendants(sheet)
+    .flatMap((node) => node.type === 'atrule' && node.name === 'container' ? descendants(node) : [])
 
-  sheet.walkAtRules('container', (query) => {
-    query.walkRules(({ selector }) => {
-      if (roots.has(selector)) found.push(selector)
-    })
-  })
-
-  expect(found).toEqual([])
+  expect(queried.flatMap((node) => node.type === 'rule' && roots.has(node.selector) ? [node.selector] : []))
+    .toEqual([])
 })
 
 it('writes no color-mix toward black, which the minifier folds into another color', () => {
-  const found: string[] = []
-
-  sheet.walkDecls(({ value }) => {
-    if (/color-mix\([^)]*\bblack\b/.test(value)) found.push(value)
-  })
-
-  expect(found).toEqual([])
+  expect(descendants(sheet).flatMap((node) =>
+    node.type === 'decl' && /color-mix\([^)]*\bblack\b/.test(node.value) ? [node.value] : []
+  )).toEqual([])
 })
 
 it.each(GROUNDS)('holds the widget’s text at 4.5:1 on each surface of the $scheme ground', ({ scheme }) => {
@@ -150,7 +142,7 @@ it.each(GROUNDS)('holds the replayed field’s line at 3:1 on the $scheme ground
 it.each(GROUNDS)('holds the color of each mark at 3:1 on the $scheme ground', ({ scheme }) => {
   const ground = token('--widget-ground', scheme)
   const marks  = ['--widget-estimate', '--widget-fallback', '--widget-forecast', '--widget-geometry']
-    .map(fallback)
+    .map((name) => token(name, scheme))
 
   expect(min(marks, (mark) => wcagContrast(mark, ground))).toBeGreaterThanOrEqual(3)
 })
@@ -159,7 +151,7 @@ it.each(GROUNDS)(
   'holds the ink edge of the sky at 3:1 on the sky and on the $scheme ground',
   ({ scheme, widget }) => {
     const ground = token('--widget-ground', scheme)
-    const sky    = mixed(ground, fallback('--widget-sky'), '--widget-sky-fill', widget)
+    const sky    = mixed(ground, token('--widget-sky', scheme), '--widget-sky-fill', widget)
 
     expect(min([ground, sky], (surface) => wcagContrast(token('--widget-ink', scheme), surface)))
       .toBeGreaterThanOrEqual(3)
@@ -192,7 +184,9 @@ it.each([
   { color: '--widget-sensor', name: 'the-gap', selector: '.the-gap-band' },
   { color: '--widget-sensor', name: 'the-gap', selector: '.the-gap-on' }
 ])('tints $selector in the frame as the sheet mixes it', ({ color, name, selector }) => {
-  const tints = groundsOf(name).map((ground) => mixed(ground, fallback(color), 'fill', selector))
+  const tints = groundsOf(name).map((ground, index) =>
+    mixed(ground, token(color, GROUNDS[index]!.scheme), 'fill', selector)
+  )
 
   expect(inFrame(name, 'fill', selector)).toEqual(tints)
 })
@@ -201,22 +195,25 @@ it.each([
   { name: 'day-estimate', selector: '.day-estimate-sky' },
   { name: 'twilight-bridge', selector: '.twilight-bridge-sky' }
 ])('fills $selector in the frame as the sheet mixes it in each scheme', ({ name, selector }) => {
-  const tints = groundsOf(name).map((ground, index) =>
-    mixed(ground, fallback('--widget-sky'), '--widget-sky-fill', GROUNDS[index]!.widget)
-  )
+  const tints = groundsOf(name).map((ground, index) => {
+    const { scheme, widget } = GROUNDS[index]!
+
+    return mixed(ground, token('--widget-sky', scheme), '--widget-sky-fill', widget)
+  })
 
   expect(inFrame(name, 'fill', selector)).toEqual(tints)
 })
 
 it('tints the bridge in the frame as the sheet mixes its wash and its line in each scheme', () => {
   const inks   = inFrame('twilight-bridge', 'stroke', '.twilight-bridge-edge')
+  const ubes   = GROUNDS.map(({ scheme }) => token('--widget-geometry', scheme))
   const washes = groundsOf('twilight-bridge').map((ground, index) =>
-    mixed(ground, ube, '--bridge-wash', GROUNDS[index]!.bridge)
+    mixed(ground, ubes[index]!, '--bridge-wash', GROUNDS[index]!.bridge)
   )
 
   expect(inFrame('twilight-bridge', 'fill', '.twilight-bridge-wash')).toEqual(washes)
-  expect(inFrame('twilight-bridge', 'stroke', '.twilight-bridge-roof')).toEqual(inks.map((ink) =>
-    mixed(ink, ube, '--bridge-line', '.twilight-bridge')
+  expect(inFrame('twilight-bridge', 'stroke', '.twilight-bridge-roof')).toEqual(inks.map((ink, index) =>
+    mixed(ink, ubes[index]!, '--bridge-line', '.twilight-bridge')
   ))
 })
 
@@ -224,6 +221,7 @@ it.each(GROUNDS)(
   'holds the roof and the cut at 3:1 on the wash and on the $scheme ground',
   ({ bridge, scheme }) => {
     const ground = token('--widget-ground', scheme)
+    const ube    = token('--widget-geometry', scheme)
     const line   = mixed(token('--widget-ink', scheme), ube, '--bridge-line', '.twilight-bridge')
 
     expect(min([ground, washOf(bridge, scheme)], (surface) => wcagContrast(line, surface)))
@@ -247,7 +245,11 @@ it.each(GROUNDS)('holds the bridge’s words at 4.5:1 on the $scheme wash', ({ b
 })
 
 it.each([
-  { property: 'color', selector: '.day-estimate-hub.peeked .day-estimate-figure', value: 'var(--widget-muted)' },
+  {
+    property : 'color',
+    selector : '.day-estimate-hub.peeked .day-estimate-figure',
+    value    : 'var(--widget-muted)'
+  },
   { property: 'opacity', selector: '.day-estimate-layer[data-peek]', value: '1' },
   {
     property : 'stroke',

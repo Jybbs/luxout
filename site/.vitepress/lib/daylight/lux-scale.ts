@@ -5,6 +5,7 @@ import * as format           from './format.ts'
 import { luxRange }          from './homekit.ts'
 import { SampleDay, runsOf } from './sample-day.ts'
 import { skyShade }          from './sky-ramp.ts'
+import { SUNSET }            from './sun-curve.ts'
 
 /**
  * The curve's brightness at one altitude a panel names.
@@ -77,7 +78,7 @@ function curveMarks({ altitudes, sky }: SampleDay): CurveMark[] {
   return [
     { altitude: -12, name: 'nautical twilight ends' },
     { altitude: -6, name: 'civil twilight ends' },
-    { altitude: -5 / 6, name: 'sunset' },
+    { altitude: SUNSET, name: 'sunset' },
     { altitude: 10, name: 'sun at 10°' },
     { altitude: 30, name: 'sun at 30°' },
     { altitude: Math.max(...altitudes), name: 'solar noon on the sample day' },

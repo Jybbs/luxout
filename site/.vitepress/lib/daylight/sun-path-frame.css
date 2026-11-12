@@ -4,12 +4,12 @@
 
 .sun-path-word, .sun-path-figure { font-size: 11px; }
 
-.sun-path-word { fill: #5c5c58; }
+.sun-path-word { fill: var(--luxout-muted); }
 
 .sun-path-figure { fill: #1a1a1a; }
 
 .sun-path-grid {
-  stroke       : #d5d4d0;
+  stroke       : var(--luxout-rule);
   stroke-width : 1;
 }
 
@@ -50,11 +50,11 @@
 @media (prefers-color-scheme: dark) {
   .sun-path-drawing { background: #1a1a1a; }
 
-  .sun-path-word { fill: #a6a6a1; }
+  .sun-path-word { fill: var(--luxout-muted); }
 
   .sun-path-figure { fill: #f2f1ee; }
 
-  .sun-path-grid { stroke: #3d3d3b; }
+  .sun-path-grid { stroke: var(--luxout-rule); }
 
   .sun-path-sun, .sun-path-horizon { stroke: #f2f1ee; }
 

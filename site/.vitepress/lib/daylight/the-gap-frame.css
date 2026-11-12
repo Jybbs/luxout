@@ -8,7 +8,7 @@
 }
 
 .the-gap-tie {
-  stroke           : #5c5c58;
+  stroke           : var(--luxout-muted);
   stroke-dasharray : 2 3;
   stroke-width     : 1;
 }
@@ -36,7 +36,7 @@
 }
 
 .the-gap-off {
-  stroke       : #5c5c58;
+  stroke       : var(--luxout-muted);
   stroke-width : 1.2;
 }
 
@@ -48,13 +48,13 @@
 
 .the-gap-chip {
   fill         : #e7e6e2;
-  stroke       : #d5d4d0;
+  stroke       : var(--luxout-rule);
   stroke-width : 1;
 }
 
 .the-gap-word, .the-gap-figure { font-size: 11px; }
 
-.the-gap-word { fill: #5c5c58; }
+.the-gap-word { fill: var(--luxout-muted); }
 
 .the-gap-figure { fill: #1a1a1a; }
 
@@ -78,7 +78,7 @@
 
   .the-gap-edge, .the-gap-on, .the-gap-ring { stroke: #f2f1ee; }
 
-  .the-gap-tie, .the-gap-off { stroke: #a6a6a1; }
+  .the-gap-tie, .the-gap-off { stroke: var(--luxout-muted); }
 
   .the-gap-halo { stroke: #1a1a1a; }
 
@@ -88,10 +88,10 @@
 
   .the-gap-chip {
     fill   : #262624;
-    stroke : #3d3d3b;
+    stroke : var(--luxout-rule);
   }
 
-  .the-gap-word { fill: #a6a6a1; }
+  .the-gap-word { fill: var(--luxout-muted); }
 
   .the-gap-figure, .the-gap-chip-name, .the-gap-count { fill: #f2f1ee; }
 }

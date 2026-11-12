@@ -28,18 +28,18 @@
 }
 
 .day-estimate-rim {
-  stroke       : #d5d4d0;
+  stroke       : var(--luxout-rule);
   stroke-width : 1;
 }
 
 .day-estimate-floor {
-  stroke           : #5c5c58;
+  stroke           : var(--luxout-muted);
   stroke-dasharray : 3 3;
   stroke-width     : 1;
 }
 
 .day-estimate-quiet {
-  stroke          : #5c5c58;
+  stroke          : var(--luxout-muted);
   stroke-linejoin : round;
   stroke-width    : 1.4;
 }
@@ -56,7 +56,7 @@
 }
 
 .day-estimate-tick {
-  stroke         : #5c5c58;
+  stroke         : var(--luxout-muted);
   stroke-linecap : round;
   stroke-width   : 1.2;
 }
@@ -93,7 +93,7 @@
 }
 
 .day-estimate-caption {
-  fill      : #5c5c58;
+  fill      : var(--luxout-muted);
   font-size : 9px;
 }
 
@@ -112,11 +112,11 @@
 
   .day-estimate-edge, .day-estimate-bracket { stroke: #f2f1ee; }
 
-  .day-estimate-rim { stroke: #3d3d3b; }
+  .day-estimate-rim { stroke: var(--luxout-rule); }
 
-  .day-estimate-floor, .day-estimate-quiet, .day-estimate-tick { stroke: #a6a6a1; }
+  .day-estimate-floor, .day-estimate-quiet, .day-estimate-tick { stroke: var(--luxout-muted); }
 
   .day-estimate-name, .day-estimate-figure { fill: #f2f1ee; }
 
-  .day-estimate-caption { fill: #a6a6a1; }
+  .day-estimate-caption { fill: var(--luxout-muted); }
 }

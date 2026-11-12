@@ -11,14 +11,13 @@ import { tenth }                 from './tenth.ts'
  * What the gap's drawing and its table show.
  */
 export interface Gap {
-  readonly direction : string
-  readonly label     : string
-  readonly layouts   : readonly GapLayout[]
-  readonly minutes   : readonly GapMinute[]
-  readonly noon      : number
-  readonly rest      : number
-  readonly sensors   : readonly [GapSensor, GapSensor]
-  readonly span      : readonly [string, string]
+  readonly label   : string
+  readonly layouts : readonly GapLayout[]
+  readonly minutes : readonly GapMinute[]
+  readonly noon    : number
+  readonly rest    : number
+  readonly sensors : readonly [GapSensor, GapSensor]
+  readonly span    : readonly [string, string]
 }
 
 /**
@@ -257,19 +256,16 @@ export function theGap(day: SampleDay): Gap {
   const crossing = runs[0].switches
 
   return {
-    direction : `whose on level of ${formatLux(ON_LUX)} lux sits above its off level of `
-              + `${formatLux(OFF_LUX)} turns on as the reading rises to the on level and off once it falls `
-              + 'below the off level',
-    label     : `The reading from ${day.clock(FROM)} to ${day.clock(TO)} against the gap from `
-              + `${formatLux(OFF_LUX)} to ${formatLux(ON_LUX)} lux, crossing ${formatLux(ON_LUX)} `
-              + `${times(crossing.length)}, `
-              + `at ${listFormat.format(crossing.map((minute) => day.clock(minute)))}, `
-              + `and falling no lower than ${formatLux(day.readings[rest]!)} lux after ${day.clock(first)}`,
-    layouts   : LAYOUTS.map((layout) => drawing(layout, readings, runs)),
-    minutes   : readings.map((lux, index) => minuteFacts(day, lux, FROM + index, runs)),
-    noon      : SampleDay.NOON - FROM,
-    rest      : rest - FROM,
-    sensors   : [runs[0].sensor, runs[1].sensor],
-    span      : [day.clock(FROM), day.clock(TO)]
+    label   : `The reading from ${day.clock(FROM)} to ${day.clock(TO)} against the gap from `
+            + `${formatLux(OFF_LUX)} to ${formatLux(ON_LUX)} lux, crossing ${formatLux(ON_LUX)} `
+            + `${times(crossing.length)}, `
+            + `at ${listFormat.format(crossing.map((minute) => day.clock(minute)))}, `
+            + `and falling no lower than ${formatLux(day.readings[rest]!)} lux after ${day.clock(first)}`,
+    layouts : LAYOUTS.map((layout) => drawing(layout, readings, runs)),
+    minutes : readings.map((lux, index) => minuteFacts(day, lux, FROM + index, runs)),
+    noon    : SampleDay.NOON - FROM,
+    rest    : rest - FROM,
+    sensors : [runs[0].sensor, runs[1].sensor],
+    span    : [day.clock(FROM), day.clock(TO)]
   }
 }
