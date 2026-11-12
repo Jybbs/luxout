@@ -28,8 +28,8 @@ interface HouseRow {
 }
 
 /**
- * What the site's card sets and where, the chip drawn as one more lit window at
- * the lower left.
+ * What the site's card sets and where, with the address on a chip at the lower
+ * left.
  */
 const LAYOUT = {
   chip    : { baseline: 596, height: 56, width: 272, x: 18, y: 556 },

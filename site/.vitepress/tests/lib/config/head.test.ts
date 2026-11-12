@@ -3,10 +3,12 @@ import { expect, it }       from 'vitest'
 
 import { transformHead } from '../../../lib/config/head.ts'
 
+const ABOUT  = 'What the plugin reads and how it turns that into lux.'
 const ASSETS = [
   '/assets/bodoni-moda-latin-opsz-normal.B1x9.woff2', '/assets/jetbrains-mono-latin-wght-normal.C2y8.woff2',
   '/assets/source-serif-4-latin-opsz-italic.D3z7.woff2', '/assets/source-serif-4-latin-opsz-normal.E4w6.woff2'
 ]
+const SITE   = 'An outdoor light sensor for Apple Home.'
 
 const head = transformHead('https://luxout.fyi')
 
@@ -21,11 +23,11 @@ const preview = (tags: HeadConfig[]) => Object.fromEntries(tags
     content ?? href ?? JSON.parse(inner)
   ]))
 
-const page = (relativePath: string, title: string) => head({
+const page = (relativePath: string, title: string, description = ABOUT) => head({
   assets      : ASSETS,
-  description : 'What the plugin reads and how it turns that into lux.',
+  description : description,
   pageData    : { relativePath, title },
-  siteData    : { lang: 'en-US', title: 'Luxout' }
+  siteData    : { description: SITE, lang: 'en-US', title: 'Luxout' }
 })
 
 it('writes the preview, the canonical link, and an article for a page past the front page', () => {
@@ -39,6 +41,7 @@ it('writes the preview, the canonical link, and an article for a page past the f
         "image": "https://luxout.fyi/cards/estimate/index.png",
         "isPartOf": {
           "@type": "WebSite",
+          "description": "An outdoor light sensor for Apple Home.",
           "name": "Luxout",
           "url": "https://luxout.fyi/",
         },
@@ -64,19 +67,19 @@ it('writes the preview, the canonical link, and an article for a page past the f
 })
 
 it('describes the front page as the site, with the site card', () => {
-  expect(preview(page('index.md', 'Luxout'))).toMatchInlineSnapshot(`
+  expect(preview(page('index.md', 'Luxout', SITE))).toMatchInlineSnapshot(`
     {
       "application/ld+json": {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "description": "What the plugin reads and how it turns that into lux.",
+        "description": "An outdoor light sensor for Apple Home.",
         "name": "Luxout",
         "url": "https://luxout.fyi/",
       },
       "canonical": "https://luxout.fyi/",
-      "og:description": "What the plugin reads and how it turns that into lux.",
+      "og:description": "An outdoor light sensor for Apple Home.",
       "og:image": "https://luxout.fyi/cards/index.png",
-      "og:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi in a lit window.",
+      "og:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi on a glowing yellow chip.",
       "og:image:height": "630",
       "og:image:type": "image/png",
       "og:image:width": "1200",
@@ -87,25 +90,25 @@ it('describes the front page as the site, with the site card', () => {
       "og:url": "https://luxout.fyi/",
       "twitter:card": "summary_large_image",
       "twitter:image": "https://luxout.fyi/cards/index.png",
-      "twitter:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi in a lit window.",
+      "twitter:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi on a glowing yellow chip.",
     }
   `)
 })
 
 it('describes the not-found page as the site, with the site card', () => {
-  expect(preview(page('404.md', '404'))).toMatchInlineSnapshot(`
+  expect(preview(page('404.md', '404', 'Not Found'))).toMatchInlineSnapshot(`
     {
       "application/ld+json": {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "description": "What the plugin reads and how it turns that into lux.",
+        "description": "An outdoor light sensor for Apple Home.",
         "name": "Luxout",
         "url": "https://luxout.fyi/",
       },
       "canonical": "https://luxout.fyi/404",
-      "og:description": "What the plugin reads and how it turns that into lux.",
+      "og:description": "Not Found",
       "og:image": "https://luxout.fyi/cards/index.png",
-      "og:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi in a lit window.",
+      "og:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi on a glowing yellow chip.",
       "og:image:height": "630",
       "og:image:type": "image/png",
       "og:image:width": "1200",
@@ -116,7 +119,7 @@ it('describes the not-found page as the site, with the site card', () => {
       "og:url": "https://luxout.fyi/404",
       "twitter:card": "summary_large_image",
       "twitter:image": "https://luxout.fyi/cards/index.png",
-      "twitter:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi in a lit window.",
+      "twitter:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi on a glowing yellow chip.",
     }
   `)
 })

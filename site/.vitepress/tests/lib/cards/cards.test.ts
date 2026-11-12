@@ -7,17 +7,19 @@ import { range }                    from 'd3-array'
 import { decode }                   from 'fast-png'
 import { test as base, expect, vi } from 'vitest'
 
-import { Faces }              from '../../../lib/cards/faces.ts'
-import { hillCard }           from '../../../lib/cards/hill.ts'
-import { readPalette }        from '../../../lib/cards/palette.ts'
-import { renderCards }        from '../../../lib/cards/render.ts'
-import { seeded }             from '../../../lib/cards/seeded.ts'
-import { HOURS, sectionCard } from '../../../lib/cards/section.ts'
-import * as sky               from '../../../lib/cards/sky.ts'
-import { SECTIONS }           from '../../../lib/config/sections.ts'
-import { luxRange }           from '../../../lib/daylight/homekit.ts'
-import { SampleDay }          from '../../../lib/daylight/sample-day.ts'
-import { Logo }               from '../../../lib/logo/logo.ts'
+import { Faces }                   from '../../../lib/cards/faces.ts'
+import { hillCard }                from '../../../lib/cards/hill.ts'
+import { readPalette }             from '../../../lib/cards/palette.ts'
+import { renderCards }             from '../../../lib/cards/render.ts'
+import { seeded }                  from '../../../lib/cards/seeded.ts'
+import { HOURS, sectionCard }      from '../../../lib/cards/section.ts'
+import * as sky                    from '../../../lib/cards/sky.ts'
+import { pageTitle, sectionPages } from '../../../lib/config/pages.ts'
+import { SECTIONS }                from '../../../lib/config/sections.ts'
+import { luxRange }                from '../../../lib/daylight/homekit.ts'
+import { SampleDay }               from '../../../lib/daylight/sample-day.ts'
+import { Logo }                    from '../../../lib/logo/logo.ts'
+import { FONT_FILES, Typeface }    from '../../../lib/type/typeface.ts'
 
 vi.setConfig({ testTimeout: 60_000 })
 
@@ -35,6 +37,11 @@ const faces   = await Faces.read(root)
 const logo    = await Logo.read(root)
 const palette = await readPalette(root)
 const site    = join(import.meta.dirname, '..', '..', '..', '..')
+const titles  = SECTIONS.flatMap((section) => [
+  pageTitle(join(site, section.slug, 'index.md')),
+  ...sectionPages(site, section).map(({ text }) => text)
+])
+const bodoni  = new Typeface(await readFile(new URL(FONT_FILES.display, root)))
 const sheet   = (index: number, title = 'The Outside Sensor in Home') => ({
   count : SECTIONS.length,
   index : index,
@@ -63,7 +70,7 @@ test('moves a hue toward the ink until it holds the ratio', () => {
   expect(sky.mix('#000000', '#ffffff', 0)).toBe('#000000')
 })
 
-test('draws the site’s card at the size Open Graph takes, with its words at 4.5:1', async () => {
+test('draws the site’s card at 1200 by 630, with its words at 4.5:1', async () => {
   const card                        = hillCard(day, faces, logo, palette)
   const { channels, height, width } = decode(await card.png())
   const words                       = await card.audit()
@@ -78,6 +85,16 @@ test('sets the tagline the front page opens on', async () => {
 
   expect(await readFile(join(site, 'index.md'), 'utf8')).toContain(`*${first} ${second}*`)
 })
+
+test.for([...new Set(titles.flatMap((title) => title.match(/W[a-z]/g) ?? []))])(
+  'kerns the pair %s a page title sets, which Bodoni Moda leaves unkerned',
+  (pair) => {
+    const axes   = { opsz: 36, wght: 600 }
+    const kerned = faces.set({ axes, face: 'display' }, 80, pair).width
+
+    expect(kerned).toBeLessThan(bodoni.set(pair, { axes, size: 80 }).width)
+  }
+)
 
 test('holds an hour and a pane of the window for every section', () => {
   expect(HOURS.length).toBeGreaterThanOrEqual(SECTIONS.length)

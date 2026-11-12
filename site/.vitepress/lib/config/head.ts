@@ -10,7 +10,7 @@ interface Context {
   assets      : string[]
   description : string
   pageData    : Pick<PageData, 'relativePath' | 'title'>
-  siteData    : Pick<SiteData, 'lang' | 'title'>
+  siteData    : Pick<SiteData, 'description' | 'lang' | 'title'>
 }
 
 /**
@@ -23,7 +23,7 @@ const ALT = {
 
   site: (host: string) =>
       `The Luxout logo and tagline over a hillside town at dusk, with the address ${host} `
-    + 'in a lit window.'
+    + 'on a glowing yellow chip.'
 }
 const FACE_LINK = { as: 'font', crossorigin: '', rel: 'preload', type: 'font/woff2' }
 /**
@@ -52,10 +52,10 @@ export function transformHead(home: string): (context: Context) => HeadConfig[] 
     const whole   = SITE.has(relativePath)
     const image   = new URL(card.cardPath(whole ? 'index.md' : relativePath), home).href
     const alt     = whole ? ALT.site(host) : ALT.section(title)
-    const site    = { name: siteData.title, url: href }
+    const site    = { description: siteData.description, name: siteData.title, url: href }
 
     const data = whole
-               ? { '@context': 'https://schema.org', '@type': 'WebSite', description, ...site }
+               ? { '@context': 'https://schema.org', '@type': 'WebSite', ...site }
                : {
                    '@context'    : 'https://schema.org',
                    '@type'       : 'Article',

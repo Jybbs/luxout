@@ -17,13 +17,11 @@ interface Pair {
 const GROUNDS = ['--vp-c-bg', '--vp-c-bg-alt', '--vp-c-bg-elv', '--vp-c-bg-soft']
 const STATES  = ['caution', 'danger', 'important', 'note', 'success', 'tip', 'warning']
 const TEXTS   = ['--vp-c-brand-1', '--vp-c-text-1', '--vp-c-text-2', '--vp-c-text-3']
-
 /**
  * The contrast WCAG 2.2 sets for body text under Success Criterion 1.4.3.
  */
 const WCAG_AA = 4.5
-
-const tokens = await Tokens.read(new URL('../../../', import.meta.url))
+const tokens  = await Tokens.read(new URL('../../../', import.meta.url))
 
 const pairs: Pair[] = SCHEMES.flatMap((scheme) => [
   ...GROUNDS.flatMap((ground) => TEXTS.map((text) => ({ ground, scheme, text, tints: [] }))),

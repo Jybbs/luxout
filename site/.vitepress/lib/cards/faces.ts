@@ -14,10 +14,10 @@ export interface Voice {
 }
 
 /**
- * Closes the gap of `Wr` in font units, since Bodoni Moda's `GPOS` table kerns
- * T, V, and Y against lowercase letters and holds no pair for W.
+ * Closes the gap after `W` in font units in each pair a page title sets, since
+ * Bodoni Moda's `GPOS` table kerns W against no lowercase letter.
  */
-const DISPLAY_PAIRS = { Wr: -160 }
+const DISPLAY_PAIRS = { Wh: -160, Wi: -160 }
 /**
  * The voice of a card's address and of the unit beside its reading.
  */
