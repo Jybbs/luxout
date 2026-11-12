@@ -16,12 +16,12 @@ const MIDNIGHT                          = Date.UTC(2026, 9, 4, 4)  // October 4,
 const { latitude, longitude, timezone } = recording.results[0]!
 const clockFormat                       = clock.clockFormatIn(timezone)
 const dateFormat                        = clock.dateFormatIn(timezone)
+const observer                          = new Observer(latitude, longitude, 0)
 /**
  * The place the sample day and the Location Search both use, holding the
  * coordinates of the recorded result as the plugin stores them.
  */
-const place    = new Place(latitude, longitude)
-const observer = new Observer(latitude, longitude, 0)
+const place = new Place(latitude, longitude)
 
 /**
  * Runs the plugin's estimate across one sample day at the place the Location

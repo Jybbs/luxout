@@ -1,6 +1,5 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir }                from 'node:os'
-import { join }                  from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { join }     from 'node:path'
 
 import { type PageData, resolveConfig } from 'vitepress'
 import { expect, it }                   from 'vitest'
@@ -11,9 +10,7 @@ import { buildNavigation } from '../lib/config/navigation.ts'
 import { transformPage }   from '../lib/config/page-data.ts'
 import { SECTIONS }        from '../lib/config/sections.ts'
 import { luxRange }        from '../lib/daylight/homekit.ts'
-
-const site   = join(import.meta.dirname, '..', '..')
-const config = await resolveConfig(site, 'build', 'production')
+import { test }            from './common/scratch.ts'
 
 const front: PageData = {
   description  : '',
@@ -23,6 +20,8 @@ const front: PageData = {
   relativePath : 'index.md',
   title        : 'Luxout'
 }
+const site   = join(import.meta.dirname, '..', '..')
+const config = await resolveConfig(site, 'build', 'production')
 
 it('caches under the .cache directory at the root of the checkout', () => {
   expect(config.cacheDir).toBe(join(site, '..', '.cache', 'site', 'vitepress'))
@@ -88,11 +87,8 @@ it('writes the preview of each page through the head hook', async () => {
   expect(await config.transformHead?.(context as never)).toEqual(transformHead(manifest.homepage)(context))
 })
 
-it('renders the site’s card into the build’s output through the build hook', async ({ onTestFinished }) => {
-  const outDir = await mkdtemp(join(tmpdir(), 'luxout-config-'))
+test('renders the site’s card into the build’s output through the build hook', async ({ scratch }) => {
+  await config.buildEnd?.({ ...config, outDir: scratch, pages: ['index.md'] })
 
-  onTestFinished(() => rm(outDir, { force: true, recursive: true }))
-  await config.buildEnd?.({ ...config, outDir, pages: ['index.md'] })
-
-  expect((await readFile(join(outDir, 'cards', 'index.png'))).subarray(1, 4).toString()).toBe('PNG')
+  expect((await readFile(join(scratch, 'cards', 'index.png'))).subarray(1, 4).toString()).toBe('PNG')
 }, 60_000)

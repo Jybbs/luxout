@@ -13,7 +13,6 @@ export const favicons: HeadConfig[] = SCHEMES.map((scheme) => ['link', {
   rel   : 'icon',
   type  : 'image/svg+xml'
 }])
-
 /**
  * Shows the title in the navigation bar in the form matching the site's scheme.
  */

@@ -1,11 +1,10 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir }                from 'node:os'
-import { join }                  from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { join }     from 'node:path'
 
-import { wcagContrast }             from 'culori'
-import { range }                    from 'd3-array'
-import { decode }                   from 'fast-png'
-import { test as base, expect, vi } from 'vitest'
+import { wcagContrast } from 'culori'
+import { range }        from 'd3-array'
+import { decode }       from 'fast-png'
+import { expect, vi }   from 'vitest'
 
 import { Faces }                   from '../../../lib/cards/faces.ts'
 import { hillCard }                from '../../../lib/cards/hill.ts'
@@ -20,29 +19,22 @@ import { luxRange }                from '../../../lib/daylight/homekit.ts'
 import { SampleDay }               from '../../../lib/daylight/sample-day.ts'
 import { Logo }                    from '../../../lib/logo/logo.ts'
 import { FONT_FILES, Typeface }    from '../../../lib/type/typeface.ts'
+import { test }                    from '../../common/scratch.ts'
 
 vi.setConfig({ testTimeout: 60_000 })
 
-const test = base.extend('outDir', async ({ onTestFinished }) => {
-  const outDir = await mkdtemp(join(tmpdir(), 'luxout-cards-'))
-
-  onTestFinished(() => rm(outDir, { force: true, recursive: true }))
-
-  return outDir
-})
-
-const root    = new URL('../../../', import.meta.url)
 const day     = SampleDay.record()
+const root    = new URL('../../../', import.meta.url)
+const site    = join(import.meta.dirname, '..', '..', '..', '..')
+const bodoni  = new Typeface(await readFile(new URL(FONT_FILES.display, root)))
 const faces   = await Faces.read(root)
 const logo    = await Logo.read(root)
 const palette = await readPalette(root)
-const site    = join(import.meta.dirname, '..', '..', '..', '..')
 const titles  = SECTIONS.flatMap((section) => [
   pageTitle(join(site, section.slug, 'index.md')),
   ...sectionPages(site, section).map(({ text }) => text)
 ])
-const bodoni  = new Typeface(await readFile(new URL(FONT_FILES.display, root)))
-const sheet   = (index: number, title = 'The Outside Sensor in Home') => ({
+const sheet = (index: number, title = 'The Outside Sensor in Home') => ({
   count : SECTIONS.length,
   index : index,
   label : 'Install',
@@ -131,16 +123,16 @@ test.for([
   expect(sectionCard(day, faces, palette, sheet(1, title)).said).toHaveLength(5 + lines)
 })
 
-test('writes the site’s card and each page’s card as PNGs in the output directory', async ({ outDir }) => {
-  await renderCards(root, SECTIONS)({ outDir, pages: ['index.md', 'install/home.md'], srcDir: site })
+test('writes the site’s card and each page’s card as PNGs in the output directory', async ({ scratch }) => {
+  await renderCards(root, SECTIONS)({ outDir: scratch, pages: ['index.md', 'install/home.md'], srcDir: site })
 
   const signature = async (path: string) =>
-    (await readFile(join(outDir, 'cards', path))).subarray(1, 4).toString()
+    (await readFile(join(scratch, 'cards', path))).subarray(1, 4).toString()
 
   expect([await signature('index.png'), await signature('install/home.png')]).toEqual(['PNG', 'PNG'])
 })
 
-test('fails on a page in no section', async ({ outDir }) => {
-  await expect(renderCards(root, SECTIONS)({ outDir, pages: ['stray.md'], srcDir: site }))
+test('fails on a page in no section', async ({ scratch }) => {
+  await expect(renderCards(root, SECTIONS)({ outDir: scratch, pages: ['stray.md'], srcDir: site }))
     .rejects.toThrow('stray.md')
 })

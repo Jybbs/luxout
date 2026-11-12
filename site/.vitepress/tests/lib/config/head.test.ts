@@ -8,9 +8,15 @@ const ASSETS = [
   '/assets/bodoni-moda-latin-opsz-normal.B1x9.woff2', '/assets/jetbrains-mono-latin-wght-normal.C2y8.woff2',
   '/assets/source-serif-4-latin-opsz-italic.D3z7.woff2', '/assets/source-serif-4-latin-opsz-normal.E4w6.woff2'
 ]
-const SITE   = 'An outdoor light sensor for Apple Home.'
-
+const SITE = 'An outdoor light sensor for Apple Home.'
 const head = transformHead('https://luxout.fyi')
+
+const page = (relativePath: string, title: string, description = ABOUT) => head({
+  assets      : ASSETS,
+  description : description,
+  pageData    : { relativePath, title },
+  siteData    : { description: SITE, lang: 'en-US', title: 'Luxout' }
+})
 
 /**
  * Reads the tags other than the preloads as one record, keyed by what each tag
@@ -22,13 +28,6 @@ const preview = (tags: HeadConfig[]) => Object.fromEntries(tags
     property ?? name ?? rel ?? type,
     content ?? href ?? JSON.parse(inner)
   ]))
-
-const page = (relativePath: string, title: string, description = ABOUT) => head({
-  assets      : ASSETS,
-  description : description,
-  pageData    : { relativePath, title },
-  siteData    : { description: SITE, lang: 'en-US', title: 'Luxout' }
-})
 
 it('writes the preview, the canonical link, and an article for a page past the front page', () => {
   expect(preview(page('estimate/index.md', 'Estimate'))).toMatchInlineSnapshot(`

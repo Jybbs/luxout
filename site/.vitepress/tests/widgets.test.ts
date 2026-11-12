@@ -33,6 +33,7 @@ const GROUNDS = [
  */
 const MEDIA_WIDTHS = new Set(['40rem', '48rem', '60rem'])
 const theme        = join(import.meta.dirname, '..', 'theme')
+const tokens       = await Tokens.read(new URL('../', import.meta.url))
 const frameInks    = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [
   ...fills.map((word) => ({ floor: 4.5, name, property: 'fill', selector: `.${name}-${word}` })),
   ...strokes.map((mark) => ({ floor: 3, name, property: 'stroke', selector: `.${name}-${mark}` }))
@@ -42,11 +43,10 @@ const frames = new Map(await Promise.all(Object.keys(FRAME_MARKS).map(async (nam
 
   return [name, postcss.parse(await readFile(framing, 'utf8'))] as const
 })))
-const tokens  = await Tokens.read(new URL('../', import.meta.url))
-const paths   = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
-const texts   = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
-const sheet   = postcss.parse(texts.join('\n'))
-const ube     = fallback('--widget-geometry')
+const paths = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
+const texts = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
+const sheet = postcss.parse(texts.join('\n'))
+const ube   = fallback('--widget-geometry')
 
 function declared(root: Root, property: string, selector: string): string[] {
   const values: string[] = []
