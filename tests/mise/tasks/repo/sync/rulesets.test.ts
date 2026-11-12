@@ -12,13 +12,10 @@ const MANIFEST = JSON.stringify({
   homepage    : 'https://luxout.fyi',
   keywords    : ['homebridge-plugin', 'supports-hap']
 })
-
 const OWN = [
   '.github/rulesets/main.json', '.github/rulesets/tags.json', '.github/settings.toml', 'package.json'
 ]
-
 const RULESETS = 'repos/{owner}/{repo}/rulesets'
-
 const SETTINGS = [
   '[graphql.updateRepository]',
   'hasDiscussionsEnabled = false',
@@ -39,7 +36,6 @@ const SETTINGS = [
   '["repos/{owner}/{repo}/immutable-releases"]',
   'enabled = true'
 ].join('\n')
-
 const TOPICS  = { names: ['homebridge-plugin'] }
 const LISTING = { args: ['api', '--jq', '.[].name', '--paginate', RULESETS], body: null }
 

@@ -7,8 +7,8 @@ import { ThresholdSensor }                         from '../../src/sensor/thresh
 import { Bridge, NO_RESPONSE, detection, logging } from '../common/homebridge.js'
 import { thresholdEntry }                          from '../common/threshold.js'
 
-const DUSK                        = thresholdEntry({ name: 'Dusk', offLux: 662, onLux: 2.99 })
 const { Characteristic, Service } = new Bridge('').hap
+const DUSK                        = thresholdEntry({ name: 'Dusk', offLux: 662, onLux: 2.99 })
 
 it('names Luxout, its version, and the serial of its entry in the Accessory Information', () => {
   const bridge      = new Bridge('')

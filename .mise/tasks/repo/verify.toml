@@ -15,6 +15,7 @@ run         = [
     "repo:audit",
     "repo:lint:workflows",
     "site:cover",
+    "site:inspect",
     "site:linkcheck",
     "site:lint",
     "site:scour",

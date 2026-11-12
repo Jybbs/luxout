@@ -13,10 +13,8 @@ import { boston, delhi }          from '../common/places.js'
 import { thresholdEntry }         from '../common/threshold.js'
 import { spaced }                 from '../common/window.js'
 
-const MINUTE = 60_000
 const DELHI  = { latitude: delhi.latitude, longitude: delhi.longitude }
-const window = spaced(Array(28).fill(400), delhi, '2026-10-11T01:00:00Z')
-
+const MINUTE = 60_000
 /**
  * Extends the Homebridge fixtures with a `fetch` that fails every request until
  * a case answers through it, and `start`, which builds a platform on a block
@@ -41,6 +39,7 @@ const test = homebridge.test
 
     await vi.waitUntil(() => vi.mocked(log.debug).mock.lastCall)
   })
+const window = spaced(Array(28).fill(400), delhi, '2026-10-11T01:00:00Z')
 
 test.for([boston, delhi])(
   'registers one accessory named Outside at $latitude, $longitude under one UUID',
@@ -396,6 +395,18 @@ function lines(log: Logging): string[] {
 }
 
 /**
+ * Builds the Outside accessory as a restart restores it, its Light Sensor
+ * included.
+ */
+function restored(bridge: homebridge.Bridge): PlatformAccessory {
+  const accessory = bridge.cached()
+
+  new OutsideSensor(accessory, bridge.api)
+
+  return accessory
+}
+
+/**
  * Builds the accessory of the threshold entry `name` as a restart restores it,
  * its Occupancy Sensor holding `state`.
  */
@@ -404,18 +415,6 @@ function threshold(bridge: homebridge.Bridge, name: string, state: number): Plat
 
   new Sensor(accessory, bridge.api, 'occupancy')
   homebridge.detection(accessory).updateValue(state)
-
-  return accessory
-}
-
-/**
- * Builds the Outside accessory as a restart restores it, its Light Sensor
- * included.
- */
-function restored(bridge: homebridge.Bridge): PlatformAccessory {
-  const accessory = bridge.cached()
-
-  new OutsideSensor(accessory, bridge.api)
 
   return accessory
 }

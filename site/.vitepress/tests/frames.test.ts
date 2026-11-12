@@ -23,8 +23,8 @@ import { frameSheet }               from './common/frames.ts'
 import { framed }                   from './common/outline.ts'
 
 const day     = SampleDay.record()
-const placed  = PLACEMENTS.filter(({ frame }) => frame)
 const { gap } = data
+const placed  = PLACEMENTS.filter(({ frame }) => frame)
 const site    = join(import.meta.dirname, '..', '..')
 const bridge  = twilightBridge(day.sky)
 const dial    = dayDial(day)

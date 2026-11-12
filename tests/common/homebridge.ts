@@ -8,7 +8,6 @@ import { OUTSIDE }         from '../../src/sensor/outside.js'
 import { test as scratch } from './scratch.js'
 
 export const NO_RESPONSE = -70402  // HAP's SERVICE_COMMUNICATION_FAILURE, shown as No Response
-
 /**
  * Extends the scratch fixture with a stopped clock, a `log` standing in for the
  * `Logging` Homebridge hands the platform, and a `bridge` whose storage path is

@@ -6,6 +6,7 @@ import { cross, min }                              from 'd3-array'
 import postcss, { type ChildNode, type Container } from 'postcss'
 import { expect, it }                              from 'vitest'
 
+import { Sheet }                    from '../lib/bundle/sheet.ts'
 import { type Scheme, Tokens }      from '../lib/theme/tokens.ts'
 import { PLACEMENTS, WIDGET_NAMES } from '../lib/widgets/placements.ts'
 import { frameSheet }               from './common/frames.ts'
@@ -34,6 +35,7 @@ const GROUNDS = [
  */
 const MEDIA_WIDTHS = new Set(['40rem', '48rem', '60rem'])
 const theme        = join(import.meta.dirname, '..', 'theme')
+const tokens       = await Tokens.read(new URL('../', import.meta.url))
 const frameInks    = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [
   ...fills.map((word) => ({ floor: 4.5, name, property: 'fill', selector: `.${name}-${word}` })),
   ...strokes.map((mark) => ({ floor: 3, name, property: 'stroke', selector: `.${name}-${mark}` }))
@@ -41,10 +43,9 @@ const frameInks    = Object.entries(FRAME_MARKS).flatMap(([name, { fills, stroke
 const frames = new Map(await Promise.all(Object.keys(FRAME_MARKS).map(async (name) =>
   [name, await frameSheet(name)] as const
 )))
-const tokens = await Tokens.read(new URL('../', import.meta.url))
-const paths  = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
-const texts  = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
-const sheet  = postcss.parse(texts.join('\n'))
+const paths = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
+const texts = await Promise.all(paths.map((path) => readFile(join(theme, path), 'utf8')))
+const sheet = postcss.parse(texts.join('\n'))
 
 function declared(root: Container, property: string, selector: string): string[] {
   return descendants(root).flatMap((rule) => rule.type === 'rule' && rule.selectors.includes(selector)
@@ -124,9 +125,7 @@ it('names the root of each widget the sheet styles, the day estimate styling `.w
 })
 
 it('writes no color-mix toward black, which the minifier folds into another color', () => {
-  expect(descendants(sheet).flatMap((node) =>
-    node.type === 'decl' && /color-mix\([^)]*\bblack\b/.test(node.value) ? [node.value] : []
-  )).toEqual([])
+  expect(new Sheet(theme, texts.join('\n')).mixes.filter((mix) => /\bblack\b/.test(mix))).toEqual([])
 })
 
 it.each(GROUNDS)('holds the widget’s text at 4.5:1 on each surface of the $scheme ground', ({ scheme }) => {

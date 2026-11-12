@@ -99,6 +99,10 @@ jobs:
             task  : site:cover
             tools : bun node
 
+          - name  : 🎒 Bundle
+            task  : site:inspect
+            tools : bun node
+
           - name  : 🧶 Lint
             task  : site:lint
             tools : bun node
