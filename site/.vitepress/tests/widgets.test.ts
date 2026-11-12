@@ -80,7 +80,7 @@ function mixed(ground: string, ink: string, property: string, selector: string):
 }
 
 /**
- * Writes the class the widget `name` sets on its root, the name in kebab case.
+ * Writes the widget `name` in kebab case as a class selector.
  */
 function rootSelector(name: string): string {
   return `.${name.replaceAll(/\B[A-Z]/g, '-$&').toLowerCase()}`
@@ -115,6 +115,12 @@ it('styles no widget’s root inside a container query, which reads the width of
 
   expect(queried.flatMap((node) => node.type === 'rule' && roots.has(node.selector) ? [node.selector] : []))
     .toEqual([])
+})
+
+it('names the root of each widget the sheet styles, the day estimate styling `.widget` alone', () => {
+  const styled = new Set(descendants(sheet).flatMap((node) => node.type === 'rule' ? node.selectors : []))
+
+  expect(new Set(WIDGET_NAMES.map(rootSelector)).difference(styled)).toEqual(new Set(['.day-estimate']))
 })
 
 it('writes no color-mix toward black, which the minifier folds into another color', () => {

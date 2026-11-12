@@ -44,8 +44,9 @@ export class Tokens {
   }
 
   /**
-   * Reads `value` as `scheme` computes it, following a `var()` that names
-   * another property to the value it holds.
+   * Reads `value` as `scheme` computes it where the whole value is one `var()`,
+   * following it to the value the property it names holds, and returns any
+   * other value as written.
    */
   follow(value: string, scheme: Scheme): string {
     const reference = /^var\((--[\w-]+)\)$/.exec(value)?.[1]

@@ -47,7 +47,7 @@
 }
 
 .the-gap-chip {
-  fill         : #e7e6e2;
+  fill         : var(--luxout-sunken);
   stroke       : var(--luxout-rule);
   stroke-width : 1;
 }
@@ -87,7 +87,7 @@
   .the-gap-ring { fill: #1a1a1a; }
 
   .the-gap-chip {
-    fill   : #262624;
+    fill   : var(--luxout-sunken);
     stroke : var(--luxout-rule);
   }
 

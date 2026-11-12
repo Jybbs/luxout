@@ -27,7 +27,7 @@
   stroke-width : 1;
 }
 
-.sun-path-ground { fill: #e7e6e2; }
+.sun-path-ground { fill: #e8e5de; }
 
 .sun-path-horizon {
   stroke       : #1a1a1a;
@@ -56,6 +56,6 @@
 
   .sun-path-sun, .sun-path-horizon { stroke: #f2f1ee; }
 
-  .sun-path-ground { fill: #262624; }
+  .sun-path-ground { fill: #121211; }
 }
 </style></svg>
