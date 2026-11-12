@@ -175,7 +175,7 @@ it.for([
   },
   {
     accessories : [outside(38609), sensor(3, 'Dark Outside', 0), bare(4, 'Dusk')],
-    failure     : 'exposes accessory 4 with no service but Accessory Information'
+    failure     : 'exposes accessory 4 with no service HapClient reads'
   },
   {
     accessories : [outside(200000), sensor(3, 'Dark Outside', 0)],

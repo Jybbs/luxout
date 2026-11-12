@@ -70,8 +70,8 @@ class Accessory {
 
 /**
  * Holds the accessories a bridge exposes over HAP by name, beside the ID of each
- * accessory it lists with no service but Accessory Information, leaving out the
- * bridge itself.
+ * accessory it lists with no service `HapClient` reads, leaving out the bridge
+ * itself.
  */
 export class Exposure {
   readonly #accessories : Map<string, Accessory[]>
@@ -124,7 +124,7 @@ export class Exposure {
       .map((group) => new Accessory(group))
 
     this.#accessories = Map.groupBy(accessories, ({ name }) => name)
-    this.#bare        = listed.filter((aid) => aid !== BRIDGE && !shown.has(aid))
+    this.#bare        = listed.filter((aid) => !shown.has(aid))
   }
 
   /**
@@ -134,7 +134,7 @@ export class Exposure {
    * - An accessory the platform registers no sensor for, an entry that fails
    *   validation among them, one it registers that the bridge leaves out, or
    *   one it registers that the bridge exposes more than once
-   * - An accessory carrying no service but Accessory Information
+   * - An accessory carrying no service `HapClient` reads
    * - A mismatch `Accessory.mismatches` names
    * - A `CurrentAmbientLightLevel` on Outside outside the range its `props`
    *   declare
@@ -156,7 +156,7 @@ export class Exposure {
 
         return length === 1 ? [] : [`exposes ${length} accessories named ${name}`]
       }),
-      ...this.#bare.map((aid) => `exposes accessory ${aid} with no service but Accessory Information`),
+      ...this.#bare.map((aid) => `exposes accessory ${aid} with no service HapClient reads`),
       ...sensors.flatMap((sensor) =>
         exposed(sensor.name)?.mismatches(sensor, plugin.manifest) ?? [`exposes no ${sensor.name} accessory`]),
       ...level === undefined ? [] : range(plugin.outside.name, level),
@@ -236,9 +236,10 @@ export class Plugin {
 /**
  * Starts Homebridge insecure and offline under the block the local run starts
  * with, and reads every accessory it exposes over HAP once the observe window
- * ends. The check fails where the run config holds no block, where the read
- * fails, or where those accessories differ from what the platform registers
- * for the block.
+ * ends. The check fails where the run config holds no block, where the bridge
+ * never exposes its accessories over HAP, where the read fails, where those
+ * accessories differ from what the platform registers for the block, or where
+ * the run breaks a requirement `Run.faults` names.
  */
 export class Services implements scenario.Check {
   readonly block   : Block | undefined
