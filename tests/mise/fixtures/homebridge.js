@@ -12,7 +12,6 @@ const { values } = parseArgs({
     'user-storage-path'        : { short: 'U', type: 'string' }
   }
 })
-
 const storage  = values['user-storage-path'] ?? ''
 const file     = (name) => join(storage, name)
 const acts     = existsSync(file('acts.json')) ? JSON.parse(readFileSync(file('acts.json'), 'utf8')) : {}

@@ -12,7 +12,7 @@ it('lists each attribute selector naming an image once, whatever else the rule s
   expect(sheet.images).toEqual(['[src$="logo.svg"]', '[src*="/sun.PNG"]', '[href$=".svg"]'])
 })
 
-it('lists each color-mix() a declaration holds, nested calls included, without whitespace', () => {
+it('lists each color-mix() a declaration holds as written, nested calls included', () => {
   const sheet = new Sheet('a.css', [
     '.a { color: color-mix(in srgb, var(--a) 30%, black) }',
     '.b { background: linear-gradient(color-mix(in oklch, red, color-mix(in srgb, blue, white)), red) }',
@@ -20,8 +20,8 @@ it('lists each color-mix() a declaration holds, nested calls included, without w
   ].join('\n'))
 
   expect(sheet.mixes).toEqual([
-    'color-mix(insrgb,var(--a)30%,black)',
-    'color-mix(inoklch,red,color-mix(insrgb,blue,white))',
-    'color-mix(insrgb,blue,white)'
+    'color-mix(in srgb, var(--a) 30%, black)',
+    'color-mix(in oklch, red, color-mix(in srgb, blue, white))',
+    'color-mix(in srgb, blue, white)'
   ])
 })

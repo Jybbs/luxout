@@ -1,7 +1,8 @@
 import { globSync, readFileSync } from 'node:fs'
 import { join }                   from 'node:path'
 
-import { Window } from 'happy-dom'
+import { Window }    from 'happy-dom'
+import { transform } from 'lightningcss'
 
 import { Chunk } from './chunk.ts'
 import { Sheet } from './sheet.ts'
@@ -44,13 +45,14 @@ export class Bundle {
 
   /**
    * Lists each `color-mix()` call of the theme that the minifier replaced with
-   * the fixed color it computes, since no built stylesheet holds it.
+   * the fixed color it computes, since no built stylesheet holds the call as
+   * Lightning CSS minifies it.
    */
   get #folded(): string[] {
     const built = new Set(this.#sheets.flatMap(({ mixes }) => mixes))
 
     return this.#sources.flatMap(({ file, mixes }) => mixes
-      .filter((mix) => !built.has(mix))
+      .filter((mix) => !built.has(minified(mix)))
       .map((mix) => `${file}: the minifier folds ${mix} into a fixed color`))
   }
 
@@ -76,7 +78,8 @@ export class Bundle {
   /**
    * Lists each built rule keyed on an image address that matches no element
    * on any page, which is what a rule naming a source image does once Vite
-   * rewrites the image's address to a hashed one under `/assets/`.
+   * rewrites the image's address to a hashed one under `/assets/`, or to a
+   * `data:` URL for an image under its 4096-byte inline limit.
    */
   async #unmatched(): Promise<string[]> {
     const window    = new Window()
@@ -89,4 +92,10 @@ export class Bundle {
 
     return unmatched
   }
+}
+
+function minified(mix: string): string {
+  const { code } = transform({ code: Buffer.from(`a{color:${mix}}`), filename: 'mix.css', minify: true })
+
+  return new TextDecoder().decode(code).slice('a{color:'.length, -1)
 }

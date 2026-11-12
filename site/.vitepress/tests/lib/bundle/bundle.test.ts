@@ -9,7 +9,7 @@ import { Bundle } from '../../../lib/bundle/bundle.ts'
 
 const CLEAN = {
   '.vitepress/dist/assets/app.js'       : 'export const a=1;',
-  '.vitepress/dist/assets/style.css'    : '.a{color:color-mix(in srgb,var(--a) 30%,black)}'
+  '.vitepress/dist/assets/style.css'    : '.a{color:color-mix(in srgb, var(--a) 30%, black)}'
                                         + 'img[src$="/logo.svg"]{width:1px}',
   '.vitepress/dist/index.html'          : '<!doctype html><html><body><img src="/logo.svg"></body></html>',
   '.vitepress/theme/styles/widgets.css' : '.a {\n  color: color-mix(in srgb, var(--a) 30%, black);\n}\n'
@@ -47,6 +47,23 @@ test('passes a built image rule an element on any one page matches', async ({ ro
   expect(write).not.toHaveBeenCalled()
 })
 
+test('passes a kept color-mix() whose literal color the minifier shortens', async ({ root, write }) => {
+  await plant(root, {
+    '.vitepress/dist/assets/chunks/hero.css'      : '.hero{color:color-mix(in srgb, var(--a) 50%, #fff)}',
+    '.vitepress/theme/components/styles/hero.css' : '.hero { color: color-mix(in srgb, var(--a) 50%, #FFFFFF) }'
+  })
+
+  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(write).not.toHaveBeenCalled()
+})
+
+test('reads no stylesheet outside the theme as a source', async ({ root, write }) => {
+  await plant(root, { '.vitepress/lib/daylight/frame.css': '.a { color: color-mix(in srgb, red 30%, black) }' })
+
+  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(write).not.toHaveBeenCalled()
+})
+
 test('reports a build that wrote no page, rather than passing it', async ({ root, write }) => {
   expect(await Bundle.read(join(root, '.vitepress', 'theme')).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual(['.vitepress/dist: holds no page to inspect'])
@@ -64,8 +81,8 @@ test('writes one line per defect, naming the file each sits in, and returns 1', 
   expect(write.mock.calls.flat()).toEqual([
     '.vitepress/dist/assets/chunks/node.js: carries the empty module Vite builds in place of a Node built-in',
     '.vitepress/dist/assets/chunks/hero.css: [src$="/sun.png"] matches no element on any page',
-    '.vitepress/theme/components/styles/hero.css: the minifier folds color-mix(insrgb,red30%,black) into a '
-    + 'fixed color'
+    '.vitepress/theme/components/styles/hero.css: the minifier folds color-mix(in srgb, red 30%, black) into '
+    + 'a fixed color'
   ])
 })
 

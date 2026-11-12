@@ -9,6 +9,7 @@ it.each([
   { code: 'export const a=1;', name: 'plain code' },
   { code: 'var a=X(((e,t)=>{t.exports={a:1}}));', name: 'a module exporting a value' },
   { code: 'var a=X(((e,t)=>{e.exports={}}));', name: 'an empty object set on the first parameter' },
+  { code: 'var a=X(((e,t)=>{t.hot={}}));', name: 'an empty object set on another property' },
   { code: 'var a=X(((e,t)=>{t.exports={};t.b=1}));', name: 'a wrapper running more than the assignment' },
   { code: 'var a=X(((e,t)=>t.exports={}));', name: 'an assignment written as the arrow’s value' },
   { code: 'var a=X((t=>{t.exports={}}));', name: 'a wrapper taking one parameter' },

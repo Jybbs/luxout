@@ -30,7 +30,7 @@ export class Sheet {
 
   /**
    * Lists each `color-mix()` call the declarations hold, nested calls
-   * included, with the whitespace removed.
+   * included, as the stylesheet writes them.
    */
   get mixes(): string[] {
     const found: string[] = []
@@ -47,7 +47,7 @@ function* calls(value: string): Generator<string> {
   for (const part of list.split(value, [',', ' ', '\n', '\t'], false)) {
     const [, name, inside] = /^([\w-]+)\((.*)\)$/s.exec(part) ?? []
 
-    if (name === 'color-mix') yield part.replaceAll(/\s/g, '')
+    if (name === 'color-mix') yield part
     if (inside !== undefined) yield* calls(inside)
   }
 }
