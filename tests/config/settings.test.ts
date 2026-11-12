@@ -14,10 +14,14 @@ it('holds the place the block names, rounded to two decimals', () => {
   expect(parsed(BLOCK).place).toEqual(new Place(42.36, -71.06))
 })
 
-it('holds Boston and a Dark Outside entry as the Luxout block of the test config names them', () => {
+it('holds Boston, a Dark Outside entry, and a failing Dusk entry as the test config names them', () => {
   const block = homebridge.platforms.find(({ platform }) => platform === schema.pluginAlias)
 
-  expect(parsed(block)).toMatchObject({ faults: [], place: boston, thresholds: [{ name: 'Dark Outside' }] })
+  expect(parsed(block)).toMatchObject({
+    faults     : [{ name: 'Dusk' }],
+    place      : boston,
+    thresholds : [{ name: 'Dark Outside' }]
+  })
 })
 
 it.each([

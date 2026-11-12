@@ -14,18 +14,20 @@ export type Block = Record<string, unknown>
  * What one start of Homebridge runs against.
  */
 export interface Launch {
-  port     : number
-  signal   : AbortSignal
-  storage  : string
-  block?   : Block
-  offline? : boolean
+  port      : number
+  signal    : AbortSignal
+  storage   : string
+  block?    : Block
+  insecure? : boolean
+  offline?  : boolean
 }
 
-const CONFLICT  = /eaddrinuse|address already in use|port \d+ is already in use/i
-const ERRORS    = ['TypeError', 'ReferenceError', 'Cannot find module']
-const LISTENING = /is running on port \d+/
-const bin       = join('node_modules', '.bin', 'homebridge')
-const preloads  = {
+const CONFLICT   = /eaddrinuse|address already in use|port \d+ is already in use/i
+const ERRORS     = ['TypeError', 'ReferenceError', 'Cannot find module']
+const LISTENING  = /is running on port \d+/
+export const PIN = '031-45-154'
+const bin        = join('node_modules', '.bin', 'homebridge')
+const preloads   = {
   offline : import.meta.resolve('./offline.ts'),
   writes  : import.meta.resolve('./writes.ts')
 }
@@ -52,13 +54,15 @@ export class Homebridge {
   /**
    * Writes the run's `config.json` into `storage` and starts Homebridge on it,
    * loading only the plugins installed beside it under `node_modules`, with the
-   * write preload and, where `offline` is set, the offline preload.
+   * write preload and, where `offline` is set, the offline preload. Where
+   * `insecure` is set, the bridge answers HAP requests from a controller it has
+   * not paired with.
    */
-  async start({ block, offline = false, port, signal, storage }: Launch): Promise<Run> {
+  async start({ block, insecure = false, offline = false, port, signal, storage }: Launch): Promise<Run> {
     const imports = offline ? [preloads.writes, preloads.offline] : [preloads.writes]
     const config  = {
       accessories : [],
-      bridge      : { name: 'Test Bridge', pin: '031-45-154', port, username: username(port) },
+      bridge      : { name: 'Test Bridge', pin: PIN, port, username: username(port) },
       platforms   : block ? [block] : []
     }
 
@@ -68,7 +72,8 @@ export class Homebridge {
       process.execPath,
       [
         ...imports.flatMap((preload) => ['--import', preload]),
-        bin, '-P', join(this.dir, 'node_modules'), '-Q', '-U', storage, '--strict-plugin-resolution'
+        bin, '-P', join(this.dir, 'node_modules'), '-Q', '-U', storage, '--strict-plugin-resolution',
+        ...insecure ? ['-I'] : []
       ],
       {
         cwd        : this.dir,

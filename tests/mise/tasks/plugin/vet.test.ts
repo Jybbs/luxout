@@ -4,9 +4,9 @@ import { join }                              from 'node:path'
 
 import { expect } from 'vitest'
 
-import { plant, test } from '../../../common/scratch.js'
-import { sync }        from '../../../common/sync.js'
-import { TUNING }      from '../../../common/vet.js'
+import { plant, test }   from '../../../common/scratch.js'
+import { sync }          from '../../../common/sync.js'
+import { BUILT, TUNING } from '../../../common/vet.js'
 
 /**
  * A package the fixture checkout installs from a tarball of its own, exporting
@@ -87,11 +87,13 @@ async function checkout(scratch: string, source: string): Promise<string> {
 
   await plant(dir, {
     ...Object.fromEntries(seeds),
-    'bunfig.toml'                 : bunfig,
-    'config.schema.json'          : JSON.stringify({ pluginAlias: 'Luxout', schema: { properties: {} } }),
-    'package.json'                : manifest,
-    'packed/package/index.js'     : source,
-    'packed/package/package.json' : manifest
+    ...BUILT,
+    'bunfig.toml'                  : bunfig,
+    'config.schema.json'           : JSON.stringify({ pluginAlias: 'Luxout', schema: { properties: {} } }),
+    'package.json'                 : manifest,
+    'packed/package/index.js'      : source,
+    'packed/package/package.json'  : manifest,
+    'tests/homebridge/config.json' : JSON.stringify({ platforms: [{ platform: 'Luxout' }] })
   })
   execFileSync('bun', ['install'], { cwd: dir, env, stdio: 'pipe' })
 

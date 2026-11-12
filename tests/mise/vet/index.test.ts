@@ -3,14 +3,13 @@ import { join }      from 'node:path'
 
 import { expect } from 'vitest'
 
-import schema          from '../../../config.schema.json' with { type: 'json' }
-import { plant, test } from '../../common/scratch.js'
-import { install }     from '../../common/vet.js'
+import { plant, test }       from '../../common/scratch.js'
+import { checkout, install } from '../../common/vet.js'
 
 const entry = join(import.meta.dirname, '..', '..', '..', '.mise', 'vet', 'index.ts')
 
 test('runs under Node’s type stripping and exits 0 with no release to start', async ({ scratch }) => {
-  await plant(scratch, { 'config.schema.json': JSON.stringify(schema) })
+  await checkout(scratch)
 
   const { status, stdout } = spawnSync(process.execPath, [entry], {
     cwd      : scratch,
@@ -21,7 +20,7 @@ test('runs under Node’s type stripping and exits 0 with no release to start', 
 })
 
 test('exits 1 on a release that never starts, naming each check it fails', async ({ scratch }) => {
-  await plant(scratch, { 'config.schema.json': JSON.stringify(schema) })
+  await checkout(scratch)
   await install(join(scratch, 'pinned'), '2.4.0')
   await plant(scratch, { 'pinned/node_modules/.bin/homebridge': 'process.exit(3)\n' })
 

@@ -3,8 +3,9 @@ import { basename, join, resolve } from 'node:path'
 
 import getPort from 'get-port'
 
-import { Homebridge } from './homebridge.ts'
-import * as scenario  from './scenario.ts'
+import { type Block, Homebridge } from './homebridge.ts'
+import * as scenario               from './scenario.ts'
+import { Plugin, Services }        from './services.ts'
 
 type Write = (line: string) => void
 
@@ -24,15 +25,29 @@ export class Vet {
   readonly #write    : Write
 
   /**
-   * Builds the checks from the `config.schema.json` under `root` and reads the
-   * release installed into each directory `args` names, resolved against
-   * `root`.
+   * Builds the checks from the `config.schema.json` under `root`, beside the
+   * services check run under the plugin's block in
+   * `tests/homebridge/config.json`. Reads the release installed into each
+   * directory `args` names, resolved against `root`.
    */
   static async read(args: string[], root: string, tuning?: scenario.Tuning, write?: Write): Promise<Vet> {
-    const releases = await Promise.all(args.map((arg) => Homebridge.read(resolve(root, arg))))
-    const schema   = await readFile(join(root, 'config.schema.json'), 'utf8')
+    const json = async (...path: string[]) =>
+      JSON.parse(await readFile(join(root, ...path), 'utf8'))
+    const [releases, schema, config] = await Promise.all([
+      Promise.all(args.map((arg) => Homebridge.read(resolve(root, arg)))),
+      json('config.schema.json'),
+      json('tests', 'homebridge', 'config.json')
+    ])
+    const block: Block | undefined = config.platforms.find(({ platform }: Block) =>
+      platform === schema.pluginAlias)
 
-    return new Vet(scenario.checks(JSON.parse(schema)), releases, root, tuning, write)
+    return new Vet(
+      [...scenario.checks(schema), new Services(block, await Plugin.load(root))],
+      releases,
+      root,
+      tuning,
+      write
+    )
   }
 
   constructor(
