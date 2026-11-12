@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { expect } from 'vitest'
 
 import { test } from '../../../common/scratch.js'

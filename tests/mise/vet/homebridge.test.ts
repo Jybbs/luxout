@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { readFile, writeFile } from 'node:fs/promises'
 import { join }                from 'node:path'
 

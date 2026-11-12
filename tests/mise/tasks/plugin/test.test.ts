@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { cp }   from 'node:fs/promises'
 import { join } from 'node:path'
 

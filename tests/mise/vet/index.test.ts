@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { spawnSync } from 'node:child_process'
 import { join }      from 'node:path'
 
@@ -37,4 +38,4 @@ test('exits 1 on a release that never starts, naming each check it fails', async
     + 'and exits before it is stopped\n'
     )
   })
-}, 30_000)
+})
