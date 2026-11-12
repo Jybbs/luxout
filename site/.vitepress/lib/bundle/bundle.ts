@@ -1,8 +1,9 @@
 import { globSync, readFileSync } from 'node:fs'
 import { join }                   from 'node:path'
 
-import { Window }    from 'happy-dom'
-import { transform } from 'lightningcss'
+import { Window }                  from 'happy-dom'
+import { type Targets, transform } from 'lightningcss'
+import { resolveConfig }           from 'vite'
 
 import { Chunk } from './chunk.ts'
 import { Sheet } from './sheet.ts'
@@ -43,18 +44,6 @@ export class Bundle {
     this.#sources = sources
   }
 
-  /**
-   * Lists each `color-mix()` call of the theme that the minifier replaced with
-   * the fixed color it computes, since no built stylesheet holds the call as
-   * Lightning CSS minifies it.
-   */
-  get #folded(): string[] {
-    const built = new Set(this.#sheets.flatMap(({ mixes }) => mixes))
-
-    return this.#sources.flatMap(({ file, mixes }) => mixes
-      .filter((mix) => !built.has(minified(mix)))
-      .map((mix) => `${file}: the minifier folds ${mix} into a fixed color`))
-  }
 
   /**
    * Writes each defect the build carries to `write`, one line apiece.
@@ -67,7 +56,7 @@ export class Bundle {
       ...this.#pages.length === 0 ? [`${DIST}: holds no page to inspect`] : [],
       ...this.#chunks.flatMap(({ defects }) => defects),
       ...await this.#unmatched(),
-      ...this.#folded
+      ...await this.#folded()
     ]
 
     defects.forEach((defect) => write(defect))
@@ -75,6 +64,20 @@ export class Bundle {
     return Math.sign(defects.length)
   }
 
+  /**
+   * Lists each `color-mix()` call of the theme that the minifier replaced with
+   * the fixed color it computes, since no built stylesheet holds the call as
+   * Lightning CSS writes it under the targets the build passes.
+   */
+  async #folded(): Promise<string[]> {
+    const config  = { configFile: false, css: { transformer: 'lightningcss' }, logLevel: 'silent' } as const
+    const { css } = await resolveConfig(config, 'build')
+    const built   = new Set(this.#sheets.flatMap(({ mixes }) => mixes))
+
+    return this.#sources.flatMap(({ file, mixes }) => mixes
+      .filter((mix) => !minified(mix, css.lightningcss?.targets).some((kept) => built.has(kept)))
+      .map((mix) => `${file}: the minifier folds ${flat(mix)} into a fixed color`))
+  }
   /**
    * Lists each built rule keyed on an image address that matches no element
    * on any page, which is what a rule naming a source image does once Vite
@@ -94,8 +97,20 @@ export class Bundle {
   }
 }
 
-function minified(mix: string): string {
-  const { code } = transform({ code: Buffer.from(`a{color:${mix}}`), filename: 'mix.css', minify: true })
+/**
+ * Writes `mix` on one line, with no space inside its parentheses.
+ */
+function flat(mix: string): string {
+  return mix.replaceAll(/\s+/g, ' ').replaceAll(/(?<=\() | (?=\))/g, '')
+}
 
-  return new TextDecoder().decode(code).slice('a{color:'.length, -1)
+/**
+ * Runs `mix` through the transform and the minify passes Vite runs under
+ * `targets`, listing each `color-mix()` call the result holds.
+ */
+function minified(mix: string, targets: Targets | undefined): string[] {
+  const pass = (code: string, minify: boolean): string =>
+    new TextDecoder().decode(transform({ code: Buffer.from(code), filename: 'mix.css', minify, targets }).code)
+
+  return new Sheet('mix.css', pass(pass(`a{color:${mix}}`, false), true)).mixes
 }

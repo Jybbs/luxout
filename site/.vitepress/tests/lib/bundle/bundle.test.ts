@@ -57,6 +57,31 @@ test('passes a kept color-mix() whose literal color the minifier shortens', asyn
   expect(write).not.toHaveBeenCalled()
 })
 
+test('passes a kept color-mix() holding a light-dark() the build lowers for its targets', async ({ root, write }) => {
+  await plant(root, {
+    '.vitepress/dist/assets/chunks/hero.css'      : '.hero{color:color-mix(in srgb, var(--a) 30%, '
+                                                  + 'var(--lightningcss-light,#fff) var(--lightningcss-dark,#000))}',
+    '.vitepress/theme/components/styles/hero.css' : '.hero { color: color-mix(in srgb, var(--a) 30%, '
+                                                  + 'light-dark(#fff, #000)) }'
+  })
+
+  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(write).not.toHaveBeenCalled()
+})
+
+test('writes a folded color-mix() the theme spreads across lines on one line', async ({ root, write }) => {
+  await plant(root, {
+    '.vitepress/theme/components/styles/hero.css' : '.hero {\n  color: color-mix(\n    in srgb,\n    red 30%,\n'
+                                                  + '    black\n  );\n}\n'
+  })
+
+  expect(await Bundle.read(root).report(write)).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '.vitepress/theme/components/styles/hero.css: the minifier folds color-mix(in srgb, red 30%, black) into '
+    + 'a fixed color'
+  ])
+})
+
 test('reads no stylesheet outside the theme as a source', async ({ root, write }) => {
   await plant(root, { '.vitepress/lib/daylight/frame.css': '.a { color: color-mix(in srgb, red 30%, black) }' })
 
