@@ -54,7 +54,7 @@ describe('the tracked README files', () => {
     'keep the %s preview at least 800 pixels wide, looping without end, and under 6 MB',
     async (scheme) => {
       const gif  = await readFile(site(previewAddress(scheme)))
-      const loop = gif.indexOf('NETSCAPE2.0')
+      const loop = gif.indexOf('NETSCAPE2.0')  // Finds the identifier 13 bytes ahead of the loop count
 
       expect(gif.readUInt16LE(6)).toBeGreaterThanOrEqual(800)
       expect(loop).toBeGreaterThan(0)
