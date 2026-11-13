@@ -97,6 +97,19 @@ test('reports a folded color-mix() a class of the theme’s sources writes as an
   ])
 })
 
+test('scans the whole site for a theme stylesheet that declares no source', async ({ root, write }) => {
+  await plant(root, {
+    '.vitepress/theme/components/dim.tsx' : 'export const Dim = () => '
+                                          + '<p class="bg-[color-mix(in_srgb,red_30%,black)]" />',
+    '.vitepress/theme/styles/dim.css'     : '@tailwind utilities;\n'
+  })
+
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '.vitepress/theme/styles/dim.css: the minifier folds color-mix(in srgb,red 30%,black) into a fixed color'
+  ])
+})
+
 test('reads no stylesheet outside the theme as a source', async ({ root, write }) => {
   await plant(root, {
     '.vitepress/lib/daylight/frame.css': '.a { color: color-mix(in srgb, red 30%, black) }'

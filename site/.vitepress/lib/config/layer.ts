@@ -1,3 +1,4 @@
+import MagicString     from 'magic-string'
 import type { Plugin } from 'vite'
 
 /**
@@ -20,8 +21,12 @@ export function layerTheme(): Plugin {
   return {
     enforce   : 'pre',
     name      : 'luxout:layer-theme',
-    transform : (code, id) => THEME.test(id)
-                            ? { code: `@layer ${LAYER} {${code}\n}`, map: null }
-                            : undefined
+    transform : (code, id) => {
+      if (!THEME.test(id)) return undefined
+
+      const wrapped = new MagicString(code).prepend(`@layer ${LAYER} {`).append('\n}')
+
+      return { code: wrapped.toString(), map: wrapped.generateMap({ hires: true, source: id }) }
+    }
   }
 }

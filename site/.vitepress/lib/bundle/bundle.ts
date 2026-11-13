@@ -41,7 +41,7 @@ export class Bundle {
 
     return new Bundle(
       files(join(DIST, 'assets', '**', '*.js')).map(([file, code]) => new Chunk(code, file)),
-      await Promise.all(theme.map(([file, text]) => compiled(file, join(root, file), text))),
+      await Promise.all(theme.map(([file, text]) => compiled(file, root, text))),
       files(join(DIST, '**', '*.html')).map(([, html]) => html),
       files(join(DIST, 'assets', '**', '*.css')).map((entry) => new Sheet(...entry)),
       theme.map((entry) => new Sheet(...entry))
@@ -78,10 +78,11 @@ export class Bundle {
   }
 
   /**
-   * Lists each `color-mix()` call of the theme as Tailwind compiles it, a
-   * class's arbitrary value included, that the minifier replaced with the
-   * fixed color it computes, since no built stylesheet holds the call as
-   * Lightning CSS writes it under the targets the build passes.
+   * Lists each `color-mix()` call the minifier replaced with the fixed color it
+   * computes, reading the calls from the theme's stylesheets as Tailwind
+   * compiles them, a class's arbitrary value included. A call counts as
+   * replaced where no built stylesheet holds it as Lightning CSS writes it
+   * under the targets the build passes.
    */
   async #folded(): Promise<string[]> {
     const config  = { configFile: false, css: { transformer: 'lightningcss' }, logLevel: 'silent' } as const
@@ -112,8 +113,9 @@ export class Bundle {
    *
    * - A query naming a width the theme's `@theme` declares none of
    * - A color property set to a bare number, which no color is
-   * - A `color-mix()` toward black that the minifier kept, which only a mix
-   *   carrying a `var()` argument is
+   * - A `color-mix()` toward black the minifier kept, as it keeps a mix with an
+   *   argument only the browser resolves, such as `var()`, `currentColor`, or a
+   *   `calc()` share
    */
   #outside(): string[] {
     const widths = WIDTHS.map(([kind, namespace]) =>
@@ -151,13 +153,17 @@ export class Bundle {
 }
 
 /**
- * Compiles the theme's stylesheet `text`, read from `file` at `path`, as
- * `@tailwindcss/vite` does, over the class names the sources it declares hold.
+ * Compiles the theme's stylesheet `text`, read from `file` under the site
+ * package at `site`, over the class names `@tailwindcss/vite` scans for it:
+ *
+ * - The directory a `source()` names, or the site package, which VitePress
+ *   passes Vite as its root, where the sheet names no `source()`
+ * - Each path an `@source` names
  */
-async function compiled(file: string, path: string, text: string): Promise<Sheet> {
-  const base     = dirname(path)
-  const compiler = await compile(text, { base, from: path, onDependency: () => undefined })
-  const root     = compiler.root ?? { base, pattern: '**/*' }
+async function compiled(file: string, site: string, text: string): Promise<Sheet> {
+  const path     = join(site, file)
+  const compiler = await compile(text, { base: dirname(path), from: path, onDependency: () => undefined })
+  const root     = compiler.root ?? { base: site, pattern: '**/*' }
   const sources  = root === 'none' ? compiler.sources : [{ ...root, negated: false }, ...compiler.sources]
 
   return new Sheet(file, compiler.build(new Scanner({ sources }).scan()))
