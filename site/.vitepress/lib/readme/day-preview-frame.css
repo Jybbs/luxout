@@ -1,0 +1,20 @@
+.day-preview-plate { fill: var(--vp-c-bg); }
+
+.day-preview-hand {
+  stroke         : var(--vp-c-text-1);
+  stroke-linecap : round;
+  stroke-width   : 1.2;
+}
+
+.day-preview-dot {
+  fill         : var(--luxout-accent-1);
+  stroke       : var(--vp-c-bg);
+  stroke-width : 1.5;
+}
+
+.day-preview-cursor {
+  stroke       : var(--vp-c-text-1);
+  stroke-width : 2;
+}
+
+.day-estimate-layer[data-peek] { opacity: 1; }

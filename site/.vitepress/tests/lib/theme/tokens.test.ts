@@ -2,8 +2,13 @@ import { readFile } from 'node:fs/promises'
 
 import { expect, it } from 'vitest'
 
-import { Tokens } from '../../../lib/theme/tokens.ts'
+import { DARK, SCHEMES, Tokens } from '../../../lib/theme/tokens.ts'
 
+const sheet = [
+  '.a { fill: var(--link) }',
+  `@media ${DARK} { .a { fill: red } }`,
+  '@media (width > 0) { .b { fill: blue } }'
+].join('\n')
 const tokens = Tokens.parse(await readFile(new URL('fixtures/tokens.css', import.meta.url), 'utf8'))
 
 it('follows every var() a property names to the value it ends on', () => {
@@ -33,4 +38,8 @@ it('keeps a value that names no property as written', () => {
 
 it('names the property and the scheme that declare nothing', () => {
   expect(() => tokens.resolve('--sky', 'dark')).toThrow('The tokens declare no --sky in the dark scheme')
+})
+
+it.for(SCHEMES)('writes the sheet as the %s scheme applies it', (scheme) => {
+  expect(tokens.flatten(sheet, scheme)).toMatchSnapshot()
 })

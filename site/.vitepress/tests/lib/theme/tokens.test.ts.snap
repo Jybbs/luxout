@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`writes the sheet as the dark scheme applies it 1`] = `
+".a { fill: #f2f1ee }
+.a { fill: red }
+@media (width > 0) { .b { fill: blue } }"
+`;
+
+exports[`writes the sheet as the light scheme applies it 1`] = `
+".a { fill: #1a1a1a }
+@media (width > 0) { .b { fill: blue } }"
+`;

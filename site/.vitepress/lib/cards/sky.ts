@@ -9,12 +9,8 @@ type Channels = readonly [red: number, green: number, blue: number]
 
 const STEPS  = 255
 const scale  = scaleLog([luxRange.min, luxRange.max], [0, STEPS]).clamp(true)
-const shades = range(STEPS + 1).map((step) => skyShade(step / STEPS).fill)
-const parsed = shades.map((shade): Channels => {
-  const { b, g, r } = rgb(shade)!
-
-  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)]
-})
+const shades = range(STEPS + 1).map((step) => skyShade(step / STEPS))
+const parsed = shades.map(({ fill }) => channelsOf(fill))
 
 function stepOf(lux: number): number {
   return Math.round(scale(lux))
@@ -28,11 +24,20 @@ export function channelsAt(lux: number): Channels {
 }
 
 /**
+ * Reads `color` as channels from 0 to 255.
+ */
+export function channelsOf(color: string): Channels {
+  const { b, g, r } = rgb(color)!
+
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)]
+}
+
+/**
  * Reads the sky's color at `lux`, whose position along the ramp is its place on
  * the logarithmic scale of HomeKit's range.
  */
 export function colorAt(lux: number): string {
-  return shades[stepOf(lux)]!
+  return shadeAt(lux).fill
 }
 
 /**
@@ -50,4 +55,11 @@ export function holding(ground: string, hue: string, ratio: number, toward: stri
  */
 export function mix(from: string, to: string, share: number): string {
   return formatHex(interpolate([from, to], 'rgb')(share))
+}
+
+/**
+ * Reads the sky's color at `lux` beside the ink that reads best on it.
+ */
+export function shadeAt(lux: number): ReturnType<typeof skyShade> {
+  return shades[stepOf(lux)]!
 }

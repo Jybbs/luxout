@@ -3,9 +3,8 @@ import { join }           from 'node:path'
 
 import { AtRule, type Root, parse } from 'postcss'
 
-import { Tokens } from '../../lib/theme/tokens.ts'
+import { DARK, Tokens } from '../../lib/theme/tokens.ts'
 
-const DARK   = '(prefers-color-scheme: dark)'
 const lib    = join(import.meta.dirname, '..', '..', 'lib')
 const tokens = await Tokens.read(new URL('../../', import.meta.url))
 
