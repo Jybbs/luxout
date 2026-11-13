@@ -1,7 +1,7 @@
 import { BRIDGE_SPAN, type ClearSky }      from '../../../../src/daylight/clear-sky.ts'
 import type { CLOUD_TUNING }               from '../../../../src/daylight/cloud-factor.ts'
 import type { REQUEST_TUNING }             from '../../../../src/weather/client.ts'
-import { HOUR, MINUTE, STEP_MINUTES }      from '../../lib/daylight/clock.ts'
+import { HOUR_MINUTES, STEP_MINUTES }      from '../../lib/daylight/clock.ts'
 import type { CloudSteps }                 from '../../lib/daylight/cloud-steps.ts'
 import type { DayDial }                    from '../../lib/daylight/day-dial.ts'
 import type { FactorDay }                  from '../../lib/daylight/factor-day.ts'
@@ -139,10 +139,9 @@ export function factorTable({ minutes, rest, terms }: FactorDay): string {
  * Writes how long a stored window carries the reading through failed fetches.
  */
 export function fetchReach({ forecast }: typeof REQUEST_TUNING): string {
-  const reach = (forecast - 1) * STEP_MINUTES * MINUTE
-
   return `A window's last step starts ${format.formatSteps(forecast - 1)} after the step its fetch falls in, `
-       + `which carries the reading through ${Math.floor(reach / HOUR)} failed hourly fetches in a row.`
+       + `which carries the reading through ${Math.floor((forecast - 1) * STEP_MINUTES / HOUR_MINUTES)} `
+       + 'failed hourly fetches in a row.'
 }
 
 /**
