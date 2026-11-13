@@ -163,6 +163,27 @@ test('drops a resting mouse’s pending value once a press takes over', async ({
   expect(set).toHaveBeenCalledExactlyOnceWith(4, false)
 })
 
+test('sets nothing where a mouse leaves ahead of the dwell pause', ({ mount }) => {
+  const { set, slider } = harness(mount)
+
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 20, pointerType: 'mouse' })
+  fireEvent.pointerLeave(slider.parentElement!)
+  vi.advanceTimersByTime(PAUSES.dwell)
+
+  expect(set).not.toHaveBeenCalled()
+})
+
+test('waits out the dwell pause again for a mouse that leaves and returns', async ({ mount }) => {
+  const { set, slider } = harness(mount)
+
+  await hover(slider, 20)
+  fireEvent.pointerLeave(slider.parentElement!)
+  set.mockClear()
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 70, pointerType: 'mouse' })
+
+  expect(set).not.toHaveBeenCalled()
+})
+
 test('ignores a touch moving with no press', ({ mount }) => {
   const { set, slider } = harness(mount)
 
@@ -189,6 +210,17 @@ test('stays where it is while the thumb holds the focus', async ({ mount }) => {
 
   slider.focus()
   await nextTick()
+  fireEvent.pointerLeave(slider.parentElement!)
+  vi.advanceTimersByTime(PAUSES.leave)
+
+  expect(rest).not.toHaveBeenCalled()
+})
+
+test('stays where it is while a drag continues outside the slider', async ({ mount }) => {
+  const { rest, slider } = harness(mount)
+
+  fireEvent.pointerDown(slider.parentElement!, { button: 0, clientX: 40, pointerId: 1 })
+  await pointed()
   fireEvent.pointerLeave(slider.parentElement!)
   vi.advanceTimersByTime(PAUSES.leave)
 

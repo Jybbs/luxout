@@ -200,7 +200,7 @@ test('moves to another day on a key, redrawing its curve and its marks', async (
   expect(host.querySelector<HTMLElement>('.sun-path-thumb')!.style.left).toBe('0%')
 })
 
-test('steps Page Up and Page Down four weeks, onto the year’s four-week marks', async ({ mount }) => {
+test('steps Page Up and Page Down onto multiples of 28 days from the year’s first day', async ({ mount }) => {
   const host = mount(SunPath)
   const snap = (day: number) => 28 * Math.round(day / 28)
   const up   = snap(sample + 28)

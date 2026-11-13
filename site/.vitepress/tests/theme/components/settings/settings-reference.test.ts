@@ -91,6 +91,7 @@ test('opens the first row and marks the rest inert', ({ mount }) => {
   expect(heads(host)[0]!.getAttribute('aria-disabled')).toBe('true')
   expect(heads(host)[1]!.getAttribute('aria-expanded')).toBe('false')
   expect(host.querySelectorAll('.settings-reference-panel[inert]')).toHaveLength(rows.length - 1)
+  expect(host.querySelectorAll('.settings-reference-panel[hidden]')).toHaveLength(0)
 })
 
 test('moves the open card to the row a reader chooses', async ({ mount }) => {

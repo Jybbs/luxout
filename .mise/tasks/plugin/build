@@ -22,6 +22,5 @@ tsc -p src
 bun build \
   --minify \
   --outfile dist/ui/public/index.js \
-  --target browser \
   src/ui/public/index.ts
 cp src/ui/public/index.{css,html} dist/ui/public/

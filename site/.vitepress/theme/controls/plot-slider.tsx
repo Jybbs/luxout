@@ -1,4 +1,4 @@
-import { clamp, useTimeoutFn }                    from '@vueuse/core'
+import { useTimeoutFn }                           from '@vueuse/core'
 import * as slider                                from '@zag-js/slider'
 import { mergeProps, normalizeProps, useMachine } from '@zag-js/vue'
 import { type PropType, type VNode, computed, defineComponent, useId } from 'vue'
@@ -23,14 +23,15 @@ interface Options {
   count : number
   label : string
   /**
-   * The step Page Up and Page Down take.
+   * The step Page Up and Page Down take, and the Left and Right Arrows with
+   * Shift held.
    */
   page : number
   set  : (value: number, eased: boolean) => void
   text : (value: number) => string
   /**
    * Reads the value a widget shows, which the slider takes up as its thumb
-   * takes the focus.
+   * takes the focus and ahead of each key.
    */
   value: () => number
   /**
@@ -57,12 +58,13 @@ interface PlotSpan {
 export const OVERLAY: Look = { control: 'widget-slider', thumb: 'widget-cover' }
 
 /**
- * Runs a slider laid over a drawing on Zag's slider machine, which eases the
+ * Runs a slider laid over a drawing on Zag's slider machine, which steps the
  * value on the arrow keys, Page Up, Page Down, Home, and End and sets it where
- * a press or a drag stands. The slider adds the Up and Down Arrows the machine
- * leaves to a vertical slider, a mouse setting the value once it has rested for
- * the dwell pause, and the focus leaving, or a pointer leaving an unfocused
- * slider for the leave pause, returning it to rest.
+ * a press or a drag stands, `set` easing the widget to each value a key sets.
+ * The slider adds the Up and Down Arrows the machine leaves to a vertical
+ * slider, a mouse setting the value once it has rested for the dwell pause, and
+ * the focus leaving, or a pointer leaving an unfocused slider for the leave
+ * pause, returning it to rest.
  */
 export class PlotSlider {
   readonly #api = computed(() => slider.connect(this.#service, normalizeProps))
@@ -116,6 +118,8 @@ export class PlotSlider {
     onFocusin  : () => this.hold(this.#options.value()),
     onFocusout : () => this.#options.rest?.(),
     onKeydown  : (event: KeyboardEvent) => {
+      this.hold(this.#options.value())
+
       const step = { ArrowDown: this.#api.value.decrement, ArrowUp: this.#api.value.increment }[event.key]
 
       if (!step) return
@@ -182,7 +186,7 @@ export class PlotSlider {
     const { left, width } = control.getBoundingClientRect()
 
     this.#pointing = true
-    this.#api.value.setThumbValue(0, this.#api.value.getPercentValue(clamp((clientX - left) / width, 0, 1)))
+    this.#api.value.setThumbValue(0, this.#api.value.getPercentValue((clientX - left) / width))
     this.#pointing = false
   }
 }

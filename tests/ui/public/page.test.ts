@@ -220,12 +220,15 @@ it('clears the option a search selected once the next search lists its matches',
   expect(document.querySelector('.list-group-item-highlight')).toBeNull()
 })
 
-it('lets every other key through the listbox, so Tab leaves it with nothing kept', async () => {
+it('highlights a typed letter’s match without selecting it, so Tab keeps nothing', async () => {
   const { update, user } = await searched()
 
   await user.tab()
   await user.tab()
   await user.keyboard('{a}')
+
+  expect(screen.getByRole('listbox').getAttribute('aria-activedescendant')).toBe(option(ADDISON).id)
+
   await user.tab()
 
   expect(document.activeElement).toBe(screen.getByRole('link', { name: 'Weather data by Open-Meteo.com' }))

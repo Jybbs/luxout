@@ -220,6 +220,43 @@ test('pauses on a second press, and on a key', async ({ mount }) => {
   expect(button.getAttribute('aria-pressed')).toBe('false')
 })
 
+test('steps a key from the minute the playing morning shows', async ({ mount }) => {
+  const host   = mount(ThreeFactors)
+  const button = getByRole(host, 'button', { name: 'Play the morning' })
+  const slider = getByRole(host, 'slider')
+
+  await press(host, 'Home')
+  fireEvent.click(button)
+  await nextTick()
+  slider.focus()
+  await nextTick()
+  vi.advanceTimersByTime(1000)
+  await nextTick()
+
+  const now = Number(slider.getAttribute('aria-valuenow'))
+
+  fireEvent.keyDown(slider, { key: 'ArrowRight' })
+  vi.advanceTimersByTime(DURATIONS.move + 32)
+  await nextTick()
+
+  expect(slider.getAttribute('aria-valuenow')).toBe(String(now + 1))
+})
+
+test('writes the minute in words on the slider as the morning plays', async ({ mount }) => {
+  const host   = mount(ThreeFactors)
+  const button = getByRole(host, 'button', { name: 'Play the morning' })
+  const slider = getByRole(host, 'slider')
+
+  await press(host, 'Home')
+  fireEvent.click(button)
+  await nextTick()
+  vi.advanceTimersByTime(1000)
+
+  const now = Number(slider.getAttribute('aria-valuenow'))
+
+  expect(slider.getAttribute('aria-valuetext')).toMatch(new RegExp(`^${minutes[now]}, `))
+})
+
 test('stops the morning once the viewer’s motion setting turns to reduce', async ({ mount }) => {
   const media = Object.assign(new EventTarget(), { matches: false, media: '' })
 
