@@ -13,8 +13,6 @@ import { moreButton }                   from '../../controls/more-button.tsx'
 import { PlotSlider, shareAcross }      from '../../controls/plot-slider.ts'
 import { sunDrawing }                   from './sun-drawing.tsx'
 
-import './styles/sun-path.css'
-
 /**
  * The moves one drawing writes for each day of the year.
  */
@@ -25,6 +23,41 @@ interface DayMoves {
   readonly set    : readonly string[]
   readonly top    : readonly string[]
 }
+
+/**
+ * The utilities the widget draws each mark of its drawings in, by the class the
+ * mark carries, the chosen day's curve drawn heavier and the year's curves
+ * shown while the year is open, and the grip shown while the sun is down.
+ */
+const MARKS = [
+  '[&_:is(.sun-path-word,.sun-path-figure)]:text-[11px] [&_.sun-path-word]:fill-muted',
+  '[&_.sun-path-figure]:fill-ink [&_.sun-path-grid]:stroke-rule [&_.sun-path-grid]:stroke-1',
+  '[&_:is(.sun-path-glow-inner,.sun-path-glow-outer)]:[stop-color:var(--color-sky)]',
+  '[&_.sun-path-glow-inner]:[stop-opacity:0.55] [&_.sun-path-glow-outer]:[stop-opacity:0]',
+  '[&_.sun-path-sun]:fill-sky [&_.sun-path-sun]:stroke-ink [&_.sun-path-sun]:stroke-1',
+  '[&_.sun-path-ground]:fill-sunken [&_.sun-path-horizon]:stroke-ink [&_.sun-path-horizon]:stroke-[1.2]',
+  '[&_:is(.sun-path-curve,.sun-path-hair,.sun-path-wash)]:[vector-effect:non-scaling-stroke]',
+  '[&_.sun-path-curve]:fill-none [&_.sun-path-curve]:stroke-geometry [&_.sun-path-curve]:stroke-[2.4]',
+  '[&_.sun-path-curve]:[stroke-linecap:round] [&_.sun-path-curve]:[stroke-linejoin:round]',
+  '[&_.sun-path-curve]:transition-[stroke-width] [&_.sun-path-curve]:duration-(--timing-fade)',
+  '[&.year_.sun-path-curve]:stroke-[3.4] [&_.sun-path-crossing]:fill-geometry',
+  '[&_.sun-path-year]:opacity-0 [&_.sun-path-year]:transition-opacity',
+  '[&_.sun-path-year]:duration-(--timing-fade) [&.year_.sun-path-year]:opacity-100',
+  '[&_.sun-path-wash]:fill-geometry [&_.sun-path-wash]:[fill-opacity:0.16]',
+  '[&_.sun-path-hair]:fill-none [&_.sun-path-hair]:stroke-sun-hair [&_.sun-path-hair]:stroke-1',
+  '[&_.sun-path-hair]:[stroke-linejoin:round] [&_.sun-path-month]:[stroke-dasharray:2_3]',
+  '[&_.sun-path-grip]:invisible data-down:[&_.sun-path-grip]:visible',
+  '[&_.sun-path-grip-face]:fill-raised [&_.sun-path-grip-face]:stroke-ink',
+  '[&_.sun-path-grip-face]:stroke-[1.5]'
+]
+/**
+ * The utilities the plot takes, showing the one drawing whose layout fits the
+ * width of the widget.
+ */
+const PLOT = [
+  'relative [&>svg]:hidden [&>svg]:h-auto [&>svg]:w-full [&>svg]:overflow-hidden [&>svg]:widget-num',
+  '[&>svg:nth-of-type(1)]:block @md:[&>svg:nth-of-type(1)]:hidden @md:[&>svg:nth-of-type(2)]:block'
+]
 
 const { days, marks, minutes, months, rest, sample, year } = data
 
@@ -350,9 +383,16 @@ export const SunPath = defineComponent({
     const words = curve.sunPhrase(days[sample]!, sunAltitude(sample, rest), rest)
 
     return () => (
-      <div class={['widget', 'sun-path', { year: watch.open.value }]} ref={watch.root}>
-        <div class="sun-path-lede">{...(slots.default?.() ?? [])}</div>
-        <div class="sun-path-plot">
+      <div class={['widget sun-path grid gap-3', ...MARKS, { year: watch.open.value }]} ref={watch.root}>
+        <div
+          class={[
+            'sun-path-lede [&_p]:m-0 [&_p]:text-lg/[1.5] [&_p]:text-pretty [&_strong]:font-semibold',
+            '[&_strong]:whitespace-nowrap [&_strong]:lining-nums [&_strong]:tabular-nums'
+          ]}
+        >
+          {...(slots.default?.() ?? [])}
+        </div>
+        <div class={PLOT}>
           {curve.SUN_LAYOUTS.map((layout, index) => (
             sunDrawing(layout, data, `${glow}-${index}`, grip(layout))
           ))}
@@ -361,27 +401,40 @@ export const SunPath = defineComponent({
             {...watch.clock.attributes('Time of day', rest, `${formatClock(rest)}, ${words}`)}
           />
         </div>
-        <div class="sun-path-foot">
+        <div
+          class={[
+            'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-t border-rule pt-2.5',
+            '@max-md:grid-cols-[minmax(0,1fr)]'
+          ]}
+        >
           <div id={watch.id}>
             {layers(
               [
-                <p class="sun-path-note">
-                  <b class="sun-path-clock widget-num">{formatClock(rest)}</b>
+                <p class="m-0 min-h-[2lh] text-[0.9rem]/[1.45] @max-md:min-h-[3lh]">
+                  <b class="sun-path-clock widget-num font-semibold">{formatClock(rest)}</b>
                   {' · '}
                   <span class="sun-path-phrase">{words}</span>
                 </p>,
                 <div>
-                  <div class="widget-track sun-path-track" {...watch.track}>
+                  <div class="widget-track sun-path-track mx-2" {...watch.track}>
                     <span class="widget-rail" />
                     {...marks.map(({ day, named }) => (
                       <span
-                        class={['widget-tick', { 'sun-path-named': named }]}
+                        class={named
+                          ? 'sun-path-named absolute top-4 h-1.75 w-0.5 -translate-x-1/2 bg-geometry'
+                          : 'widget-tick'}
                         style={{ left: lefts[day] }}
                       />
                     ))}
                     <span class="widget-thumb sun-path-thumb" style={{ left: lefts[sample] }} />
                   </div>
-                  <div aria-hidden class="sun-path-months">
+                  <div
+                    aria-hidden
+                    class={[
+                      'relative mx-2 h-[1.2em] font-mono text-[0.6rem]/none font-medium text-muted',
+                      '*:absolute *:top-0 *:-translate-x-1/2'
+                    ]}
+                  >
                     {...months.map(({ left, word }) => <span style={{ left: `${left}%` }}>{word}</span>)}
                   </div>
                 </div>
@@ -389,7 +442,13 @@ export const SunPath = defineComponent({
               watch.open.value ? 1 : 0
             )}
           </div>
-          {moreButton(watch.id, 'The year', watch.open.value, () => watch.toggle())}
+          {moreButton(
+            watch.id,
+            'The year',
+            watch.open.value,
+            () => watch.toggle(),
+            '@max-md:row-start-1 @max-md:justify-self-start'
+          )}
         </div>
         {watch.announcer.region}
       </div>

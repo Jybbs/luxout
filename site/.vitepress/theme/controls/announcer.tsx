@@ -40,6 +40,6 @@ const LiveRegion = defineComponent({
   name  : 'LiveRegion',
   props : { live: { required: true, type: Object as PropType<ShallowRef<string>> } },
   setup(props) {
-    return () => <p aria-live="polite" class="visually-hidden">{props.live.value}</p>
+    return () => <p aria-live="polite" class="sr-only">{props.live.value}</p>
   }
 })

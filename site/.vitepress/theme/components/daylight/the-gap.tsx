@@ -7,8 +7,57 @@ import { Announcer }               from '../../controls/announcer.tsx'
 import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
 import { gapDrawing }              from './gap-drawing.tsx'
 
-import './styles/the-gap.css'
-
+/**
+ * The utilities the widget draws each mark of its drawings and of its swatches
+ * in, by the class the mark carries, the cursor's guide and dot showing only
+ * while a reader points.
+ */
+const MARKS = [
+  '[&_.the-gap-band]:fill-gap-band [&_.the-gap-edge]:stroke-ink [&_.the-gap-edge]:stroke-[1.2]',
+  '[&_:is(.the-gap-tie,.the-gap-guide)]:[stroke-dasharray:2_3] [&_:is(.the-gap-tie,.the-gap-guide)]:stroke-1',
+  '[&_.the-gap-tie]:stroke-muted [&_.the-gap-guide]:stroke-ink',
+  '[&_:is(.the-gap-halo,.the-gap-reading)]:fill-none',
+  '[&_:is(.the-gap-halo,.the-gap-reading)]:[stroke-linecap:round]',
+  '[&_:is(.the-gap-halo,.the-gap-reading)]:[stroke-linejoin:round]',
+  '[&_.the-gap-halo]:stroke-ground [&_.the-gap-halo]:stroke-6',
+  '[&_.the-gap-reading]:stroke-estimate [&_.the-gap-reading]:stroke-2',
+  '[&_.the-gap-on]:fill-gap-on [&_.the-gap-on]:stroke-ink [&_.the-gap-on]:stroke-[1.2]',
+  '[&_.the-gap-off]:stroke-muted [&_.the-gap-off]:stroke-[1.2]',
+  '[&_.the-gap-ring]:fill-ground [&_.the-gap-ring]:stroke-ink [&_.the-gap-ring]:stroke-[1.5]',
+  '[&_.the-gap-chip]:fill-sunken [&_.the-gap-chip]:stroke-rule [&_.the-gap-chip]:stroke-1',
+  '[&_:is(.the-gap-word,.the-gap-figure)]:text-[11px] [&_.the-gap-word]:fill-muted',
+  '[&_.the-gap-figure]:fill-ink',
+  '[&_.the-gap-chip-name]:fill-ink [&_.the-gap-chip-name]:text-[10px] [&_.the-gap-chip-name]:font-semibold',
+  '[&_.the-gap-chip-name]:tracking-[0.08em] [&_.the-gap-chip-name]:uppercase',
+  '[&_.the-gap-count]:fill-ink [&_.the-gap-count]:font-semibold',
+  '[&_:is(.the-gap-dot,.the-gap-thumb)]:fill-estimate [&_:is(.the-gap-dot,.the-gap-thumb)]:stroke-ground',
+  '[&_.the-gap-dot]:stroke-[1.5] [&_.the-gap-thumb]:stroke-2',
+  '[&_:is(.the-gap-guide,.the-gap-dot)]:invisible data-pointing:[&_:is(.the-gap-guide,.the-gap-dot)]:visible'
+]
+/**
+ * The utilities the plot takes, showing the one drawing whose layout fits the
+ * width of the widget.
+ */
+const PLOT = [
+  'relative [&>svg]:hidden [&>svg]:h-auto [&>svg]:w-full [&>svg]:overflow-visible',
+  '[&>svg]:widget-num [&>svg:nth-of-type(1)]:block @sm:[&>svg:nth-of-type(1)]:hidden',
+  '@sm:[&>svg:nth-of-type(2)]:block @md:[&>svg:nth-of-type(2)]:hidden @md:[&>svg:nth-of-type(3)]:block'
+]
+/**
+ * The utilities the table beneath the drawing takes, by the cells and rows of
+ * each of its parts.
+ */
+const TABLE = [
+  'm-0 table w-full table-fixed border-collapse text-[0.88rem]/[1.5] text-inherit',
+  '[&_caption]:min-h-[calc(1lh+8px)] [&_caption]:caption-top [&_caption]:pb-2 [&_caption]:text-left',
+  '[&_:is(th,td,tr)]:border-0 [&_:is(th,td,tr)]:bg-transparent [&_:is(th,td,tr)]:py-1.75',
+  '[&_:is(th,td,tr)]:pr-3 [&_:is(th,td,tr)]:pl-0 [&_:is(th,td,tr)]:text-left',
+  '[&_:is(th,td,tr)]:align-baseline',
+  '[&_:is(th,td,tr)]:text-[length:inherit] [&_thead_tr]:border-b-[1.5px] [&_thead_tr]:border-ink',
+  '[&_thead_th]:pt-0 [&_thead_th]:font-semibold [&_thead_th]:text-ink',
+  '[&_tbody_tr]:border-b [&_tbody_tr]:border-rule [&_tbody_th]:font-normal [&_tbody_th]:text-muted',
+  '[&_tbody_td]:text-ink [&_td[colspan]]:text-muted'
+]
 const SWATCHES = {
   off  : () => <path class="the-gap-off" d="M1 10H13" />,
   on   : () => <rect class="the-gap-on" height={8} width={12} x={1} y={2} />,
@@ -139,14 +188,14 @@ const GapTable = defineComponent({
       const at = props.minute.value
 
       return (
-        <table class="the-gap-table">
+        <table class={TABLE}>
           <caption>
             {...(at
               ? [numeral('span', `${at.clock} · ${at.lux} lux`)]
               : ['From ', numeral('span', data.gap.span[0]), ' to ', numeral('span', data.gap.span[1])])}
           </caption>
           <colgroup>
-            <col class="the-gap-names" />
+            <col class="w-22 @md:w-26" />
             <col />
             <col />
           </colgroup>
@@ -161,7 +210,7 @@ const GapTable = defineComponent({
             {row('Off below', data.gap.sensors.map(({ offBelow }) => numeral('td', offBelow)))}
             {row('Now', at
               ? at.cells.map(({ mark, word }) => <td>{swatch(mark)}{word}</td>)
-              : <td class="the-gap-ask" colspan={2}>Point along the morning</td>)}
+              : <td colspan={2}>Point along the morning</td>)}
             {row('Switches', at
               ? at.cells.map(({ count }) => numeral('td', count))
               : data.gap.sensors.map(({ switches }) => numeral('td', switches)))}
@@ -182,8 +231,8 @@ export const TheGap = defineComponent({
     const pointer = new Pointer()
 
     return () => (
-      <div class="widget the-gap" ref={pointer.root}>
-        <div class="the-gap-plot">
+      <div class={['widget the-gap grid gap-4', ...MARKS]} ref={pointer.root}>
+        <div class={PLOT}>
           {data.gap.layouts.map((layout) => gapDrawing(layout, data.gap, cursor(layout)))}
           <div
             class="widget-slider"
@@ -194,7 +243,7 @@ export const TheGap = defineComponent({
             )}
           />
         </div>
-        <div class="the-gap-below">
+        <div class="grid gap-3 border-t border-rule pt-3.5">
           <p class="widget-note">
             {swatch('ring')}
             Each ring is a switch, which can run an automation in the Home app built on the state the sensor
@@ -241,5 +290,9 @@ function row(name: string, cells: VNode | VNode[]): VNode {
 }
 
 function swatch(mark: gap.GapCell['mark']): VNode {
-  return <svg aria-hidden class="the-gap-swatch" viewBox="0 0 14 12">{SWATCHES[mark]()}</svg>
+  return (
+    <svg aria-hidden class="the-gap-swatch mr-2 inline-block h-3 w-3.5 align-[-0.05em]" viewBox="0 0 14 12">
+      {SWATCHES[mark]()}
+    </svg>
+  )
 }

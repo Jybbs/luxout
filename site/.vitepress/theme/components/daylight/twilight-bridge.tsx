@@ -7,7 +7,29 @@ import { Announcer }               from '../../controls/announcer.tsx'
 import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
 import { bridgeDrawing, dropAt }   from './bridge-drawing.tsx'
 
-import './styles/twilight-bridge.css'
+const END    = 'font-semibold text-ink'
+const FIGURE = 'widget-num text-right text-[0.9rem] font-semibold whitespace-nowrap'
+/**
+ * The utilities the plot draws each mark of the bridge in, by the class the
+ * mark carries.
+ */
+const MARKS = [
+  'twilight-bridge-plot relative mt-5 mr-4 mb-7 ml-16',
+  '[&>svg]:absolute [&>svg]:inset-0 [&>svg]:size-full [&>svg]:overflow-visible',
+  '[&_path]:[vector-effect:non-scaling-stroke] [&_.twilight-bridge-wash]:fill-bridge-wash',
+  '[&_.twilight-bridge-sky]:fill-sky-fill [&_.twilight-bridge-grid]:stroke-rule',
+  '[&_.twilight-bridge-grid]:stroke-1 [&_.twilight-bridge-axis]:fill-none',
+  '[&_.twilight-bridge-axis]:stroke-muted [&_.twilight-bridge-axis]:stroke-1',
+  '[&_.twilight-bridge-roof]:stroke-bridge-line [&_.twilight-bridge-roof]:stroke-2',
+  '[&_.twilight-bridge-cut]:stroke-bridge-line [&_.twilight-bridge-cut]:[stroke-dasharray:3_3]',
+  '[&_.twilight-bridge-cut]:stroke-[1.25] [&_.twilight-bridge-edge]:fill-none',
+  '[&_.twilight-bridge-edge]:stroke-ink [&_.twilight-bridge-edge]:[stroke-linejoin:round]',
+  '[&_.twilight-bridge-edge]:stroke-[1.5]',
+  '[&_.twilight-bridge-drop]:fill-none [&_.twilight-bridge-drop]:stroke-ink',
+  '[&_.twilight-bridge-drop]:[stroke-dasharray:2_3] [&_.twilight-bridge-drop]:stroke-1',
+  '@max-sm:[&_.twilight-bridge-minor]:hidden'
+]
+const WORD = 'absolute font-mono text-[0.7rem]/none tabular-nums whitespace-nowrap'
 
 const { cut, decades, degrees, figures, height, high, label, low, phrases, rest, ticks, width, x, y } = data
 
@@ -95,42 +117,78 @@ export const TwilightBridge = defineComponent({
     const watch = new BridgeWatch()
 
     return () => (
-      <div aria-label={label} class="widget twilight-bridge" ref={watch.root} role="group">
-        <div class="twilight-bridge-plot" style={{ height: pixels(height) }}>
+      <div aria-label={label} class="widget twilight-bridge grid gap-3" ref={watch.root} role="group">
+        <div class={MARKS} style={{ height: pixels(height) }}>
           {bridgeDrawing(data)}
           {...[{ at: 0, word: 'lux' }, ...decades].map(({ at, word }) => (
-            <span class="twilight-bridge-word twilight-bridge-level" style={{ top: pixels(at) }}>{word}</span>
+            <span
+              class={[WORD, 'right-[calc(100%+6px)] -translate-y-1/2 font-medium text-muted']}
+              style={{ top: pixels(at) }}
+            >
+              {word}
+            </span>
           ))}
           {...ticks.map(({ at, minor, word }) => (
             <span
-              class={['twilight-bridge-word twilight-bridge-along', { 'twilight-bridge-minor': minor }]}
+              class={[
+                WORD,
+                'top-[calc(100%+10px)] -translate-x-1/2 font-medium text-muted',
+                { 'twilight-bridge-minor': minor }
+              ]}
               style={{ left: percentOf(at) }}
             >
               {word}
             </span>
           ))}
-          <span class="widget-caps twilight-bridge-caps">
-            <span class="twilight-bridge-the">{'The '}</span>
+          <span
+            class={[
+              'twilight-bridge-caps absolute top-2 left-1.5 font-mono text-[0.7rem]/[1.45] font-medium',
+              'tracking-widest text-ink uppercase'
+            ]}
+          >
+            <span class="twilight-bridge-the @max-sm:hidden">{'The '}</span>
             bridge
           </span>
           {node(low.x, low.y)}
           {node(high.x, high.y)}
-          <span class="twilight-bridge-end twilight-bridge-low" style={{ top: pixels(low.y) }}>
+          <span
+            class={[WORD, 'twilight-bridge-low right-[calc(100%+10px)] -translate-y-1/2', END]}
+            style={{ top: pixels(low.y) }}
+          >
             {low.word}
           </span>
           <span
-            class="twilight-bridge-end twilight-bridge-high"
+            class={[
+              WORD,
+              'twilight-bridge-high translate-x-[calc(-100%-8px)] translate-y-[calc(-100%-6px)]',
+              END
+            ]}
             style={{ left: percentOf(high.x), top: pixels(high.y) }}
           >
             {high.word}
           </span>
-          <span class="twilight-bridge-sun" style={{ left: lefts[rest], top: tops[rest] }} />
+          <span
+            class={[
+              'twilight-bridge-sun absolute size-3.5 -translate-1/2 rounded-full bg-sky',
+              'ring-[1.5px] ring-ink'
+            ]}
+            style={{ left: lefts[rest], top: tops[rest] }}
+          />
           <div class="widget-slider" {...watch.slider.attributes('The sun’s altitude', rest, spoken(rest))} />
         </div>
-        <div class="twilight-bridge-readout">
-          <b class="twilight-bridge-degree widget-num">{degrees[rest]}</b>
-          <b class="twilight-bridge-figure widget-num">{figures[rest]}</b>
-          <span class="twilight-bridge-phrase">{phraseAt(rest)}</span>
+        <div
+          class={[
+            'grid grid-cols-[5ch_10ch_minmax(0,1fr)] items-baseline gap-x-3.5 gap-y-0.5 border-t border-rule',
+            'pt-2.5'
+          ]}
+        >
+          <b class={['twilight-bridge-degree', FIGURE]}>{degrees[rest]}</b>
+          <b class={['twilight-bridge-figure', FIGURE]}>{figures[rest]}</b>
+          <span
+            class="twilight-bridge-phrase min-h-[2lh] text-[0.9rem]/[1.3] text-muted @max-sm:col-span-full"
+          >
+            {phraseAt(rest)}
+          </span>
         </div>
         {watch.announcer.region}
       </div>
@@ -139,7 +197,12 @@ export const TwilightBridge = defineComponent({
 })
 
 function node(left: number, top: number): VNode {
-  return <span class="twilight-bridge-node" style={{ left: percentOf(left), top: pixels(top) }} />
+  return (
+    <span
+      class="twilight-bridge-node absolute size-1.5 -translate-1/2 rounded-full bg-ink"
+      style={{ left: percentOf(left), top: pixels(top) }}
+    />
+  )
 }
 
 function percentOf(value: number): string {

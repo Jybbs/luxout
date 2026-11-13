@@ -81,6 +81,12 @@ it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to 
   expect(hook.call({ meta: { rolldownVersion: '' } }, {}).oxc).toEqual({ exclude: /\.jsx?$/ })
 })
 
+it('places the default theme’s sheets in a layer below Tailwind’s, then generates Tailwind’s', () => {
+  const names = (config.vite?.plugins ?? []).flat().map((plugin) => (plugin as Plugin).name)
+
+  expect(names).toEqual(expect.arrayContaining(['luxout:layer-theme', '@tailwindcss/vite:generate:build']))
+})
+
 it('links each page by its address without the .html extension', () => {
   expect(config.cleanUrls).toBe(true)
 })

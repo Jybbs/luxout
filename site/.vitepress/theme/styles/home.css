@@ -1,3 +1,0 @@
-.VPHomeContent > div > div > :not(h2, h2 ~ *) {
-  display: none;
-}

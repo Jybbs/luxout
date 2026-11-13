@@ -1,4 +1,0 @@
-.vp-doc :is(h1, h2, h3), .VPHero .heading :is(.name, .text) {
-  font-family : var(--luxout-font-display);
-  font-weight : 600;
-}

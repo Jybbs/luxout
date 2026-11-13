@@ -6,7 +6,41 @@ import { data }                                 from '../../../lib/privacy/priva
 import { type MarkKey, type PlaceMark, markAt } from '../../../lib/privacy/rounded-place.ts'
 import { placeDrawing }                         from './place-drawing.tsx'
 
-import './styles/rounded-place.css'
+/**
+ * The utilities the widget draws each mark of the drawing and of the key in,
+ * by the class the mark carries.
+ */
+const MARKS = [
+  '[&_.rounded-place-cell]:fill-place-cell [&_.rounded-place-cell]:stroke-forecast',
+  '[&_.rounded-place-cell]:stroke-[1.5]',
+  '[&_.rounded-place-tile]:fill-none [&_.rounded-place-tile]:stroke-forecast',
+  '[&_.rounded-place-tile]:stroke-1',
+  '[&_:is(.rounded-place-area,.rounded-place-patch)]:fill-place-area',
+  '[&_.rounded-place-area]:stroke-ink [&_.rounded-place-area]:stroke-[1.2]',
+  '[&_.rounded-place-ring]:fill-none [&_.rounded-place-ring]:stroke-ink',
+  '[&_.rounded-place-ring]:stroke-[1.5] [&_.rounded-place-dot]:fill-ink',
+  '[&_.rounded-place-dim]:fill-none [&_.rounded-place-dim]:stroke-muted',
+  '[&_.rounded-place-dim]:stroke-1 [&_.rounded-place-word]:fill-muted [&_.rounded-place-word]:text-[11px]',
+  'dark:[&_:is(.rounded-place-area,.rounded-place-patch)]:fill-area dark:[&_.rounded-place-dot]:fill-ground',
+  'dark:[&_:is(.rounded-place-area,.rounded-place-ring)]:stroke-ground'
+]
+/**
+ * The utilities the plot takes, its drawing bringing forward the mark the
+ * widget shows.
+ */
+const PLOT = [
+  'rounded-place-plot w-full max-w-[402px] *:widget-num *:block *:h-auto *:w-full *:overflow-visible',
+  '[&_svg_*]:transition-[stroke-width,r,stroke] [&_svg_*]:duration-(--timing-hover)',
+  'group-data-[shown=area]:[&_.rounded-place-area]:stroke-3',
+  'group-data-[shown=cell]:[&_.rounded-place-cell]:stroke-3',
+  'group-data-[shown=cell]:[&_.rounded-place-tile]:stroke-2',
+  'group-data-[shown=cell]:[&_.rounded-place-dim]:stroke-ink',
+  'group-data-[shown=cell]:[&_.rounded-place-dim]:stroke-[1.5]',
+  'group-data-[shown=cell]:[&_.rounded-place-word]:fill-ink',
+  'group-data-[shown=cell]:[&_.rounded-place-word]:font-semibold',
+  'group-data-[shown=pair]:[&_.rounded-place-dot]:[r:5px]',
+  'group-data-[shown=place]:[&_.rounded-place-ring]:stroke-3'
+]
 
 const { place } = data
 
@@ -47,7 +81,7 @@ class Key {
   renderPlot(): VNode {
     return (
       <div
-        class="rounded-place-plot"
+        class={PLOT}
         onPointerdown={this.#onPointerdown}
         onPointerleave={this.#onPointerleave}
         onPointermove={this.#onPointermove}
@@ -60,7 +94,11 @@ class Key {
   renderRow({ key: mark, name, value }: PlaceMark): VNode {
     return (
       <button
-        class={['rounded-place-row', { on: this.shown.value === mark }]}
+        class={[
+          'grid w-full cursor-default grid-cols-[22px_minmax(0,1fr)] items-center gap-x-3 gap-y-0.75',
+          'rounded-md border px-2.5 py-1.75 text-left text-ink transition-colors duration-(--timing-hover)',
+          this.shown.value === mark ? 'on border-ink bg-raised' : 'border-transparent bg-transparent'
+        ]}
         onBlur={() => this.show(undefined)}
         onClick={() => this.show(mark)}
         onFocus={() => this.show(mark)}
@@ -71,9 +109,11 @@ class Key {
         }}
         type="button"
       >
-        <svg aria-hidden class="rounded-place-swatch" viewBox="0 0 22 12">{...SWATCHES[mark]()}</svg>
-        <span class="rounded-place-name widget-caps">{name}</span>
-        <span class="rounded-place-value widget-num">{value}</span>
+        <svg aria-hidden class="row-span-2 h-3 w-5.5" viewBox="0 0 22 12">{...SWATCHES[mark]()}</svg>
+        <span class="font-mono text-[0.62rem]/[1.15] font-medium tracking-[0.08em] text-muted uppercase">
+          {name}
+        </span>
+        <span class="widget-num text-[0.86rem]/[1.3] whitespace-nowrap">{value}</span>
       </button>
     )
   }
@@ -121,10 +161,13 @@ export const RoundedPlace = defineComponent({
     const key = new Key()
 
     return () => (
-      <div class="widget rounded-place" data-shown={key.shown.value}>
-        <div class="rounded-place-body">
+      <div class={['widget rounded-place group', ...MARKS]} data-shown={key.shown.value}>
+        <div class="grid items-start gap-4 @lg:grid-cols-[minmax(0,402px)_minmax(0,1fr)] @lg:gap-6">
           {key.renderPlot()}
-          <ul aria-label="Key to the drawing" class="rounded-place-rows">
+          <ul
+            aria-label="Key to the drawing"
+            class="m-0 grid list-none gap-0.5 p-0 *:m-0 @lg:justify-self-start"
+          >
             {...place.marks.map((mark) => <li>{key.renderRow(mark)}</li>)}
           </ul>
         </div>

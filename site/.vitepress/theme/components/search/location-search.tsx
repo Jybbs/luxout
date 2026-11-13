@@ -2,18 +2,28 @@ import { useMounted }                                     from '@vueuse/core'
 import { bisectRight, cumsum }                            from 'd3-array'
 import { type VNode, defineComponent, shallowRef, useId } from 'vue'
 
-import { FrameClock }                   from '../../../lib/motion/frame-clock.ts'
-import { motionReduced }                from '../../../lib/motion/timing.ts'
-import type { SearchPage, SearchStage } from '../../../lib/search/replay.ts'
-import { data }                         from '../../../lib/search/search.data.ts'
-import { Announcer }                    from '../../controls/announcer.tsx'
-import { layers }                       from '../../controls/layers.tsx'
-import { Tablist, tabPanel }            from '../../controls/tablist.tsx'
+import { FrameClock }        from '../../../lib/motion/frame-clock.ts'
+import { motionReduced }     from '../../../lib/motion/timing.ts'
+import type { SearchStage }  from '../../../lib/search/replay.ts'
+import { data }              from '../../../lib/search/search.data.ts'
+import { Announcer }         from '../../controls/announcer.tsx'
+import { layers }            from '../../controls/layers.tsx'
+import { Tablist, tabPanel } from '../../controls/tablist.tsx'
+import { settingsPage }      from './settings-page.tsx'
 
-import './styles/location-search.css'
-
-const { labels } = data
-const spoken     = data.stages.map(({ label, name, note }, index) =>
+/**
+ * The utilities the tablist and each stage's tab take, a tab narrowing to its
+ * number alone once the widget narrows, unless it is the chosen one.
+ */
+const CLASSES = {
+  list : '-ms-1 flex flex-wrap items-center',
+  tab  : [
+    'group inline-flex items-center gap-1.75 rounded-full py-1 pr-2.5 pl-1 font-mono text-[0.68rem]/none',
+    'font-medium tracking-[0.08em] text-muted uppercase focus-visible:outline-offset-1',
+    'aria-selected:text-ink @max-md:not-aria-selected:pr-1'
+  ]
+}
+const spoken = data.stages.map(({ label, name, note }, index) =>
   `Stage ${index + 1}, ${name}. ${label}. ${note}`.replaceAll('`', '').trim()
 )
 const stops = cumsum(data.stages.slice(0, -1), ({ hold }) => hold)
@@ -75,25 +85,39 @@ export const LocationSearch = defineComponent({
     const player = new Player()
 
     return () => (
-      <div class="widget location-search">
-        <div class="location-search-bar">
+      <div class="widget location-search grid gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
           <Tablist
+            classes={CLASSES}
             id={player.id}
             label="Stages of the search"
-            name="location-search"
             onSelect={player.select}
             selected={player.stage.value}
             tabs={tabs}
           >
             {{
               default: ({ index }: { index: number }) => [
-                <span class="location-search-number">{index + 1}</span>,
-                <span class="location-search-name">{data.stages[index]!.name}</span>
+                <span
+                  class={[
+                    'inline-grid size-5.5 place-items-center rounded-full tracking-normal',
+                    'inset-ring inset-ring-rule transition-[background-color,color]',
+                    'duration-(--timing-hover) group-aria-selected:bg-ink group-aria-selected:text-ground',
+                    'group-aria-selected:inset-ring-0'
+                  ]}
+                >
+                  {index + 1}
+                </span>,
+                <span class="@max-md:hidden @max-md:group-aria-selected:inline">
+                  {data.stages[index]!.name}
+                </span>
               ]
             }}
           </Tablist>
           <button
-            class="location-search-play"
+            class={[
+              'widget-pill location-search-play transition-[border-color] duration-(--timing-hover)',
+              'focus-visible:outline-offset-1 enabled:hover:border-ink'
+            ]}
             disabled={player.mounted.value && motionReduced()}
             onClick={player.play}
             type="button"
@@ -101,7 +125,11 @@ export const LocationSearch = defineComponent({
             Play
           </button>
         </div>
-        <div {...tabPanel(player.id, player.stage.value)} class="location-search-panel" ref={player.panel}>
+        <div
+          {...tabPanel(player.id, player.stage.value)}
+          class="grid grid-cols-[minmax(0,1fr)] items-start gap-5"
+          ref={player.panel}
+        >
           {settingsPage(data.stages[player.stage.value]!.page, player.typed.value)}
           {layers(data.stages.map(wire), player.stage.value)}
         </div>
@@ -111,104 +139,29 @@ export const LocationSearch = defineComponent({
   }
 })
 
-function caps(text: string): VNode {
-  return <span class="widget-caps">{text}</span>
-}
-
-function credit(source: string): VNode {
-  return <span>{link(source)}{` ${labels.under} `}{link(labels.license)}</span>
-}
-
-function link(words: string): VNode {
-  return <span class="location-search-link">{words}</span>
-}
-
-function part(area: string, children: VNode[]): VNode {
-  return <div class={`location-search-part location-search-${area}`}>{...children}</div>
-}
-
-function placeName(): VNode {
-  return (
-    <span class="location-search-place">
-      {...data.place.flatMap((piece, index, { length }) => {
-        const text = index < length - 1 ? `${piece},` : piece
-
-        return index
-          ? [' ', <span class="location-search-whole">{text}</span>]
-          : ['', <b class="location-search-whole">{text}</b>]
-      })}
-    </span>
-  )
-}
-
-function settingsPage({ activity, input, match }: SearchPage, typed?: number): VNode {
-  const kept  = match === 'chosen'
-  const shown = typed === undefined ? input : data.query.slice(0, typed)
-
-  return (
-    <div aria-hidden class={['location-search-page', activity]}>
-      <div class="location-search-parts">
-        {part('query', [
-          caps(labels.search),
-          <span class="location-search-field">
-            <span class="location-search-input">
-              {shown || <span class="location-search-hint">{labels.placeholder}</span>}
-              {activity === 'typing' && <span class="location-search-caret" />}
-            </span>
-            <span class="location-search-button">{labels.button}</span>
-          </span>
-        ])}
-        {part('matches', [
-          caps(labels.matches),
-          <div class="location-search-list">
-            {layers(
-              [
-                <span class="location-search-hint location-search-empty">{labels.empty}</span>,
-                <span class={['location-search-match', { chosen: kept }]}>
-                  <span class="location-search-radio" />
-                  {placeName()}
-                </span>
-              ],
-              match === 'none' ? 0 : 1
-            )}
-          </div>
-        ])}
-        {part('stored', [
-          <span class="location-search-pair">{caps(labels.latitude)}{caps(labels.longitude)}</span>,
-          layers(
-            [
-              <span class="location-search-hint location-search-none">{labels.none}</span>,
-              <span class="location-search-pair">
-                <span class="location-search-figure">{data.latitude}</span>
-                <span class="location-search-figure">{data.longitude}</span>
-              </span>
-            ],
-            kept ? 1 : 0
-          )
-        ])}
-        <span class="location-search-rule" />
-        {part('kept', [caps(labels.place), layers([<span />, placeName()], kept ? 1 : 0)])}
-        {part('credit', [
-          caps(labels.attribution),
-          <span class="location-search-credits">{credit(labels.weather)}{credit(labels.geonames)}</span>
-        ])}
-      </div>
-      <div class="location-search-form">
-        {caps(data.field)}
-        <span class="location-search-box" />
-      </div>
-      <div class="location-search-foot"><span class="location-search-save">Save</span></div>
-      <span class="location-search-spinner"><span /></span>
-    </div>
-  )
-}
-
 function wire({ code, label, note }: SearchStage): VNode {
   return (
-    <div class="location-search-sent">
-      <span class="location-search-heading widget-caps">{...words(label)}</span>
+    <div class="location-search-sent grid content-start gap-2">
+      <span
+        class={[
+          'widget-caps flex flex-wrap items-baseline gap-x-1.5 [&_code]:bg-transparent [&_code]:p-0',
+          '[&_code]:font-mono [&_code]:text-[0.74rem]/[1.45] [&_code]:font-medium [&_code]:tracking-normal',
+          '[&_code]:normal-case'
+        ]}
+      >
+        {...words(label)}
+      </span>
       {code.length
-        ? <pre class="location-search-code">{...code.map((line) => <span>{line}</span>)}</pre>
+        ? (
+          <pre
+            class={[
+              'location-search-code m-0 min-w-0 rounded-lg bg-sunken p-2.5 font-mono text-[0.76rem]/[1.6]',
+              'font-normal wrap-anywhere whitespace-pre-wrap *:block'
+            ]}
+          >
+            {...code.map((line) => <span>{line}</span>)}
+          </pre>
+        )
         : undefined}
       {note ? <p class="widget-note">{...words(note)}</p> : undefined}
     </div>

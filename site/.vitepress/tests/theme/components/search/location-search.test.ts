@@ -194,14 +194,14 @@ test.for(stages)('draws the $name stage of the page from its fields', async ({ i
   await choose(host, index)
 
   expect({
-    activity : [...host.querySelector('.location-search-page')!.classList].slice(1),
+    activity : host.querySelector<HTMLElement>('.location-search-page')!.dataset.activity,
     caret    : host.querySelector('.location-search-input .location-search-caret') !== null,
     chosen   : host.querySelector('.location-search-match.chosen') !== null,
     figures  : host.querySelector('.location-search-stored .layer.shown .location-search-figure') !== null,
     kept     : host.querySelector('.location-search-kept .layer.shown')!.textContent !== '',
     listed   : host.querySelector('.location-search-list .layer.shown .location-search-match') !== null
   }).toEqual({
-    activity : page.activity ? [page.activity] : [],
+    activity : page.activity,
     caret    : page.activity === 'typing',
     chosen   : page.match === 'chosen',
     figures  : page.match === 'chosen',
