@@ -7,6 +7,10 @@ export type Scheme = (typeof SCHEMES)[number]
 type Space         = keyof typeof SPACES
 
 /**
+ * The media query a frame's stylesheet holds its dark scheme's rules under.
+ */
+export const DARK    = '(prefers-color-scheme: dark)'
+/**
  * Matches a `color-mix()` of two colors, the first taking a share in percent.
  */
 const MIX            = /^color-mix\(in (oklab|srgb), (.+) ([\d.]+)%, (.+)\)$/
@@ -63,6 +67,26 @@ export class Tokens {
    */
   color(property: string, scheme: Scheme): string {
     return this.#paint(this.resolve(property, scheme), scheme)
+  }
+
+  /**
+   * Writes the stylesheet `css` as `scheme` applies it, the rules under its dark
+   * media query kept in the dark scheme alone and each value that is one
+   * `var()` written as the value it follows to.
+   */
+  flatten(css: string, scheme: Scheme): string {
+    const root = parse(css)
+
+    root.walkAtRules('media', (query) => {
+      if (query.params !== DARK) return
+      if (scheme === 'dark') query.replaceWith(query.nodes ?? [])
+      else query.remove()
+    })
+    root.walkDecls((declaration) => {
+      declaration.value = this.follow(declaration.value, scheme)
+    })
+
+    return root.toString()
   }
 
   /**

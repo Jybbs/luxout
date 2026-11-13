@@ -34,11 +34,11 @@ interface DialStretch {
   readonly why     : string
 }
 
-const DEPTHS     = [-18, -12, -6, SUNSET]  // The sun's altitudes in degrees that end each depth of twilight
-const GAP        = 22                      // The room between the rim and the nearest edge of a name
-const LETTER     = 11                      // The width of one letter of a name
-const NAME       = 24                      // The height of a name
-const shareScale = scaleLog([luxRange.min, luxRange.max], [0, 1]).clamp(true)
+export const DEPTHS = [-18, -12, -6, SUNSET]  // The sun's altitudes in degrees ending each depth of twilight
+const GAP           = 22                      // The room between the rim and the nearest edge of a name
+const LETTER        = 11                      // The width of one letter of a name
+const NAME          = 24                      // The height of a name
+const shareScale    = scaleLog([luxRange.min, luxRange.max], [0, 1]).clamp(true)
 
 function placeOf(from: number, name: string, to: number): DialStretch['place'] {
   const angle = (from + to) / 2 / SampleDay.MINUTES * 2 * Math.PI

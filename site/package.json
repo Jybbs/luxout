@@ -28,6 +28,7 @@
     "d3-scale": "4.0.3",
     "d3-shape": "3.2.1",
     "fast-png": "8.0.0",
+    "gifenc": "1.0.3",
     "happy-dom": "21.0.4",
     "harfbuzzjs": "1.6.3",
     "knip": "6.41.0",

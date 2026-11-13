@@ -4,9 +4,9 @@ import { quantile, range }             from 'd3-array'
 import { type VNode, createSSRApp, h } from 'vue'
 import { renderToString }              from 'vue/server-renderer'
 
-import manifest              from '../../../../package.json' with { type: 'json' }
-import { tenth }             from '../daylight/tenth.ts'
-import type { Faces, Voice } from './faces.ts'
+import manifest        from '../../../../package.json' with { type: 'json' }
+import { tenth }       from '../daylight/tenth.ts'
+import type * as faces from './faces.ts'
 
 /**
  * A rectangle on a card, its corner at `x`, `y`.
@@ -19,18 +19,6 @@ export interface Box {
 }
 
 export type Point = readonly [x: number, y: number]
-
-/**
- * A place on a card and how a word aligns there, by its ink's left edge, right
- * edge, or middle, so a side bearing never moves it off an edge it shares.
- */
-interface Saying {
-  fill    : string
-  size    : number
-  x       : number
-  y       : number
-  anchor? : 'end' | 'middle' | 'start'
-}
 
 /**
  * A gradient stop at the share `at` along it, opaque unless `alpha` is set.
@@ -62,12 +50,12 @@ export const WIDTH   = 1200
 export class Card {
   readonly #body   : VNode[] = []
   readonly #defs   : VNode[] = []
-  readonly #faces  : Faces
+  readonly #faces  : faces.Faces
   readonly #ground : string
   readonly #words  : Word[] = []
 
-  constructor(faces: Faces, ground: string) {
-    this.#faces  = faces
+  constructor(fonts: faces.Faces, ground: string) {
+    this.#faces  = fonts
     this.#ground = ground
   }
 
@@ -165,13 +153,10 @@ export class Card {
   /**
    * Sets `text` in `voice` as an outline.
    */
-  say(text: string, voice: Voice, { anchor = 'start', fill, size, x, y }: Saying): void {
-    const setting         = this.#faces.set(voice, size, text)
-    const { left, right } = setting.ink
-    const pens            = { end: x - right, middle: x - (left + right) / 2, start: x - left }
-    const part            = h('path', { d: setting.d, fill, transform: setting.transformAt(pens[anchor], y) })
+  say(text: string, voice: faces.Voice, saying: faces.Saying): void {
+    const part = this.#faces.say(text, voice, saying)
 
-    this.#words.push({ fill, part, text })
+    this.#words.push({ fill: saying.fill, part, text })
     this.add(part)
   }
 

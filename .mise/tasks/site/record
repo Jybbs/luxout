@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "record"
+#MISE depends     = ["site:bake"]
+#MISE description = "Record the README's Day Estimate preview and draw its start cards again from the site's drawings, rewriting the files under `site/public/readme/` that the site's suite pins"
+#MISE dir         = "site"
+
+vitest run --config .vitepress/vitest.config.ts --update=all .vitepress/tests/readme.test.ts
