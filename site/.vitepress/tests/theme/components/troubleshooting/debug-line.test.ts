@@ -23,6 +23,7 @@ test('prints the line as the Homebridge log does and reads it out once', ({ moun
   const host = mount(DebugLine)
 
   expect(host.querySelector('.debug-line-raw')!.textContent).toBe(line)
+  expect(host.querySelector('.debug-line-raw')!.getAttribute('aria-hidden')).toBe('true')
   expect(host.querySelector('.visually-hidden')!.textContent).toBe(`The line reads ${line}`)
 })
 

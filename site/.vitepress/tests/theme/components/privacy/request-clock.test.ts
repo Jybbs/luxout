@@ -10,10 +10,10 @@ import { test }              from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/privacy/privacy.data.ts', () => import('../../../common/data/privacy.ts'))
 
-const { clock }               = data
-const { radii }               = clock
+const { clock }                = data
 const { enter, hover, settle } = DURATIONS
-const FRAME                   = 16
+const FRAME                    = 16
+const { radii }                = clock
 
 function core(host: HTMLElement): string[] {
   return [...host.querySelector('.request-clock-core')!.children].map(({ textContent }) => textContent)
@@ -42,6 +42,13 @@ test('opens on how often the plugin asks, a tab apiece for each state', ({ mount
   expect(core(host)).toEqual([often.big, often.small])
   expect(face(host).dataset.on).toBe(often.key)
   expect(face(host).getAttribute('aria-label')).toBe(clock.label)
+})
+
+test('holds each retry’s mark and minute back for the failing hour', ({ mount }) => {
+  const host = mount(RequestClock)
+
+  expect(host.querySelectorAll('.request-clock-retry.later')).toHaveLength(clock.retries.length)
+  expect(host.querySelectorAll('.request-clock-hour.said.later')).toHaveLength(clock.said.length)
 })
 
 test('lands what a request carries once the dot has gone out and come back', async ({ mount }) => {

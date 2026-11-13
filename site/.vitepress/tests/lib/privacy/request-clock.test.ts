@@ -70,3 +70,14 @@ it('names the request’s minute, the rounded pair, and each retry in the tabs',
 it('lays the same hour out on each build of the sample day', () => {
   expect(requestClock(SampleDay.record())).toEqual(clock)
 })
+
+it('describes the face to a screen reader through the hour it draws', () => {
+  expect(clock.label).toBe('A clock face of one hour, with the request at 17 past and, for the 08:17 hour '
+    + 'that fails, the retries at 08:18, 08:20, 08:24, 08:32, and 08:48')
+})
+
+it('spans the request from the hour before the current step to its last step', () => {
+  expect(clock.states[1]!.text).toBe('Each request carries the place rounded to two decimals, 42.36, −71.06, '
+    + 'which resolves it to about a kilometer, and fetches sunlight at the ground every 15 minutes, from 1 '
+    + 'hour before the current step to the step 5 hours and 45 minutes after it.')
+})

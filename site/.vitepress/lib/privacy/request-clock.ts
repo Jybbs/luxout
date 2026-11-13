@@ -1,11 +1,11 @@
 import { range } from 'd3-array'
 
-import { REQUEST_TUNING }                       from '../../../../src/weather/client.ts'
-import { SCHEDULE_TUNING }                      from '../../../../src/weather/schedule.ts'
-import { DAY_MINUTES, MINUTE, STEP_MINUTES }    from '../daylight/clock.ts'
-import { formatClock, formatPlace, listFormat } from '../daylight/format.ts'
-import type { SampleDay }                       from '../daylight/sample-day.ts'
-import { tenth }                                from '../daylight/tenth.ts'
+import { REQUEST_TUNING }                                   from '../../../../src/weather/client.ts'
+import { SCHEDULE_TUNING }                                  from '../../../../src/weather/schedule.ts'
+import { DAY_MINUTES, MINUTE, STEP_MINUTES }                from '../daylight/clock.ts'
+import { formatClock, formatPlace, formatSpan, listFormat } from '../daylight/format.ts'
+import type { SampleDay }                                   from '../daylight/sample-day.ts'
+import { tenth }                                            from '../daylight/tenth.ts'
 
 export type ClockKey = (typeof KEYS)[number]
 
@@ -125,6 +125,7 @@ export function requestClock(day: SampleDay): RequestClock {
   const clockOf            = (hour: number, after = 0) => formatClock(hour * HOUR + SAMPLE + after)
   const retried            = listFormat.format(offsets.map((offset) => clockOf(fails, offset)))
   const pair               = formatPlace(day.window.place)
+  const spanOf             = (steps: number) => formatSpan(steps * STEP_MINUTES * MINUTE)
   const crowded            = (minute: number) => offsets.some((offset) => {
     const apart = Math.abs((SAMPLE + offset) % HOUR - minute)
 
@@ -167,9 +168,9 @@ export function requestClock(day: SampleDay): RequestClock {
         key     : 'sends',
         name    : 'What it carries',
         small   : 'the place each request carries',
-        text    : `Each request carries the place rounded to two decimals, ${pair}, about a kilometer, and `
-                + `fetches sunlight at the ground every ${STEP_MINUTES} minutes from the hour before to `
-                + `${WORDS[forecast * STEP_MINUTES / HOUR]} hours ahead.`
+        text    : `Each request carries the place rounded to two decimals, ${pair}, which resolves it to `
+                + `about a kilometer, and fetches sunlight at the ground every ${STEP_MINUTES} minutes, from `
+                + `${spanOf(past)} before the current step to the step ${spanOf(forecast - 1)} after it.`
       },
       {
         big     : clockOf(fails),

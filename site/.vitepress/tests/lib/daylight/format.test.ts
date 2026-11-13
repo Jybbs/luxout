@@ -47,3 +47,11 @@ it('writes no sign on an altitude that rounds to zero', () => {
 it('writes a true minus sign in place of a leading hyphen, in a number or a string', () => {
   expect([format.signed(-71.06), format.signed('42.36')]).toEqual(['−71.06', '42.36'])
 })
+
+it.each([
+  { expected: '1 minute', milliseconds: 60_000 },
+  { expected: '1 hour', milliseconds: 3_600_000 },
+  { expected: '5 hours and 45 minutes', milliseconds: 20_700_000 }
+])('writes a span of $milliseconds ms as $expected', ({ expected, milliseconds }) => {
+  expect(format.formatSpan(milliseconds)).toBe(expected)
+})

@@ -9,7 +9,7 @@ The debug line names the reading Apple Home shows and the three figures it comes
 | **Field** | **In the Sample Line** | **What It Holds** |
 |---|---|---|
 | Time | `10/4/2026, 10:00:00 AM` | The time on the bridge’s clock, in its locale’s format. |
-| Name | `Luxout` | The platform block’s name, or the platform name the plugin registers where it sets none. |
+| Name | `Luxout` | The platform block’s name where it sets one, and otherwise the platform name on the main bridge or the package name on a child bridge. |
 | Sensor | `Outside` | The light sensor the reading is for, as the plugin names it. |
 | Reading | `48680 lux` | The lux Apple Home shows, held between 0.0001 and 100000. |
 | Altitude | `31.72°` | The sun’s angle above the horizon, before refraction. |

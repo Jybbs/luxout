@@ -1,22 +1,22 @@
-import { BRIDGE_SPAN, type ClearSky } from '../../../../src/daylight/clear-sky.ts'
-import type { CLOUD_TUNING }          from '../../../../src/daylight/cloud-factor.ts'
-import type { REQUEST_TUNING }        from '../../../../src/weather/client.ts'
-import { MINUTE, STEP_MINUTES }       from '../../lib/daylight/clock.ts'
-import type { CloudSteps }            from '../../lib/daylight/cloud-steps.ts'
-import type { DayDial }               from '../../lib/daylight/day-dial.ts'
-import type { FactorDay }             from '../../lib/daylight/factor-day.ts'
-import * as format                    from '../../lib/daylight/format.ts'
-import type { Gap, GapSensor }        from '../../lib/daylight/gap.ts'
-import { luxRange }                   from '../../lib/daylight/homekit.ts'
-import type { DecadeScale }           from '../../lib/daylight/lux-scale.ts'
-import type { SampleDay }             from '../../lib/daylight/sample-day.ts'
-import * as curve                     from '../../lib/daylight/sun-curve.ts'
-import type { SunYear }               from '../../lib/daylight/sun-year.ts'
-import type { RequestClock }          from '../../lib/privacy/request-clock.ts'
-import type { RoundedPlace }          from '../../lib/privacy/rounded-place.ts'
-import type { SearchReplay }          from '../../lib/search/replay.ts'
-import type { SettingRow }            from '../../lib/settings/rows.ts'
-import type { DebugLine }             from '../../lib/troubleshooting/debug-line.ts'
+import { BRIDGE_SPAN, type ClearSky }      from '../../../../src/daylight/clear-sky.ts'
+import type { CLOUD_TUNING }               from '../../../../src/daylight/cloud-factor.ts'
+import type { REQUEST_TUNING }             from '../../../../src/weather/client.ts'
+import { MINUTE, STEP_MINUTES }            from '../../lib/daylight/clock.ts'
+import type { CloudSteps }                 from '../../lib/daylight/cloud-steps.ts'
+import type { DayDial }                    from '../../lib/daylight/day-dial.ts'
+import type { FactorDay }                  from '../../lib/daylight/factor-day.ts'
+import * as format                         from '../../lib/daylight/format.ts'
+import type { Gap, GapSensor }             from '../../lib/daylight/gap.ts'
+import { luxRange }                        from '../../lib/daylight/homekit.ts'
+import type { DecadeScale }                from '../../lib/daylight/lux-scale.ts'
+import type { SampleDay }                  from '../../lib/daylight/sample-day.ts'
+import * as curve                          from '../../lib/daylight/sun-curve.ts'
+import type { SunYear }                    from '../../lib/daylight/sun-year.ts'
+import { type RequestClock, retryOffsets } from '../../lib/privacy/request-clock.ts'
+import type { RoundedPlace }               from '../../lib/privacy/rounded-place.ts'
+import type { SearchReplay }               from '../../lib/search/replay.ts'
+import type { SettingRow }                 from '../../lib/settings/rows.ts'
+import type { DebugLine }                  from '../../lib/troubleshooting/debug-line.ts'
 
 type Cell = number | string
 
@@ -28,10 +28,6 @@ const LEVELS           = [
   { altitude: 10, name: 'A low sun' }
 ]
 
-function amount(value: number, unit: 'hour' | 'minute' | 'second'): string {
-  return new Intl.NumberFormat('en-US', { style: 'unit', unit, unitDisplay: 'long' }).format(value)
-}
-
 function markdownTable(headers: readonly string[], rows: readonly (readonly Cell[])[]): string {
   const line = (cells: readonly Cell[]) => `| ${cells.join(' | ')} |`
   const head = line(headers.map((header) => `**${header}**`))
@@ -39,18 +35,8 @@ function markdownTable(headers: readonly string[], rows: readonly (readonly Cell
   return [head, `|${'---|'.repeat(headers.length)}`, ...rows.map(line)].join('\n')
 }
 
-function spanWords(milliseconds: number): string {
-  const hours   = Math.floor(milliseconds / HOUR)
-  const minutes = (milliseconds - hours * HOUR) / MINUTE
-
-  return format.listFormat.format([
-    ...hours ? [amount(hours, 'hour')] : [],
-    ...minutes ? [amount(minutes, 'minute')] : []
-  ])
-}
-
 function stepSpan(steps: number): string {
-  return spanWords(steps * STEP_MINUTES * MINUTE)
+  return format.formatSpan(steps * STEP_MINUTES * MINUTE)
 }
 
 /**
@@ -85,11 +71,10 @@ export function bridgeWords(sky: ClearSky): string {
 /**
  * Writes the sentence that opens One Request an Hour.
  */
-export function clockLede({ minute, retries }: RequestClock): string {
+export function clockLede({ minute }: RequestClock): string {
   return 'The plugin asks [Open-Meteo](https://open-meteo.com/en/docs) for the forecast once an hour, at a '
        + `minute drawn at random when Homebridge starts, ${minute} past in the sample install, and retries a `
-       + `failed request at most ${retries.length} times within its hour, never at or past the next one, as `
-       + '[While Fetches Fail](../estimate/failed-fetches.md#retries) sets out.'
+       + 'failed request as [While Fetches Fail](../estimate/failed-fetches.md#retries) sets out.'
 }
 
 /**
@@ -161,19 +146,20 @@ export function factorTable({ minutes, rest, terms }: FactorDay): string {
 export function fetchReach({ forecast }: typeof REQUEST_TUNING): string {
   const reach = (forecast - 1) * STEP_MINUTES * MINUTE
 
-  return `A window's last step starts ${spanWords(reach)} after the step its fetch falls in, which carries `
-       + `the reading through ${Math.floor(reach / HOUR)} failed hourly fetches in a row.`
+  return `A window's last step starts ${format.formatSpan(reach)} after the step its fetch falls in, `
+       + `which carries the reading through ${Math.floor(reach / HOUR)} failed hourly fetches in a row.`
 }
 
 /**
  * Writes how often a failed fetch retries and how long a request runs.
  */
 export function fetchRetry(retry: number, timeout: number): string {
-  const count = Math.ceil(Math.log2(HOUR / retry + 1))
+  const count = retryOffsets(retry).length + 1
+  const limit = format.formatAmount(timeout / 1000, 'second')
 
-  return `The plugin retries ${spanWords(retry)} after a failed fetch and doubles the wait each time, `
-       + `scheduling no retry at or past the next hourly fetch, so a failing hour sends at most ${count} `
-       + `requests. A request with no answer after ${amount(timeout / 1000, 'second')} times out.`
+  return `The plugin retries ${format.formatSpan(retry)} after a failed fetch and doubles the wait each `
+       + 'time, scheduling no retry at or past the next hourly fetch, so a failing hour sends at most '
+       + `${count} requests. A request with no answer after ${limit} times out.`
 }
 
 /**
@@ -210,9 +196,9 @@ export function fillMarkers(source: string, blocks: Readonly<Record<string, stri
 export function floorWords({ ahead, behind, floor, nearest }: typeof CLOUD_TUNING): string {
   return 'The ratio means little while the sun sits low, where both figures run close to zero. A step whose '
        + `sun stands below ${floor}° once refracted takes the mean factor of the ${nearest} nearest daylight `
-       + `steps, those at ${floor}° or above, from ${spanWords(behind)} before it to ${spanWords(ahead)} `
-       + 'after it, and 1 where none lies in that span, as on a high-latitude winter day whose sun never '
-       + `reaches ${floor}°.`
+       + `steps, those at ${floor}° or above, from ${format.formatSpan(behind)} before it to `
+       + `${format.formatSpan(ahead)} after it, and 1 where none lies in that span, as on a high-latitude `
+       + `winter day whose sun never reaches ${floor}°.`
 }
 
 /**
@@ -296,7 +282,7 @@ export function nightWords({ decades }: DecadeScale): string {
  */
 export function placeLede({ count }: RoundedPlace): string {
   return 'Each request carries the place rounded to two decimal places, and one forecast cell already spans '
-       + `about ${count} of the areas that share a rounded pair.`
+       + `about ${count} of the areas, each holding the points that round to one pair.`
 }
 
 /**

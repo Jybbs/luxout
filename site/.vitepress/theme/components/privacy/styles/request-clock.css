@@ -93,12 +93,12 @@
 
 .request-clock-face[data-on='fails'] .request-clock-hour.quiet { opacity: 0; }
 
-.request-clock-face .request-clock-later {
+.request-clock-face .later {
   opacity    : 0;
   transition : opacity var(--timing-fade) var(--timing-ease);
 }
 
-.request-clock-face[data-on='fails'] .request-clock-later {
+.request-clock-face[data-on='fails'] .later {
   opacity    : 1;
   transition : opacity var(--timing-enter) var(--timing-ease) calc(var(--i) * var(--timing-lag));
 }

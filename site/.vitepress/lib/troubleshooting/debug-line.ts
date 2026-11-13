@@ -35,7 +35,8 @@ const NOTES = {
   altitude : 'The sun’s angle above the horizon, before refraction.',
   clear    : 'The lux of a cloudless sky at this altitude, per U.S. Naval Observatory Circular 171.',
   factor   : 'The forecast’s share of clear-sky sunlight at the ground.',
-  prefix   : 'The platform block’s name, or the platform name the plugin registers where it sets none.',
+  prefix   : 'The platform block’s name where it sets one, and otherwise the platform name on the main '
+           + 'bridge or the package name on a child bridge.',
   reading  : `The lux Apple Home shows, held between ${figure.format(luxRange.min)} and `
            + `${figure.format(luxRange.max)}.`,
   sensor   : 'The light sensor the reading is for, as the plugin names it.',

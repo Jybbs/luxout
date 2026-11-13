@@ -25,7 +25,7 @@ body:
     type : input
 
     attributes:
-      description : The version the Homebridge UI's Plugins tab shows, or `npm ls homebridge-luxout` prints
+      description : The version the Homebridge UI's Plugins tab shows, or `npm ls homebridge-luxout` prints from the Homebridge storage directory
       label       : homebridge-luxout version
 
     validations:
@@ -35,7 +35,7 @@ body:
     type : input
 
     attributes:
-      description : The version `homebridge --version` prints
+      description : The version Homebridge logs at start, in its `Homebridge v… is running on port` line
       label       : Homebridge version
 
     validations:
@@ -45,7 +45,7 @@ body:
     type : input
 
     attributes:
-      description : The version `node --version` prints on the machine running Homebridge
+      description : The version the Node running Homebridge prints for `--version`, which the Homebridge apt package keeps at `/opt/homebridge/bin/node`
       label       : Node version
 
     validations:

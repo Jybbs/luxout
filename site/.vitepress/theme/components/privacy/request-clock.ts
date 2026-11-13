@@ -53,7 +53,7 @@ class Journey {
       ...clock.ticks.map((d) => h('path', { class: 'request-clock-tick', d })),
       h('path', { class: 'request-clock-hand', d: clock.hand }),
       ...clock.retries.map((d, index) =>
-        h('path', { class: 'request-clock-retry request-clock-later', d, style: { '--i': index } })
+        h('path', { class: 'request-clock-retry later', d, style: { '--i': index } })
       ),
       h('circle', { class: 'request-clock-dot', cx: x, cy: y, r: 6 }),
       h('path', { class: 'request-clock-cross', d: clock.cross }),

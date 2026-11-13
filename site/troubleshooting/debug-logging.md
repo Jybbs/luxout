@@ -4,7 +4,7 @@ Each minute, the plugin logs a line at debug level naming the reading and the th
 
 ## For *Luxout* Alone
 
-Under Homebridge 2, run *Luxout* on a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) and set `debugModeEnabled` in the platform block's `_bridge`, one of the settings a [`BridgeConfiguration`](https://developers.homebridge.io/homebridge/interfaces/BridgeConfiguration.html) takes. The child bridge then logs at debug level while the main bridge does not.
+Under Homebridge 2, run *Luxout* on a [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) and turn on its Debug Mode setting, which writes `debugModeEnabled` in the platform block's `_bridge`, one of the settings a [`BridgeConfiguration`](https://developers.homebridge.io/homebridge/interfaces/BridgeConfiguration.html) takes. The child bridge then logs at debug level while the main bridge does not.
 
 ```json
 {

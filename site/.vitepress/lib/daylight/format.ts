@@ -2,6 +2,7 @@ import type { Place } from '../../../../src/config/place.ts'
 import * as clock     from './clock.ts'
 
 const FACTOR_DIGITS = 3     // The decimals a cloud factor other than exactly 1 takes
+const HOUR          = 60 * clock.MINUTE
 const SMALLEST      = 1e-4  // The lux below which a value takes scientific notation
 const SUPERSCRIPTS  = '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'
 const clockFormat   = clock.clockFormatIn('UTC')
@@ -18,6 +19,13 @@ export const listFormat = new Intl.ListFormat('en-US')
 const preciseFormat     = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 3 })
 const tinyFormat        = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1, notation: 'scientific' })
 const wholeFormat       = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+
+/**
+ * Writes `value` of `unit` in words, as in `5 minutes`.
+ */
+export function formatAmount(value: number, unit: 'hour' | 'minute' | 'second'): string {
+  return new Intl.NumberFormat('en-US', { style: 'unit', unit, unitDisplay: 'long' }).format(value)
+}
 
 /**
  * Writes `minute` past a midnight as a 24-hour clock time, in the minutes of a
@@ -67,6 +75,20 @@ export function formatLux(lux: number): string {
  */
 export function formatPlace({ latitude, longitude }: Place): string {
   return `${latitude.toFixed(2)}, ${signed(longitude.toFixed(2))}`
+}
+
+/**
+ * Writes a span of `milliseconds` in whole hours and minutes, as in `5 hours
+ * and 45 minutes`.
+ */
+export function formatSpan(milliseconds: number): string {
+  const hours   = Math.floor(milliseconds / HOUR)
+  const minutes = (milliseconds - hours * HOUR) / clock.MINUTE
+
+  return listFormat.format([
+    ...hours ? [formatAmount(hours, 'hour')] : [],
+    ...minutes ? [formatAmount(minutes, 'minute')] : []
+  ])
 }
 
 /**
