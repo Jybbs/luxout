@@ -3,10 +3,10 @@ import { fireEvent, getAllByRole, getByRole } from '@testing-library/dom'
 import { expect, vi }                         from 'vitest'
 import { nextTick }                           from 'vue'
 
-import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { ThreeFactors }      from '../../../../theme/components/daylight/three-factors.tsx'
-import { data }              from '../../../common/data/factor-day.ts'
-import { pressable, test }   from '../../../common/mount.ts'
+import { DURATIONS, PAUSES }               from '../../../../lib/motion/timing.ts'
+import { ThreeFactors }                    from '../../../../theme/components/daylight/three-factors.tsx'
+import { data }                            from '../../../common/data/factor-day.ts'
+import { keyOn, pointed, pressable, test } from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/daylight/factor-day.data.ts', () => import('../../../common/data/factor-day.ts'))
 
@@ -17,9 +17,10 @@ function figures(host: HTMLElement): (string | null)[] {
   return [...host.querySelectorAll('.three-factors-big')].map(({ textContent }) => textContent)
 }
 
-function press(host: HTMLElement, key: string): void {
-  fireEvent.keyDown(getByRole(host, 'slider'), { key })
+async function press(host: HTMLElement, key: string): Promise<void> {
+  await keyOn(getByRole(host, 'slider'), key)
   vi.advanceTimersByTime(DURATIONS.move + 32)
+  await nextTick()
 }
 
 function reducedMotion(): void {
@@ -62,10 +63,10 @@ test('opens each term’s plot through its tab', async ({ mount }) => {
   expect(tabs[2]!.getAttribute('aria-selected')).toBe('true')
 })
 
-test('writes every figure and source on a key, with no render', ({ mount }) => {
+test('writes every figure and source on a key, with no render', async ({ mount }) => {
   const host = mount(ThreeFactors)
 
-  press(host, 'Home')
+  await press(host, 'Home')
 
   expect(figures(host)).toEqual(terms.map((term) => term.figures[0]))
   expect([...host.querySelectorAll('.three-factors-source')].map(({ textContent }) => textContent))
@@ -73,76 +74,87 @@ test('writes every figure and source on a key, with no render', ({ mount }) => {
   expect(getByRole(host, 'slider').getAttribute('aria-valuenow')).toBe('0')
 })
 
-test('moves the sun off the curve below the altitudes drawn, and the thumb along the track', ({ mount }) => {
-  const host = mount(ThreeFactors)
-  const sun  = host.querySelector<HTMLElement>('.three-factors-sun')!
+test(
+  'moves the sun off the curve below the altitudes drawn, and the thumb along the track',
+  async ({ mount }) => {
+    const host = mount(ThreeFactors)
+    const sun  = host.querySelector<HTMLElement>('.three-factors-sun')!
 
-  press(host, 'Home')
+    await press(host, 'Home')
 
-  expect(sun.style.visibility).toBe('hidden')
-  expect(host.querySelector<HTMLElement>('.three-factors-thumb')!.style.left).toBe('0%')
+    expect(sun.style.visibility).toBe('hidden')
+    expect(host.querySelector<HTMLElement>('.three-factors-thumb')!.style.left).toBe('0%')
 
-  press(host, 'End')
+    await press(host, 'End')
 
-  expect(host.querySelector<HTMLElement>('.three-factors-thumb')!.style.left)
-    .toBe(`${LAST / minutes.length * 100}%`)
-})
+    expect(host.querySelector<HTMLElement>('.three-factors-thumb')!.style.left)
+      .toBe(`${LAST / minutes.length * 100}%`)
+  }
+)
 
-test('marks the widget outside the window where no window covers the minute', ({ mount }) => {
+test('marks the widget outside the window where no window covers the minute', async ({ mount }) => {
   const host = mount(ThreeFactors)
   const root = host.querySelector('.three-factors')!
 
   expect(outside[rest]).toBe(false)
   expect(root.hasAttribute('data-outside')).toBe(false)
 
-  press(host, 'Home')
+  await press(host, 'Home')
 
   expect(root.hasAttribute('data-outside')).toBe(true)
 })
 
-test('shows the clear sky’s word under the range where it sits below HomeKit’s floor', ({ mount }) => {
-  const host  = mount(ThreeFactors)
-  const under = host.querySelector<HTMLElement>('.three-factors-under')!
-  const clear = host.querySelector<HTMLElement>('.three-factors-clear')!
+test(
+  'shows the clear sky’s word under the range where it sits below HomeKit’s floor',
+  async ({ mount }) => {
+    const host  = mount(ThreeFactors)
+    const under = host.querySelector<HTMLElement>('.three-factors-under')!
+    const clear = host.querySelector<HTMLElement>('.three-factors-clear')!
 
-  press(host, 'ArrowRight')
+    await press(host, 'ArrowRight')
 
-  expect([under.style.visibility, clear.style.visibility]).toEqual(['hidden', 'visible'])
+    expect([under.style.visibility, clear.style.visibility]).toEqual(['hidden', 'visible'])
 
-  press(host, 'Home')
+    await press(host, 'Home')
 
-  expect([under.style.visibility, clear.style.visibility]).toEqual(['visible', 'hidden'])
-})
+    expect([under.style.visibility, clear.style.visibility]).toEqual(['visible', 'hidden'])
+  }
+)
 
 test('speaks the minute once a key’s motion settles', async ({ mount }) => {
   const host = mount(ThreeFactors)
 
-  press(host, 'Home')
+  await press(host, 'Home')
   vi.advanceTimersByTime(PAUSES.speech)
   await nextTick()
 
   expect(host.querySelector('[aria-live=polite]')!.textContent).toContain(minutes[0])
 })
 
-test('sets the minute under a pointer from the track’s rectangle, clamped to the day', ({ mount }) => {
-  const host   = mount(ThreeFactors)
-  const slider = getByRole(host, 'slider')
+test(
+  'sets the minute under a pointer from the track’s rectangle, clamped to the day',
+  async ({ mount }) => {
+    const host   = mount(ThreeFactors)
+    const slider = getByRole(host, 'slider')
 
-  pressable(slider, slider, { left: 100, width: 1000 })
+    pressable(slider, { left: 100, width: 1000 })
 
-  fireEvent.pointerDown(slider, { button: 0, clientX: 600, pointerId: 1 })
-  expect(slider.getAttribute('aria-valuenow')).toBe(String(Math.round(0.5 * LAST)))
+    fireEvent.pointerDown(slider.parentElement!, { button: 0, clientX: 600, pointerId: 1 })
+    await pointed()
+    expect(slider.getAttribute('aria-valuenow')).toBe(String(Math.round(0.5 * LAST)))
 
-  fireEvent.pointerMove(slider, { clientX: 5000, pointerId: 1 })
-  expect(slider.getAttribute('aria-valuenow')).toBe(String(LAST))
-})
+    fireEvent.pointerMove(document, { clientX: 5000, pointerId: 1 })
+    await pointed()
+    expect(slider.getAttribute('aria-valuenow')).toBe(String(LAST))
+  }
+)
 
 test('plays the morning from its start, then stops at its end', async ({ mount }) => {
   const host   = mount(ThreeFactors)
   const button = getByRole(host, 'button', { name: 'Play the morning' })
   const slider = getByRole(host, 'slider')
 
-  press(host, 'Home')
+  await press(host, 'Home')
   fireEvent.click(button)
   await nextTick()
 
@@ -177,7 +189,7 @@ test('speaks the minute the morning pauses on', async ({ mount }) => {
   const host   = mount(ThreeFactors)
   const button = getByRole(host, 'button', { name: 'Play the morning' })
 
-  press(host, 'Home')
+  await press(host, 'Home')
   fireEvent.click(button)
   await nextTick()
   vi.advanceTimersByTime(PAUSES.speech * 2)
@@ -203,8 +215,7 @@ test('pauses on a second press, and on a key', async ({ mount }) => {
 
   fireEvent.click(button)
   await nextTick()
-  press(host, 'Home')
-  await nextTick()
+  await press(host, 'Home')
 
   expect(button.getAttribute('aria-pressed')).toBe('false')
 })

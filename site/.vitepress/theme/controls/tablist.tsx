@@ -1,8 +1,9 @@
-import { useTimeoutFn }                   from '@vueuse/core'
-import { type PropType, defineComponent } from 'vue'
+import { useTimeoutFn }                             from '@vueuse/core'
+import * as tabs                                    from '@zag-js/tabs'
+import { mergeProps, normalizeProps, useMachine }   from '@zag-js/vue'
+import { type PropType, computed, defineComponent } from 'vue'
 
-import { PAUSES }   from '../../lib/motion/timing.ts'
-import { FocusRow } from './focus-row.ts'
+import { PAUSES } from '../../lib/motion/timing.ts'
 
 /**
  * The utilities the tablist and each of its tabs take.
@@ -21,9 +22,10 @@ interface Tab {
 }
 
 /**
- * Moves one selection across a row of tabs per the ARIA tabs pattern, selecting
- * on a click, on the arrow keys, Home, and End, and on a mouse resting on a tab
- * for the dwell pause.
+ * Moves one selection across a row of tabs on Zag's tabs machine, which selects
+ * a tab on a click and as the arrow keys, Home, and End move the focus onto it,
+ * the focus looping at each end. The tablist adds a mouse resting on a tab for
+ * the dwell pause selecting it.
  */
 export const Tablist = defineComponent({
   emits : ['select'],
@@ -38,31 +40,29 @@ export const Tablist = defineComponent({
   },
 
   setup(props, { emit, slots }) {
-    const select = (index: number) => emit('select', index)
-    const dwell  = useTimeoutFn(select, PAUSES.dwell, { immediate: false })
-    const focus  = new FocusRow('ArrowRight', 'ArrowLeft', select)
-    const rest   = (event: PointerEvent, index: number) => {
+    const select  = (index: number) => emit('select', index)
+    const dwell   = useTimeoutFn(select, PAUSES.dwell, { immediate: false })
+    const service = useMachine(tabs.machine, computed(() => ({
+      ...tabsContext(props.id, props.label),
+      onValueChange : ({ value }: tabs.ValueChangeDetails) => select(Number(value)),
+      value         : String(props.selected)
+    })))
+    const api  = computed(() => tabs.connect(service, normalizeProps))
+    const rest = (event: PointerEvent, index: number) => {
       if (event.pointerType === 'mouse') dwell.start(index)
     }
 
     return () => (
-      <div aria-label={props.label} class={props.classes.list} role="tablist">
+      <div {...api.value.getListProps()} class={props.classes.list}>
         {...props.tabs.map(({ label, style }, index) => (
           <button
-            aria-controls={panelId(props.id)}
+            {...mergeProps(api.value.getTriggerProps({ value: String(index) }), {
+              onPointerenter : (event: PointerEvent) => rest(event, index),
+              onPointerleave : dwell.stop
+            })}
             aria-label={label}
-            aria-selected={index === props.selected}
             class={props.classes.tab}
-            id={tabId(props.id, index)}
-            onClick={() => select(index)}
-            onKeydown={(event) => focus.move(event, index)}
-            onPointerenter={(event) => rest(event, index)}
-            onPointerleave={dwell.stop}
-            ref={(element) => focus.keep(element, index)}
-            role="tab"
             style={style}
-            tabindex={index === props.selected ? 0 : -1}
-            type="button"
           >
             {...(slots.default?.({ index }) ?? [])}
           </button>
@@ -75,14 +75,14 @@ export const Tablist = defineComponent({
 /**
  * Writes the id of the panel the tablist `id` controls.
  */
-export function panelId(id: string): string {
+function panelId(id: string): string {
   return `${id}-panel`
 }
 
 /**
  * Writes the id of the tab at `index` in the tablist `id`.
  */
-export function tabId(id: string, index: number): string {
+function tabId(id: string, index: number): string {
   return `${id}-tab-${index}`
 }
 
@@ -92,4 +92,19 @@ export function tabId(id: string, index: number): string {
  */
 export function tabPanel(id: string, selected: number): Readonly<Record<string, number | string>> {
   return { 'aria-labelledby': tabId(id, selected), id: panelId(id), role: 'tabpanel', tabindex: 0 }
+}
+
+/**
+ * Builds the context Zag's tabs machine takes for the tablist `id` named
+ * `label`, selecting a tab as the focus lands on it and looping the focus at
+ * each end.
+ */
+export function tabsContext(id: string, label: string) {
+  return {
+    activationMode : 'automatic' as const,
+    id             : id,
+    ids            : { content: () => panelId(id), trigger: (value: string) => tabId(id, Number(value)) },
+    loopFocus      : true,
+    translations   : { listLabel: label }
+  }
 }

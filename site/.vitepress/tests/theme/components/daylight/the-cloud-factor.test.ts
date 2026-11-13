@@ -3,10 +3,10 @@ import { fireEvent, getByRole } from '@testing-library/dom'
 import { expect, vi }           from 'vitest'
 import { nextTick }             from 'vue'
 
-import { PAUSES }          from '../../../../lib/motion/timing.ts'
-import { TheCloudFactor }  from '../../../../theme/components/daylight/the-cloud-factor.tsx'
-import { data }            from '../../../common/data/cloud-steps.ts'
-import { pressable, test } from '../../../common/mount.ts'
+import { PAUSES }                          from '../../../../lib/motion/timing.ts'
+import { TheCloudFactor }                  from '../../../../theme/components/daylight/the-cloud-factor.tsx'
+import { data }                            from '../../../common/data/cloud-steps.ts'
+import { keyOn, pointed, pressable, test } from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/daylight/cloud-steps.data.ts', () => import('../../../common/data/cloud-steps.ts'))
 
@@ -45,7 +45,7 @@ test('marks a borrowed step apart from a lit one, in the strip and in the bars',
   expect(host.querySelectorAll('.the-cloud-factor-marks rect.the-cloud-factor-borrowed'))
     .toHaveLength(steps.filter(({ borrowed }) => borrowed).length)
 
-  fireEvent.keyDown(slider, { key: 'Home' })
+  await keyOn(slider, 'Home')
   await nextTick()
 
   expect(host.querySelector('.the-cloud-factor-bars')!.classList.contains('borrowed')).toBe(true)
@@ -55,7 +55,7 @@ test('moves the picked step on a key and speaks its share', async ({ mount }) =>
   const host   = mount(TheCloudFactor)
   const slider = getByRole(host, 'slider')
 
-  fireEvent.keyDown(slider, { key: 'ArrowRight' })
+  await keyOn(slider, 'ArrowRight')
   await nextTick()
 
   const step = steps[opens + 1]!
@@ -72,23 +72,23 @@ test('moves the picked step on a key and speaks its share', async ({ mount }) =>
 test('moves the picked step an hour on Page Up', async ({ mount }) => {
   const slider = getByRole(mount(TheCloudFactor), 'slider')
 
-  fireEvent.keyDown(slider, { key: 'PageUp' })
+  await keyOn(slider, 'PageUp')
   await nextTick()
 
-  expect(slider.getAttribute('aria-valuenow')).toBe(String(opens + 4))
+  expect(slider.getAttribute('aria-valuenow')).toBe(String(4 * Math.round((opens + 4) / 4)))
 })
 
 test('picks the step under a pointer, clamped to the strip', async ({ mount }) => {
   const slider = getByRole(mount(TheCloudFactor), 'slider')
 
-  pressable(slider, slider, { left: 0, width: steps.length })
+  pressable(slider, { left: 0.5, width: steps.length - 1 })
 
-  fireEvent.pointerDown(slider, { button: 0, clientX: 3.5, pointerId: 1 })
-  await nextTick()
+  fireEvent.pointerDown(slider.parentElement!, { button: 0, clientX: 3.5, pointerId: 1 })
+  await pointed()
   expect(slider.getAttribute('aria-valuenow')).toBe('3')
 
-  fireEvent.pointerMove(slider, { clientX: 1000, pointerId: 1 })
-  await nextTick()
+  fireEvent.pointerMove(document, { clientX: 1000, pointerId: 1 })
+  await pointed()
   expect(slider.getAttribute('aria-valuenow')).toBe(String(steps.length - 1))
 })
 
@@ -107,6 +107,8 @@ test('opens the sum behind the picked step in the key’s place, then closes it'
     .toBe(steps[opens]!.sum)
 
   fireEvent.click(button)
+  await nextTick()
+  vi.advanceTimersToNextFrame()
   await nextTick()
 
   expect(button.getAttribute('aria-expanded')).toBe('false')

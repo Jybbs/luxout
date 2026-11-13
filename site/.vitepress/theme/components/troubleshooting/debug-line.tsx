@@ -147,7 +147,7 @@ function tile({ hue, name, value }: DebugField): VNode {
       class={[
         'grid h-full content-start gap-1.25 px-3 pt-2.25 pb-2.75 text-ink',
         'transition-shadow duration-(--timing-fade)',
-        'group-aria-selected:ring-3 group-aria-selected:ring-(--wash)/34',
+        'group-data-selected:ring-3 group-data-selected:ring-(--wash)/34',
         PANE,
         HUES[hue],
         fill(hue, 'tile')
@@ -158,7 +158,7 @@ function tile({ hue, name, value }: DebugField): VNode {
         class={[
           'font-mono text-[0.62rem]/[1.3] font-medium tracking-widest whitespace-nowrap uppercase',
           'text-muted transition-colors duration-(--timing-hover)',
-          'group-hover:text-ink group-aria-selected:text-ink'
+          'group-hover:text-ink group-data-selected:text-ink'
         ]}
       >
         {name}

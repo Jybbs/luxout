@@ -1,11 +1,11 @@
 import { type PropType, type ShallowRef, type VNode, defineComponent, onMounted, shallowRef } from 'vue'
 
-import { data }                    from '../../../lib/daylight/daylight.data.ts'
-import type * as gap               from '../../../lib/daylight/gap.ts'
-import { Glide }                   from '../../../lib/motion/glide.ts'
-import { Announcer }               from '../../controls/announcer.tsx'
-import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
-import { gapDrawing }              from './gap-drawing.tsx'
+import { data }                           from '../../../lib/daylight/daylight.data.ts'
+import type * as gap                      from '../../../lib/daylight/gap.ts'
+import { Glide }                          from '../../../lib/motion/glide.ts'
+import { Speech }                         from '../../../lib/motion/speech.ts'
+import { OVERLAY, PlotSlider, plotSpans } from '../../controls/plot-slider.tsx'
+import { gapDrawing }                     from './gap-drawing.tsx'
 
 /**
  * The utilities the widget draws each mark of its drawings and of its swatches
@@ -36,13 +36,16 @@ const MARKS = [
 ]
 /**
  * The utilities the plot takes, showing the one drawing whose layout fits the
- * width of the widget.
+ * width of the widget and spanning the slider over that drawing's plot.
  */
 const PLOT = [
   'relative [&>svg]:hidden [&>svg]:h-auto [&>svg]:w-full [&>svg]:overflow-visible',
   '[&>svg]:widget-num [&>svg:nth-of-type(1)]:block @sm:[&>svg:nth-of-type(1)]:hidden',
-  '@sm:[&>svg:nth-of-type(2)]:block @md:[&>svg:nth-of-type(2)]:hidden @md:[&>svg:nth-of-type(3)]:block'
+  '@sm:[&>svg:nth-of-type(2)]:block @md:[&>svg:nth-of-type(2)]:hidden @md:[&>svg:nth-of-type(3)]:block',
+  '@sm:[--plot-left:var(--plot-left-1)] @sm:[--plot-right:var(--plot-right-1)]',
+  '@md:[--plot-left:var(--plot-left-2)] @md:[--plot-right:var(--plot-right-2)]'
 ]
+const SPANS = plotSpans(data.gap.layouts)
 /**
  * The utilities the table beneath the drawing takes, by the cells and rows of
  * each of its parts.
@@ -71,30 +74,15 @@ const THUMB = { height: 22, width: 8 }
  */
 class GapPlot {
   readonly #cursor : SVGGElement
-  readonly #layout : gap.GapLayout
   readonly #mark   : SVGGElement
   readonly #moves  : readonly string[]
   readonly #rises  : readonly string[]
-  readonly #svg    : SVGSVGElement
 
   constructor(layout: gap.GapLayout, svg: SVGSVGElement) {
     this.#cursor = svg.querySelector('.the-gap-cursor')!
-    this.#layout = layout
     this.#mark   = svg.querySelector('.the-gap-mark')!
     this.#moves  = layout.x.map((x) => `translate(${x} 0)`)
     this.#rises  = layout.y.map((y) => `translate(0 ${y})`)
-    this.#svg    = svg
-  }
-
-  get shown(): boolean {
-    return this.#svg.getBoundingClientRect().width > 0
-  }
-
-  /**
-   * Finds the minute under a pointer at `clientX`, clamped to the span drawn.
-   */
-  minuteAt(clientX: number): number {
-    return Math.round(shareAcross(this.#svg, clientX, this.#layout) * (this.#moves.length - 1))
   }
 
   place(minute: number): void {
@@ -108,15 +96,13 @@ class GapPlot {
  * and passing the table a new minute once a motion ends.
  */
 class Pointer {
-  readonly announcer = new Announcer()
-  readonly minute    = shallowRef<gap.GapMinute>()
-  readonly root      = shallowRef<HTMLElement>()
-  readonly slider    : PlotSlider
-  #at                = data.gap.rest
-  readonly #glide    : Glide
-  #handle            : HTMLElement | undefined
-  readonly #nows     = data.gap.minutes.map((_, index) => String(index))
-  #plots             : readonly GapPlot[] = []
+  readonly minute = shallowRef<gap.GapMinute>()
+  readonly root   = shallowRef<HTMLElement>()
+  readonly slider : PlotSlider
+  readonly speech = new Speech(this.root)
+  #at             = data.gap.rest
+  readonly #glide : Glide
+  #plots          : readonly GapPlot[] = []
 
   constructor() {
     this.#glide = new Glide(
@@ -126,12 +112,13 @@ class Pointer {
       (value) => this.#write(Math.round(value))
     )
     this.slider = new PlotSlider({
-      count    : data.gap.minutes.length,
-      page     : 15,
-      position : (clientX) => this.#plots.find((plot) => plot.shown)!.minuteAt(clientX),
-      rest     : () => this.#rest(),
-      value    : () => this.#glide.goal,
-      set      : (value, eased) => {
+      count : data.gap.minutes.length,
+      label : 'Minute of the late morning',
+      page  : 15,
+      rest  : () => this.#rest(),
+      text  : (value) => data.gap.minutes[value]!.reading,
+      value : () => this.#glide.goal,
+      set   : (value, eased) => {
         this.root.value!.toggleAttribute('data-pointing', true)
         this.#glide.move(value, eased)
       }
@@ -141,26 +128,25 @@ class Pointer {
   }
 
   #mount(): void {
-    const root = this.root.value!
-
-    this.#plots = Array.from(root.querySelectorAll<SVGSVGElement>('.the-gap-drawing'), (svg, index) =>
-      new GapPlot(data.gap.layouts[index]!, svg)
+    this.#plots = Array.from(
+      this.root.value!.querySelectorAll<SVGSVGElement>('.the-gap-drawing'),
+      (svg, index) => new GapPlot(data.gap.layouts[index]!, svg)
     )
-    this.#handle = root.querySelector('.widget-slider')!
   }
 
   #rest(): void {
     this.root.value?.toggleAttribute('data-pointing', false)
     this.#glide.snap(data.gap.rest)
+    this.slider.hold(data.gap.rest)
     this.minute.value = undefined
-    this.announcer.say('')
+    this.speech.say('')
   }
 
   #settle(): void {
     const minute = data.gap.minutes[this.#at]!
 
     this.minute.value = minute
-    this.announcer.say(minute.spoken)
+    this.speech.say(minute.spoken)
   }
 
   #write(minute: number): void {
@@ -169,9 +155,6 @@ class Pointer {
     this.#at = minute
 
     for (const plot of this.#plots) plot.place(minute)
-
-    this.#handle!.setAttribute('aria-valuenow', this.#nows[minute]!)
-    this.#handle!.setAttribute('aria-valuetext', data.gap.minutes[minute]!.reading)
   }
 }
 
@@ -232,16 +215,9 @@ export const TheGap = defineComponent({
 
     return () => (
       <div class={['widget the-gap grid gap-4', ...MARKS]} ref={pointer.root}>
-        <div class={PLOT}>
+        <div class={PLOT} style={SPANS}>
           {data.gap.layouts.map((layout) => gapDrawing(layout, data.gap, cursor(layout)))}
-          <div
-            class="widget-slider"
-            {...pointer.slider.attributes(
-              'Minute of the late morning',
-              data.gap.rest,
-              data.gap.minutes[data.gap.rest]!.reading
-            )}
-          />
+          {pointer.slider.render(OVERLAY)}
         </div>
         <div class="grid gap-3 border-t border-rule pt-3.5">
           <p class="widget-note">
@@ -251,7 +227,6 @@ export const TheGap = defineComponent({
           </p>
           <GapTable minute={pointer.minute} />
         </div>
-        {pointer.announcer.region}
       </div>
     )
   }

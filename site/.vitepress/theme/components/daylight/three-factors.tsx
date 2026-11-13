@@ -1,15 +1,17 @@
-import { usePreferredReducedMotion, whenever }                       from '@vueuse/core'
-import { type VNode, defineComponent, onMounted, shallowRef, useId } from 'vue'
+import { usePreferredReducedMotion, whenever } from '@vueuse/core'
+import * as toggle                             from '@zag-js/toggle'
+import { normalizeProps, useMachine }          from '@zag-js/vue'
+import { type ComputedRef, type VNode, computed, defineComponent, onMounted, shallowRef, useId } from 'vue'
 
-import { HOUR_MARKS, hourWord }    from '../../../lib/daylight/clock.ts'
-import { data }                    from '../../../lib/daylight/factor-day.data.ts'
-import { FrameClock }              from '../../../lib/motion/frame-clock.ts'
-import { Glide }                   from '../../../lib/motion/glide.ts'
-import { Announcer }               from '../../controls/announcer.tsx'
-import { layers }                  from '../../controls/layers.tsx'
-import { plotMarks }               from '../../controls/plot-marks.tsx'
-import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
-import { Tablist, tabPanel }       from '../../controls/tablist.tsx'
+import { HOUR_MARKS, hourWord } from '../../../lib/daylight/clock.ts'
+import { data }                 from '../../../lib/daylight/factor-day.data.ts'
+import { FrameClock }           from '../../../lib/motion/frame-clock.ts'
+import { Glide }                from '../../../lib/motion/glide.ts'
+import { Speech }               from '../../../lib/motion/speech.ts'
+import { layers }               from '../../controls/layers.tsx'
+import { plotMarks }            from '../../controls/plot-marks.tsx'
+import { PlotSlider }           from '../../controls/plot-slider.tsx'
+import { Tablist, tabPanel }    from '../../controls/tablist.tsx'
 
 type Write = (minute: number) => void
 
@@ -35,7 +37,7 @@ const CLASSES = {
     'grid min-w-0 content-start gap-1 rounded-lg px-3 pt-2.5 pb-3 text-left text-ink',
     'shadow-[inset_0_-1.5px_0_transparent] transition-[background-color,box-shadow]',
     'duration-(--timing-hover)',
-    'hover:bg-raised aria-selected:bg-raised aria-selected:shadow-[inset_0_-1.5px_0_var(--color-ink)]',
+    'hover:bg-raised data-selected:bg-raised data-selected:shadow-[inset_0_-1.5px_0_var(--color-ink)]',
     '@md:nth-of-type-1:col-start-1 @md:nth-of-type-2:col-start-3 @md:nth-of-type-3:col-start-5',
     '@max-md:col-start-2 @max-md:grid-cols-[minmax(0,1fr)_auto] @max-md:items-baseline @max-md:gap-x-3',
     '@max-md:gap-y-0.5 @max-md:px-2.5 @max-md:pt-2 @max-md:pb-2.25'
@@ -59,7 +61,6 @@ const SHARE    = 'fill-none stroke-forecast stroke-[1.5] [stroke-linejoin:round]
 const SPOT     = 'absolute -translate-x-1/2 -translate-y-1/2 rounded-full'
 const WORD     = 'absolute font-mono text-[0.64rem]/none font-medium whitespace-nowrap tabular-nums '
                + 'text-muted'
-const LAST     = minutes.length - 1
 const SWATCHES = [
   () => [
     <rect class="fill-sky-fill" height={8} width={22} y={4} />,
@@ -79,6 +80,15 @@ const spoken   = minutes.map((clock, minute) => {
   return `${clock}, ${clear} lux times ${share} gives ${reading} lux`
 })
 const tabs = terms.map(({ name }) => ({ label: name }))
+/**
+ * The utilities the minute track and its thumb take, beside where the thumb
+ * starts.
+ */
+const TRACK = {
+  at      : percents[rest]!,
+  control : 'widget-track three-factors-track',
+  thumb   : 'widget-thumb three-factors-thumb'
+}
 
 /**
  * Holds the minute the three terms show, writing each figure and each mark
@@ -86,29 +96,38 @@ const tabs = terms.map(({ name }) => ({ label: name }))
  * nothing as it moves.
  */
 class FactorClock {
-  readonly announcer = new Announcer()
-  readonly id        = useId()
-  readonly motion    = usePreferredReducedMotion()
-  readonly playing   = shallowRef(false)
-  readonly root      = shallowRef<HTMLElement>()
-  readonly selected  = shallowRef(0)
-  readonly slider    : PlotSlider
-  #at                = rest
-  readonly #glide    : Glide
-  readonly #player   : FrameClock
-  #started           = 0
-  #track             : HTMLElement | undefined
-  #writes            : readonly Write[] = []
+  readonly id       = useId()
+  readonly motion   = usePreferredReducedMotion()
+  readonly play     : ComputedRef<toggle.Api>
+  readonly playing  = shallowRef(false)
+  readonly root     = shallowRef<HTMLElement>()
+  readonly selected = shallowRef(0)
+  readonly slider   : PlotSlider
+  readonly speech   = new Speech(this.root)
+  #at               = rest
+  readonly #glide   : Glide
+  readonly #player  : FrameClock
+  #started          = 0
+  #writes           : readonly Write[] = []
 
   constructor() {
+    const play = useMachine(toggle.machine, computed(() => ({
+      disabled        : this.motion.value === 'reduce',
+      id              : this.id,
+      onPressedChange : () => this.toggle(),
+      pressed         : this.playing.value
+    })))
+
     this.#glide  = new Glide(rest, this.root, () => this.#settle(), (value) => this.#write(Math.round(value)))
     this.#player = new FrameClock(this.root, (now) => this.#advance(now))
+    this.play    = computed(() => toggle.connect(play, normalizeProps))
     this.slider  = new PlotSlider({
-      count    : minutes.length,
-      page     : 60,
-      position : (clientX) => this.#minuteAt(clientX),
-      value    : () => this.#glide.goal,
-      set      : (value, eased) => {
+      count : minutes.length,
+      label : 'Minute of the sample day',
+      page  : 60,
+      text  : (value) => spoken[value]!,
+      value : () => this.#glide.goal,
+      set   : (value, eased) => {
         this.pause()
         this.#glide.move(value, eased)
       }
@@ -154,18 +173,14 @@ class FactorClock {
     return false
   }
 
-  #minuteAt(clientX: number): number {
-    return Math.round(shareAcross(this.#track!, clientX) * LAST)
-  }
-
   #mount(): void {
     const root  = this.root.value!
     const named = <T extends Element>(name: string) => root.querySelector<T>(`.three-factors-${name}`)!
 
     const figures = [...root.querySelectorAll<HTMLElement>('.three-factors-big')]
     const sources = [...root.querySelectorAll<HTMLElement>('.three-factors-source')]
+    const thumb   = named<HTMLElement>('thumb')
 
-    this.#track  = named('track')
     this.#writes = [
       ...terms.flatMap((term, index) => [
         written(figures[index]!, term.figures),
@@ -174,15 +189,18 @@ class FactorClock {
       ...curveMarks(named('altitude'), named('sun')),
       ...factorMarks(named('step')),
       ...rangeMarks(named('clear'), named('link'), named('reading'), named('under')),
-      styled(named('thumb'), 'left', percents),
-      attribute(this.#track, 'aria-valuenow', minutes.map((_, minute) => String(minute))),
-      attribute(this.#track, 'aria-valuetext', spoken),
+      styled(thumb, 'left', percents),
+      attribute(thumb, 'aria-valuenow', minutes.map((_, minute) => String(minute))),
+      attribute(thumb, 'aria-valuetext', spoken),
       (minute) => root.toggleAttribute('data-outside', outside[minute])
     ]
   }
 
   #settle(): void {
-    if (!this.playing.value) this.announcer.say(spoken[this.#at]!)
+    if (this.playing.value) return
+
+    this.slider.hold(this.#at)
+    this.speech.say(spoken[this.#at]!)
   }
 
   #write(minute: number): void {
@@ -244,33 +262,26 @@ export const ThreeFactors = defineComponent({
           ]}
         >
           <button
-            aria-pressed={clock.playing.value}
+            {...clock.play.value.getRootProps()}
             class={[
               'widget-pill inline-flex cursor-pointer items-center justify-self-start',
               'transition-[background-color] duration-(--timing-hover)',
               'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-ground'
             ]}
-            disabled={clock.motion.value === 'reduce'}
-            onClick={() => clock.toggle()}
-            type="button"
           >
             {clock.playing.value ? 'Pause' : 'Play the morning'}
           </button>
           <div class="grid min-w-0 gap-0.5">
-            <div
-              class="widget-track three-factors-track"
-              {...clock.slider.attributes('Minute of the sample day', rest, spoken[rest])}
-            >
-              <span class="widget-rail" />
+            {clock.slider.render(TRACK, () => [
+              <span class="widget-rail" />,
               <span
                 class="three-factors-window absolute top-[13px] h-0.5 rounded-[1px] bg-forecast"
                 style={{ left: `${track.from}%`, width: `${track.to - track.from}%` }}
-              />
-              {...HOUR_MARKS.slice(1, -1).map((hour) => (
+              />,
+              ...HOUR_MARKS.slice(1, -1).map((hour) => (
                 <span class="widget-tick" style={{ left: hourLeft(hour) }} />
-              ))}
-              <span class="widget-thumb three-factors-thumb" style={{ left: percents[rest] }} />
-            </div>
+              ))
+            ])}
             <div aria-hidden class="relative h-3.5">
               {...HOUR_MARKS.map((hour) => (
                 <span
@@ -283,7 +294,6 @@ export const ThreeFactors = defineComponent({
             </div>
           </div>
         </div>
-        {clock.announcer.region}
       </div>
     )
   }

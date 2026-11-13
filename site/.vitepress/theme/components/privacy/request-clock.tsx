@@ -3,10 +3,10 @@ import { type VNode, defineComponent, shallowRef, useId } from 'vue'
 
 import { tenth }                                from '../../../lib/daylight/tenth.ts'
 import { FrameClock }                           from '../../../lib/motion/frame-clock.ts'
+import { Speech }                               from '../../../lib/motion/speech.ts'
 import { DURATIONS, motionReduced, smoothstep } from '../../../lib/motion/timing.ts'
 import { data }                                 from '../../../lib/privacy/privacy.data.ts'
 import type { ClockKey, ClockWord }             from '../../../lib/privacy/request-clock.ts'
-import { Announcer }                            from '../../controls/announcer.tsx'
 import { layers }                               from '../../controls/layers.tsx'
 import { Tablist, tabPanel }                    from '../../controls/tablist.tsx'
 
@@ -22,7 +22,7 @@ const CLASSES = {
   tab: [
     '-mb-px cursor-pointer border-b-2 border-transparent pt-1.5 pb-2 font-base text-[0.9rem]/[1.3]',
     'text-muted transition-[color,border-color] [transition-duration:var(--timing-hover),var(--timing-move)]',
-    'aria-selected:border-ink aria-selected:text-ink @max-lg:text-[0.82rem]'
+    'data-selected:border-ink data-selected:text-ink @max-lg:text-[0.82rem]'
   ]
 }
 /**
@@ -50,19 +50,19 @@ const tabs   = clock.states.map(({ name }) => ({ label: name }))
  * hour that fails, the dot stopping at the rim and nothing coming back.
  */
 class Journey {
-  readonly announcer = new Announcer()
-  readonly core      = shallowRef<HTMLElement>()
-  readonly id        = useId()
-  readonly on        = shallowRef<ClockKey | 'away'>(clock.states[0]!.key)
-  readonly root      = shallowRef<HTMLElement>()
-  readonly selected  = shallowRef(0)
-  readonly shown     = shallowRef(0)
-  readonly #back     = shallowRef<SVGCircleElement>()
-  readonly #frames   : FrameClock
-  readonly #out      = shallowRef<SVGCircleElement>()
-  #goal              : number | undefined
-  #landed            = false
-  #start             : number | undefined
+  readonly core     = shallowRef<HTMLElement>()
+  readonly id       = useId()
+  readonly on       = shallowRef<ClockKey | 'away'>(clock.states[0]!.key)
+  readonly root     = shallowRef<HTMLElement>()
+  readonly selected = shallowRef(0)
+  readonly shown    = shallowRef(0)
+  readonly speech   = new Speech(this.root)
+  readonly #back    = shallowRef<SVGCircleElement>()
+  readonly #frames  : FrameClock
+  readonly #out     = shallowRef<SVGCircleElement>()
+  #goal             : number | undefined
+  #landed           = false
+  #start            : number | undefined
 
   constructor() {
     this.#frames = new FrameClock(this.root, (now) => this.#step(now))
@@ -113,7 +113,7 @@ class Journey {
 
   select(index: number): void {
     this.selected.value = index
-    this.announcer.say(clock.states[index]!.text)
+    this.speech.say(clock.states[index]!.text)
     this.send()
   }
 
@@ -287,7 +287,6 @@ export const RequestClock = defineComponent({
           >
             {layers(clock.states.map(({ text }) => <p>{text}</p>), journey.selected.value)}
           </div>
-          {journey.announcer.region}
         </div>
       )
     }

@@ -19,8 +19,8 @@ const CLASSES = {
     'group flex h-14.5 flex-col items-start justify-between rounded-md px-1.5 pt-1.5 pb-1.75 text-left',
     'font-mono text-[0.625rem]/none font-medium tabular-nums',
     'transition-[translate,box-shadow] [transition-duration:var(--timing-move),var(--timing-hover)]',
-    'focus-visible:outline-offset-2 aria-selected:-translate-y-0.75',
-    'aria-selected:shadow-[inset_0_0_0_2px_var(--color-ink),inset_0_0_0_3.5px_var(--color-ground)]',
+    'focus-visible:outline-offset-2 data-selected:-translate-y-0.75',
+    'data-selected:shadow-[inset_0_0_0_2px_var(--color-ink),inset_0_0_0_3.5px_var(--color-ground)]',
     '@max-md:h-12.5 @max-md:items-center @max-md:px-0 @max-md:pt-1.25 @max-md:pb-1.5'
   ]
 }

@@ -3,12 +3,13 @@ import { fireEvent, getByRole } from '@testing-library/dom'
 import { expect, vi }           from 'vitest'
 import { nextTick }             from 'vue'
 
-import { formatClock }       from '../../../../lib/daylight/format.ts'
-import * as curve            from '../../../../lib/daylight/sun-curve.ts'
-import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { SunPath }           from '../../../../theme/components/daylight/sun-path.tsx'
-import { data }              from '../../../common/data/sun-year.ts'
-import { pressable, test }   from '../../../common/mount.ts'
+import { DAY_MINUTES }                     from '../../../../lib/daylight/clock.ts'
+import { formatClock }                     from '../../../../lib/daylight/format.ts'
+import * as curve                          from '../../../../lib/daylight/sun-curve.ts'
+import { DURATIONS, PAUSES }               from '../../../../lib/motion/timing.ts'
+import { SunPath }                         from '../../../../theme/components/daylight/sun-path.tsx'
+import { data }                            from '../../../common/data/sun-year.ts'
+import { keyOn, pointed, pressable, test } from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/daylight/sun-year.data.ts', () => import('../../../common/data/sun-year.ts'))
 
@@ -27,8 +28,25 @@ async function openYear(host: HTMLElement): Promise<void> {
   await nextTick()
 }
 
-function press(slider: HTMLElement, key: string): void {
-  fireEvent.keyDown(slider, { key })
+async function press(slider: HTMLElement, key: string): Promise<void> {
+  await keyOn(slider, key)
+  settle()
+}
+
+/**
+ * Lays the clock's control over the plot of the second layout, whose units the
+ * pointer reads, and presses it at `minute`.
+ */
+async function pressClock(slider: HTMLElement, minute: number): Promise<void> {
+  const { left, right } = curve.SUN_LAYOUTS[1]
+
+  pressable(slider, { left, width: right - left })
+  fireEvent.pointerDown(slider.parentElement!, {
+    button    : 0,
+    clientX   : left + (right - left) * minute / (DAY_MINUTES - 1),
+    pointerId : 1
+  })
+  await pointed()
   settle()
 }
 
@@ -60,11 +78,11 @@ test('opens on the resting minute’s clock and phrase', ({ mount }) => {
     .toBe(curve.sunPhrase(days[sample]!, minutes[rest]!, rest))
 })
 
-test('moves every sun and its grip on a key, and writes the phrase once it settles', ({ mount }) => {
+test('moves every sun and its grip on a key, and writes the phrase once it settles', async ({ mount }) => {
   const host     = mount(SunPath)
   const midnight = curve.SUN_LAYOUTS.map((layout) => layout.moveAcross(0))
 
-  press(clockOf(host), 'Home')
+  await press(clockOf(host), 'Home')
 
   expect(transforms(host, '.sun-path-cursor')).toEqual(midnight)
   expect(transforms(host, '.sun-path-grip')).toEqual(midnight)
@@ -73,46 +91,35 @@ test('moves every sun and its grip on a key, and writes the phrase once it settl
   expect(host.querySelector('.sun-path-phrase')!.textContent).toContain('below the horizon')
 })
 
-test('marks the widget while the sun stands under the horizon', ({ mount }) => {
+test('marks the widget while the sun stands under the horizon', async ({ mount }) => {
   const host = mount(SunPath)
   const root = host.querySelector('.sun-path')!
 
   expect(root.hasAttribute('data-down')).toBe(false)
 
-  press(clockOf(host), 'Home')
+  await press(clockOf(host), 'Home')
 
   expect(root.hasAttribute('data-down')).toBe(true)
 })
 
-test('marks the widget from the first minute the sun stands under the horizon', ({ mount }) => {
-  const host                   = mount(SunPath)
-  const slider                 = clockOf(host)
-  const root                   = host.querySelector('.sun-path')!
-  const [, svg]                = host.querySelectorAll('.sun-path-drawing')
-  const { left, right, width } = curve.SUN_LAYOUTS[1]
-  const up                     = minutes.findIndex((altitude) => altitude >= 0)
-  const pressAt                = (minute: number) => {
-    fireEvent.pointerDown(slider, {
-      button    : 0,
-      clientX   : left + (right - left) * minute / (minutes.length - 2),
-      pointerId : 1
-    })
-    settle()
-  }
+test('marks the widget from the first minute the sun stands under the horizon', async ({ mount }) => {
+  const host   = mount(SunPath)
+  const slider = clockOf(host)
+  const root   = host.querySelector('.sun-path')!
+  const up     = minutes.findIndex((altitude) => altitude >= 0)
 
-  pressable(slider, svg!, { left: 0, width })
-
-  pressAt(up)
+  await pressClock(slider, up)
   expect(root.hasAttribute('data-down')).toBe(false)
 
-  pressAt(up - 1)
+  fireEvent.pointerUp(document)
+  await pressClock(slider, up - 1)
   expect(root.hasAttribute('data-down')).toBe(true)
 })
 
-test('steps the clock an hour on Page Up', ({ mount }) => {
+test('steps the clock an hour on Page Up', async ({ mount }) => {
   const slider = clockOf(mount(SunPath))
 
-  press(slider, 'PageUp')
+  await press(slider, 'PageUp')
 
   expect(slider.getAttribute('aria-valuenow')).toBe(String(rest + 60))
 })
@@ -120,24 +127,19 @@ test('steps the clock an hour on Page Up', ({ mount }) => {
 test('speaks the minute once a key’s motion settles', async ({ mount }) => {
   const host = mount(SunPath)
 
-  press(clockOf(host), 'Home')
+  await press(clockOf(host), 'Home')
   vi.advanceTimersByTime(PAUSES.speech)
   await nextTick()
 
   expect(host.querySelector('[aria-live=polite]')!.textContent).toMatch(/^00:00, the sun/)
 })
 
-test('finds the minute under a pointer from the drawing shown', ({ mount }) => {
-  const host    = mount(SunPath)
-  const slider  = clockOf(host)
-  const [, svg] = host.querySelectorAll('.sun-path-drawing')
+test('finds the minute under a pointer across the plot', async ({ mount }) => {
+  const slider = clockOf(mount(SunPath))
 
-  pressable(slider, svg!, { left: 0, width: curve.SUN_LAYOUTS[1].width })
+  await pressClock(slider, DAY_MINUTES - 1)
 
-  fireEvent.pointerDown(slider, { button: 0, clientX: curve.SUN_LAYOUTS[1].right, pointerId: 1 })
-  settle()
-
-  expect(slider.getAttribute('aria-valuenow')).toBe('1439')
+  expect(slider.getAttribute('aria-valuenow')).toBe(String(DAY_MINUTES - 1))
 })
 
 test('opens the year on the sample day, with the year’s slider in the note’s place', async ({ mount }) => {
@@ -186,7 +188,7 @@ test('moves to another day on a key, redrawing its curve and its marks', async (
   const host = mount(SunPath)
 
   await openYear(host)
-  press(dayOf(host), 'Home')
+  await press(dayOf(host), 'Home')
 
   const january = days[0]!
 
@@ -198,21 +200,19 @@ test('moves to another day on a key, redrawing its curve and its marks', async (
   expect(host.querySelector<HTMLElement>('.sun-path-thumb')!.style.left).toBe('0%')
 })
 
-test('steps Page Up and Page Down to the next and the previous curve it keeps', async ({ mount }) => {
-  const host   = mount(SunPath)
-  const before = marks.findLast(({ day }) => day < sample)!.day
-  const after  = marks.find(({ day }) => day > sample)!.day
+test('steps Page Up and Page Down four weeks, onto the year’s four-week marks', async ({ mount }) => {
+  const host = mount(SunPath)
+  const snap = (day: number) => 28 * Math.round(day / 28)
+  const up   = snap(sample + 28)
 
   await openYear(host)
 
-  press(dayOf(host), 'PageUp')
-  expect(dayOf(host).getAttribute('aria-valuenow')).toBe(String(after))
+  await press(dayOf(host), 'PageUp')
+  expect(dayOf(host).getAttribute('aria-valuenow')).toBe(String(up))
 
-  press(dayOf(host), 'PageDown')
-  expect(dayOf(host).getAttribute('aria-valuenow')).toBe(String(sample))
-
-  press(dayOf(host), 'PageDown')
-  expect(dayOf(host).getAttribute('aria-valuenow')).toBe(String(before))
+  await press(dayOf(host), 'PageDown')
+  await press(dayOf(host), 'PageDown')
+  expect(dayOf(host).getAttribute('aria-valuenow')).toBe(String(up - 56))
 })
 
 test('stops Page Up and Page Down at the year’s two ends', async ({ mount }) => {
@@ -220,12 +220,12 @@ test('stops Page Up and Page Down at the year’s two ends', async ({ mount }) =
 
   await openYear(host)
 
-  press(dayOf(host), 'End')
-  press(dayOf(host), 'PageUp')
+  await press(dayOf(host), 'End')
+  await press(dayOf(host), 'PageUp')
   expect(dayOf(host).getAttribute('aria-valuenow')).toBe(String(days.length - 1))
 
-  press(dayOf(host), 'Home')
-  press(dayOf(host), 'PageDown')
+  await press(dayOf(host), 'Home')
+  await press(dayOf(host), 'PageDown')
   expect(dayOf(host).getAttribute('aria-valuenow')).toBe('0')
 })
 
@@ -235,20 +235,22 @@ test('holds the day where it stands for a press on the thumb, then drags from th
   const thumb = host.querySelector<HTMLElement>('.sun-path-thumb')!
 
   await openYear(host)
-  pressable(track, track, { left: 0, width: days.length - 1 })
+  pressable(track, { left: 0, width: days.length - 1 })
   vi.spyOn(thumb, 'getBoundingClientRect').mockReturnValue({ left: sample - 8, width: 16 } as DOMRect)
 
   fireEvent.pointerDown(thumb, { button: 0, clientX: sample + 3, pointerId: 1 })
+  await pointed()
   expect(track.getAttribute('aria-valuenow')).toBe(String(sample))
 
   fireEvent.pointerMove(track, { clientX: sample + 13, pointerId: 1 })
+  await pointed()
   expect(track.getAttribute('aria-valuenow')).toBe(String(sample + 10))
 })
 
-test('speaks the minute and the sun’s height on the time slider once a motion ends', ({ mount }) => {
+test('speaks the minute and the sun’s height on the time slider once a motion ends', async ({ mount }) => {
   const slider = clockOf(mount(SunPath))
 
-  press(slider, 'Home')
+  await press(slider, 'Home')
 
   expect(slider.getAttribute('aria-valuetext'))
     .toBe(`00:00, ${curve.sunPhrase(days[sample]!, minutes[0]!, 0)}`)
@@ -259,9 +261,10 @@ test('moves the day to a press on the track', async ({ mount }) => {
   const track = dayOf(host)
 
   await openYear(host)
-  pressable(track, track, { left: 0, width: days.length - 1 })
+  pressable(track, { left: 0, width: days.length - 1 })
 
-  fireEvent.pointerDown(track, { button: 0, clientX: 40, pointerId: 1 })
+  fireEvent.pointerDown(track.parentElement!, { button: 0, clientX: 40, pointerId: 1 })
+  await pointed()
 
   expect(track.getAttribute('aria-valuenow')).toBe('40')
 })
@@ -270,7 +273,7 @@ test('speaks the day beside the minute while the year stands open', async ({ mou
   const host = mount(SunPath)
 
   await openYear(host)
-  press(dayOf(host), 'Home')
+  await press(dayOf(host), 'Home')
   vi.advanceTimersByTime(PAUSES.speech)
   await nextTick()
 
@@ -281,7 +284,7 @@ test('returns the drawing to the sample day once the year closes', async ({ moun
   const host = mount(SunPath)
 
   await openYear(host)
-  press(dayOf(host), 'Home')
+  await press(dayOf(host), 'Home')
 
   fireEvent.click(getByRole(host, 'button', { name: 'The year' }))
   await nextTick()
@@ -304,11 +307,11 @@ test('keeps the sample day’s drawing across a second opening of the year', asy
   expect(host.querySelector('.sun-path-curve')!.getAttribute('d')).toBe(curve.sunCurve(days[sample]!))
 })
 
-test('places the sun once for a one-minute step across a motion’s frames', ({ mount }) => {
+test('places the sun once for a one-minute step across a motion’s frames', async ({ mount }) => {
   const host  = mount(SunPath)
   const place = vi.spyOn(host.querySelector('.sun-path')!, 'toggleAttribute')
 
-  press(clockOf(host), 'ArrowRight')
+  await press(clockOf(host), 'ArrowRight')
 
   expect(place).toHaveBeenCalledOnce()
 })
@@ -329,29 +332,22 @@ test('builds the year’s moves once across two openings', async ({ mount }) => 
 })
 
 test('reads a day’s altitude off its samples and the sample day’s off its minutes', async ({ mount }) => {
-  const host                   = mount(SunPath)
-  const slider                 = clockOf(host)
-  const phrase                 = host.querySelector('.sun-path-phrase')!
-  const today                  = days[sample]!
-  const [, svg]                = host.querySelectorAll('.sun-path-drawing')
-  const { left, right, width } = curve.SUN_LAYOUTS[1]
-  const said                   = (at: number, altitude: number) => curve.sunPhrase(today, altitude, at)
-  const apart                  = minutes.findIndex((altitude, minute) =>
+  const host   = mount(SunPath)
+  const slider = clockOf(host)
+  const phrase = host.querySelector('.sun-path-phrase')!
+  const today  = days[sample]!
+  const said   = (at: number, altitude: number) => curve.sunPhrase(today, altitude, at)
+  const apart  = minutes.findIndex((altitude, minute) =>
     said(minute, altitude) !== said(minute, curve.altitudeOn(today, minute))
   )
 
-  pressable(slider, svg!, { left: 0, width })
-  fireEvent.pointerDown(slider, {
-    button    : 0,
-    clientX   : left + (right - left) * apart / (minutes.length - 1),
-    pointerId : 1
-  })
-  settle()
+  await pressClock(slider, apart)
+  fireEvent.pointerUp(document)
 
   expect(phrase.textContent).toBe(said(apart, minutes[apart]!))
 
   await openYear(host)
-  press(dayOf(host), 'Home')
+  await press(dayOf(host), 'Home')
 
   expect(phrase.textContent).toBe(curve.sunPhrase(days[0]!, curve.altitudeOn(days[0]!, apart), apart))
 })

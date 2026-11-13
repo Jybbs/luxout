@@ -9,6 +9,18 @@ import { test }              from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/settings/settings.data.ts', () => import('../../../common/data/settings.ts'))
 
+/**
+ * Focuses the button of the row at `index` and clicks it, as a press does.
+ */
+async function choose(host: HTMLElement, index: number): Promise<void> {
+  const head = heads(host)[index]!
+
+  head.focus()
+  await nextTick()
+  fireEvent.click(head)
+  await nextTick()
+}
+
 function heads(host: HTMLElement): HTMLElement[] {
   return getAllByRole(host, 'button')
 }
@@ -19,7 +31,7 @@ function heads(host: HTMLElement): HTMLElement[] {
  */
 function laidOut(heading: number, body: number): void {
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
-    const panel = this.closest('.settings-reference-item.open') ? body : 0
+    const panel = this.closest('.settings-reference-item[data-state=open]') ? body : 0
     const parts = [
       ['h3', heading],
       ['.settings-reference-body', body],
@@ -54,7 +66,7 @@ function observed(): { disconnect: Mock<() => void>, report: (width: number) => 
 }
 
 function openKey(host: HTMLElement): string | null {
-  return host.querySelector('.settings-reference-item.open .settings-reference-key')!.textContent
+  return host.querySelector('.settings-reference-item[data-state=open] .settings-reference-key')!.textContent
 }
 
 beforeEach(() => {
@@ -84,16 +96,24 @@ test('opens the first row and marks the rest inert', ({ mount }) => {
 test('moves the open card to the row a reader chooses', async ({ mount }) => {
   const host = mount(SettingsReference)
 
-  fireEvent.click(heads(host)[2]!)
-  await nextTick()
+  await choose(host, 2)
 
   expect(openKey(host)).toBe(rows[2]!.key)
-  expect(host.querySelector('.settings-reference-item.above .settings-reference-key')!.textContent)
-    .toBe(rows[1]!.key)
+  expect(heads(host).map((head) => head.getAttribute('aria-expanded')))
+    .toEqual(rows.map((_, index) => String(index === 2)))
+})
+
+test('keeps the open row open on a click of its own button', async ({ mount }) => {
+  const host = mount(SettingsReference)
+
+  await choose(host, 0)
+
+  expect(openKey(host)).toBe(rows[0]!.key)
 })
 
 test('says on the card what the key does, what happens without it, and its line', ({ mount }) => {
-  const card = mount(SettingsReference).querySelector('.settings-reference-item.open [role=region]')!
+  const card = mount(SettingsReference)
+    .querySelector('.settings-reference-item[data-state=open] [role=region]')!
   const line = card.querySelector('.settings-reference-line')!
 
   expect(card.textContent).toContain(rows[0]!.does)
@@ -127,25 +147,28 @@ test('labels the needed rows on their cards', ({ mount }) => {
   const host = mount(SettingsReference)
 
   expect(rows[0]!.needed).toBe(true)
-  expect(host.querySelector('.settings-reference-item.open .widget-note')!.textContent).toContain('Needed')
+  expect(host.querySelector('.settings-reference-item[data-state=open] .widget-note')!.textContent)
+    .toContain('Needed')
 })
 
 test('labels the optional rows on their cards', async ({ mount }) => {
   const host  = mount(SettingsReference)
   const place = rows.findIndex(({ needed }) => !needed)
 
-  fireEvent.click(heads(host)[place]!)
-  await nextTick()
+  await choose(host, place)
 
-  expect(host.querySelector('.settings-reference-item.open .widget-note')!.textContent)
+  expect(host.querySelector('.settings-reference-item[data-state=open] .widget-note')!.textContent)
     .toContain('Optional')
 })
 
 test.for([
   { expected: 1, from: 0, key: 'ArrowDown' },
   { expected: 0, from: 1, key: 'ArrowUp' }
-])('moves the focus to row $expected on $key from row $from', ({ expected, from, key }, { mount }) => {
+])('moves the focus to row $expected on $key from row $from', async ({ expected, from, key }, { mount }) => {
   const lines = heads(mount(SettingsReference))
+
+  lines[from]!.focus()
+  await nextTick()
 
   expect(fireEvent.keyDown(lines[from]!, { key })).toBe(false)
   expect(document.activeElement).toBe(lines[expected])

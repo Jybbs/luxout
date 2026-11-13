@@ -118,24 +118,28 @@ test('leaves the clock as it is for a stretch that is no twilight', async ({ mou
   expect(skyPath(host, 1)).toBe(shut)
 })
 
-test('moves the focus across the names with the arrow keys and leaves the pick alone', async ({ mount }) => {
-  const host = mount(DayEstimate)
-  const tabs = getAllByRole(host, 'tab')
+test(
+  'moves the focus across the names with the arrow keys and picks the name it lands on',
+  async ({ mount }) => {
+    const host = mount(DayEstimate)
+    const tabs = getAllByRole(host, 'tab')
 
-  tabs[opens]!.focus()
-  fireEvent.keyDown(tabs[opens]!, { key: 'ArrowRight' })
-  await nextTick()
+    tabs[opens]!.focus()
+    await nextTick()
+    fireEvent.keyDown(tabs[opens]!, { key: 'ArrowRight' })
+    await vi.runOnlyPendingTimersAsync()
 
-  expect(document.activeElement).toBe(tabs[opens + 1])
-  expect(tabs[opens]!.getAttribute('aria-selected')).toBe('true')
-})
+    expect(document.activeElement).toBe(tabs[opens + 1])
+    expect(tabs[opens + 1]!.getAttribute('aria-selected')).toBe('true')
+  }
+)
 
 test('peeks at the stretch whose name holds the focus, then closes the peek on blur', async ({ mount }) => {
   const host = mount(DayEstimate)
   const tabs = getAllByRole(host, 'tab')
   const hub  = host.querySelector('.day-estimate-hub')!
 
-  fireEvent.focus(tabs[DUSK]!)
+  tabs[DUSK]!.focus()
   await settle()
 
   expect(tabs[DUSK]!.classList.contains('peeked')).toBe(true)
@@ -143,7 +147,7 @@ test('peeks at the stretch whose name holds the focus, then closes the peek on b
   expect(hub.querySelector('.layer.shown .day-estimate-figure')!.textContent).toBe(stretches[DUSK]!.figure)
   expect(host.querySelectorAll('.day-estimate-layer')[DUSK]!.hasAttribute('data-peek')).toBe(true)
 
-  fireEvent.blur(tabs[DUSK]!)
+  tabs[DUSK]!.blur()
   await settle()
 
   expect(tabs[DUSK]!.classList.contains('peeked')).toBe(false)
@@ -154,7 +158,7 @@ test('peeks at nothing while the focus rests on the picked name', async ({ mount
   const host = mount(DayEstimate)
   const tab  = getAllByRole(host, 'tab')[opens]!
 
-  fireEvent.focus(tab)
+  tab.focus()
   await settle()
 
   expect(tab.classList.contains('peeked')).toBe(false)
@@ -166,7 +170,8 @@ test('eases a peeked twilight a third of the way, and a click opens it to its qu
   const tabs = getAllByRole(host, 'tab')
   const sky  = (open: number) => new DialPlot(data.marks).paths(1, open)[data.marks.washes.length]
 
-  fireEvent.focus(tabs[DUSK]!)
+  tabs[DUSK]!.focus()
+  await nextTick()
   await settle()
 
   expect(skyPath(host, 1)).toBe(sky(1 / 3))

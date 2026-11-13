@@ -1,14 +1,13 @@
 /** @vitest-environment happy-dom */
 import { fireEvent, getByRole } from '@testing-library/dom'
-import { range }                from 'd3-array'
 import { expect, vi }           from 'vitest'
 import { nextTick }             from 'vue'
 
-import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { dropAt }            from '../../../../theme/components/daylight/bridge-drawing.tsx'
-import { TwilightBridge }    from '../../../../theme/components/daylight/twilight-bridge.tsx'
-import { data }              from '../../../common/data/twilight-bridge.ts'
-import { pressable, test }   from '../../../common/mount.ts'
+import { DURATIONS, PAUSES }               from '../../../../lib/motion/timing.ts'
+import { dropAt }                          from '../../../../theme/components/daylight/bridge-drawing.tsx'
+import { TwilightBridge }                  from '../../../../theme/components/daylight/twilight-bridge.tsx'
+import { data }                            from '../../../common/data/twilight-bridge.ts'
+import { keyOn, pointed, pressable, test } from '../../../common/mount.ts'
 
 vi.mock(
   '../../../../lib/daylight/twilight-bridge.data.ts',
@@ -18,8 +17,16 @@ vi.mock(
 const { cut, degrees, figures, height, label, phrases, rest, ticks, width, x, y } = data
 const LAST = x.length - 1
 
-function press(host: HTMLElement, key: string): void {
-  fireEvent.keyDown(sliderOf(host), { key })
+/**
+ * Finds the stop Page Up or Page Down lands on from `stop`, which the slider
+ * machine snaps onto the page's grid.
+ */
+function paged(stop: number): number {
+  return Math.min(LAST, 10 * Math.round(stop / 10))
+}
+
+async function press(host: HTMLElement, key: string): Promise<void> {
+  await keyOn(sliderOf(host), key)
   settle()
 }
 
@@ -81,13 +88,13 @@ test.for([
   { goal: LAST, key: 'End' },
   { goal: rest + 1, key: 'ArrowRight' },
   { goal: rest - 1, key: 'ArrowLeft' },
-  { goal: rest + 10, key: 'PageUp' },
-  { goal: rest - 10, key: 'PageDown' }
-])('moves the sun, its line, and the figures on $key', ({ goal, key }, { mount }) => {
+  { goal: paged(rest + 10), key: 'PageUp' },
+  { goal: paged(rest - 10), key: 'PageDown' }
+])('moves the sun, its line, and the figures on $key', async ({ goal, key }, { mount }) => {
   const host = mount(TwilightBridge)
   const sun  = host.querySelector<HTMLElement>('.twilight-bridge-sun')!
 
-  press(host, key)
+  await press(host, key)
 
   expect(sun.style.left).toBe(`${x[goal]! / width * 100}%`)
   expect(sun.style.top).toBe(`${y[goal]}px`)
@@ -96,18 +103,18 @@ test.for([
   expect(sliderOf(host).getAttribute('aria-valuenow')).toBe(String(goal))
 })
 
-test('writes the phrase of the span, of the cutoff, and of the circular past it', ({ mount }) => {
+test('writes the phrase of the span, of the cutoff, and of the circular past it', async ({ mount }) => {
   const host = mount(TwilightBridge)
 
-  range(rest, cut).forEach(() => press(host, 'ArrowRight'))
+  for (let stop = rest; stop < cut; stop++) await press(host, 'ArrowRight')
 
   expect(reading(host)).toEqual(['−5/6°', '662 lux', phrases[1]])
 
-  press(host, 'ArrowRight')
+  await press(host, 'ArrowRight')
 
   expect(reading(host)).toEqual(['−0.8°', figures[cut + 1], phrases[2]])
 
-  press(host, 'Home')
+  await press(host, 'Home')
 
   expect(reading(host)[2]).toBe(phrases[0])
 })
@@ -115,7 +122,7 @@ test('writes the phrase of the span, of the cutoff, and of the circular past it'
 test('speaks the stop once the motion settles and the speech pause passes', async ({ mount }) => {
   const host = mount(TwilightBridge)
 
-  press(host, 'Home')
+  await press(host, 'Home')
   vi.advanceTimersByTime(PAUSES.speech)
   await nextTick()
 
@@ -123,11 +130,11 @@ test('speaks the stop once the motion settles and the speech pause passes', asyn
     .toBe(`${degrees[0]}, ${figures[0]}. ${phrases[0]}.`)
 })
 
-test('leaves the sun where it stands when the focus leaves', ({ mount }) => {
+test('leaves the sun where it stands when the focus leaves', async ({ mount }) => {
   const host = mount(TwilightBridge)
 
-  press(host, 'Home')
-  fireEvent.blur(sliderOf(host))
+  await press(host, 'Home')
+  sliderOf(host).blur()
   settle()
 
   expect(reading(host)[0]).toBe(degrees[0])
@@ -138,14 +145,13 @@ test.for([
   { along: 1, goal: LAST, name: 'the right edge' },
   { along: 1.5, goal: LAST, name: 'past the right edge' },
   { along: 0.5, goal: x.findIndex((place) => place >= width / 2), name: 'the middle' }
-])('finds the stop nearest a pointer at $name', ({ along, goal }, { mount }) => {
+])('finds the stop nearest a pointer at $name', async ({ along, goal }, { mount }) => {
   const host   = mount(TwilightBridge)
   const slider = sliderOf(host)
-  const plot   = host.querySelector('.twilight-bridge-plot')!
 
-  pressable(slider, plot, { left: 100, width: 300 })
-
-  fireEvent.pointerDown(slider, { button: 0, clientX: 100 + along * 300, pointerId: 1 })
+  pressable(slider, { left: 100, width: 300 })
+  fireEvent.pointerDown(slider.parentElement!, { button: 0, clientX: 100 + along * 300, pointerId: 1 })
+  await pointed()
 
   expect(slider.getAttribute('aria-valuenow')).toBe(String(goal))
 })

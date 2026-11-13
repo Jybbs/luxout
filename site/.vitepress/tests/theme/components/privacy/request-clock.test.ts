@@ -122,6 +122,8 @@ test('lands a state at once under reduced motion', async ({ mount }) => {
   await choose(host, 2)
 
   expect(face(host).dataset.on).toBe(clock.states[2]!.key)
+
+  vi.advanceTimersToNextFrame()
   expect(vi.getTimerCount()).toBe(1)
 })
 

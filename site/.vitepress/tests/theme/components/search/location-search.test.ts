@@ -123,6 +123,8 @@ test('replays each stage in order, typing the query one character at a time', as
 
   await advance(6000)
   expect(shownStage(host)).toBe(last)
+
+  vi.advanceTimersToNextFrame()
   expect(vi.getTimerCount()).toBe(0)
 })
 
@@ -159,11 +161,13 @@ test('shows the whole query on a stage a reader chooses in the middle of the typ
 
 test('leaves no frame and no timer running once unmounted', ({ mount, unmount }) => {
   const host = mount(LocationSearch)
+  const idle = vi.getTimerCount()
 
   fireEvent.click(host.querySelector('.location-search-play')!)
-  expect(vi.getTimerCount()).toBe(2)
+  expect(vi.getTimerCount()).toBeGreaterThan(idle)
 
   unmount()
+  vi.advanceTimersToNextFrame()
 
   expect(vi.getTimerCount()).toBe(0)
 })

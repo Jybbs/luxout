@@ -1,17 +1,17 @@
 import { range } from 'd3-array'
 import { type VNode, defineComponent, onMounted, shallowRef, useId } from 'vue'
 
-import { DAY_MINUTES }                  from '../../../lib/daylight/clock.ts'
-import { formatClock, formatDayOfYear } from '../../../lib/daylight/format.ts'
-import * as curve                       from '../../../lib/daylight/sun-curve.ts'
-import { data }                         from '../../../lib/daylight/sun-year.data.ts'
-import { Glide }                        from '../../../lib/motion/glide.ts'
-import { DURATIONS }                    from '../../../lib/motion/timing.ts'
-import { Announcer }                    from '../../controls/announcer.tsx'
-import { layers }                       from '../../controls/layers.tsx'
-import { moreButton }                   from '../../controls/more-button.tsx'
-import { PlotSlider, shareAcross }      from '../../controls/plot-slider.ts'
-import { sunDrawing }                   from './sun-drawing.tsx'
+import { DAY_MINUTES }                    from '../../../lib/daylight/clock.ts'
+import { formatClock, formatDayOfYear }   from '../../../lib/daylight/format.ts'
+import * as curve                         from '../../../lib/daylight/sun-curve.ts'
+import { data }                           from '../../../lib/daylight/sun-year.data.ts'
+import { Glide }                          from '../../../lib/motion/glide.ts'
+import { Speech }                         from '../../../lib/motion/speech.ts'
+import { DURATIONS }                      from '../../../lib/motion/timing.ts'
+import { Disclosure }                     from '../../controls/disclosure.tsx'
+import { layers }                         from '../../controls/layers.tsx'
+import { OVERLAY, PlotSlider, plotSpans } from '../../controls/plot-slider.tsx'
+import { sunDrawing }                     from './sun-drawing.tsx'
 
 /**
  * The moves one drawing writes for each day of the year.
@@ -52,19 +52,29 @@ const MARKS = [
 ]
 /**
  * The utilities the plot takes, showing the one drawing whose layout fits the
- * width of the widget.
+ * width of the widget and spanning the clock's slider over that drawing's plot.
  */
 const PLOT = [
   'relative [&>svg]:hidden [&>svg]:h-auto [&>svg]:w-full [&>svg]:overflow-hidden [&>svg]:widget-num',
-  '[&>svg:nth-of-type(1)]:block @md:[&>svg:nth-of-type(1)]:hidden @md:[&>svg:nth-of-type(2)]:block'
+  '[&>svg:nth-of-type(1)]:block @md:[&>svg:nth-of-type(1)]:hidden @md:[&>svg:nth-of-type(2)]:block',
+  '@md:[--plot-left:var(--plot-left-1)] @md:[--plot-right:var(--plot-right-1)]'
 ]
+const SPANS = plotSpans(curve.SUN_LAYOUTS)
 
 const { days, marks, minutes, months, rest, sample, year } = data
 
 const BAND     = 17  // The height under the 90° line of the word that names the chosen day
 const LAST_DAY = days.length - 1
 const lefts    = days.map((_, index) => `${index / LAST_DAY * 100}%`)
-const nows     = range(DAY_MINUTES).map(String)
+/**
+ * The utilities the year track and its thumb take, beside where the thumb
+ * starts.
+ */
+const TRACK = {
+  at      : lefts[sample]!,
+  control : 'widget-track sun-path-track mx-2',
+  thumb   : 'widget-thumb sun-path-thumb'
+}
 
 /**
  * The strings one day of the year writes, whichever layout shows it.
@@ -113,7 +123,6 @@ class SunPlot {
   readonly #rises  : readonly string[]
   readonly #set    : SVGGElement
   readonly #setAt  : SVGTextElement
-  readonly #svg    : SVGSVGElement
   readonly #top    : SVGCircleElement
   readonly #wash   : SVGPathElement
 
@@ -131,20 +140,8 @@ class SunPlot {
     this.#rises  = range((layout.height + layout.glow) * 10).map((place) => `translate(0 ${place / 10})`)
     this.#set    = svg.querySelector('.sun-path-set')!
     this.#setAt  = this.#set.querySelector('text')!
-    this.#svg    = svg
     this.#top    = svg.querySelector('.sun-path-top')!
     this.#wash   = svg.querySelector('.sun-path-wash')!
-  }
-
-  get shown(): boolean {
-    return this.#svg.getBoundingClientRect().width > 0
-  }
-
-  /**
-   * Finds the minute under a pointer at `clientX`, clamped to the clock drawn.
-   */
-  minuteAt(clientX: number): number {
-    return Math.round(shareAcross(this.#svg, clientX, this.#layout) * (DAY_MINUTES - 1))
   }
 
   place(altitude: number, minute: number): void {
@@ -192,55 +189,22 @@ class SunPlot {
  * and writing the sentence beneath them once a motion ends.
  */
 class SunWatch {
-  readonly announcer = new Announcer()
-  readonly clock     : PlotSlider
-  readonly dates     : PlotSlider
-  readonly id        = useId()
-  readonly open      = shallowRef(false)
-  readonly root      = shallowRef<HTMLElement>()
+  readonly clock  : PlotSlider
+  readonly dates  : PlotSlider
+  readonly id     = useId()
+  readonly open   = shallowRef(false)
+  readonly root   = shallowRef<HTMLElement>()
+  readonly speech = new Speech(this.root)
+  readonly year   = new Disclosure(this.id, this.open, () => this.toggle())
 
   #day                  = sample
   readonly #dayGlide    : Glide
-  #grab                 = 0
-  #handle               : HTMLElement | undefined
   #minute               = rest
   readonly #minuteGlide : Glide
-
-  /**
-   * Holds how far from the thumb's center a press lands, ahead of the slider's
-   * own press, so a press on the thumb leaves the day where it stands.
-   */
-  readonly #onPress = (event: PointerEvent): void => {
-    const box = this.#thumb!.getBoundingClientRect()
-
-    this.#grab = this.#thumb === event.target ? event.clientX - box.left - box.width / 2 : 0
-  }
-
-  /**
-   * Steps Page Up and Page Down to the next and the previous day the drawing
-   * holds a curve for, leaving every other key to the slider.
-   */
-  readonly #onYearKey = (event: KeyboardEvent): void => {
-    const now  = this.#dayGlide.goal
-    const goal = {
-      PageDown : marks.findLast(({ day }) => day < now)?.day ?? 0,
-      PageUp   : marks.find(({ day }) => day > now)?.day ?? LAST_DAY
-    }[event.key]
-
-    if (goal === undefined) {
-      this.dates.listeners.onKeydown(event)
-
-      return
-    }
-
-    event.preventDefault()
-    this.#dayGlide.ease(goal)
-  }
-
-  #plots : readonly SunPlot[] = []
-  #thumb : HTMLElement | undefined
-  #track : HTMLElement | undefined
-  #words : readonly DayWords[] = []
+  #plots                : readonly SunPlot[] = []
+  readonly #shown       = shallowRef(sample)
+  #thumb                : HTMLElement | undefined
+  #words                : readonly DayWords[] = []
 
   constructor() {
     this.#dayGlide = new Glide(
@@ -257,34 +221,23 @@ class SunWatch {
       (value) => this.#writeMinute(Math.round(value))
     )
     this.clock = new PlotSlider({
-      count    : DAY_MINUTES,
-      page     : 60,
-      position : (clientX) => this.#plots.find((plot) => plot.shown)!.minuteAt(clientX),
-      set      : (value, eased) => this.#minuteGlide.move(value, eased),
-      value    : () => this.#minuteGlide.goal
+      count : DAY_MINUTES,
+      label : 'Time of day',
+      page  : 60,
+      set   : (value, eased) => this.#minuteGlide.move(value, eased),
+      text  : (minute) => clockText(this.#shown.value, minute),
+      value : () => this.#minuteGlide.goal
     })
     this.dates = new PlotSlider({
-      count    : days.length,
-      page     : 28,
-      position : (clientX) => this.#dayAt(clientX),
-      set      : (value, eased) => this.#dayGlide.move(value, eased),
-      value    : () => this.#dayGlide.goal
+      count : days.length,
+      label : `Day of ${year}`,
+      page  : 28,
+      set   : (value, eased) => this.#dayGlide.move(value, eased),
+      text  : (index) => (this.#words[index] ?? new DayWords(index)).text,
+      value : () => this.#dayGlide.goal
     })
 
     onMounted(() => this.#mount())
-  }
-
-  /**
-   * Builds the year track's attributes from the slider's own, with
-   * `#onYearKey` replacing the slider's key handler and `#onPress` capturing
-   * each press ahead of the slider's.
-   */
-  get track() {
-    return {
-      ...this.dates.attributes(`Day of ${year}`, sample),
-      onKeydown            : this.#onYearKey,
-      onPointerdownCapture : this.#onPress
-    }
   }
 
   /**
@@ -301,19 +254,13 @@ class SunWatch {
     if (!this.open.value) this.#dayGlide.ease(sample)
   }
 
-  #dayAt(clientX: number): number {
-    return Math.round(shareAcross(this.#track!, clientX - this.#grab) * LAST_DAY)
-  }
-
   #mount(): void {
     const root = this.root.value!
 
     this.#plots = Array.from(root.querySelectorAll<SVGSVGElement>('.sun-path-drawing'), (svg, index) =>
       new SunPlot(curve.SUN_LAYOUTS[index]!, svg)
     )
-    this.#handle = root.querySelector('.widget-slider')!
-    this.#thumb  = root.querySelector('.sun-path-thumb')!
-    this.#track  = root.querySelector('.sun-path-track')!
+    this.#thumb = root.querySelector('.sun-path-thumb')!
   }
 
   #placeSun(): void {
@@ -340,9 +287,10 @@ class SunWatch {
 
     root.querySelector('.sun-path-clock')!.textContent  = clock
     root.querySelector('.sun-path-phrase')!.textContent = phrase
-    this.#handle!.setAttribute('aria-valuetext', `${clock}, ${phrase}`)
+    this.#shown.value                                   = this.#day
+    this.dates.hold(this.#day)
 
-    this.announcer.say(`${clock}${this.open.value ? ` on ${dayName(this.#day)}` : ''}, ${phrase}`)
+    this.speech.say(`${clock}${this.open.value ? ` on ${dayName(this.#day)}` : ''}, ${phrase}`)
   }
 
   #writeDay(index: number, forced = false): void {
@@ -354,8 +302,6 @@ class SunWatch {
 
     for (const plot of this.#plots) plot.show(index, this.open.value, words)
 
-    this.#track!.setAttribute('aria-valuenow', nows[index]!)
-    this.#track!.setAttribute('aria-valuetext', words.text)
     this.#thumb!.style.left = lefts[index]!
     this.#placeSun()
   }
@@ -365,7 +311,6 @@ class SunWatch {
 
     this.#minute = minute
     this.#placeSun()
-    this.#handle!.setAttribute('aria-valuenow', nows[minute]!)
   }
 }
 
@@ -392,14 +337,11 @@ export const SunPath = defineComponent({
         >
           {...(slots.default?.() ?? [])}
         </div>
-        <div class={PLOT}>
+        <div class={PLOT} style={SPANS}>
           {curve.SUN_LAYOUTS.map((layout, index) => (
             sunDrawing(layout, data, `${glow}-${index}`, grip(layout))
           ))}
-          <div
-            class="widget-slider"
-            {...watch.clock.attributes('Time of day', rest, `${formatClock(rest)}, ${words}`)}
-          />
+          {watch.clock.render(OVERLAY)}
         </div>
         <div
           class={[
@@ -416,18 +358,17 @@ export const SunPath = defineComponent({
                   <span class="sun-path-phrase">{words}</span>
                 </p>,
                 <div>
-                  <div class="widget-track sun-path-track mx-2" {...watch.track}>
-                    <span class="widget-rail" />
-                    {...marks.map(({ day, named }) => (
+                  {watch.dates.render(TRACK, () => [
+                    <span class="widget-rail" />,
+                    ...marks.map(({ day, named }) => (
                       <span
                         class={named
                           ? 'sun-path-named absolute top-4 h-1.75 w-0.5 -translate-x-1/2 bg-geometry'
                           : 'widget-tick'}
                         style={{ left: lefts[day] }}
                       />
-                    ))}
-                    <span class="widget-thumb sun-path-thumb" style={{ left: lefts[sample] }} />
-                  </div>
+                    ))
+                  ])}
                   <div
                     aria-hidden
                     class={[
@@ -442,19 +383,16 @@ export const SunPath = defineComponent({
               watch.open.value ? 1 : 0
             )}
           </div>
-          {moreButton(
-            watch.id,
-            'The year',
-            watch.open.value,
-            () => watch.toggle(),
-            '@max-md:row-start-1 @max-md:justify-self-start'
-          )}
+          {watch.year.button('The year', '@max-md:row-start-1 @max-md:justify-self-start')}
         </div>
-        {watch.announcer.region}
       </div>
     )
   }
 })
+
+function clockText(day: number, minute: number): string {
+  return `${formatClock(minute)}, ${curve.sunPhrase(days[day]!, sunAltitude(day, minute), minute)}`
+}
 
 function dayName(index: number): string {
   return formatDayOfYear(year, index)
