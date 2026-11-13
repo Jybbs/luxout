@@ -13,13 +13,14 @@ import { PLACEMENTS, WIDGET_NAMES } from '../lib/widgets/placements.ts'
  * The widths a container query may name, each where a widget reflows inside its
  * column.
  */
-const CONTAINER_WIDTHS = new Set(['30rem', '38rem'])
+const CONTAINER_WIDTHS = new Set(['30rem', '38rem', '40rem'])
 /**
  * The inks of each frame, by the class name after the frame's own name, the
  * fills being words and the strokes being marks.
  */
 const FRAME_MARKS = {
   'day-estimate'    : { fills: ['caption', 'figure', 'name'], strokes: ['cover', 'edge', 'fall', 'line'] },
+  'rounded-place'   : { fills: ['word'], strokes: ['cell', 'dim'] },
   'sun-path'        : { fills: ['figure', 'word'], strokes: ['curve', 'horizon'] },
   'the-gap'         : { fills: ['figure', 'word'], strokes: ['edge', 'reading'] },
   'twilight-bridge' : { fills: ['caps', 'end', 'word'], strokes: ['cut', 'drop', 'edge', 'roof'] }
@@ -32,15 +33,16 @@ const GROUNDS = [
  * The widths a media query may name, each one of VitePress's own breakpoints.
  */
 const MEDIA_WIDTHS = new Set(['40rem', '48rem', '60rem'])
+const lib          = join(import.meta.dirname, '..', 'lib')
 const theme        = join(import.meta.dirname, '..', 'theme')
 const frameInks    = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [
   ...fills.map((word) => ({ floor: 4.5, name, property: 'fill', selector: `.${name}-${word}` })),
   ...strokes.map((mark) => ({ floor: 3, name, property: 'stroke', selector: `.${name}-${mark}` }))
 ])
 const frames = new Map(await Promise.all(Object.keys(FRAME_MARKS).map(async (name) => {
-  const framing = new URL(`../lib/daylight/${name}-frame.css`, import.meta.url)
+  const [framing] = await Array.fromAsync(glob(`*/${name}-frame.css`, { cwd: lib }))
 
-  return [name, postcss.parse(await readFile(framing, 'utf8'))] as const
+  return [name, postcss.parse(await readFile(join(lib, framing!), 'utf8'))] as const
 })))
 const tokens  = await Tokens.read(new URL('../', import.meta.url))
 const paths   = await Array.fromAsync(glob('**/*.css', { cwd: theme }))
@@ -189,6 +191,7 @@ it.each([
   { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-1' },
   { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-2' },
   { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-3' },
+  { color: '--widget-forecast', name: 'rounded-place', selector: '.rounded-place-cell' },
   { color: '--widget-sensor', name: 'the-gap', selector: '.the-gap-band' },
   { color: '--widget-sensor', name: 'the-gap', selector: '.the-gap-on' }
 ])('tints $selector in the frame as the sheet mixes it', ({ color, name, selector }) => {

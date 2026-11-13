@@ -1,1 +1,14 @@
 blank_issues_enabled: false
+
+contact_links:
+  - name  : Installing Luxout
+    about : The versions each release runs on, and the steps from the Homebridge UI to Apple Home
+    url   : https://luxout.fyi/install/
+
+  - name  : Settings
+    about : Every setting the platform block takes, and what each one does
+    url   : https://luxout.fyi/settings/
+
+  - name  : Troubleshooting
+    about : The limits of the estimate, debug logging, and the debug line, before a bug report
+    url   : https://luxout.fyi/troubleshooting/

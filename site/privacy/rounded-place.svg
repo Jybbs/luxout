@@ -1,0 +1,57 @@
+<svg aria-label="One forecast cell 3 km across, tiled by the areas that round to each pair of coordinates, about 10 of them, each 1.11 by 0.82 km, with the area that rounds to the stored and sent pair 42.36, −71.06 filled and the pair at its center" class="rounded-place-drawing" role="img" viewBox="0 0 402 435" xmlns="http://www.w3.org/2000/svg"><rect class="rounded-place-cell" height="400" width="400" x="1" y="1"></rect><rect class="rounded-place-tile" height="125.9" width="35.7" x="1" y="275.1"></rect><rect class="rounded-place-tile" height="125.9" width="109.5" x="36.7" y="275.1"></rect><rect class="rounded-place-tile" height="125.9" width="109.6" x="146.2" y="275.1"></rect><rect class="rounded-place-tile" height="125.9" width="109.5" x="255.8" y="275.1"></rect><rect class="rounded-place-tile" height="125.9" width="35.7" x="365.3" y="275.1"></rect><rect class="rounded-place-tile" height="148.2" width="35.7" x="1" y="126.9"></rect><rect class="rounded-place-tile" height="148.2" width="109.5" x="36.7" y="126.9"></rect><rect class="rounded-place-tile" height="148.2" width="109.6" x="146.2" y="126.9"></rect><rect class="rounded-place-tile" height="148.2" width="109.5" x="255.8" y="126.9"></rect><rect class="rounded-place-tile" height="148.2" width="35.7" x="365.3" y="126.9"></rect><rect class="rounded-place-tile" height="125.9" width="35.7" x="1" y="1"></rect><rect class="rounded-place-tile" height="125.9" width="109.5" x="36.7" y="1"></rect><rect class="rounded-place-tile" height="125.9" width="109.6" x="146.2" y="1"></rect><rect class="rounded-place-tile" height="125.9" width="109.5" x="255.8" y="1"></rect><rect class="rounded-place-tile" height="125.9" width="35.7" x="365.3" y="1"></rect><path class="rounded-place-dim" d="M1 413H401M1 409V417M401 409V417"></path><rect class="rounded-place-area" height="148.2" width="109.6" x="146.2" y="126.9"></rect><circle class="rounded-place-dot" cx="201" cy="201" r="3.5"></circle><circle class="rounded-place-ring" cx="201" cy="201" r="5"></circle><path class="rounded-place-word" d="M289 -10Q223 -10 174 17Q124 43 97 90Q70 137 70 200L160 200Q160 139 195 105Q229 70 290 70Q352 70 386 106Q420 142 420 200L420 252Q420 314 386 348Q352 382 290 382L215 382L215 472L396 648L100 648L100 730L487 730L487 640L292 451L292 462Q392 462 451 405Q510 348 510 252L510 200Q510 137 483 90Q455 43 405 17Q355 -10 289 -10ZM1295 0L1295 730L1385 730L1385 323L1491 323L1651 550L1754 550L1569 288L1757 0L1652 0L1492 245L1385 245L1385 0L1295 0ZM1866 0L1866 550L1945 550L1945 484L1963 484L1949 460Q1949 506 1974 533Q1998 560 2040 560Q2086 560 2111 526Q2136 492 2136 430L2109 484L2151 484L2132 460Q2132 506 2158 533Q2183 560 2225 560Q2277 560 2306 521Q2334 482 2334 418L2334 0L2251 0L2251 419Q2251 453 2237 472Q2222 491 2194 491Q2167 491 2152 473Q2136 454 2136 420L2136 0L2064 0L2064 419Q2064 454 2049 473Q2033 491 2005 491Q1977 491 1963 473Q1949 454 1949 420L1949 0L1866 0Z" transform="translate(187.8 429) scale(0.011 -0.011)"></path><style>.rounded-place-drawing { background: #f2f1ee; }
+
+.rounded-place-cell {
+  fill         : #d7e0de;
+  stroke       : #4b8488;
+  stroke-width : 1.5;
+}
+
+.rounded-place-tile {
+  fill         : none;
+  stroke       : #4b8488;
+  stroke-width : 1;
+}
+
+.rounded-place-area {
+  fill         : #eba795;
+  stroke       : #1a1a1a;
+  stroke-width : 1.2;
+}
+
+.rounded-place-ring {
+  fill         : none;
+  stroke       : #1a1a1a;
+  stroke-width : 1.5;
+}
+
+.rounded-place-dot { fill: #1a1a1a; }
+
+.rounded-place-dim {
+  fill         : none;
+  stroke       : #5c5c58;
+  stroke-width : 1;
+}
+
+.rounded-place-word {
+  fill      : #5c5c58;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rounded-place-drawing { background: #1a1a1a; }
+
+  .rounded-place-cell { fill: #222b2c; }
+
+  .rounded-place-area {
+    fill   : #e8876f;
+    stroke : #1a1a1a;
+  }
+
+  .rounded-place-ring { stroke: #1a1a1a; }
+
+  .rounded-place-dot { fill: #1a1a1a; }
+
+  .rounded-place-dim { stroke: #a6a6a1; }
+
+  .rounded-place-word { fill: #a6a6a1; }
+}
+</style></svg>

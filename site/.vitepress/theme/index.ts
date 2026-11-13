@@ -30,6 +30,18 @@ const WIDGETS = {
     (await import('./components/daylight/day-estimate.ts')).DayEstimate
   ),
 
+  DebugLine: defineAsyncComponent(async () =>
+    (await import('./components/troubleshooting/debug-line.ts')).DebugLine
+  ),
+
+  RequestClock: defineAsyncComponent(async () =>
+    (await import('./components/privacy/request-clock.ts')).RequestClock
+  ),
+
+  RoundedPlace: defineAsyncComponent(async () =>
+    (await import('./components/privacy/rounded-place.ts')).RoundedPlace
+  ),
+
   SunPath: defineAsyncComponent(async () =>
     (await import('./components/daylight/sun-path.ts')).SunPath
   ),

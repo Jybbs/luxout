@@ -43,5 +43,20 @@ export const SECTIONS: readonly Section[] = [
           + 'bibliography that credits its sources.',
     label : 'Estimate',
     slug  : 'estimate'
+  },
+  {
+    asks  : 'What does Luxout send, and what does it keep?',
+    holds : 'This section covers the request the plugin sends each hour, the place each request carries, '
+          + 'the search the settings page sends, and the one file the plugin keeps.',
+    label : 'Privacy',
+    slug  : 'privacy'
+  },
+  {
+    asks    : 'What do I do when a reading looks wrong?',
+    curated : true,
+    holds   : 'This section walks a reading that looks wrong from the limits of the estimate through debug '
+            + 'logging and the debug line to a bug report.',
+    label   : 'Troubleshooting',
+    slug    : 'troubleshooting'
   }
 ]

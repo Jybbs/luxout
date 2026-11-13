@@ -4,7 +4,7 @@ import { clamp } from '@vueuse/core'
  * The length in milliseconds of each transition, which falls to `1` under
  * `prefers-reduced-motion`.
  */
-export const DURATIONS = { fade: 200, hover: 150, move: 180, settle: 480 } as const
+export const DURATIONS = { enter: 300, fade: 200, hover: 150, lag: 60, move: 180, settle: 480 } as const
 const EASING           = 'cubic-bezier(0.333, 0, 0.667, 1)'
 /**
  * The length in milliseconds of each pause pacing a reader's input, which keeps

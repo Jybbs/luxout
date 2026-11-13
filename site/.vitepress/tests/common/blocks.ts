@@ -12,8 +12,11 @@ import type { DecadeScale }           from '../../lib/daylight/lux-scale.ts'
 import type { SampleDay }             from '../../lib/daylight/sample-day.ts'
 import * as curve                     from '../../lib/daylight/sun-curve.ts'
 import type { SunYear }               from '../../lib/daylight/sun-year.ts'
+import type { RequestClock }          from '../../lib/privacy/request-clock.ts'
+import type { RoundedPlace }          from '../../lib/privacy/rounded-place.ts'
 import type { SearchReplay }          from '../../lib/search/replay.ts'
 import type { SettingRow }            from '../../lib/settings/rows.ts'
+import type { DebugLine }             from '../../lib/troubleshooting/debug-line.ts'
 
 type Cell = number | string
 
@@ -77,6 +80,23 @@ export function bridgeWords(sky: ClearSky): string {
        + `and above ${curve.SUNSET_WORD}. Between the two, the logarithm of the lux runs in a straight line `
        + `against the altitude, from the circular's ${low} lux to its ${high} lux, so the reading climbs `
        + 'through the cutoff without a step.'
+}
+
+/**
+ * Writes the sentence that opens One Request an Hour.
+ */
+export function clockLede({ minute, retries }: RequestClock): string {
+  return 'The plugin asks [Open-Meteo](https://open-meteo.com/en/docs) for the forecast once an hour, at a '
+       + `minute drawn at random when Homebridge starts, ${minute} past in the sample install, and retries a `
+       + `failed request at most ${retries.length} times within its hour, never at or past the next one, as `
+       + '[While Fetches Fail](../estimate/failed-fetches.md#retries) sets out.'
+}
+
+/**
+ * Writes the clock face's states as the Markdown table a page keeps for GitHub.
+ */
+export function clockTable({ states }: RequestClock): string {
+  return markdownTable(['Tab', 'What the Face Shows'], states.map(({ name, text }) => [name, text]))
 }
 
 /**
@@ -154,6 +174,17 @@ export function fetchRetry(retry: number, timeout: number): string {
   return `The plugin retries ${spanWords(retry)} after a failed fetch and doubles the wait each time, `
        + `scheduling no retry at or past the next hourly fetch, so a failing hour sends at most ${count} `
        + `requests. A request with no answer after ${amount(timeout / 1000, 'second')} times out.`
+}
+
+/**
+ * Writes the fields of the debug line as the Markdown table a page keeps for
+ * GitHub.
+ */
+export function fieldTable({ fields }: DebugLine): string {
+  return markdownTable(
+    ['Field', 'In the Sample Line', 'What It Holds'],
+    fields.map(({ name, note, value }) => [name, `\`${value}\``, note])
+  )
 }
 
 /**
@@ -249,6 +280,21 @@ export function nightWords({ decades }: DecadeScale): string {
        + '(https://en.wikipedia.org/wiki/Lux#Illuminance), while the reading reaches '
        + "[HomeKit's floor](https://developers.homebridge.io/#/characteristic/CurrentAmbientLightLevel) "
        + `of ${floor} lux before astronomical twilight ends.`
+}
+
+/**
+ * Writes the sentence that opens The Place Each Request Carries.
+ */
+export function placeLede({ count }: RoundedPlace): string {
+  return 'Each request carries the place rounded to two decimal places, and one forecast cell already spans '
+       + `about ${count} of the areas that share a rounded pair.`
+}
+
+/**
+ * Writes the drawing's marks as the Markdown table a page keeps for GitHub.
+ */
+export function placeTable({ marks }: RoundedPlace): string {
+  return markdownTable(['Mark', 'Figure'], marks.map(({ name, value }) => [name, value]))
 }
 
 /**

@@ -1,5 +1,5 @@
-import { readFile }      from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { glob, readFile } from 'node:fs/promises'
+import { dirname, join }  from 'node:path'
 
 import { Window }                               from 'happy-dom'
 import { expect, it }                           from 'vitest'
@@ -12,11 +12,13 @@ import { SampleDay }                from '../lib/daylight/sample-day.ts'
 import { SUNSET_WORD, SUN_LAYOUTS } from '../lib/daylight/sun-curve.ts'
 import { sunYear }                  from '../lib/daylight/sun-year.ts'
 import { twilightBridge }           from '../lib/daylight/twilight-bridge.ts'
+import { roundedPlace }             from '../lib/privacy/rounded-place.ts'
 import { PLACEMENTS }               from '../lib/widgets/placements.ts'
 import { bridgeDrawing }            from '../theme/components/daylight/bridge-drawing.ts'
 import { dialDrawing }              from '../theme/components/daylight/dial-drawing.ts'
 import { gapDrawing }               from '../theme/components/daylight/gap-drawing.ts'
 import { sunDrawing }               from '../theme/components/daylight/sun-drawing.ts'
+import { placeDrawing }             from '../theme/components/privacy/place-drawing.ts'
 import { plotDrawing }              from '../theme/controls/plot-marks.ts'
 import { data }                     from './common/data/daylight.ts'
 import { framed }                   from './common/outline.ts'
@@ -24,6 +26,7 @@ import { framed }                   from './common/outline.ts'
 const day     = SampleDay.record()
 const placed  = PLACEMENTS.filter(({ frame }) => frame)
 const { gap } = data
+const lib     = join(import.meta.dirname, '..', 'lib')
 const site    = join(import.meta.dirname, '..', '..')
 const bridge  = twilightBridge(day.sky)
 const dial    = dayDial(day)
@@ -35,7 +38,8 @@ const year    = sunYear(day)
  */
 async function frameOf(drawing: VNode, sheetName: string, words = ''): Promise<string> {
   const markup = await renderToString(createSSRApp({ render: () => drawing }))
-  const sheet  = await readFile(new URL(`../lib/daylight/${sheetName}`, import.meta.url), 'utf8')
+  const [path] = await Array.fromAsync(glob(`*/${sheetName}`, { cwd: lib }))
+  const sheet  = await readFile(join(lib, path!), 'utf8')
 
   return framed(markup.replace(/<\/svg>$/, `${words}</svg>`), sheet)
 }
@@ -111,6 +115,11 @@ it('commits the frame The Twilight Bridge opens on, with its words', async () =>
 
   await expect(await frameOf(drawing, 'twilight-bridge-frame.css', words.join('')))
     .toMatchFileSnapshot(join(site, 'estimate', 'twilight-bridge.svg'))
+})
+
+it('commits the frame The Rounded Place opens on, as the widget draws it', async () => {
+  await expect(await frameOf(placeDrawing(roundedPlace(day.window.place)), 'rounded-place-frame.css'))
+    .toMatchFileSnapshot(join(site, 'privacy', 'rounded-place.svg'))
 })
 
 it('describes the bridge’s frame on estimate/clear-sky.md through the figures it draws', async () => {

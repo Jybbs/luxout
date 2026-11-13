@@ -18,6 +18,8 @@ import { exampleBlock, settingRows } from '../lib/settings/rows.ts'
 import { PLACEMENTS, WIDGET_NAMES }  from '../lib/widgets/placements.ts'
 import * as blocks                   from './common/blocks.ts'
 import { data }                      from './common/data/daylight.ts'
+import { data as line }              from './common/data/debug-line.ts'
+import { data as privacy }           from './common/data/privacy.ts'
 
 const day               = SampleDay.record()
 const { gap, luxScale } = data
@@ -27,11 +29,12 @@ const dial              = dayDial(day)
 const md                = await createMarkdownRenderer(site, config.markdown)
 const year              = sunYear(day)
 const pageBlocks: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  'estimate/altitude.md'   : { 'sun-lede': blocks.sunLede(year), 'sun-table': blocks.sunTable(year) },
-  'estimate/limits.md'     : { 'night-limit': blocks.nightWords(luxScale) },
-  'install/place.md'       : { 'search-stages': blocks.searchTable(await replaySearch()) },
-  'sensors/outside.md'     : { 'lux-decades': blocks.luxTable(luxScale), 'lux-lede': luxScale.lede },
-  'settings/thresholds.md' : { 'threshold-levels': blocks.thresholdLevels(rows) },
+  'estimate/altitude.md'          : { 'sun-lede': blocks.sunLede(year), 'sun-table': blocks.sunTable(year) },
+  'estimate/limits.md'            : { 'night-limit': blocks.nightWords(luxScale) },
+  'install/place.md'              : { 'search-stages': blocks.searchTable(await replaySearch()) },
+  'sensors/outside.md'            : { 'lux-decades': blocks.luxTable(luxScale), 'lux-lede': luxScale.lede },
+  'settings/thresholds.md'        : { 'threshold-levels': blocks.thresholdLevels(rows) },
+  'troubleshooting/debug-line.md' : { 'line-fields': blocks.fieldTable(line) },
 
   'estimate/clear-sky.md': {
     'bridge-table' : blocks.bridgeTable(day.sky),
@@ -58,6 +61,13 @@ const pageBlocks: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     'dial-lede'    : blocks.dialLede(dial),
     'dial-table'   : blocks.dialTable(dial),
     'factor-table' : blocks.factorTable(factorDay(day))
+  },
+
+  'privacy/sends.md': {
+    'clock-lede'  : blocks.clockLede(privacy.clock),
+    'clock-table' : blocks.clockTable(privacy.clock),
+    'place-lede'  : blocks.placeLede(privacy.place),
+    'place-table' : blocks.placeTable(privacy.place)
   },
 
   'sensors/thresholds.md': {

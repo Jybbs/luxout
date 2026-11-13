@@ -4,6 +4,7 @@
   "plugins": ["vitest"],
   "rules": {
     "eslint/no-restricted-imports": "off",
+    "typescript/no-import-type-side-effects": "error",
     "vitest/no-standalone-expect": ["error", { "additionalTestBlockFunctions": ["test", "test.for"] }]
   }
 }

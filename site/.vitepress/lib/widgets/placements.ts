@@ -30,6 +30,12 @@ const ROWS = [
     widget  : 'DayEstimate'
   },
   {
+    fold    : 'Each field as a table',
+    heading : 'The Fields',
+    page    : 'troubleshooting/debug-line.md',
+    widget  : 'DebugLine'
+  },
+  {
     fold    : 'Each stage as a table',
     heading : 'Searching for a Zip Code',
     page    : 'install/place.md',
@@ -41,6 +47,19 @@ const ROWS = [
     page    : 'sensors/outside.md',
     widget  : 'LuxScale',
     words   : true
+  },
+  {
+    fold    : 'Each state as a table',
+    heading : 'One Request an Hour',
+    page    : 'privacy/sends.md',
+    widget  : 'RequestClock'
+  },
+  {
+    fold    : 'Each mark as a table',
+    frame   : './rounded-place.svg',
+    heading : 'The Place Each Request Carries',
+    page    : 'privacy/sends.md',
+    widget  : 'RoundedPlace'
   },
   {
     fold    : 'Every setting as a table',

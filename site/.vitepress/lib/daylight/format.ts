@@ -1,4 +1,5 @@
-import * as clock from './clock.ts'
+import type { Place } from '../../../../src/config/place.ts'
+import * as clock     from './clock.ts'
 
 const FACTOR_DIGITS = 3     // The decimals a cloud factor other than exactly 1 takes
 const SMALLEST      = 1e-4  // The lux below which a value takes scientific notation
@@ -58,6 +59,14 @@ export function formatLux(lux: number): string {
   const [mantissa, exponent] = tinyFormat.format(lux).split('E') as [string, string]
 
   return `${mantissa} × 10${exponent.replace(/./g, (digit) => SUPERSCRIPTS['-0123456789'.indexOf(digit)]!)}`
+}
+
+/**
+ * Writes `place` as its latitude and longitude to two decimals, as the plugin
+ * stores and sends them.
+ */
+export function formatPlace({ latitude, longitude }: Place): string {
+  return `${latitude.toFixed(2)}, ${signed(longitude.toFixed(2))}`
 }
 
 /**
