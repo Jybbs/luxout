@@ -26,30 +26,31 @@ const SWATCHES = {
  * leave pause passes after the mouse goes.
  */
 class Key {
-  readonly onPointerdown = (event: PointerEvent): void => {
-    if (event.pointerType === 'touch') this.show(this.#under(event))
-  }
-
-  readonly onPointerleave = ({ pointerType }: PointerEvent): void => {
-    if (pointerType === 'mouse') this.rest(undefined)
-  }
-
-  readonly onPointermove = (event: PointerEvent): void => {
-    if (event.pointerType === 'mouse') this.rest(this.#under(event))
-  }
-
   readonly shown  = shallowRef<MarkKey>()
   readonly #dwell = useTimeoutFn((key: MarkKey) => this.show(key), PAUSES.dwell, { immediate: false })
   readonly #leave = useTimeoutFn(() => this.show(undefined), PAUSES.leave, { immediate: false })
-  #wanted         : MarkKey | undefined
+
+  readonly #onPointerdown = (event: PointerEvent): void => {
+    if (event.pointerType === 'touch') this.show(this.#under(event))
+  }
+
+  readonly #onPointerleave = ({ pointerType }: PointerEvent): void => {
+    if (pointerType === 'mouse') this.rest(undefined)
+  }
+
+  readonly #onPointermove = (event: PointerEvent): void => {
+    if (event.pointerType === 'mouse') this.rest(this.#under(event))
+  }
+
+  #wanted : MarkKey | undefined
 
   renderPlot(): VNode {
     return (
       <div
         class="rounded-place-plot"
-        onPointerdown={this.onPointerdown}
-        onPointerleave={this.onPointerleave}
-        onPointermove={this.onPointermove}
+        onPointerdown={this.#onPointerdown}
+        onPointerleave={this.#onPointerleave}
+        onPointermove={this.#onPointermove}
       >
         {placeDrawing(place)}
       </div>

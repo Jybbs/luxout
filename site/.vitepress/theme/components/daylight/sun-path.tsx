@@ -204,10 +204,10 @@ class SunWatch {
     this.#dayGlide.ease(goal)
   }
 
-  #plots                : readonly SunPlot[] = []
-  #thumb                : HTMLElement | undefined
-  #track                : HTMLElement | undefined
-  #words                : readonly DayWords[] = []
+  #plots : readonly SunPlot[] = []
+  #thumb : HTMLElement | undefined
+  #track : HTMLElement | undefined
+  #words : readonly DayWords[] = []
 
   constructor() {
     this.#dayGlide = new Glide(
@@ -242,9 +242,9 @@ class SunWatch {
   }
 
   /**
-   * Builds the year track's attributes from the slider's own, with a key
-   * handler that steps between curves on Page Up and Page Down in place of the
-   * slider's and a press handler that keeps the day under the thumb.
+   * Builds the year track's attributes from the slider's own, with
+   * `#onYearKey` replacing the slider's key handler and `#onPress` capturing
+   * each press ahead of the slider's.
    */
   get track() {
     return {

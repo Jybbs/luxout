@@ -74,10 +74,10 @@ it('serves the CSS the build ships, through Lightning CSS', () => {
 })
 
 it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to Vite’s own transform', () => {
-  const jsx  = config.vite?.plugins?.[0] as Plugin
-  const hook = jsx.config as (this: object, config: UserConfig) => UserConfig
+  const plugins = (config.vite?.plugins ?? []).flat() as Plugin[]
+  const jsx     = plugins.find(({ name }) => name === 'vite:vue-jsx')
+  const hook    = jsx?.config as (this: object, config: UserConfig) => UserConfig
 
-  expect(jsx.name).toBe('vite:vue-jsx')
   expect(hook.call({ meta: { rolldownVersion: '' } }, {}).oxc).toEqual({ exclude: /\.jsx?$/ })
 })
 

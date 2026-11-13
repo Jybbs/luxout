@@ -48,10 +48,12 @@ test('hides the replayed page from a screen reader', ({ mount }) => {
   expect(page.getAttribute('aria-hidden')).toBe('true')
 })
 
-test('names the place beneath the coordinates', ({ mount }) => {
-  const kept = mount(LocationSearch).querySelector('.location-search-kept')!.textContent
+test('names the place beneath the coordinates, its first piece in bold', ({ mount }) => {
+  const kept   = mount(LocationSearch).querySelector('.location-search-kept')!
+  const pieces = [...kept.querySelectorAll('.location-search-whole')].map(({ localName }) => localName)
 
-  expect(kept).toContain(data.place.join(', '))
+  expect(kept.textContent).toContain(data.place.join(', '))
+  expect(pieces).toEqual(data.place.map((_, index) => index ? 'span' : 'b'))
 })
 
 test('credits each source under its license', ({ mount }) => {
