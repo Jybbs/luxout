@@ -99,9 +99,8 @@ test('reports a folded color-mix() a class of the theme’s sources writes as an
 
 test('scans the whole site for a theme stylesheet that declares no source', async ({ root, write }) => {
   await plant(root, {
-    '.vitepress/theme/components/dim.tsx' : 'export const Dim = () => '
-                                          + '<p class="bg-[color-mix(in_srgb,red_30%,black)]" />',
-    '.vitepress/theme/styles/dim.css'     : '@tailwind utilities;\n'
+    '.vitepress/theme/styles/dim.css' : '@tailwind utilities;\n',
+    'estimate/dim.md'                 : '<p class="bg-[color-mix(in_srgb,red_30%,black)]"></p>\n'
   })
 
   expect(await (await Bundle.read(root)).report(write)).toBe(1)

@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "inspect"
 #MISE depends     = ["site:press"]
-#MISE description = "Check the built site for a missing page, Node code in a browser chunk, a rule keyed on an image address the build rewrites, a `color-mix()` the minifier folds, a layer ahead of `vitepress` or a rule outside every layer that the theme's sheets do not write, and, outside `vitepress`, a query width the theme lacks, a numeric color, or a mix toward black"
+#MISE description = "Check the built site for a build that wrote no page, Node code in a browser chunk, a rule keyed on an image address the build rewrites, a `color-mix()` the minifier folds, a layer ahead of `vitepress` or a rule outside every layer that the theme's sheets do not write, and, outside `vitepress`, a query width the theme lacks, a numeric color, or a mix toward black"
 #MISE dir         = "site"
 
 node .vitepress/lib/bundle/index.ts

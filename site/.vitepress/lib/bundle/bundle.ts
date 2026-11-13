@@ -113,9 +113,9 @@ export class Bundle {
    *
    * - A query naming a width the theme's `@theme` declares none of
    * - A color property set to a bare number, which no color is
-   * - A `color-mix()` toward black the minifier kept, as it keeps a mix with an
-   *   argument only the browser resolves, such as `var()`, `currentColor`, or a
-   *   `calc()` share
+   * - A `color-mix()` toward black the minifier kept, as Lightning CSS keeps a
+   *   mix with an argument it leaves unresolved, such as `var()`, `env()`,
+   *   `currentColor`, or a `calc()` share
    */
   #outside(): string[] {
     const widths = WIDTHS.map(([kind, namespace]) =>

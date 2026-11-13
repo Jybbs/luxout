@@ -25,9 +25,10 @@ it('maps each line of a wrapped stylesheet back to the line and column it came f
   const id  = `${THEME}/styles/base.css`
   const map = new SourceMap(wrap(SHEET, id)!.map as SourceMapPayload)
 
-  expect([map.findEntry(0, 18), map.findEntry(1, 0)]).toMatchObject([
+  expect([map.findEntry(0, 18), map.findEntry(1, 0), map.findEntry(1, 5)]).toMatchObject([
     { originalColumn: 0, originalLine: 0, originalSource: id },
-    { originalColumn: 0, originalLine: 1, originalSource: id }
+    { originalColumn: 0, originalLine: 1, originalSource: id },
+    { originalColumn: 5, originalLine: 1, originalSource: id }
   ])
 })
 
