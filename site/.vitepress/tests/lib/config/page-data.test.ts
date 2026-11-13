@@ -7,14 +7,14 @@ import { transformPage } from '../../../lib/config/page-data.ts'
 import { SECTIONS }      from '../../../lib/config/sections.ts'
 import { luxRange }      from '../../../lib/daylight/homekit.ts'
 
-const site      = join(import.meta.dirname, '..', '..', '..', '..')
-const context   = { siteConfig: { srcDir: join(import.meta.dirname, 'fixtures') } }
-const setup     = {
+const context = { siteConfig: { srcDir: join(import.meta.dirname, 'fixtures') } }
+const setup   = {
   filePath     : 'setup.md',
   frontmatter  : { title: 'Setup' },
   relativePath : 'setup.md',
   title        : 'Setup'
 }
+const site      = join(import.meta.dirname, '..', '..', '..', '..')
 const transform = transformPage(manifest, luxRange, site, SECTIONS)
 
 it('sets the engines, the version, and the lux range on a page, beside its own keys', async () => {

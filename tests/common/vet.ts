@@ -6,12 +6,15 @@ import getPort from 'get-port'
 import { Homebridge }             from '../../.mise/vet/homebridge.ts'
 import type { Stage }             from '../../.mise/vet/scenario.ts'
 import { HELD }                   from '../../.mise/vet/vet.ts'
+import schema                     from '../../config.schema.json' with { type: 'json' }
+import config                     from '../homebridge/config.json' with { type: 'json' }
 import { plant, test as scratch } from './scratch.js'
 
 /**
  * How the stand-in Homebridge acts, each act off where unset.
  */
 export interface Acts {
+  accessories?   : unknown[]
   conflicts?     : boolean
   conflictsLate? : boolean
   exits?         : boolean
@@ -22,6 +25,15 @@ export interface Acts {
   mute?          : boolean
   silent?        : boolean
   writes?        : string
+}
+
+/**
+ * Stands in for the modules of the built plugin `Vet.read` imports, whose
+ * parser fails every block, so a bridge is expected to expose no accessory.
+ */
+export const BUILT = {
+  'dist/config/settings.js' : 'export class Settings { static parse() { return { ok: false } } }\n',
+  'dist/sensor/outside.js'  : 'export const OUTSIDE = {}\n'
 }
 
 /**
@@ -45,6 +57,20 @@ export const test = scratch.extend('outside', async ({ onTestFinished }) => {
 
   return outside
 })
+
+/**
+ * Plants under `root` what `Vet.read` reads there beside the releases, meaning
+ * the schema, the run config, the built plugin's `package.json`, and the
+ * modules `BUILT` stands in for.
+ */
+export async function checkout(root: string): Promise<void> {
+  await plant(root, {
+    ...BUILT,
+    'config.schema.json'           : JSON.stringify(schema),
+    'package.json'                 : '{}',
+    'tests/homebridge/config.json' : JSON.stringify(config)
+  })
+}
 
 /**
  * Installs the stand-in Homebridge into `dir` as the release `version`, as

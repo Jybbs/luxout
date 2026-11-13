@@ -7,7 +7,7 @@
       "latitude": 42.36,
       "longitude": -71.06,
       "place": { "name": "Boston", "region": "Massachusetts", "country": "United States" },
-      "thresholds": [{ "name": "Dark Outside" }]
+      "thresholds": [{ "name": "Dark Outside" }, { "name": "Dusk", "offLux": 50, "onLux": 50 }]
     }
   ]
 }

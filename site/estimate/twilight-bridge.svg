@@ -5,13 +5,13 @@
 .twilight-bridge-sky { fill: #ecd882; }
 
 .twilight-bridge-grid {
-  stroke       : #d5d4d0;
+  stroke       : #d6d2c8;
   stroke-width : 1;
 }
 
 .twilight-bridge-axis {
   fill         : none;
-  stroke       : #5c5c58;
+  stroke       : #5d5950;
   stroke-width : 1;
 }
 
@@ -40,7 +40,7 @@
   stroke-width     : 1;
 }
 
-.twilight-bridge-word { fill: #5c5c58; }
+.twilight-bridge-word { fill: #5d5950; }
 
 .twilight-bridge-end {
   fill        : #1a1a1a;
@@ -65,9 +65,9 @@
 
   .twilight-bridge-sky { fill: #77682b; }
 
-  .twilight-bridge-grid { stroke: #3d3d3b; }
+  .twilight-bridge-grid { stroke: #3b3934; }
 
-  .twilight-bridge-axis { stroke: #a6a6a1; }
+  .twilight-bridge-axis { stroke: #b3ada1; }
 
   .twilight-bridge-roof { stroke: #9f97d2; }
 
@@ -77,7 +77,7 @@
 
   .twilight-bridge-drop { stroke: #f2f1ee; }
 
-  .twilight-bridge-word { fill: #a6a6a1; }
+  .twilight-bridge-word { fill: #b3ada1; }
 
   .twilight-bridge-end { fill: #f2f1ee; }
 

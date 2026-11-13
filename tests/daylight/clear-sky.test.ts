@@ -16,7 +16,6 @@ const CIRCULAR = [
   { latitude: -23.4, longitude: -135.8, lux: 123786,      run: 'case III', time: '1986-12-18T21:00:00Z' },
   { latitude:  21.3, longitude:   39.5, lux:    697,      run: 'case VII', time: '1988-08-13T15:53:00Z' }
 ]
-
 // Draws half its altitudes from -6° to -5/6°, where the curve bridges the step at the refraction cutoff
 const climbing = fc.oneof(
   fc.double({ max: -5 / 6, min: -6, noNaN: true }),

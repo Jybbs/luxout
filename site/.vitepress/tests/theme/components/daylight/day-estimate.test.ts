@@ -12,13 +12,12 @@ import { test }                      from '../../../common/mount.ts'
 vi.mock('../../../../lib/daylight/day-dial.data.ts', () => import('../../../common/data/day-dial.ts'))
 
 const { opens, stretches } = data
-
-const DAY    = named('Day')
-const DUSK   = named('Dusk')
-const NIGHT  = named('Night')
-const ON_DAY = pointAt(DIAL.rim - 10, Math.PI)
-const WINDOW = named('Window')
-const HOVER  = { ...ON_DAY, pointerType: 'mouse' }
+const DAY                  = named('Day')
+const DUSK                 = named('Dusk')
+const NIGHT                = named('Night')
+const ON_DAY               = pointAt(DIAL.rim - 10, Math.PI)
+const WINDOW               = named('Window')
+const HOVER                = { ...ON_DAY, pointerType: 'mouse' }
 
 async function dwellOver(target: HTMLElement): Promise<void> {
   fireEvent.pointerMove(target, HOVER)

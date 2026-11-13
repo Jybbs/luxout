@@ -1,11 +1,11 @@
 import { pairs }      from 'd3-array'
 import { expect, it } from 'vitest'
 
-import { SCHEDULE_TUNING }                   from '../../../../../src/weather/schedule.ts'
-import { MINUTE }                            from '../../../lib/daylight/clock.ts'
-import { SampleDay }                         from '../../../lib/daylight/sample-day.ts'
-import { RADII, requestClock, retryOffsets } from '../../../lib/privacy/request-clock.ts'
-import { data }                              from '../../common/data/privacy.ts'
+import { SCHEDULE_TUNING }            from '../../../../../src/weather/schedule.ts'
+import { MINUTE }                     from '../../../lib/daylight/clock.ts'
+import { SampleDay }                  from '../../../lib/daylight/sample-day.ts'
+import { requestClock, retryOffsets } from '../../../lib/privacy/request-clock.ts'
+import { data }                       from '../../common/data/privacy.ts'
 
 const { clock } = data
 
@@ -52,7 +52,7 @@ it('draws the hand from the core toward the request’s minute', () => {
 it('sets the request’s dot on the rim at its minute', () => {
   const [x, y] = clock.request
 
-  expect(Math.hypot(x - clock.side / 2, y - clock.side / 2)).toBeCloseTo(RADII.rim, 0)
+  expect(Math.hypot(x - clock.side / 2, y - clock.side / 2)).toBeCloseTo(clock.radii.rim, 0)
 })
 
 it('names the request’s minute, the rounded pair, and each retry in the tabs', () => {

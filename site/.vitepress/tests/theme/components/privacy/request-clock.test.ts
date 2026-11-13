@@ -4,7 +4,6 @@ import { expect, vi }              from 'vitest'
 import { nextTick }                from 'vue'
 
 import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { RADII }             from '../../../../lib/privacy/request-clock.ts'
 import { RequestClock }      from '../../../../theme/components/privacy/request-clock.ts'
 import { data }              from '../../../common/data/privacy.ts'
 import { test }              from '../../../common/mount.ts'
@@ -12,6 +11,7 @@ import { test }              from '../../../common/mount.ts'
 vi.mock('../../../../lib/privacy/privacy.data.ts', () => import('../../../common/data/privacy.ts'))
 
 const { clock }               = data
+const { radii }               = clock
 const { enter, hover, settle } = DURATIONS
 const FRAME                   = 16
 
@@ -66,7 +66,7 @@ test('lands what a request carries once the dot has gone out and come back', asy
 test('lands the failing hour once its dot reaches the rim, with nothing coming back', async ({ mount }) => {
   const host  = mount(RequestClock)
   const fails = clock.states[2]!
-  const out   = settle * (RADII.rim - RADII.core) / (RADII.far - RADII.core)
+  const out   = settle * (radii.rim - radii.core) / (radii.far - radii.core)
 
   await choose(host, 2)
   await wait(out + 2 * FRAME)

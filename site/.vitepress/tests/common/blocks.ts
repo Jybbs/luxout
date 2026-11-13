@@ -216,6 +216,15 @@ export function floorWords({ ahead, behind, floor, nearest }: typeof CLOUD_TUNIN
 }
 
 /**
+ * Writes the sentence on which way the sensor with a gap switches, from its
+ * two levels.
+ */
+export function gapDirection({ sensors: [, { offBelow, onAt }] }: Gap): string {
+  return `A sensor whose on level of ${onAt} lux sits above its off level of ${offBelow} turns on as the `
+       + 'reading rises to the on level and off once it falls below the off level.'
+}
+
+/**
  * Writes the two sensors as the Markdown table a page keeps for GitHub.
  */
 export function gapTable({ sensors, span }: Gap): string {

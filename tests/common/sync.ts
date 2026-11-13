@@ -22,17 +22,17 @@ export interface Call {
   body : unknown
 }
 
-export interface SyncRun extends Pick<SpawnSyncReturns<string>, 'status' | 'stderr' | 'stdout'> {
-  calls   : Call[]
-  invoked : Invocation[]
-}
-
 /**
  * A call a canned stand-in received, beside the directory it ran in.
  */
 interface Invocation {
   args : string[]
   cwd  : string
+}
+
+export interface SyncRun extends Pick<SpawnSyncReturns<string>, 'status' | 'stderr' | 'stdout'> {
+  calls   : Call[]
+  invoked : Invocation[]
 }
 
 interface SyncSetup {

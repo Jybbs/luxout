@@ -5,9 +5,8 @@ import { SampleDay }    from '../../../lib/daylight/sample-day.ts'
 import { data }         from '../../common/data/cloud-steps.ts'
 
 const { floor, hours, opens, steps, strip } = data
-
-const borrowed = steps.filter(({ borrowed }) => borrowed)
-const lit      = steps.filter(({ borrowed }) => !borrowed)
+const borrowed                              = steps.filter(({ borrowed }) => borrowed)
+const lit                                   = steps.filter(({ borrowed }) => !borrowed)
 
 it('writes one step per value of the stored window', () => {
   expect(steps).toHaveLength(SampleDay.record().window.times.length)

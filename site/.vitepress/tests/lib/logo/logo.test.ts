@@ -4,8 +4,8 @@ import { renderToString }       from 'vue/server-renderer'
 import { ASSETS, Logo, addressOf } from '../../../lib/logo/logo.ts'
 import { SCHEMES }                 from '../../../lib/theme/tokens.ts'
 
-const logo  = await Logo.read(new URL('../../../', import.meta.url))
 const forms = ASSETS.flatMap((asset) => SCHEMES.map((scheme) => ({ asset, scheme })))
+const logo  = await Logo.read(new URL('../../../', import.meta.url))
 
 describe('the tracked logo files', () => {
   it.for(forms)(

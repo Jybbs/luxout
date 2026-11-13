@@ -52,13 +52,6 @@ it('sets the mark beside each word a sensor shows', () => {
   )
 })
 
-it('says the direction in words', () => {
-  expect(gap.direction).toBe(
-    'whose on level of 74,000 lux sits above its off level of 70,000 turns on as the reading rises to the '
-    + 'on level and off once it falls below the off level'
-  )
-})
-
 it.each(gap.layouts)('keeps the reading of the $width layout above its lanes', (layout) => {
   const { lanes, left, right, x, y } = layout
 

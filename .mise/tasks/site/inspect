@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "inspect"
+#MISE depends     = ["site:press"]
+#MISE description = "Check the built site for Node code in a browser chunk, a rule keyed on an image address the build rewrites, and a `color-mix()` the minifier folds"
+#MISE dir         = "site"
+
+node .vitepress/lib/bundle/index.ts

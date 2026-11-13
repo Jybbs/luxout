@@ -27,10 +27,13 @@
     "happy-dom": "21.0.4",
     "harfbuzzjs": "1.6.3",
     "knip": "6.41.0",
+    "lightningcss": "1.33.0",
+    "oxc-parser": "0.158.0",
     "oxlint": "1.87.0",
     "oxlint-tsgolint": "7.0.2003",
     "postcss": "8.5.29",
     "typescript": "7.0.2",
+    "vite": "8.3.4",
     "vitepress": "2.0.0-alpha.20",
     "vitest": "5.0.3",
     "vue": "3.5.43"

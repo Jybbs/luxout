@@ -4,10 +4,10 @@ import { expect, it }              from 'vitest'
 import * as dialLens from '../../../lib/daylight/dial-lens.ts'
 import { data }      from '../../common/data/day-dial.ts'
 
+const TAU                  = 2 * Math.PI
 const { marks, stretches } = data
+const plot                 = new dialLens.DialPlot(marks)
 
-const TAU       = 2 * Math.PI
-const plot      = new dialLens.DialPlot(marks)
 const bracketOf = (half: dialLens.Half, stretch: number) =>
   plot.paths(half, 0).at(-1 - (stretches.length - stretch) * 2)
 

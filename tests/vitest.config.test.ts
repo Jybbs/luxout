@@ -7,16 +7,14 @@ import { defaultExclude } from 'vitest/config'
 import thresholds from './coverage.json' with { type: 'json' }
 import config     from './vitest.config.js'
 
-const root  = dirname(import.meta.dirname)
-const files = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
-
+const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
+const root    = dirname(import.meta.dirname)
+const spawns  = /from '(?:node:child_process|[./]+\/common\/(?:sync|vet)\.js)'/
+const files   = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
 const sources = await Array.fromAsync(files, async (file) => ({
   file : file,
   text : await readFile(join(root, file), 'utf8')
 }))
-
-const pragma   = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
-const spawns   = /from '(?:node:child_process|[./]+\/common\/(?:sync|vet)\.js)'/
 const spawning = sources.filter(({ text }) => spawns.test(text))
 
 it('fails a case with no assertion, shuffles the order, and undoes every spy and stub', () => {

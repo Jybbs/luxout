@@ -23,6 +23,14 @@ it('reads no rule but the root and the dark ones', () => {
   expect(tokens.resolve('--ground', 'light')).toBe('#f2f1ee')
 })
 
+it('follows a var() value to the value the property it names ends on', () => {
+  expect(tokens.follow('var(--link)', 'dark')).toBe('#f2f1ee')
+})
+
+it('keeps a value that names no property as written', () => {
+  expect(tokens.follow('1px solid', 'light')).toBe('1px solid')
+})
+
 it('names the property and the scheme that declare nothing', () => {
   expect(() => tokens.resolve('--sky', 'dark')).toThrow('The tokens declare no --sky in the dark scheme')
 })

@@ -44,6 +44,17 @@ export class Tokens {
   }
 
   /**
+   * Reads `value` as `scheme` computes it where the whole value is one `var()`,
+   * following it to the value the property it names holds, and returns any
+   * other value as written.
+   */
+  follow(value: string, scheme: Scheme): string {
+    const reference = /^var\((--[\w-]+)\)$/.exec(value)?.[1]
+
+    return reference === undefined ? value : this.resolve(reference, scheme)
+  }
+
+  /**
    * Reads `property` as `scheme` computes it, following each `var()` that names
    * another property to the value it holds.
    */
@@ -52,8 +63,6 @@ export class Tokens {
 
     if (value === undefined) throw new Error(`The tokens declare no ${property} in the ${scheme} scheme`)
 
-    const reference = /^var\((--[\w-]+)\)$/.exec(value)?.[1]
-
-    return reference === undefined ? value : this.resolve(reference, scheme)
+    return this.follow(value, scheme)
   }
 }

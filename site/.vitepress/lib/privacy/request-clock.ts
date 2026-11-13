@@ -17,7 +17,7 @@ const KEYS    = ['often', 'sends', 'fails'] as const
  * The radii in the face's units of each ring the face draws on, the words
  * standing outside the rim and a journey running from the core out past them.
  */
-export const RADII = { core: 84, far: 196, hand: 141, minute: 144, rim: 150, tick: 136, word: 188 } as const
+const RADII  = { core: 84, far: 196, hand: 141, minute: 144, rim: 150, tick: 136, word: 188 } as const
 const RETRY  = { from: 156, to: 168 }  // The radii of a retry's mark, outside the rim
 const SAMPLE = 17                      // The minute past each hour the sample install requests at
 const SIDE   = 400
@@ -58,6 +58,7 @@ export interface RequestClock {
   readonly minute   : number
   readonly minutes  : readonly string[]
   readonly quarters : readonly ClockWord[]
+  readonly radii    : typeof RADII
   readonly request  : readonly [x: number, y: number]
   readonly retries  : readonly string[]
   readonly said     : readonly ClockWord[]
@@ -140,6 +141,7 @@ export function requestClock(day: SampleDay): RequestClock {
              + `${clockOf(fails)} hour that fails, the retries at ${retried}`,
     minute   : SAMPLE,
     quarters : [0, 15, 30, 45].map((minute) => wordAt(minute, crowded(minute))),
+    radii    : RADII,
     request  : request,
     retries  : offsets.map((offset) => spoke(SAMPLE + offset, RETRY.from, RETRY.to)),
     said     : offsets.map((offset) => wordAt(SAMPLE + offset)),

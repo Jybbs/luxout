@@ -28,12 +28,12 @@
 
 .rounded-place-dim {
   fill         : none;
-  stroke       : #5c5c58;
+  stroke       : #5d5950;
   stroke-width : 1;
 }
 
 .rounded-place-word {
-  fill      : #5c5c58;
+  fill      : #5d5950;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -50,8 +50,8 @@
 
   .rounded-place-dot { fill: #1a1a1a; }
 
-  .rounded-place-dim { stroke: #a6a6a1; }
+  .rounded-place-dim { stroke: #b3ada1; }
 
-  .rounded-place-word { fill: #a6a6a1; }
+  .rounded-place-word { fill: #b3ada1; }
 }
 </style></svg>

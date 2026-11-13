@@ -1,21 +1,21 @@
 .widget {
   --widget-accent   : var(--vp-c-brand-1);
-  --widget-area     : var(--luxout-accent-4, #e8876f);
-  --widget-display  : var(--luxout-font-display, var(--vp-font-family-base));
-  --widget-estimate : var(--luxout-accent-1, #5069ad);
-  --widget-fallback : var(--luxout-warning, #b77610);
-  --widget-forecast : var(--luxout-accent-2, #4b8488);
-  --widget-geometry : var(--luxout-accent-3, #8a80cb);
+  --widget-area     : var(--luxout-accent-4);
+  --widget-display  : var(--luxout-font-display);
+  --widget-estimate : var(--luxout-accent-1);
+  --widget-fallback : var(--luxout-warning);
+  --widget-forecast : var(--luxout-accent-2);
+  --widget-geometry : var(--luxout-accent-3);
   --widget-ground   : var(--vp-c-bg);
   --widget-ink      : var(--vp-c-text-1);
   --widget-muted    : var(--vp-c-text-2);
   --widget-raised   : var(--vp-c-bg-elv);
   --widget-rule     : var(--vp-c-divider);
-  --widget-sensor   : var(--luxout-accent-5, #7db3e0);
+  --widget-sensor   : var(--luxout-accent-5);
   --widget-shadow   : color-mix(in srgb, var(--vp-c-text-1) 30%, transparent);
-  --widget-sky      : var(--luxout-primary, #e8c840);
+  --widget-sky      : var(--luxout-primary);
   --widget-sky-fill : color-mix(in srgb, var(--widget-sky) 62%, var(--widget-ground));
-  --widget-sunken   : var(--luxout-sunken, var(--vp-c-bg-soft));
+  --widget-sunken   : var(--luxout-sunken);
 
   container-type : inline-size;
   margin-block   : 16px;

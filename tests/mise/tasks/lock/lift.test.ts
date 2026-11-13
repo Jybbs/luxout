@@ -24,14 +24,7 @@ const ADVISORIES = {
     { id: 3, url: 'https://github.com/advisories/GHSA-gggg-hhhh-iiii', vulnerable_versions: '<5.0.1' }
   ]
 }
-const CHECKOUT = '1'.repeat(40)
-const LIFTED   = '2'.repeat(40)
-const PINNED   = '3'.repeat(40)
-const RELOCK   = ['mise', 'run', 'lock:sync']
-const VERIFY   = ['mise', 'run', 'repo:verify']
-const ago      = (days: number): string => new Date(Date.now() - days * 86_400_000).toISOString()
-const json     = (value: unknown, status = 0): Answer => ({ status, stdout: JSON.stringify(value) })
-const root     = join(import.meta.dirname, '..', '..', '..', '..')
+const CHECKOUT                        = '1'.repeat(40)
 const CURRENT: Record<string, Answer> = {
   'bun audit --cwd . --json'            : json({}),
   'bun outdated --cwd .'                : outdated(),
@@ -41,66 +34,11 @@ const CURRENT: Record<string, Answer> = {
   'mise outdated --bump --json --local' : json({}),
   'mise version --json': json({ latest: '2026.9.18', version: '2026.10.12 macos-arm64 (2026-10-16)' })
 }
-const FILES = {
-  '.github/actions/provision/action.yml' : `runs:\n  steps:\n    - uses : jdx/mise-action@${PINNED}\n`,
-  '.github/workflows/release.yml'        : 'jobs:\n  publish:\n    steps:\n'
-                                         + `      - uses : actions/checkout@${CHECKOUT}\n`,
-  '.gitignore'                           : '/*.log\n/.cache/\n/bin/\n/tmp/\n',
-  '.mise/holds.toml'                     : '["@homebridge/hap-nodejs"]\nfollows = "homebridge"\n\n'
-                                         + '["@types/node"]\nreason = "Stays on the 22 line"\n',
-  '.mise/tasks/plugin/lines.toml'        : '["plugin:test:22"]\ntools = { node = "22.23.3" }\n\n'
-                                         + '["plugin:test:24"]\ntools = { node = "24.21.0" }\n',
-  'site/package.json': JSON.stringify({ devDependencies: { vitest: '5.0.3' } }, null, 2) + '\n',
-
-  'tests/homebridge/package.json': JSON.stringify({
-    dependencies: { 'homebridge-config-ui-x': '5.29.0' }
-  }, null, 2) + '\n',
-  'tests/vet/pinned/package.json': JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2) + '\n',
-
-  '.github/workflows/ci.yml': [
-    'jobs:',
-    '  check:',
-    '    steps:',
-    `      - uses : actions/checkout@${CHECKOUT}`,
-    '',
-    '    strategy:',
-    '      matrix:',
-    '        include:',
-    '          - task  : plugin:test:22',
-    '            tools : bun jq node@22.23.3',
-    '',
-    '          - task  : plugin:test:24',
-    '            tools : bun jq node@24.21.0',
-    ''
-  ].join('\n'),
-
-  '.mise/config.toml': [
-    'min_version = "2026.9.18"',
-    '',
-    '[tools]',
-    'bun    = "1.4.2"',
-    'node   = "26.10.0"',
-    'zizmor = "1.30.1"',
-    ''
-  ].join('\n'),
-
-  'package.json': JSON.stringify({
-    devDependencies : { '@types/node': '22.20.5', unbash: '5.0.0', vitest: '5.0.3' },
-    engines         : { node: '^22.23.3 || ^24.21.0 || ^26.10.0' }
-  }, null, 2) + '\n'
-}
-const LIVE: Record<string, unknown> = {
-  'repos/actions/checkout/commits/v6.0.0'    : { sha: LIFTED },
-  'repos/actions/checkout/releases/latest'   : { published_at: ago(3), tag_name: 'v6.0.0' },
-  'repos/jdx/mise-action/commits/v5.1.1'     : { sha: PINNED },
-  'repos/jdx/mise-action/releases/latest'    : { published_at: ago(9), tag_name: 'v5.1.1' },
-  'repos/actions/checkout/tags?per_page=100' : [[
-    { commit: { sha: CHECKOUT }, name: 'v5' },
-    { commit: { sha: LIFTED }, name: 'v6.0.0' },
-    { commit: { sha: CHECKOUT }, name: 'v5.1.0' }
-  ]]
-}
-const release = (days: number, version: string): Answer => json([{ created_at: ago(days), version }])
+const LIFTED                         = '2'.repeat(40)
+const PINNED                         = '3'.repeat(40)
+const RELOCK                         = ['mise', 'run', 'lock:sync']
+const VERIFY                         = ['mise', 'run', 'repo:verify']
+const root                           = join(import.meta.dirname, '..', '..', '..', '..')
 const CANNED: Record<string, Answer> = {
   'bun audit --cwd site --json'                    : json({}),
   'bun audit --cwd tests/homebridge --json'        : json({}),
@@ -161,6 +99,65 @@ const CANNED: Record<string, Answer> = {
     { name: 'plugin:test:24', source: `${root}/.mise/tasks/plugin/lines.toml`, tools: { node: '24.21.0' } }
   ])
 }
+const FILES = {
+  '.github/actions/provision/action.yml' : `runs:\n  steps:\n    - uses : jdx/mise-action@${PINNED}\n`,
+  '.github/workflows/release.yml'        : 'jobs:\n  publish:\n    steps:\n'
+                                         + `      - uses : actions/checkout@${CHECKOUT}\n`,
+  '.gitignore'                           : '/*.log\n/.cache/\n/bin/\n/tmp/\n',
+  '.mise/holds.toml'                     : '["@homebridge/hap-nodejs"]\nfollows = "homebridge"\n\n'
+                                         + '["@types/node"]\nreason = "Stays on the 22 line"\n',
+  '.mise/tasks/plugin/lines.toml'        : '["plugin:test:22"]\ntools = { node = "22.23.3" }\n\n'
+                                         + '["plugin:test:24"]\ntools = { node = "24.21.0" }\n',
+  'site/package.json': JSON.stringify({ devDependencies: { vitest: '5.0.3' } }, null, 2) + '\n',
+
+  'tests/homebridge/package.json': JSON.stringify({
+    dependencies: { 'homebridge-config-ui-x': '5.29.0' }
+  }, null, 2) + '\n',
+  'tests/vet/pinned/package.json': JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2) + '\n',
+
+  '.github/workflows/ci.yml': [
+    'jobs:',
+    '  check:',
+    '    steps:',
+    `      - uses : actions/checkout@${CHECKOUT}`,
+    '',
+    '    strategy:',
+    '      matrix:',
+    '        include:',
+    '          - task  : plugin:test:22',
+    '            tools : bun jq node@22.23.3',
+    '',
+    '          - task  : plugin:test:24',
+    '            tools : bun jq node@24.21.0',
+    ''
+  ].join('\n'),
+
+  '.mise/config.toml': [
+    'min_version = "2026.9.18"',
+    '',
+    '[tools]',
+    'bun    = "1.4.2"',
+    'node   = "26.10.0"',
+    'zizmor = "1.30.1"',
+    ''
+  ].join('\n'),
+
+  'package.json': JSON.stringify({
+    devDependencies : { '@types/node': '22.20.5', unbash: '5.0.0', vitest: '5.0.3' },
+    engines         : { node: '^22.23.3 || ^24.21.0 || ^26.10.0' }
+  }, null, 2) + '\n'
+}
+const LIVE: Record<string, unknown> = {
+  'repos/actions/checkout/commits/v6.0.0'    : { sha: LIFTED },
+  'repos/actions/checkout/releases/latest'   : { published_at: ago(3), tag_name: 'v6.0.0' },
+  'repos/jdx/mise-action/commits/v5.1.1'     : { sha: PINNED },
+  'repos/jdx/mise-action/releases/latest'    : { published_at: ago(9), tag_name: 'v5.1.1' },
+  'repos/actions/checkout/tags?per_page=100' : [[
+    { commit: { sha: CHECKOUT }, name: 'v5' },
+    { commit: { sha: LIFTED }, name: 'v6.0.0' },
+    { commit: { sha: CHECKOUT }, name: 'v5.1.0' }
+  ]]
+}
 const LIFT = {
   ...FILES,
   '.mise/config.toml'             : 'min_version = "2026.10.12"\n\n[tools]\n'
@@ -182,6 +179,14 @@ const SETTLED: Record<string, unknown> = {
   ...LIVE,
   'repos/actions/checkout/commits/v5.1.0'  : { sha: CHECKOUT },
   'repos/actions/checkout/releases/latest' : { published_at: ago(30), tag_name: 'v5.1.0' }
+}
+
+function ago(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString()
+}
+
+function json(value: unknown, status = 0): Answer {
+  return { status, stdout: JSON.stringify(value) }
 }
 
 /**
@@ -264,6 +269,10 @@ async function read(scratch: string): Promise<Record<string, string>> {
     file,
     await readFile(join(scratch, file), 'utf8')
   ])))
+}
+
+function release(days: number, version: string): Answer {
+  return json([{ created_at: ago(days), version }])
 }
 
 function row(stdout: string, pin: string): string[] {

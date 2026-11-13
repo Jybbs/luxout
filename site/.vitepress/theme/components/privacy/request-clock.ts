@@ -5,7 +5,7 @@ import { tenth }                                from '../../../lib/daylight/tent
 import { FrameClock }                           from '../../../lib/motion/frame-clock.ts'
 import { DURATIONS, motionReduced, smoothstep } from '../../../lib/motion/timing.ts'
 import { data }                                 from '../../../lib/privacy/privacy.data.ts'
-import { type ClockKey, type ClockWord, RADII } from '../../../lib/privacy/request-clock.ts'
+import type { ClockKey, ClockWord }             from '../../../lib/privacy/request-clock.ts'
 import { Announcer }                            from '../../controls/announcer.ts'
 import { layers }                               from '../../controls/layers.ts'
 import { Tablist, tabPanel }                    from '../../controls/tablist.ts'
@@ -13,6 +13,7 @@ import { Tablist, tabPanel }                    from '../../controls/tablist.ts'
 import './styles/request-clock.css'
 
 const { clock } = data
+const { radii } = clock
 
 const CENTER = clock.side / 2
 const FADES  = { in: 16, out: 28 }  // The face's units a dot fades over, past the core and before `far`
@@ -47,7 +48,7 @@ class Journey {
     const [x, y] = clock.request
 
     return h('svg', { 'aria-hidden': true, viewBox: `0 0 ${clock.side} ${clock.side}` }, [
-      h('circle', { class: 'request-clock-hair', cx: CENTER, cy: CENTER, r: RADII.rim }),
+      h('circle', { class: 'request-clock-hair', cx: CENTER, cy: CENTER, r: radii.rim }),
       ...clock.minutes.map((d) => h('path', { class: 'request-clock-minute', d })),
       ...clock.ticks.map((d) => h('path', { class: 'request-clock-tick', d })),
       h('path', { class: 'request-clock-hand', d: clock.hand }),
@@ -101,8 +102,8 @@ class Journey {
    */
   #place(dot: SVGCircleElement, radius: number, on: boolean): void {
     const [x, y] = clock.heading
-    const rising = clamp((radius - RADII.core) / FADES.in, 0, 1)
-    const shown  = rising * clamp((RADII.far - radius) / FADES.out, 0, 1)
+    const rising = clamp((radius - radii.core) / FADES.in, 0, 1)
+    const shown  = rising * clamp((radii.far - radius) / FADES.out, 0, 1)
 
     dot.setAttribute('cx', String(tenth(CENTER + radius * x)))
     dot.setAttribute('cy', String(tenth(CENTER + radius * y)))
@@ -131,14 +132,14 @@ class Journey {
 
     const at    = now - this.#start
     const fails = clock.states[goal]!.key === 'fails'
-    const out   = fails ? leg * (RADII.rim - RADII.core) / (RADII.far - RADII.core) : leg
+    const out   = fails ? leg * (radii.rim - radii.core) / (radii.far - radii.core) : leg
     const due   = fails ? out : 2 * leg + hover
-    const reach = fails ? RADII.rim : RADII.far
+    const reach = fails ? radii.rim : radii.far
     const core  = this.core.value!
 
-    this.#place(this.#out.value!, RADII.core + (reach - RADII.core) * smoothstep(at / out), at < out)
+    this.#place(this.#out.value!, radii.core + (reach - radii.core) * smoothstep(at / out), at < out)
 
-    const back = RADII.far - (RADII.far - RADII.core) * smoothstep((at - due + leg) / leg)
+    const back = radii.far - (radii.far - radii.core) * smoothstep((at - due + leg) / leg)
 
     this.#place(this.#back.value!, back, !fails && at > due - leg && at < due)
 

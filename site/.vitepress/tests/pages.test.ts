@@ -71,7 +71,7 @@ const pageBlocks: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   },
 
   'sensors/thresholds.md': {
-    'gap-direction' : `A sensor ${gap.direction}.`,
+    'gap-direction' : blocks.gapDirection(gap),
     'gap-table'     : blocks.gapTable(gap)
   },
 
