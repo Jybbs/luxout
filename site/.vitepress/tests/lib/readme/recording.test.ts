@@ -5,7 +5,7 @@ import { record } from '../../../lib/readme/recording.ts'
 const PACING = { hold: 1000, seeds: [], step: 20 }
 
 /**
- * Draws a square of four pixels filled with `fill`.
+ * Draws a square four pixels on a side filled with `fill`.
  */
 function square(fill: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4">`

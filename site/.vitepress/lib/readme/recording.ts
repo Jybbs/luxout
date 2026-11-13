@@ -1,5 +1,5 @@
 import { Resvg }                                         from '@resvg/resvg-js'
-import { type Color, GIFEncoder, applyPalette, quantize } from 'gifenc'
+import { type Color, GIFEncoder, applyPalette, quantize } from 'gifenc/dist/gifenc.esm.js'
 
 import { channelsOf } from '../cards/sky.ts'
 
@@ -22,9 +22,9 @@ interface Pacing {
 }
 
 const CLOSE   = 12   // The squared distance in channel steps that marks a sampled color as one already held
-const COLORS  = 255  // The palette's colors, the 256th index left for the pixels a frame keeps
+const COLORS  = 255  // The most colors the palette holds, the next index left for the pixels a frame keeps
 const FILLER  = [255, 0, 255] as const
-const SAMPLES = 24   // The frames sampled across the recording for the palette's remaining colors
+const SAMPLES = 24   // The fewest frames sampled across the recording for the palette's remaining colors
 
 /**
  * Builds the palette from `seeds`, then fills the rest of it with the colors
@@ -44,13 +44,12 @@ function paletteOf(samples: readonly Uint8Array[], seeds: readonly string[]): Co
 }
 
 /**
- * Rasterizes `drawing` with no system fonts, its pixels copied out of the
- * shared buffer Node may return, since `gifenc` reads a whole buffer.
+ * Rasterizes `drawing` with no system fonts.
  */
 function raster(drawing: string): { height: number, pixels: Uint8Array, width: number } {
   const { height, pixels, width } = new Resvg(drawing, { font: { loadSystemFonts: false } }).render()
 
-  return { height, pixels: new Uint8Array(pixels), width }
+  return { height, pixels, width }
 }
 
 /**

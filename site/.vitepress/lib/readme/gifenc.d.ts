@@ -1,4 +1,4 @@
-declare module 'gifenc' {
+declare module 'gifenc/dist/gifenc.esm.js' {
   /**
    * A color as its red, green, and blue channels from 0 to 255.
    */
