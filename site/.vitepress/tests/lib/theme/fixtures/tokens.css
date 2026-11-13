@@ -1,3 +1,9 @@
+@theme {
+  --edge   : color-mix(in oklab, var(--wash) 100%, var(--ink));
+  --ground : #ffffff;
+  --wash   : color-mix(in srgb, var(--ink) 25%, var(--ground));
+}
+
 :root {
   --ground : #f2f1ee;
   --ink    : #1a1a1a;

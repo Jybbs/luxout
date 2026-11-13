@@ -10,13 +10,37 @@ import { Announcer }                            from '../../controls/announcer.t
 import { layers }                               from '../../controls/layers.tsx'
 import { Tablist, tabPanel }                    from '../../controls/tablist.tsx'
 
-import './styles/request-clock.css'
+/**
+ * The utilities the tabs beneath the face take.
+ */
+const CLASSES = {
+  list: [
+    'flex flex-wrap justify-center gap-x-5.5 border-b border-rule',
+    '@max-lg:grid @max-lg:grid-flow-col @max-lg:gap-x-4'
+  ],
+
+  tab: [
+    '-mb-px cursor-pointer border-b-2 border-transparent pt-1.5 pb-2 font-base text-[0.9rem]/[1.3]',
+    'text-muted transition-[color,border-color] [transition-duration:var(--timing-hover),var(--timing-move)]',
+    'aria-selected:border-ink aria-selected:text-ink @max-lg:text-[0.82rem]'
+  ]
+}
+/**
+ * The utilities of each mark on the face that shows only while the clock shows
+ * a failed request, each fading in after the lag its index `--i` sets.
+ */
+const LATER = [
+  'later opacity-0 transition-opacity duration-(--timing-fade)',
+  'group-data-[on=fails]:opacity-100 group-data-[on=fails]:duration-(--timing-enter)',
+  'group-data-[on=fails]:delay-[calc(var(--i)*var(--timing-lag))]'
+]
 
 const { clock } = data
 const { radii } = clock
 
 const CENTER = clock.side / 2
 const FADES  = { in: 16, out: 28 }  // The face's units a dot fades over, past the core and before `far`
+const QUIET  = 'transition-opacity duration-(--timing-fade) group-data-[on=fails]:opacity-0'
 const tabs   = clock.states.map(({ name }) => ({ label: name }))
 
 /**
@@ -48,18 +72,41 @@ class Journey {
     const [x, y] = clock.request
 
     return (
-      <svg aria-hidden viewBox={`0 0 ${clock.side} ${clock.side}`}>
-        <circle class="request-clock-hair" cx={CENTER} cy={CENTER} r={radii.rim} />
-        {...clock.minutes.map((d) => <path class="request-clock-minute" d={d} />)}
-        {...clock.ticks.map((d) => <path class="request-clock-tick" d={d} />)}
-        <path class="request-clock-hand" d={clock.hand} />
+      <svg
+        aria-hidden
+        class="absolute inset-0 size-full overflow-visible"
+        viewBox={`0 0 ${clock.side} ${clock.side}`}
+      >
+        <circle class="fill-none stroke-clock-scale stroke-[1.2]" cx={CENTER} cy={CENTER} r={radii.rim} />
+        {...clock.minutes.map((d) => <path class="stroke-clock-scale stroke-1" d={d} />)}
+        {...clock.ticks.map((d) => <path class="stroke-muted stroke-1" d={d} />)}
+        <path class="stroke-ink stroke-[1.5] [stroke-linecap:round]" d={clock.hand} />
         {...clock.retries.map((d, index) => (
-          <path class="request-clock-retry later" d={d} style={{ '--i': index }} />
+          <path
+            class={['request-clock-retry stroke-ink stroke-[1.4] [stroke-linecap:round]', ...LATER]}
+            d={d}
+            style={{ '--i': index }}
+          />
         ))}
-        <circle class="request-clock-dot" cx={x} cy={y} r={6} />
-        <path class="request-clock-cross" d={clock.cross} />
-        <circle class="request-clock-packet" opacity={0} r={4.5} ref={this.#out} />
-        <circle class="request-clock-packet request-clock-reply" opacity={0} r={4.5} ref={this.#back} />
+        <circle
+          class={[
+            'fill-forecast stroke-ground stroke-[1.5] transition-[opacity,r]',
+            '[transition-duration:var(--timing-fade),var(--timing-move)]',
+            'group-data-[on=fails]:opacity-0 group-data-[on=sends]:[r:8px]'
+          ]}
+          cx={x}
+          cy={y}
+          r={6}
+        />
+        <path
+          class={[
+            'fill-none stroke-ink stroke-[1.8] [stroke-linecap:round] opacity-0 transition-opacity',
+            'duration-(--timing-fade) group-data-[on=fails]:opacity-100'
+          ]}
+          d={clock.cross}
+        />
+        <circle class="fill-ink" opacity={0} r={4.5} ref={this.#out} />
+        <circle class="request-clock-reply fill-forecast" opacity={0} r={4.5} ref={this.#back} />
       </svg>
     )
   }
@@ -185,35 +232,59 @@ export const RequestClock = defineComponent({
       const state = clock.states[journey.shown.value]!
 
       return (
-        <div class="widget request-clock" ref={journey.root}>
-          <div aria-label={clock.label} class="request-clock-face" data-on={journey.on.value} role="img">
+        <div class="widget grid justify-items-center gap-3.5" ref={journey.root}>
+          <div
+            aria-label={clock.label}
+            class="request-clock-face group relative aspect-square w-full max-w-64 @container"
+            data-on={journey.on.value}
+            role="img"
+          >
             {journey.renderFace()}
-            <div aria-hidden class="request-clock-words">
-              {...clock.quarters.map((word) => hourWord(word, { quiet: word.quiet }))}
-              {...clock.said.map((word, index) => hourWord(word, { later: true, said: true }, index))}
+            <div aria-hidden class="pointer-events-none absolute inset-0">
+              {...clock.quarters.map((word) => hourWord(word, ['text-muted', word.quiet && QUIET]))}
+              {...clock.said.map((word, index) => hourWord(word, ['said text-ink', ...LATER], index))}
             </div>
-            <div aria-hidden class="request-clock-core" ref={journey.core}>
-              <b class={{ 'request-clock-figures': state.figures }}>{state.big}</b>
-              <span>{state.small}</span>
+            <div
+              aria-hidden
+              class={[
+                'request-clock-core pointer-events-none absolute inset-[30%] grid place-content-center',
+                'justify-items-center gap-1 text-center'
+              ]}
+              ref={journey.core}
+            >
+              <b
+                class={[
+                  'whitespace-pre-line tabular-nums',
+                  state.figures
+                    ? 'font-mono text-[clamp(1rem,7.2cqi,1.2rem)]/[1.2] font-medium'
+                    : 'font-display text-[clamp(1.3rem,10cqi,1.85rem)]/none font-semibold lining-nums'
+                ]}
+              >
+                {state.big}
+              </b>
+              <span class="max-w-32 text-[0.74rem]/[1.35] text-muted">{state.small}</span>
             </div>
             <span
               aria-hidden
-              class="request-clock-send"
+              class="request-clock-send absolute size-10 -translate-1/2 cursor-pointer rounded-full"
               onClick={() => journey.send()}
               style={at(clock.request)}
             />
           </div>
           <Tablist
+            classes={CLASSES}
             id={journey.id}
             label="What the clock face shows"
-            name="request-clock"
             onSelect={(index: number) => journey.select(index)}
             selected={journey.selected.value}
             tabs={tabs}
           >
             {{ default: ({ index }: { index: number }) => clock.states[index]!.name }}
           </Tablist>
-          <div {...tabPanel(journey.id, journey.selected.value)} class="request-clock-panel">
+          <div
+            {...tabPanel(journey.id, journey.selected.value)}
+            class="request-clock-panel w-full max-w-120 text-center [&_p]:m-0 [&_p]:text-[0.95rem]/[1.55]"
+          >
             {layers(clock.states.map(({ text }) => <p>{text}</p>), journey.selected.value)}
           </div>
           {journey.announcer.region}
@@ -229,10 +300,20 @@ function at([x, y]: readonly [x: number, y: number]): Record<string, string> {
 
 function hourWord(
   { left, top, word } : ClockWord,
-  classes             : Record<string, boolean>,
+  classes             : (false | string | undefined)[],
   index?              : number
 ): VNode {
   const style = { left: `${left}%`, top: `${top}%`, ...index === undefined ? {} : { '--i': index } }
 
-  return <span class={['request-clock-hour', classes]} style={style}>{word}</span>
+  return (
+    <span
+      class={[
+        'request-clock-hour absolute -translate-1/2 font-mono text-[0.62rem]/none font-medium tabular-nums',
+        ...classes
+      ]}
+      style={style}
+    >
+      {word}
+    </span>
+  )
 }

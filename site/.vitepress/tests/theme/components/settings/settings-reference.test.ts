@@ -14,8 +14,8 @@ function heads(host: HTMLElement): HTMLElement[] {
 }
 
 /**
- * Lays out every row as the sheet does, with a heading above a 1px border and
- * only the open row's panel showing its body.
+ * Lays out every row as the widget's utilities do, with a heading above a 1px
+ * border and only the open row's panel showing its body.
  */
 function laidOut(heading: number, body: number): void {
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
@@ -99,7 +99,7 @@ test('says on the card what the key does, what happens without it, and its line'
   expect(card.textContent).toContain(rows[0]!.does)
   expect(card.textContent).toContain(`Without it, ${rows[0]!.without}.`)
   expect(line.textContent).toBe(rows[0]!.line.map(({ text }) => text).join(''))
-  expect([...line.children].map(({ className }) => className))
+  expect([...line.children].map(({ classList }) => classList[0]))
     .toEqual(rows[0]!.line.map(({ kind }) => `settings-reference-${kind}`))
   expect(card.querySelector('.settings-reference-narrow')!.textContent)
     .toBe(`${rows[0]!.title} · default ${rows[0]!.fallback}`)

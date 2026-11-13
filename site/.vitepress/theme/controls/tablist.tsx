@@ -5,6 +5,14 @@ import { PAUSES }   from '../../lib/motion/timing.ts'
 import { FocusRow } from './focus-row.ts'
 
 /**
+ * The utilities the tablist and each of its tabs take.
+ */
+interface Classes {
+  readonly list : string | readonly string[]
+  readonly tab  : string | readonly string[]
+}
+
+/**
  * One tab, its accessible name beside the inline style its surface takes.
  */
 interface Tab {
@@ -22,9 +30,9 @@ export const Tablist = defineComponent({
   name  : 'Tablist',
 
   props: {
+    classes  : { required: true, type: Object as PropType<Classes> },
     id       : { required: true, type: String },
     label    : { required: true, type: String },
-    name     : { required: true, type: String },
     selected : { required: true, type: Number },
     tabs     : { required: true, type: Array as PropType<readonly Tab[]> }
   },
@@ -38,13 +46,13 @@ export const Tablist = defineComponent({
     }
 
     return () => (
-      <div aria-label={props.label} class={`${props.name}-tabs`} role="tablist">
+      <div aria-label={props.label} class={props.classes.list} role="tablist">
         {...props.tabs.map(({ label, style }, index) => (
           <button
             aria-controls={panelId(props.id)}
             aria-label={label}
             aria-selected={index === props.selected}
-            class={`${props.name}-tab`}
+            class={props.classes.tab}
             id={tabId(props.id, index)}
             onClick={() => select(index)}
             onKeydown={(event) => focus.move(event, index)}

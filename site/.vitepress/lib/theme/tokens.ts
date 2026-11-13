@@ -1,15 +1,29 @@
 import { readFile } from 'node:fs/promises'
 
-import { parse } from 'postcss'
+import { formatHex, interpolate } from 'culori'
+import { parse }                  from 'postcss'
 
 export type Scheme = (typeof SCHEMES)[number]
 
 export const SCHEMES = ['dark', 'light'] as const
 /**
+ * Matches a `color-mix()` of two colors, the first taking a share in percent.
+ */
+const MIX = /^color-mix\(in (oklab|srgb), (.+) ([\d.]+)%, (.+)\)$/
+/**
  * Lists the rules whose declarations reach each scheme, the later rule winning,
  * since VitePress sets the `dark` class on the root element in the dark scheme.
  */
-const SELECTORS = { dark: [':root', '.dark'], light: [':root'] } as const satisfies Record<Scheme, string[]>
+const SELECTORS = {
+  dark  : ['@theme', ':root', '.dark'],
+  light : ['@theme', ':root']
+} as const satisfies Record<Scheme, string[]>
+/**
+ * Names the culori mode each color space a `color-mix()` names mixes in.
+ */
+const SPACES = { oklab: 'oklab', srgb: 'rgb' } as const
+
+type Space = keyof typeof SPACES
 
 /**
  * The custom properties the theme's tokens stylesheet declares, read as each
@@ -19,10 +33,11 @@ export class Tokens {
   readonly #schemes: Record<Scheme, Map<string, string>>
 
   static parse(css: string): Tokens {
-    const rules   = parse(css).nodes.filter((node) => node.type === 'rule')
-    const declare = (selector: string) => rules
-      .filter((rule) => rule.selector === selector)
-      .flatMap((rule) => rule.nodes.filter((node) => node.type === 'decl'))
+    const { nodes } = parse(css)
+    const declare   = (selector: string) => nodes
+      .flatMap((node) => node.type === 'rule' && node.selector === selector
+                      || node.type === 'atrule' && `@${node.name}` === selector ? node.nodes ?? [] : [])
+      .filter((node) => node.type === 'decl')
       .map(({ prop, value }): [string, string] => [prop, value])
 
     return new Tokens({
@@ -41,6 +56,14 @@ export class Tokens {
 
   constructor(schemes: Record<Scheme, Map<string, string>>) {
     this.#schemes = schemes
+  }
+
+  /**
+   * Reads the color `property` holds in `scheme` as a hex code, mixing each
+   * `color-mix()` it holds in the space the call names.
+   */
+  color(property: string, scheme: Scheme): string {
+    return this.#paint(this.resolve(property, scheme), scheme)
   }
 
   /**
@@ -64,5 +87,16 @@ export class Tokens {
     if (value === undefined) throw new Error(`The tokens declare no ${property} in the ${scheme} scheme`)
 
     return this.follow(value, scheme)
+  }
+
+  #paint(value: string, scheme: Scheme): string {
+    const color                         = this.follow(value, scheme)
+    const [, space, ink, share, ground] = MIX.exec(color) ?? []
+
+    if (space === undefined) return formatHex(color)!
+
+    const mix = interpolate([this.#paint(ground!, scheme), this.#paint(ink!, scheme)], SPACES[space as Space])
+
+    return formatHex(mix(Number(share) / 100))
   }
 }

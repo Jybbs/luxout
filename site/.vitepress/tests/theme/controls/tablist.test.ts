@@ -10,7 +10,14 @@ import { test }                     from '../../common/mount.ts'
 const TABS = [{ label: 'One', style: { color: 'red' } }, { label: 'Two' }, { label: 'Three' }]
 
 function props(select: (index: number) => void): Record<string, unknown> {
-  return { id: 'row', label: 'The row', name: 'row', onSelect: select, selected: 1, tabs: TABS }
+  return {
+    classes  : { list: 'row-tabs', tab: 'row-tab' },
+    id       : 'row',
+    label    : 'The row',
+    onSelect : select,
+    selected : 1,
+    tabs     : TABS
+  }
 }
 
 test('marks the selected tab and leaves it the one tab stop', ({ mount }) => {

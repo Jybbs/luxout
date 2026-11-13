@@ -5,10 +5,16 @@ import { Window }                  from 'happy-dom'
 import { type Targets, transform } from 'lightningcss'
 import { resolveConfig }           from 'vite'
 
+import { LAYER } from '../config/layer.ts'
 import { Chunk } from './chunk.ts'
 import { Sheet } from './sheet.ts'
 
 const DIST = join('.vitepress', 'dist')
+/**
+ * Pairs each kind of query with the `@theme` namespace holding the widths it
+ * may name.
+ */
+const WIDTHS = [['container', 'container'], ['media', 'breakpoint']] as const
 
 /**
  * Holds the site `site:press` builds under `.vitepress/dist` beside the
@@ -55,7 +61,9 @@ export class Bundle {
       ...this.#pages.length === 0 ? [`${DIST}: holds no page to inspect`] : [],
       ...this.#chunks.flatMap(({ defects }) => defects),
       ...await this.#unmatched(),
-      ...await this.#folded()
+      ...await this.#folded(),
+      ...this.#layered(),
+      ...this.#outside()
     ]
 
     defects.forEach((defect) => write(defect))
@@ -76,6 +84,43 @@ export class Bundle {
     return this.#sources.flatMap(({ file, mixes }) => mixes
       .filter((mix) => !minified(mix, css.lightningcss?.targets).some((kept) => built.has(kept)))
       .map((mix) => `${file}: the minifier folds ${flat(mix)} into a fixed color`))
+  }
+
+  /**
+   * Lists each built stylesheet naming `LAYER` after another cascade layer, and
+   * each property a built rule sets outside every layer that no rule of the
+   * theme sets there, as a default-theme rule the plugin left unwrapped does.
+   */
+  #layered(): string[] {
+    const own = new Set(this.#sources.flatMap(({ unlayered }) => unlayered))
+
+    return this.#sheets.flatMap(({ file, layers, unlayered }) => [
+      ...layers.indexOf(LAYER) > 0 ? [`${file}: names the ${layers[0]} layer ahead of ${LAYER}`] : [],
+      ...unlayered.filter((set) => !own.has(set)).map((set) => `${file}: ${set} sits outside every layer`)
+    ])
+  }
+
+  /**
+   * Lists each defect of the built rules outside `LAYER`, meaning:
+   *
+   * - A query naming a width the theme's `@theme` declares none of
+   * - A color property set to a bare number, which no color is
+   * - A `color-mix()` toward black, which the minifier folds into another color
+   */
+  #outside(): string[] {
+    const widths = WIDTHS.map(([kind, namespace]) =>
+      [kind, new Set(this.#sources.flatMap((sheet) => sheet.theme(namespace)))] as const
+    )
+
+    return this.#sheets.map((sheet) => sheet.outside(LAYER)).flatMap((sheet) => [
+      ...widths.flatMap(([kind, declared]) => sheet.widths(kind)
+        .filter((width) => !declared.has(width))
+        .map((width) => `${sheet.file}: a ${kind} query names ${width}, a width the theme declares none of`)),
+      ...sheet.uncolored.map((set) => `${sheet.file}: ${set} sets a color to a number`),
+      ...sheet.mixes
+        .filter((mix) => /\bblack\b/.test(mix))
+        .map((mix) => `${sheet.file}: ${flat(mix)} mixes toward black`)
+    ])
   }
 
   /**

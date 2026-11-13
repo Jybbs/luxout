@@ -19,8 +19,25 @@ it('keeps a root property the dark rule leaves alone in the dark scheme', () => 
   expect(tokens.resolve('--ground', 'dark')).toBe('#f2f1ee')
 })
 
-it('reads no rule but the root and the dark ones', () => {
+it('reads no rule but the theme block, the root rule, and the dark rule', () => {
   expect(tokens.resolve('--ground', 'light')).toBe('#f2f1ee')
+})
+
+it('reads the theme block in each scheme, beneath the root and the dark rules', () => {
+  expect([tokens.resolve('--ground', 'light'), tokens.resolve('--wash', 'dark')])
+    .toEqual(['#f2f1ee', 'color-mix(in srgb, var(--ink) 25%, var(--ground))'])
+})
+
+it('mixes a color-mix() of two properties in sRGB as each scheme resolves them', () => {
+  expect([tokens.color('--wash', 'light'), tokens.color('--wash', 'dark')]).toEqual(['#bcbbb9', '#f2f1ee'])
+})
+
+it('mixes a color-mix() nested in another in the space the outer call names', () => {
+  expect(tokens.color('--edge', 'light')).toBe('#bcbbb9')
+})
+
+it('reads a color holding no color-mix() as its hex code', () => {
+  expect(tokens.color('--link', 'dark')).toBe('#f2f1ee')
 })
 
 it('follows a var() value to the value the property it names ends on', () => {

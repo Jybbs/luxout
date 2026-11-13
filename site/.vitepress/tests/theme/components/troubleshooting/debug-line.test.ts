@@ -24,7 +24,7 @@ test('prints the line as the Homebridge log does and reads it out once', ({ moun
 
   expect(host.querySelector('.debug-line-raw')!.textContent).toBe(line)
   expect(host.querySelector('.debug-line-raw')!.getAttribute('aria-hidden')).toBe('true')
-  expect(host.querySelector('.visually-hidden')!.textContent).toBe(`The line reads ${line}`)
+  expect(host.querySelector('.sr-only')!.textContent).toBe(`The line reads ${line}`)
 })
 
 test('labels a tab per field with its name and its value, in the line’s order', ({ mount }) => {

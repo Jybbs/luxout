@@ -13,10 +13,43 @@ import { layers }                   from '../../controls/layers.tsx'
 import { panelId, tabId, tabPanel } from '../../controls/tablist.tsx'
 import { dialDrawing }              from './dial-drawing.tsx'
 
-import './styles/day-estimate.css'
-
 const { marks, opens, stretches } = data
 
+/**
+ * The utilities the plot draws each mark of the dial in, by the class the mark
+ * carries, a stretch's bracket and reading lit while it is picked and its
+ * bracket alone drawn while it is peeked at.
+ */
+const MARKS = [
+  'day-estimate-plot relative [&>svg]:block [&>svg]:h-auto [&>svg]:w-full',
+  '[&_.day-estimate-wash-0]:fill-dial-wash-0 [&_.day-estimate-wash-1]:fill-dial-wash-1',
+  '[&_.day-estimate-wash-2]:fill-dial-wash-2 [&_.day-estimate-wash-3]:fill-dial-wash-3',
+  '[&_.day-estimate-sky]:fill-sky-fill',
+  '[&_:is(.day-estimate-edge,.day-estimate-rim,.day-estimate-floor,.day-estimate-quiet)]:fill-none',
+  '[&_:is(.day-estimate-cover,.day-estimate-fall,.day-estimate-tick)]:fill-none',
+  '[&_:is(.day-estimate-bracket,.day-estimate-line)]:fill-none',
+  '[&_.day-estimate-edge]:stroke-ink [&_.day-estimate-edge]:stroke-[1.2]',
+  '[&_.day-estimate-rim]:stroke-rule [&_.day-estimate-rim]:stroke-1',
+  '[&_.day-estimate-floor]:stroke-muted [&_.day-estimate-floor]:stroke-1',
+  '[&_.day-estimate-floor]:[stroke-dasharray:3_3]',
+  '[&_.day-estimate-quiet]:stroke-muted [&_.day-estimate-quiet]:stroke-[1.4]',
+  '[&_.day-estimate-quiet]:[stroke-linejoin:round]',
+  '[&_.day-estimate-cover]:stroke-forecast [&_.day-estimate-cover]:stroke-2',
+  '[&_.day-estimate-fall]:stroke-fallback [&_.day-estimate-fall]:stroke-[1.5]',
+  '[&_.day-estimate-fall]:[stroke-dasharray:4_3]',
+  '[&_.day-estimate-tick]:stroke-muted [&_.day-estimate-tick]:stroke-[1.2]',
+  '[&_:is(.day-estimate-tick,.day-estimate-bracket,.day-estimate-line)]:[stroke-linecap:round]',
+  '[&_.day-estimate-layer]:opacity-0 [&_.day-estimate-layer]:transition-opacity',
+  '[&_.day-estimate-layer]:duration-(--timing-fade)',
+  '[&_.day-estimate-layer:is([data-on],[data-peek])]:opacity-100',
+  '[&_.day-estimate-bracket]:stroke-ink [&_.day-estimate-bracket]:stroke-2',
+  '[&_.day-estimate-bracket]:transition-[stroke] [&_.day-estimate-bracket]:duration-(--timing-hover)',
+  '[&_.day-estimate-line]:stroke-estimate [&_.day-estimate-line]:stroke-[2.25]',
+  '[&_.day-estimate-line]:[stroke-linejoin:round] [&_.day-estimate-line]:transition-opacity',
+  '[&_.day-estimate-line]:duration-(--timing-fade)',
+  '[&_.day-estimate-layer[data-peek]:not([data-on])_.day-estimate-bracket]:stroke-muted',
+  '[&_.day-estimate-layer[data-peek]:not([data-on])_.day-estimate-line]:opacity-0'
+]
 const PEEK  = 1 / 3  // How far a twilight eases toward its quarter while a pointer rests on it
 const REACH = {
   floor : 0.9,  // The share of the floor ring's radius a pointer stays past to count as on the dial
@@ -221,21 +254,35 @@ export const DayEstimate = defineComponent({
 
       return (
         <div class="widget" ref={picker.root}>
-          <div class="day-estimate-board">
+          <div class="grid gap-3.5 @md:grid-cols-[384px_minmax(0,1fr)] @md:items-center @md:gap-6">
             <div
-              class="day-estimate-plot"
+              class={MARKS}
               onPointerdown={picker.onPointerdown}
               onPointerleave={picker.onPointerleave}
               onPointermove={picker.onPointermove}
               ref={picker.plot}
             >
               {dialDrawing(data, rest, selected, peek)}
-              <div aria-label="Stretches of the sample day" class="day-estimate-names" role="tablist">
+              <div
+                aria-label="Stretches of the sample day"
+                class="pointer-events-none absolute inset-0"
+                role="tablist"
+              >
                 {...stretches.map(({ name, place }, index) => (
                   <button
                     aria-controls={panelId(picker.id)}
                     aria-selected={index === selected}
-                    class={['day-estimate-tab', { peeked: index === peek }]}
+                    class={[
+                      'day-estimate-tab pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2',
+                      'rounded-sm px-1 py-0.5 text-[0.92rem]/[1.3] font-semibold whitespace-nowrap',
+                      'transition-colors duration-(--timing-hover) before:absolute before:-inset-1.5',
+                      '@max-md:text-[0.86rem]',
+                      index === selected
+                        ? 'cursor-default text-ink underline decoration-2 underline-offset-4'
+                        : index === peek
+                          ? 'peeked cursor-pointer text-ink'
+                          : 'cursor-pointer text-muted hover:text-ink'
+                    ]}
                     data-index={index}
                     id={tabId(picker.id, index)}
                     onBlur={() => picker.hold(-1)}
@@ -252,7 +299,14 @@ export const DayEstimate = defineComponent({
                   </button>
                 ))}
               </div>
-              <div aria-hidden class={['day-estimate-hub', { peeked: peek >= 0 }]}>
+              <div
+                aria-hidden
+                class={[
+                  'day-estimate-hub group pointer-events-none absolute top-1/2 left-1/2 w-[31%]',
+                  '-translate-x-1/2 -translate-y-1/2 text-center',
+                  { peeked: peek >= 0 }
+                ]}
+              >
                 {layers(stretches.map(hubWords), peek >= 0 ? peek : selected)}
               </div>
             </div>
@@ -269,22 +323,29 @@ export const DayEstimate = defineComponent({
 
 function hubWords({ caption, figure }: (typeof stretches)[number]): VNode {
   return (
-    <div class="day-estimate-hub-words">
-      <span class="day-estimate-figure">{figure}</span>
-      <span class="day-estimate-caption">{caption}</span>
+    <div class="grid h-full content-center justify-items-center gap-1.5">
+      <span
+        class={[
+          'day-estimate-figure font-display text-xl/none font-semibold whitespace-nowrap lining-nums',
+          'tabular-nums transition-colors duration-(--timing-hover) group-[.peeked]:text-muted'
+        ]}
+      >
+        {figure}
+      </span>
+      <span class="text-[0.72rem]/[1.3] text-balance text-muted">{caption}</span>
     </div>
   )
 }
 
 function sideWords({ caption, figure, name, span, why }: (typeof stretches)[number]): VNode {
   return (
-    <div class="day-estimate-words">
-      <p class="day-estimate-head">
-        <span class="day-estimate-name">{name}</span>
-        <span class="day-estimate-span widget-num">{span}</span>
+    <div class="grid gap-1.5">
+      <p class="m-0 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+        <span class="day-estimate-name font-display text-[1.05rem]/[1.3] font-semibold">{name}</span>
+        <span class="widget-num text-[0.8rem] text-muted">{span}</span>
       </p>
-      <p class="day-estimate-why">
-        <span class="visually-hidden">{`${figure} ${caption}. `}</span>
+      <p class="day-estimate-why m-0 text-[0.92rem]/[1.55] text-muted">
+        <span class="sr-only">{`${figure} ${caption}. `}</span>
         {why}
       </p>
     </div>

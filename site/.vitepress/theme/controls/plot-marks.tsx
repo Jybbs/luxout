@@ -37,7 +37,12 @@ export function plotDrawing(
  * unit of `width` and `height` scaling to that element, and hidden from the
  * accessibility tree.
  */
-export function plotMarks(name: string, width: number, height: number, children: VNode[]): VNode {
+export function plotMarks(
+  name     : string | readonly string[],
+  width    : number,
+  height   : number,
+  children : VNode[]
+): VNode {
   return (
     <svg aria-hidden class={name} preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`}>
       {...children}

@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 
+import tailwind         from '@tailwindcss/vite'
 import vueJsx           from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitepress'
 
@@ -8,6 +9,7 @@ import { renderCards }     from './lib/cards/render.ts'
 import { footnotesByWork } from './lib/citations/anchors.ts'
 import { transformHead }   from './lib/config/head.ts'
 import { favicons, title } from './lib/config/logo.ts'
+import { layerTheme }      from './lib/config/layer.ts'
 import { buildNavigation } from './lib/config/navigation.ts'
 import { transformPage }   from './lib/config/page-data.ts'
 import { SECTIONS }        from './lib/config/sections.ts'
@@ -38,6 +40,6 @@ export default defineConfig({
 
   vite: {
     css     : { transformer: 'lightningcss' },
-    plugins : [vueJsx({ tsTransform: 'built-in' })]
+    plugins : [layerTheme(), tailwind(), vueJsx({ tsTransform: 'built-in' })]
   }
 })
