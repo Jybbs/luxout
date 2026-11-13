@@ -5,7 +5,7 @@ import { nextTick }                           from 'vue'
 
 import { DIAL, DialPlot, type Half } from '../../../../lib/daylight/dial-lens.ts'
 import { DURATIONS, PAUSES }         from '../../../../lib/motion/timing.ts'
-import { DayEstimate }               from '../../../../theme/components/daylight/day-estimate.ts'
+import { DayEstimate }               from '../../../../theme/components/daylight/day-estimate.tsx'
 import { data }                      from '../../../common/data/day-dial.ts'
 import { test }                      from '../../../common/mount.ts'
 

@@ -1,17 +1,17 @@
 import { useTimeoutFn } from '@vueuse/core'
 import { range }        from 'd3-array'
-import { type VNode, defineComponent, h, onMounted, shallowRef, useId } from 'vue'
+import { type VNode, defineComponent, onMounted, shallowRef, useId } from 'vue'
 
 import { DAY_MINUTES }              from '../../../lib/daylight/clock.ts'
 import { data }                     from '../../../lib/daylight/day-dial.data.ts'
 import * as dialLens                from '../../../lib/daylight/dial-lens.ts'
 import { Glide }                    from '../../../lib/motion/glide.ts'
 import { DURATIONS, PAUSES }        from '../../../lib/motion/timing.ts'
-import { Announcer }                from '../../controls/announcer.ts'
+import { Announcer }                from '../../controls/announcer.tsx'
 import { FocusRow }                 from '../../controls/focus-row.ts'
-import { layers }                   from '../../controls/layers.ts'
-import { panelId, tabId, tabPanel } from '../../controls/tablist.ts'
-import { dialDrawing }              from './dial-drawing.ts'
+import { layers }                   from '../../controls/layers.tsx'
+import { panelId, tabId, tabPanel } from '../../controls/tablist.tsx'
+import { dialDrawing }              from './dial-drawing.tsx'
 
 import './styles/day-estimate.css'
 
@@ -219,80 +219,74 @@ export const DayEstimate = defineComponent({
       const selected = picker.selected.value
       const peek     = picker.peek.value
 
-      return h('div', { class: 'widget', ref: picker.root }, h(
-        'div',
-        { class: 'day-estimate-board' },
-        [
-          h(
-            'div',
-            {
-              class          : 'day-estimate-plot',
-              onPointerdown  : picker.onPointerdown,
-              onPointerleave : picker.onPointerleave,
-              onPointermove  : picker.onPointermove,
-              ref            : picker.plot
-            },
-            [
-              dialDrawing(data, rest, selected, peek),
-              h(
-                'div',
-                { 'aria-label': 'Stretches of the sample day', class: 'day-estimate-names', role: 'tablist' },
-                stretches.map(({ name, place }, index) => h(
-                  'button',
-                  {
-                    'aria-controls' : panelId(picker.id),
-                    'aria-selected' : index === selected,
-                    class           : ['day-estimate-tab', { peeked: index === peek }],
-                    'data-index'    : index,
-                    id              : tabId(picker.id, index),
-                    onBlur          : () => picker.hold(-1),
-                    onClick         : () => picker.pick(index),
-                    onFocus         : () => picker.hold(index),
-                    onKeydown       : (event: KeyboardEvent) => picker.names.move(event, index),
-                    ref             : (element: unknown) => picker.names.keep(element, index),
-                    role            : 'tab',
-                    style           : { left: `${place.left}%`, top: `${place.top}%` },
-                    tabindex        : index === selected ? 0 : -1,
-                    type            : 'button'
-                  },
-                  name
-                ))
-              ),
-              h(
-                'div',
-                { 'aria-hidden': true, class: ['day-estimate-hub', { peeked: peek >= 0 }] },
-                layers(stretches.map(hubWords), peek >= 0 ? peek : selected)
-              )
-            ]
-          ),
-          h(
-            'div',
-            { ...tabPanel(picker.id, selected), class: 'day-estimate-side' },
-            layers(stretches.map(sideWords), selected)
-          ),
-          picker.announcer.region
-        ]
-      ))
+      return (
+        <div class="widget" ref={picker.root}>
+          <div class="day-estimate-board">
+            <div
+              class="day-estimate-plot"
+              onPointerdown={picker.onPointerdown}
+              onPointerleave={picker.onPointerleave}
+              onPointermove={picker.onPointermove}
+              ref={picker.plot}
+            >
+              {dialDrawing(data, rest, selected, peek)}
+              <div aria-label="Stretches of the sample day" class="day-estimate-names" role="tablist">
+                {...stretches.map(({ name, place }, index) => (
+                  <button
+                    aria-controls={panelId(picker.id)}
+                    aria-selected={index === selected}
+                    class={['day-estimate-tab', { peeked: index === peek }]}
+                    data-index={index}
+                    id={tabId(picker.id, index)}
+                    onBlur={() => picker.hold(-1)}
+                    onClick={() => picker.pick(index)}
+                    onFocus={() => picker.hold(index)}
+                    onKeydown={(event) => picker.names.move(event, index)}
+                    ref={(element) => picker.names.keep(element, index)}
+                    role="tab"
+                    style={{ left: `${place.left}%`, top: `${place.top}%` }}
+                    tabindex={index === selected ? 0 : -1}
+                    type="button"
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+              <div aria-hidden class={['day-estimate-hub', { peeked: peek >= 0 }]}>
+                {layers(stretches.map(hubWords), peek >= 0 ? peek : selected)}
+              </div>
+            </div>
+            <div {...tabPanel(picker.id, selected)} class="day-estimate-side">
+              {layers(stretches.map(sideWords), selected)}
+            </div>
+            {picker.announcer.region}
+          </div>
+        </div>
+      )
     }
   }
 })
 
 function hubWords({ caption, figure }: (typeof stretches)[number]): VNode {
-  return h('div', { class: 'day-estimate-hub-words' }, [
-    h('span', { class: 'day-estimate-figure' }, figure),
-    h('span', { class: 'day-estimate-caption' }, caption)
-  ])
+  return (
+    <div class="day-estimate-hub-words">
+      <span class="day-estimate-figure">{figure}</span>
+      <span class="day-estimate-caption">{caption}</span>
+    </div>
+  )
 }
 
 function sideWords({ caption, figure, name, span, why }: (typeof stretches)[number]): VNode {
-  return h('div', { class: 'day-estimate-words' }, [
-    h('p', { class: 'day-estimate-head' }, [
-      h('span', { class: 'day-estimate-name' }, name),
-      h('span', { class: 'day-estimate-span widget-num' }, span)
-    ]),
-    h('p', { class: 'day-estimate-why' }, [
-      h('span', { class: 'visually-hidden' }, `${figure} ${caption}. `),
-      why
-    ])
-  ])
+  return (
+    <div class="day-estimate-words">
+      <p class="day-estimate-head">
+        <span class="day-estimate-name">{name}</span>
+        <span class="day-estimate-span widget-num">{span}</span>
+      </p>
+      <p class="day-estimate-why">
+        <span class="visually-hidden">{`${figure} ${caption}. `}</span>
+        {why}
+      </p>
+    </div>
+  )
 }

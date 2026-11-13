@@ -1,7 +1,7 @@
-import { type VNode, h } from 'vue'
+import type { VNode } from 'vue'
 
 import type { TwilightBridge } from '../../../lib/daylight/twilight-bridge.ts'
-import { plotMarks }           from '../../controls/plot-marks.ts'
+import { plotMarks }           from '../../controls/plot-marks.tsx'
 
 /**
  * Draws the marks of The Twilight Bridge, the clear-sky curve as a fill beneath
@@ -14,15 +14,15 @@ export function bridgeDrawing(sample: TwilightBridge): VNode {
   const cutX = x[cut]!
 
   return plotMarks('twilight-bridge-marks', width, height, [
-    h('rect', { class: 'twilight-bridge-wash', height, width: cutX }),
-    h('path', { class: 'twilight-bridge-sky', d: area }),
-    h('path', { class: 'twilight-bridge-grid', d: grid }),
-    h('path', { class: 'twilight-bridge-axis', d: axis }),
-    h('path', { class: 'twilight-bridge-axis twilight-bridge-minor', d: minor }),
-    h('path', { class: 'twilight-bridge-roof', d: `M0 0H${cutX}` }),
-    h('path', { class: 'twilight-bridge-cut', d: `M${cutX} 0V${y[cut]}` }),
-    h('path', { class: 'twilight-bridge-edge', d: edge }),
-    h('path', { class: 'twilight-bridge-drop', d: dropAt(sample, rest) })
+    <rect class="twilight-bridge-wash" height={height} width={cutX} />,
+    <path class="twilight-bridge-sky" d={area} />,
+    <path class="twilight-bridge-grid" d={grid} />,
+    <path class="twilight-bridge-axis" d={axis} />,
+    <path class="twilight-bridge-axis twilight-bridge-minor" d={minor} />,
+    <path class="twilight-bridge-roof" d={`M0 0H${cutX}`} />,
+    <path class="twilight-bridge-cut" d={`M${cutX} 0V${y[cut]}`} />,
+    <path class="twilight-bridge-edge" d={edge} />,
+    <path class="twilight-bridge-drop" d={dropAt(sample, rest)} />
   ])
 }
 

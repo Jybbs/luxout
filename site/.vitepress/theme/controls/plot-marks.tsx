@@ -1,4 +1,4 @@
-import { type VNode, h } from 'vue'
+import type { VNode } from 'vue'
 
 import { tenth } from '../../lib/daylight/tenth.ts'
 
@@ -19,16 +19,16 @@ export function plotDrawing(
   height   : number,
   children : VNode[]
 ): VNode {
-  return h(
-    'svg',
-    {
-      'aria-label' : label,
-      class        : name,
-      role         : 'img',
-      viewBox      : `0 0 ${width} ${height}`,
-      xmlns        : 'http://www.w3.org/2000/svg'
-    },
-    children
+  return (
+    <svg
+      aria-label={label}
+      class={name}
+      role="img"
+      viewBox={`0 0 ${width} ${height}`}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {...children}
+    </svg>
   )
 }
 
@@ -38,10 +38,10 @@ export function plotDrawing(
  * accessibility tree.
  */
 export function plotMarks(name: string, width: number, height: number, children: VNode[]): VNode {
-  return h(
-    'svg',
-    { 'aria-hidden': true, class: name, preserveAspectRatio: 'none', viewBox: `0 0 ${width} ${height}` },
-    children
+  return (
+    <svg aria-hidden class={name} preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`}>
+      {...children}
+    </svg>
   )
 }
 
@@ -55,9 +55,9 @@ export function plotWords(plain: string) {
     x                              : number,
     y                              : number,
     { anchor, name = plain, size } : WordStyle = {}
-  ): VNode => h(
-    'text',
-    { class: name, 'dominant-baseline': 'central', 'font-size': size, 'text-anchor': anchor, x, y: tenth(y) },
-    text
+  ): VNode => (
+    <text class={name} dominant-baseline="central" font-size={size} text-anchor={anchor} x={x} y={tenth(y)}>
+      {text}
+    </text>
   )
 }

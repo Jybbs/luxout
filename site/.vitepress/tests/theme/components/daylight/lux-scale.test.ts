@@ -3,7 +3,7 @@ import { fireEvent, getAllByRole, getByRole } from '@testing-library/dom'
 import { expect, vi }                         from 'vitest'
 import { h, nextTick }                        from 'vue'
 
-import { LuxScale } from '../../../../theme/components/daylight/lux-scale.ts'
+import { LuxScale } from '../../../../theme/components/daylight/lux-scale.tsx'
 import { data }     from '../../../common/data/daylight.ts'
 import { test }     from '../../../common/mount.ts'
 

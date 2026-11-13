@@ -2,7 +2,7 @@
 import { expect } from 'vitest'
 import { h }      from 'vue'
 
-import { TableFold } from '../../../theme/controls/table-fold.ts'
+import { TableFold } from '../../../theme/controls/table-fold.tsx'
 import { test }      from '../../common/mount.ts'
 
 test('folds its slot shut beneath the summary, leaving the table in the page', ({ mount }) => {

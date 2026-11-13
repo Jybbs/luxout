@@ -4,7 +4,7 @@ import { expect, vi }              from 'vitest'
 import { nextTick }                from 'vue'
 
 import { PAUSES }       from '../../../../lib/motion/timing.ts'
-import { RoundedPlace } from '../../../../theme/components/privacy/rounded-place.ts'
+import { RoundedPlace } from '../../../../theme/components/privacy/rounded-place.tsx'
 import { data }         from '../../../common/data/privacy.ts'
 import { test }         from '../../../common/mount.ts'
 

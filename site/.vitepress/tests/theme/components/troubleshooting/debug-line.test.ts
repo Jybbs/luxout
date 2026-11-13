@@ -3,7 +3,7 @@ import { fireEvent, getAllByRole, getByRole } from '@testing-library/dom'
 import { expect, vi }                         from 'vitest'
 import { nextTick }                           from 'vue'
 
-import { DebugLine } from '../../../../theme/components/troubleshooting/debug-line.ts'
+import { DebugLine } from '../../../../theme/components/troubleshooting/debug-line.tsx'
 import { data }      from '../../../common/data/debug-line.ts'
 import { test }      from '../../../common/mount.ts'
 

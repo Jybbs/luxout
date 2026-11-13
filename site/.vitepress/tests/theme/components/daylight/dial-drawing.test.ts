@@ -2,7 +2,7 @@
 import { expect } from 'vitest'
 
 import * as dialLens   from '../../../../lib/daylight/dial-lens.ts'
-import { dialDrawing } from '../../../../theme/components/daylight/dial-drawing.ts'
+import { dialDrawing } from '../../../../theme/components/daylight/dial-drawing.tsx'
 import { data }        from '../../../common/data/day-dial.ts'
 import { test }        from '../../../common/mount.ts'
 

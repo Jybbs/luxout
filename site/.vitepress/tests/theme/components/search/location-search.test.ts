@@ -5,7 +5,7 @@ import { createSSRApp, h, nextTick }          from 'vue'
 import { renderToString }                     from 'vue/server-renderer'
 
 import { PAUSES }         from '../../../../lib/motion/timing.ts'
-import { LocationSearch } from '../../../../theme/components/search/location-search.ts'
+import { LocationSearch } from '../../../../theme/components/search/location-search.tsx'
 import { data }           from '../../../common/data/search.ts'
 import { test }           from '../../../common/mount.ts'
 

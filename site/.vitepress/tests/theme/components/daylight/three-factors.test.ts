@@ -4,7 +4,7 @@ import { expect, vi }                         from 'vitest'
 import { nextTick }                           from 'vue'
 
 import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { ThreeFactors }      from '../../../../theme/components/daylight/three-factors.ts'
+import { ThreeFactors }      from '../../../../theme/components/daylight/three-factors.tsx'
 import { data }              from '../../../common/data/factor-day.ts'
 import { pressable, test }   from '../../../common/mount.ts'
 

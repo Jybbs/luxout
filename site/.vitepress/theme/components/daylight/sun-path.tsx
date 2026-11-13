@@ -1,5 +1,5 @@
 import { range } from 'd3-array'
-import { type VNode, defineComponent, h, onMounted, shallowRef, useId } from 'vue'
+import { type VNode, defineComponent, onMounted, shallowRef, useId } from 'vue'
 
 import { DAY_MINUTES }                  from '../../../lib/daylight/clock.ts'
 import { formatClock, formatDayOfYear } from '../../../lib/daylight/format.ts'
@@ -7,11 +7,11 @@ import * as curve                       from '../../../lib/daylight/sun-curve.ts
 import { data }                         from '../../../lib/daylight/sun-year.data.ts'
 import { Glide }                        from '../../../lib/motion/glide.ts'
 import { DURATIONS }                    from '../../../lib/motion/timing.ts'
-import { Announcer }                    from '../../controls/announcer.ts'
-import { layers }                       from '../../controls/layers.ts'
-import { moreButton }                   from '../../controls/more-button.ts'
+import { Announcer }                    from '../../controls/announcer.tsx'
+import { layers }                       from '../../controls/layers.tsx'
+import { moreButton }                   from '../../controls/more-button.tsx'
 import { PlotSlider, shareAcross }      from '../../controls/plot-slider.ts'
-import { sunDrawing }                   from './sun-drawing.ts'
+import { sunDrawing }                   from './sun-drawing.tsx'
 
 import './styles/sun-path.css'
 
@@ -166,11 +166,18 @@ class SunWatch {
   readonly open      = shallowRef(false)
   readonly root      = shallowRef<HTMLElement>()
 
+  #day                  = sample
+  readonly #dayGlide    : Glide
+  #grab                 = 0
+  #handle               : HTMLElement | undefined
+  #minute               = rest
+  readonly #minuteGlide : Glide
+
   /**
    * Holds how far from the thumb's center a press lands, ahead of the slider's
    * own press, so a press on the thumb leaves the day where it stands.
    */
-  readonly onPress = (event: PointerEvent): void => {
+  readonly #onPress = (event: PointerEvent): void => {
     const box = this.#thumb!.getBoundingClientRect()
 
     this.#grab = this.#thumb === event.target ? event.clientX - box.left - box.width / 2 : 0
@@ -180,7 +187,7 @@ class SunWatch {
    * Steps Page Up and Page Down to the next and the previous day the drawing
    * holds a curve for, leaving every other key to the slider.
    */
-  readonly onYearKey = (event: KeyboardEvent): void => {
+  readonly #onYearKey = (event: KeyboardEvent): void => {
     const now  = this.#dayGlide.goal
     const goal = {
       PageDown : marks.findLast(({ day }) => day < now)?.day ?? 0,
@@ -197,12 +204,6 @@ class SunWatch {
     this.#dayGlide.ease(goal)
   }
 
-  #day                  = sample
-  readonly #dayGlide    : Glide
-  #grab                 = 0
-  #handle               : HTMLElement | undefined
-  #minute               = rest
-  readonly #minuteGlide : Glide
   #plots                : readonly SunPlot[] = []
   #thumb                : HTMLElement | undefined
   #track                : HTMLElement | undefined
@@ -238,6 +239,19 @@ class SunWatch {
     })
 
     onMounted(() => this.#mount())
+  }
+
+  /**
+   * Builds the year track's attributes from the slider's own, with a key
+   * handler that steps between curves on Page Up and Page Down in place of the
+   * slider's and a press handler that keeps the day under the thumb.
+   */
+  get track() {
+    return {
+      ...this.dates.attributes(`Day of ${year}`, sample),
+      onKeydown            : this.#onYearKey,
+      onPointerdownCapture : this.#onPress
+    }
   }
 
   /**
@@ -335,52 +349,51 @@ export const SunPath = defineComponent({
     const glow  = useId()
     const words = curve.sunPhrase(days[sample]!, sunAltitude(sample, rest), rest)
 
-    return () => h('div', { class: ['widget', 'sun-path', { year: watch.open.value }], ref: watch.root }, [
-      h('div', { class: 'sun-path-lede' }, slots.default?.()),
-      h('div', { class: 'sun-path-plot' }, [
-        curve.SUN_LAYOUTS.map((layout, index) => sunDrawing(layout, data, `${glow}-${index}`, grip(layout))),
-        h('div', {
-          class: 'widget-slider',
-          ...watch.clock.attributes('Time of day', rest, `${formatClock(rest)}, ${words}`)
-        })
-      ]),
-      h('div', { class: 'sun-path-foot' }, [
-        h('div', { id: watch.id }, layers(
-          [
-            h('p', { class: 'sun-path-note' }, [
-              h('b', { class: 'sun-path-clock widget-num' }, formatClock(rest)),
-              ' · ',
-              h('span', { class: 'sun-path-phrase' }, words)
-            ]),
-            h('div', [
-              h(
-                'div',
-                {
-                  class: 'widget-track sun-path-track',
-                  ...watch.dates.attributes(`Day of ${year}`, sample),
-                  onKeydown            : watch.onYearKey,
-                  onPointerdownCapture : watch.onPress
-                },
-                [
-                  h('span', { class: 'widget-rail' }),
-                  ...marks.map(({ day, named }) => h('span', {
-                    class : ['widget-tick', { 'sun-path-named': named }],
-                    style : { left: lefts[day] }
-                  })),
-                  h('span', { class: 'widget-thumb sun-path-thumb', style: { left: lefts[sample] } })
-                ]
-              ),
-              h('div', { 'aria-hidden': true, class: 'sun-path-months' }, months.map(({ left, word }) =>
-                h('span', { style: { left: `${left}%` } }, word)
-              ))
-            ])
-          ],
-          watch.open.value ? 1 : 0
-        )),
-        moreButton(watch.id, 'The year', watch.open.value, () => watch.toggle())
-      ]),
-      watch.announcer.region
-    ])
+    return () => (
+      <div class={['widget', 'sun-path', { year: watch.open.value }]} ref={watch.root}>
+        <div class="sun-path-lede">{...(slots.default?.() ?? [])}</div>
+        <div class="sun-path-plot">
+          {curve.SUN_LAYOUTS.map((layout, index) => (
+            sunDrawing(layout, data, `${glow}-${index}`, grip(layout))
+          ))}
+          <div
+            class="widget-slider"
+            {...watch.clock.attributes('Time of day', rest, `${formatClock(rest)}, ${words}`)}
+          />
+        </div>
+        <div class="sun-path-foot">
+          <div id={watch.id}>
+            {layers(
+              [
+                <p class="sun-path-note">
+                  <b class="sun-path-clock widget-num">{formatClock(rest)}</b>
+                  {' · '}
+                  <span class="sun-path-phrase">{words}</span>
+                </p>,
+                <div>
+                  <div class="widget-track sun-path-track" {...watch.track}>
+                    <span class="widget-rail" />
+                    {...marks.map(({ day, named }) => (
+                      <span
+                        class={['widget-tick', { 'sun-path-named': named }]}
+                        style={{ left: lefts[day] }}
+                      />
+                    ))}
+                    <span class="widget-thumb sun-path-thumb" style={{ left: lefts[sample] }} />
+                  </div>
+                  <div aria-hidden class="sun-path-months">
+                    {...months.map(({ left, word }) => <span style={{ left: `${left}%` }}>{word}</span>)}
+                  </div>
+                </div>
+              ],
+              watch.open.value ? 1 : 0
+            )}
+          </div>
+          {moreButton(watch.id, 'The year', watch.open.value, () => watch.toggle())}
+        </div>
+        {watch.announcer.region}
+      </div>
+    )
   }
 })
 
@@ -389,10 +402,10 @@ function dayName(index: number): string {
 }
 
 function grip(layout: curve.SunLayout): VNode {
-  return h(
-    'g',
-    { class: 'sun-path-grip', transform: layout.moveAcross(rest) },
-    h('circle', { class: 'sun-path-grip-face', cy: layout.horizon, r: 8 })
+  return (
+    <g class="sun-path-grip" transform={layout.moveAcross(rest)}>
+      <circle class="sun-path-grip-face" cy={layout.horizon} r={8} />
+    </g>
   )
 }
 

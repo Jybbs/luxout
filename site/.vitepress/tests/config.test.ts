@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { join }     from 'node:path'
 
+import type { Plugin, UserConfig }      from 'vite'
 import { type PageData, resolveConfig } from 'vitepress'
 import { expect, it }                   from 'vitest'
 
@@ -70,6 +71,14 @@ it('renders the value transformPageData sets wherever a page interpolates a fact
 
 it('serves the CSS the build ships, through Lightning CSS', () => {
   expect(config.vite?.css?.transformer).toBe('lightningcss')
+})
+
+it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to Vite’s own transform', () => {
+  const jsx  = config.vite?.plugins?.[0] as Plugin
+  const hook = jsx.config as (this: object, config: UserConfig) => UserConfig
+
+  expect(jsx.name).toBe('vite:vue-jsx')
+  expect(hook.call({ meta: { rolldownVersion: '' } }, {}).oxc).toEqual({ exclude: /\.jsx?$/ })
 })
 
 it('links each page by its address without the .html extension', () => {

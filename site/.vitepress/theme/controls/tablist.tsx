@@ -1,5 +1,5 @@
-import { useTimeoutFn }                      from '@vueuse/core'
-import { type PropType, defineComponent, h } from 'vue'
+import { useTimeoutFn }                   from '@vueuse/core'
+import { type PropType, defineComponent } from 'vue'
 
 import { PAUSES }   from '../../lib/motion/timing.ts'
 import { FocusRow } from './focus-row.ts'
@@ -37,29 +37,29 @@ export const Tablist = defineComponent({
       if (event.pointerType === 'mouse') dwell.start(index)
     }
 
-    return () => h(
-      'div',
-      { 'aria-label': props.label, class: `${props.name}-tabs`, role: 'tablist' },
-      props.tabs.map(({ label, style }, index) => {
-        const button = {
-          'aria-controls' : panelId(props.id),
-          'aria-label'    : label,
-          'aria-selected' : index === props.selected,
-          class           : `${props.name}-tab`,
-          id              : tabId(props.id, index),
-          onClick         : () => select(index),
-          onKeydown       : (event: KeyboardEvent) => focus.move(event, index),
-          onPointerenter  : (event: PointerEvent) => rest(event, index),
-          onPointerleave  : dwell.stop,
-          ref             : (element: unknown) => focus.keep(element, index),
-          role            : 'tab',
-          style           : style,
-          tabindex        : index === props.selected ? 0 : -1,
-          type            : 'button'
-        }
-
-        return h('button', button, slots.default?.({ index }))
-      })
+    return () => (
+      <div aria-label={props.label} class={`${props.name}-tabs`} role="tablist">
+        {...props.tabs.map(({ label, style }, index) => (
+          <button
+            aria-controls={panelId(props.id)}
+            aria-label={label}
+            aria-selected={index === props.selected}
+            class={`${props.name}-tab`}
+            id={tabId(props.id, index)}
+            onClick={() => select(index)}
+            onKeydown={(event) => focus.move(event, index)}
+            onPointerenter={(event) => rest(event, index)}
+            onPointerleave={dwell.stop}
+            ref={(element) => focus.keep(element, index)}
+            role="tab"
+            style={style}
+            tabindex={index === props.selected ? 0 : -1}
+            type="button"
+          >
+            {...(slots.default?.({ index }) ?? [])}
+          </button>
+        ))}
+      </div>
     )
   }
 })

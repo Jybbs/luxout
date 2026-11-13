@@ -4,7 +4,7 @@ import { expect, vi }              from 'vitest'
 import { h, nextTick }             from 'vue'
 
 import { PAUSES }                   from '../../../lib/motion/timing.ts'
-import { Tablist, tabId, tabPanel } from '../../../theme/controls/tablist.ts'
+import { Tablist, tabId, tabPanel } from '../../../theme/controls/tablist.tsx'
 import { test }                     from '../../common/mount.ts'
 
 const TABS = [{ label: 'One', style: { color: 'red' } }, { label: 'Two' }, { label: 'Three' }]

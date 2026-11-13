@@ -1,4 +1,5 @@
-import { expect, it, vi } from 'vitest'
+import type { Plugin, UserConfig } from 'vite'
+import { expect, it, vi }          from 'vitest'
 
 import thresholds from '../../../tests/coverage.json' with { type: 'json' }
 import config     from '../vitest.config.ts'
@@ -7,10 +8,18 @@ it('holds the site to the coverage floor the plugin suite reads', () => {
   expect(config.test?.coverage?.thresholds).toBe(thresholds)
 })
 
+it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to Vite’s own transform', () => {
+  const jsx  = config.plugins?.[0] as Plugin
+  const hook = jsx.config as (this: object, config: UserConfig) => UserConfig
+
+  expect(jsx.name).toBe('vite:vue-jsx')
+  expect(hook.call({ meta: { rolldownVersion: '' } }, {}).oxc).toEqual({ exclude: /\.jsx?$/ })
+})
+
 it('measures coverage over lib/ and theme/, less the loader shells', () => {
   expect(config.test?.coverage).toMatchObject({
     exclude : ['**/*.data.ts'],
-    include : ['.vitepress/lib/**/*.ts', '.vitepress/theme/**/*.ts']
+    include : ['.vitepress/lib/**/*.ts', '.vitepress/theme/**/*.{ts,tsx}']
   })
 })
 

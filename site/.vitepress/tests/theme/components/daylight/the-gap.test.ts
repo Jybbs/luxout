@@ -4,7 +4,7 @@ import { expect, vi }           from 'vitest'
 import { nextTick }             from 'vue'
 
 import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { TheGap }            from '../../../../theme/components/daylight/the-gap.ts'
+import { TheGap }            from '../../../../theme/components/daylight/the-gap.tsx'
 import { data }              from '../../../common/data/daylight.ts'
 import { pressable, test }   from '../../../common/mount.ts'
 

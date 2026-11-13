@@ -1,11 +1,13 @@
 import { dirname } from 'node:path'
 
+import vueJsx           from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitest/config'
 
 import thresholds from '../../tests/coverage.json' with { type: 'json' }
 
 export default defineConfig({
   cacheDir : '../.cache/site/vite',
+  plugins  : [vueJsx({ tsTransform: 'built-in' })],
   root     : dirname(import.meta.dirname),
   test     : {
     expect              : { requireAssertions: true },
@@ -19,7 +21,7 @@ export default defineConfig({
 
     coverage: {
       exclude          : ['**/*.data.ts'],
-      include          : ['.vitepress/lib/**/*.ts', '.vitepress/theme/**/*.ts'],
+      include          : ['.vitepress/lib/**/*.ts', '.vitepress/theme/**/*.{ts,tsx}'],
       provider         : 'v8',
       reportOnFailure  : true,
       reportsDirectory : '../.cache/site/coverage',

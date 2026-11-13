@@ -1,11 +1,11 @@
-import { bisectCenter } from 'd3-array'
-import { type VNode, defineComponent, h, onMounted, shallowRef } from 'vue'
+import { bisectCenter }                                       from 'd3-array'
+import { type VNode, defineComponent, onMounted, shallowRef } from 'vue'
 
 import { data }                    from '../../../lib/daylight/twilight-bridge.data.ts'
 import { Glide }                   from '../../../lib/motion/glide.ts'
-import { Announcer }               from '../../controls/announcer.ts'
+import { Announcer }               from '../../controls/announcer.tsx'
 import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
-import { bridgeDrawing, dropAt }   from './bridge-drawing.ts'
+import { bridgeDrawing, dropAt }   from './bridge-drawing.tsx'
 
 import './styles/twilight-bridge.css'
 
@@ -94,63 +94,52 @@ export const TwilightBridge = defineComponent({
   setup() {
     const watch = new BridgeWatch()
 
-    return () => h(
-      'div',
-      { 'aria-label': label, class: 'widget twilight-bridge', ref: watch.root, role: 'group' },
-      [
-        h('div', { class: 'twilight-bridge-plot', style: { height: pixels(height) } }, [
-          bridgeDrawing(data),
-          ...[{ at: 0, word: 'lux' }, ...decades].map(({ at, word }) => h(
-            'span',
-            { class: 'twilight-bridge-word twilight-bridge-level', style: { top: pixels(at) } },
-            word
-          )),
-          ...ticks.map(({ at, minor, word }) => h(
-            'span',
-            {
-              class : ['twilight-bridge-word twilight-bridge-along', { 'twilight-bridge-minor': minor }],
-              style : { left: percentOf(at) }
-            },
-            word
-          )),
-          h('span', { class: 'widget-caps twilight-bridge-caps' }, [
-            h('span', { class: 'twilight-bridge-the' }, 'The '),
-            'bridge'
-          ]),
-          node(low.x, low.y),
-          node(high.x, high.y),
-          h(
-            'span',
-            { class: 'twilight-bridge-end twilight-bridge-low', style: { top: pixels(low.y) } },
-            low.word
-          ),
-          h(
-            'span',
-            {
-              class : 'twilight-bridge-end twilight-bridge-high',
-              style : { left: percentOf(high.x), top: pixels(high.y) }
-            },
-            high.word
-          ),
-          h('span', { class: 'twilight-bridge-sun', style: { left: lefts[rest], top: tops[rest] } }),
-          h('div', {
-            class: 'widget-slider',
-            ...watch.slider.attributes('The sun’s altitude', rest, spoken(rest))
-          })
-        ]),
-        h('div', { class: 'twilight-bridge-readout' }, [
-          h('b', { class: 'twilight-bridge-degree widget-num' }, degrees[rest]),
-          h('b', { class: 'twilight-bridge-figure widget-num' }, figures[rest]),
-          h('span', { class: 'twilight-bridge-phrase' }, phraseAt(rest))
-        ]),
-        watch.announcer.region
-      ]
+    return () => (
+      <div aria-label={label} class="widget twilight-bridge" ref={watch.root} role="group">
+        <div class="twilight-bridge-plot" style={{ height: pixels(height) }}>
+          {bridgeDrawing(data)}
+          {...[{ at: 0, word: 'lux' }, ...decades].map(({ at, word }) => (
+            <span class="twilight-bridge-word twilight-bridge-level" style={{ top: pixels(at) }}>{word}</span>
+          ))}
+          {...ticks.map(({ at, minor, word }) => (
+            <span
+              class={['twilight-bridge-word twilight-bridge-along', { 'twilight-bridge-minor': minor }]}
+              style={{ left: percentOf(at) }}
+            >
+              {word}
+            </span>
+          ))}
+          <span class="widget-caps twilight-bridge-caps">
+            <span class="twilight-bridge-the">{'The '}</span>
+            bridge
+          </span>
+          {node(low.x, low.y)}
+          {node(high.x, high.y)}
+          <span class="twilight-bridge-end twilight-bridge-low" style={{ top: pixels(low.y) }}>
+            {low.word}
+          </span>
+          <span
+            class="twilight-bridge-end twilight-bridge-high"
+            style={{ left: percentOf(high.x), top: pixels(high.y) }}
+          >
+            {high.word}
+          </span>
+          <span class="twilight-bridge-sun" style={{ left: lefts[rest], top: tops[rest] }} />
+          <div class="widget-slider" {...watch.slider.attributes('The sun’s altitude', rest, spoken(rest))} />
+        </div>
+        <div class="twilight-bridge-readout">
+          <b class="twilight-bridge-degree widget-num">{degrees[rest]}</b>
+          <b class="twilight-bridge-figure widget-num">{figures[rest]}</b>
+          <span class="twilight-bridge-phrase">{phraseAt(rest)}</span>
+        </div>
+        {watch.announcer.region}
+      </div>
     )
   }
 })
 
 function node(left: number, top: number): VNode {
-  return h('span', { class: 'twilight-bridge-node', style: { left: percentOf(left), top: pixels(top) } })
+  return <span class="twilight-bridge-node" style={{ left: percentOf(left), top: pixels(top) }} />
 }
 
 function percentOf(value: number): string {

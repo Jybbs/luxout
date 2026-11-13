@@ -5,8 +5,8 @@ import { expect, vi }           from 'vitest'
 import { nextTick }             from 'vue'
 
 import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { dropAt }            from '../../../../theme/components/daylight/bridge-drawing.ts'
-import { TwilightBridge }    from '../../../../theme/components/daylight/twilight-bridge.ts'
+import { dropAt }            from '../../../../theme/components/daylight/bridge-drawing.tsx'
+import { TwilightBridge }    from '../../../../theme/components/daylight/twilight-bridge.tsx'
 import { data }              from '../../../common/data/twilight-bridge.ts'
 import { pressable, test }   from '../../../common/mount.ts'
 

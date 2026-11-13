@@ -1,14 +1,14 @@
-import { clamp }                                             from '@vueuse/core'
-import { type VNode, defineComponent, h, shallowRef, useId } from 'vue'
+import { clamp }                                          from '@vueuse/core'
+import { type VNode, defineComponent, shallowRef, useId } from 'vue'
 
 import { tenth }                                from '../../../lib/daylight/tenth.ts'
 import { FrameClock }                           from '../../../lib/motion/frame-clock.ts'
 import { DURATIONS, motionReduced, smoothstep } from '../../../lib/motion/timing.ts'
 import { data }                                 from '../../../lib/privacy/privacy.data.ts'
 import type { ClockKey, ClockWord }             from '../../../lib/privacy/request-clock.ts'
-import { Announcer }                            from '../../controls/announcer.ts'
-import { layers }                               from '../../controls/layers.ts'
-import { Tablist, tabPanel }                    from '../../controls/tablist.ts'
+import { Announcer }                            from '../../controls/announcer.tsx'
+import { layers }                               from '../../controls/layers.tsx'
+import { Tablist, tabPanel }                    from '../../controls/tablist.tsx'
 
 import './styles/request-clock.css'
 
@@ -47,19 +47,21 @@ class Journey {
   renderFace(): VNode {
     const [x, y] = clock.request
 
-    return h('svg', { 'aria-hidden': true, viewBox: `0 0 ${clock.side} ${clock.side}` }, [
-      h('circle', { class: 'request-clock-hair', cx: CENTER, cy: CENTER, r: radii.rim }),
-      ...clock.minutes.map((d) => h('path', { class: 'request-clock-minute', d })),
-      ...clock.ticks.map((d) => h('path', { class: 'request-clock-tick', d })),
-      h('path', { class: 'request-clock-hand', d: clock.hand }),
-      ...clock.retries.map((d, index) =>
-        h('path', { class: 'request-clock-retry later', d, style: { '--i': index } })
-      ),
-      h('circle', { class: 'request-clock-dot', cx: x, cy: y, r: 6 }),
-      h('path', { class: 'request-clock-cross', d: clock.cross }),
-      h('circle', { class: 'request-clock-packet', opacity: 0, r: 4.5, ref: this.#out }),
-      h('circle', { class: 'request-clock-packet request-clock-reply', opacity: 0, r: 4.5, ref: this.#back })
-    ])
+    return (
+      <svg aria-hidden viewBox={`0 0 ${clock.side} ${clock.side}`}>
+        <circle class="request-clock-hair" cx={CENTER} cy={CENTER} r={radii.rim} />
+        {...clock.minutes.map((d) => <path class="request-clock-minute" d={d} />)}
+        {...clock.ticks.map((d) => <path class="request-clock-tick" d={d} />)}
+        <path class="request-clock-hand" d={clock.hand} />
+        {...clock.retries.map((d, index) => (
+          <path class="request-clock-retry later" d={d} style={{ '--i': index }} />
+        ))}
+        <circle class="request-clock-dot" cx={x} cy={y} r={6} />
+        <path class="request-clock-cross" d={clock.cross} />
+        <circle class="request-clock-packet" opacity={0} r={4.5} ref={this.#out} />
+        <circle class="request-clock-packet request-clock-reply" opacity={0} r={4.5} ref={this.#back} />
+      </svg>
+    )
   }
 
   select(index: number): void {
@@ -182,52 +184,41 @@ export const RequestClock = defineComponent({
     return () => {
       const state = clock.states[journey.shown.value]!
 
-      return h('div', { class: 'widget request-clock', ref: journey.root }, [
-        h(
-          'div',
-          {
-            'aria-label' : clock.label,
-            class        : 'request-clock-face',
-            'data-on'    : journey.on.value,
-            role         : 'img'
-          },
-          [
-            journey.renderFace(),
-            h('div', { 'aria-hidden': true, class: 'request-clock-words' }, [
-              ...clock.quarters.map((word) => hourWord(word, { quiet: word.quiet })),
-              ...clock.said.map((word, index) => hourWord(word, { later: true, said: true }, index))
-            ]),
-            h('div', { 'aria-hidden': true, class: 'request-clock-core', ref: journey.core }, [
-              h('b', { class: { 'request-clock-figures': state.figures } }, state.big),
-              h('span', state.small)
-            ]),
-            h('span', {
-              'aria-hidden' : true,
-              class         : 'request-clock-send',
-              onClick       : () => journey.send(),
-              style         : at(clock.request)
-            })
-          ]
-        ),
-        h(
-          Tablist,
-          {
-            id       : journey.id,
-            label    : 'What the clock face shows',
-            name     : 'request-clock',
-            onSelect : (index: number) => journey.select(index),
-            selected : journey.selected.value,
-            tabs     : tabs
-          },
-          { default: ({ index }: { index: number }) => clock.states[index]!.name }
-        ),
-        h(
-          'div',
-          { ...tabPanel(journey.id, journey.selected.value), class: 'request-clock-panel' },
-          layers(clock.states.map(({ text }) => h('p', text)), journey.selected.value)
-        ),
-        journey.announcer.region
-      ])
+      return (
+        <div class="widget request-clock" ref={journey.root}>
+          <div aria-label={clock.label} class="request-clock-face" data-on={journey.on.value} role="img">
+            {journey.renderFace()}
+            <div aria-hidden class="request-clock-words">
+              {...clock.quarters.map((word) => hourWord(word, { quiet: word.quiet }))}
+              {...clock.said.map((word, index) => hourWord(word, { later: true, said: true }, index))}
+            </div>
+            <div aria-hidden class="request-clock-core" ref={journey.core}>
+              <b class={{ 'request-clock-figures': state.figures }}>{state.big}</b>
+              <span>{state.small}</span>
+            </div>
+            <span
+              aria-hidden
+              class="request-clock-send"
+              onClick={() => journey.send()}
+              style={at(clock.request)}
+            />
+          </div>
+          <Tablist
+            id={journey.id}
+            label="What the clock face shows"
+            name="request-clock"
+            onSelect={(index: number) => journey.select(index)}
+            selected={journey.selected.value}
+            tabs={tabs}
+          >
+            {{ default: ({ index }: { index: number }) => clock.states[index]!.name }}
+          </Tablist>
+          <div {...tabPanel(journey.id, journey.selected.value)} class="request-clock-panel">
+            {layers(clock.states.map(({ text }) => <p>{text}</p>), journey.selected.value)}
+          </div>
+          {journey.announcer.region}
+        </div>
+      )
     }
   }
 })
@@ -243,5 +234,5 @@ function hourWord(
 ): VNode {
   const style = { left: `${left}%`, top: `${top}%`, ...index === undefined ? {} : { '--i': index } }
 
-  return h('span', { class: ['request-clock-hour', classes], style }, word)
+  return <span class={['request-clock-hour', classes]} style={style}>{word}</span>
 }

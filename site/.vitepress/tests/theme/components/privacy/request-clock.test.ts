@@ -4,7 +4,7 @@ import { expect, vi }              from 'vitest'
 import { nextTick }                from 'vue'
 
 import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { RequestClock }      from '../../../../theme/components/privacy/request-clock.ts'
+import { RequestClock }      from '../../../../theme/components/privacy/request-clock.tsx'
 import { data }              from '../../../common/data/privacy.ts'
 import { test }              from '../../../common/mount.ts'
 

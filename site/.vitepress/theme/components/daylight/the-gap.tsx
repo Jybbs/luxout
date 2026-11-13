@@ -1,18 +1,18 @@
-import { type PropType, type ShallowRef, type VNode, defineComponent, h, onMounted, shallowRef } from 'vue'
+import { type PropType, type ShallowRef, type VNode, defineComponent, onMounted, shallowRef } from 'vue'
 
 import { data }                    from '../../../lib/daylight/daylight.data.ts'
 import type * as gap               from '../../../lib/daylight/gap.ts'
 import { Glide }                   from '../../../lib/motion/glide.ts'
-import { Announcer }               from '../../controls/announcer.ts'
+import { Announcer }               from '../../controls/announcer.tsx'
 import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
-import { gapDrawing }              from './gap-drawing.ts'
+import { gapDrawing }              from './gap-drawing.tsx'
 
 import './styles/the-gap.css'
 
 const SWATCHES = {
-  off  : () => h('path', { class: 'the-gap-off', d: 'M1 10H13' }),
-  on   : () => h('rect', { class: 'the-gap-on', height: 8, width: 12, x: 1, y: 2 }),
-  ring : () => h('circle', { class: 'the-gap-ring', cx: 7, cy: 6, r: 4 })
+  off  : () => <path class="the-gap-off" d="M1 10H13" />,
+  on   : () => <rect class="the-gap-on" height={8} width={12} x={1} y={2} />,
+  ring : () => <circle class="the-gap-ring" cx={7} cy={6} r={4} />
 } satisfies Record<gap.GapCell['mark'], () => VNode>
 const THUMB = { height: 22, width: 8 }
 
@@ -138,23 +138,36 @@ const GapTable = defineComponent({
     return () => {
       const at = props.minute.value
 
-      return h('table', { class: 'the-gap-table' }, [
-        h('caption', at
-          ? numeral('span', `${at.clock} · ${at.lux} lux`)
-          : ['From ', numeral('span', data.gap.span[0]), ' to ', numeral('span', data.gap.span[1])]),
-        h('colgroup', [h('col', { class: 'the-gap-names' }), h('col'), h('col')]),
-        h('thead', h('tr', [h('td'), data.gap.sensors.map(({ name }) => h('th', { scope: 'col' }, name))])),
-        h('tbody', [
-          row('On at', data.gap.sensors.map(({ onAt }) => numeral('td', onAt))),
-          row('Off below', data.gap.sensors.map(({ offBelow }) => numeral('td', offBelow))),
-          row('Now', at
-            ? at.cells.map(({ mark, word }) => h('td', [swatch(mark), word]))
-            : h('td', { class: 'the-gap-ask', colspan: 2 }, 'Point along the morning')),
-          row('Switches', at
-            ? at.cells.map(({ count }) => numeral('td', count))
-            : data.gap.sensors.map(({ switches }) => numeral('td', switches)))
-        ])
-      ])
+      return (
+        <table class="the-gap-table">
+          <caption>
+            {...(at
+              ? [numeral('span', `${at.clock} · ${at.lux} lux`)]
+              : ['From ', numeral('span', data.gap.span[0]), ' to ', numeral('span', data.gap.span[1])])}
+          </caption>
+          <colgroup>
+            <col class="the-gap-names" />
+            <col />
+            <col />
+          </colgroup>
+          <thead>
+            <tr>
+              <td />
+              {data.gap.sensors.map(({ name }) => <th scope="col">{name}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {row('On at', data.gap.sensors.map(({ onAt }) => numeral('td', onAt)))}
+            {row('Off below', data.gap.sensors.map(({ offBelow }) => numeral('td', offBelow)))}
+            {row('Now', at
+              ? at.cells.map(({ mark, word }) => <td>{swatch(mark)}{word}</td>)
+              : <td class="the-gap-ask" colspan={2}>Point along the morning</td>)}
+            {row('Switches', at
+              ? at.cells.map(({ count }) => numeral('td', count))
+              : data.gap.sensors.map(({ switches }) => numeral('td', switches)))}
+          </tbody>
+        </table>
+      )
     }
   }
 })
@@ -168,56 +181,65 @@ export const TheGap = defineComponent({
   setup() {
     const pointer = new Pointer()
 
-    return () => h('div', { class: 'widget the-gap', ref: pointer.root }, [
-      h('div', { class: 'the-gap-plot' }, [
-        data.gap.layouts.map((layout) => gapDrawing(layout, data.gap, cursor(layout))),
-        h('div', {
-          class: 'widget-slider',
-          ...pointer.slider.attributes(
-            'Minute of the late morning',
-            data.gap.rest,
-            data.gap.minutes[data.gap.rest]!.reading
-          )
-        })
-      ]),
-      h('div', { class: 'the-gap-below' }, [
-        h('p', { class: 'widget-note' }, [
-          swatch('ring'),
-          'Each ring is a switch, which can run an automation in the Home app built on the state the sensor '
-          + 'switched to.'
-        ]),
-        h(GapTable, { minute: pointer.minute })
-      ]),
-      pointer.announcer.region
-    ])
+    return () => (
+      <div class="widget the-gap" ref={pointer.root}>
+        <div class="the-gap-plot">
+          {data.gap.layouts.map((layout) => gapDrawing(layout, data.gap, cursor(layout)))}
+          <div
+            class="widget-slider"
+            {...pointer.slider.attributes(
+              'Minute of the late morning',
+              data.gap.rest,
+              data.gap.minutes[data.gap.rest]!.reading
+            )}
+          />
+        </div>
+        <div class="the-gap-below">
+          <p class="widget-note">
+            {swatch('ring')}
+            Each ring is a switch, which can run an automation in the Home app built on the state the sensor
+            switched to.
+          </p>
+          <GapTable minute={pointer.minute} />
+        </div>
+        {pointer.announcer.region}
+      </div>
+    )
   }
 })
 
 function cursor({ guide, x, y }: gap.GapLayout): VNode {
-  return h('g', { class: 'the-gap-cursor', transform: `translate(${x[data.gap.rest]} 0)` }, [
-    h('path', { class: 'the-gap-guide', d: guide }),
-    h('g', { class: 'the-gap-mark', transform: `translate(0 ${y[data.gap.rest]})` }, [
-      h('circle', { class: 'the-gap-dot', r: 3.5 }),
-      h('rect', {
-        class  : 'the-gap-thumb',
-        height : THUMB.height,
-        rx     : THUMB.width / 2,
-        width  : THUMB.width,
-        x      : -THUMB.width / 2,
-        y      : -THUMB.height / 2
-      })
-    ])
-  ])
+  return (
+    <g class="the-gap-cursor" transform={`translate(${x[data.gap.rest]} 0)`}>
+      <path class="the-gap-guide" d={guide} />
+      <g class="the-gap-mark" transform={`translate(0 ${y[data.gap.rest]})`}>
+        <circle class="the-gap-dot" r={3.5} />
+        <rect
+          class="the-gap-thumb"
+          height={THUMB.height}
+          rx={THUMB.width / 2}
+          width={THUMB.width}
+          x={-THUMB.width / 2}
+          y={-THUMB.height / 2}
+        />
+      </g>
+    </g>
+  )
 }
 
 function numeral(tag: 'span' | 'td', text: number | string): VNode {
-  return h(tag, { class: 'widget-num' }, text)
+  return tag === 'td' ? <td class="widget-num">{text}</td> : <span class="widget-num">{text}</span>
 }
 
 function row(name: string, cells: VNode | VNode[]): VNode {
-  return h('tr', [h('th', { scope: 'row' }, name), cells])
+  return (
+    <tr>
+      <th scope="row">{name}</th>
+      {cells}
+    </tr>
+  )
 }
 
 function swatch(mark: gap.GapCell['mark']): VNode {
-  return h('svg', { 'aria-hidden': true, class: 'the-gap-swatch', viewBox: '0 0 14 12' }, SWATCHES[mark]())
+  return <svg aria-hidden class="the-gap-swatch" viewBox="0 0 14 12">{SWATCHES[mark]()}</svg>
 }
