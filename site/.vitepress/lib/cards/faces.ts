@@ -1,8 +1,23 @@
 import { readFile } from 'node:fs/promises'
 
+import { type VNode, h } from 'vue'
+
 import * as typeface from '../type/typeface.ts'
 
 type Face = keyof typeof typeface.FONT_FILES
+
+/**
+ * A place in a drawing and how a word aligns there, by its ink's left edge,
+ * right edge, or middle, so a side bearing never moves it off an edge it
+ * shares.
+ */
+export interface Saying {
+  fill    : string
+  size    : number
+  x       : number
+  y       : number
+  anchor? : 'end' | 'middle' | 'start'
+}
 
 /**
  * A face at the axes and tracking a card's words take.
@@ -46,6 +61,17 @@ export class Faces {
 
   constructor(faces: Record<Face, typeface.Typeface>) {
     this.#faces = faces
+  }
+
+  /**
+   * Sets `text` in `voice` as an outline placed where `saying` puts it.
+   */
+  say(text: string, voice: Voice, { anchor = 'start', fill, size, x, y }: Saying): VNode {
+    const setting         = this.set(voice, size, text)
+    const { left, right } = setting.ink
+    const pens            = { end: x - right, middle: x - (left + right) / 2, start: x - left }
+
+    return h('path', { d: setting.d, fill, transform: setting.transformAt(pens[anchor], y) })
   }
 
   set({ face, ...settings }: Voice, size: number, text: string): typeface.Setting {

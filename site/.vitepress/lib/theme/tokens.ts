@@ -4,6 +4,10 @@ import { parse } from 'postcss'
 
 export type Scheme = (typeof SCHEMES)[number]
 
+/**
+ * The media query a frame's stylesheet holds its dark scheme's rules under.
+ */
+export const DARK    = '(prefers-color-scheme: dark)'
 export const SCHEMES = ['dark', 'light'] as const
 /**
  * Lists the rules whose declarations reach each scheme, the later rule winning,
@@ -41,6 +45,26 @@ export class Tokens {
 
   constructor(schemes: Record<Scheme, Map<string, string>>) {
     this.#schemes = schemes
+  }
+
+  /**
+   * Writes the stylesheet `css` as `scheme` applies it, the rules under its dark
+   * media query kept in the dark scheme alone and each value that is one
+   * `var()` written as the value it follows to.
+   */
+  flatten(css: string, scheme: Scheme): string {
+    const root = parse(css)
+
+    root.walkAtRules('media', (query) => {
+      if (query.params !== DARK) return
+      if (scheme === 'dark') query.replaceWith(query.nodes ?? [])
+      else query.remove()
+    })
+    root.walkDecls((declaration) => {
+      declaration.value = this.follow(declaration.value, scheme)
+    })
+
+    return root.toString()
   }
 
   /**
