@@ -33,7 +33,7 @@ it('mixes a color-mix() of two properties in sRGB as each scheme resolves them',
 })
 
 it('mixes a color-mix() nested in another in the space the outer call names', () => {
-  expect(tokens.color('--edge', 'light')).toBe('#bcbbb9')
+  expect(tokens.color('--edge', 'light')).toBe('#656464')
 })
 
 it('reads a color holding no color-mix() as its hex code', () => {

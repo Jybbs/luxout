@@ -236,6 +236,12 @@
   text-transform : uppercase;
 }
 
+@utility widget-hour {
+  position : absolute;
+  color    : var(--color-muted);
+  font     : 500 0.64rem/1 var(--font-mono);
+}
+
 @utility widget-note {
   margin      : 0;
   color       : var(--color-muted);

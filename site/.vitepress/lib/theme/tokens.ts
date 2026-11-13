@@ -4,12 +4,13 @@ import { formatHex, interpolate } from 'culori'
 import { parse }                  from 'postcss'
 
 export type Scheme = (typeof SCHEMES)[number]
+type Space         = keyof typeof SPACES
 
-export const SCHEMES = ['dark', 'light'] as const
 /**
  * Matches a `color-mix()` of two colors, the first taking a share in percent.
  */
-const MIX = /^color-mix\(in (oklab|srgb), (.+) ([\d.]+)%, (.+)\)$/
+const MIX            = /^color-mix\(in (oklab|srgb), (.+) ([\d.]+)%, (.+)\)$/
+export const SCHEMES = ['dark', 'light'] as const
 /**
  * Lists the rules whose declarations reach each scheme, the later rule winning,
  * since VitePress sets the `dark` class on the root element in the dark scheme.
@@ -22,8 +23,6 @@ const SELECTORS = {
  * Names the culori mode each color space a `color-mix()` names mixes in.
  */
 const SPACES = { oklab: 'oklab', srgb: 'rgb' } as const
-
-type Space = keyof typeof SPACES
 
 /**
  * The custom properties the theme's tokens stylesheet declares, read as each

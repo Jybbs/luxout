@@ -98,10 +98,7 @@ export const TheCloudFactor = defineComponent({
               {stripMarks(index)}
               {...hours.map(({ word, x }) => (
                 <span
-                  class={[
-                    'absolute top-[33px] -translate-x-1/2 font-mono text-[0.64rem]/none font-medium',
-                    'text-muted last:-translate-x-full'
-                  ]}
+                  class="widget-hour top-[33px] -translate-x-1/2 last:-translate-x-full"
                   style={{ left: `${x / strip.width * 100}%` }}
                 >
                   {word}

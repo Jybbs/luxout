@@ -28,7 +28,7 @@ const test  = scratch
   .extend('write', () => vi.fn<(line: string) => void>())
 
 test('writes nothing and returns 0 for a build carrying no defect', async ({ root, write }) => {
-  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(await (await Bundle.read(root)).report(write)).toBe(0)
   expect(write).not.toHaveBeenCalled()
 })
 
@@ -38,7 +38,7 @@ test('passes a built image rule an element on any one page matches', async ({ ro
     '.vitepress/dist/guide/index.html'       : '<img src="/sun.png">'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(await (await Bundle.read(root)).report(write)).toBe(0)
   expect(write).not.toHaveBeenCalled()
 })
 
@@ -50,7 +50,7 @@ test('passes a kept color-mix() whose literal color the minifier shortens', asyn
                                                   + '#FFFFFF) }'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(await (await Bundle.read(root)).report(write)).toBe(0)
   expect(write).not.toHaveBeenCalled()
 })
 
@@ -64,7 +64,7 @@ test('passes a kept color-mix() whose light-dark() the build’s targets lower',
                                                   + 'light-dark(#fff, #000)) }'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(await (await Bundle.read(root)).report(write)).toBe(0)
   expect(write).not.toHaveBeenCalled()
 })
 
@@ -74,10 +74,26 @@ test('writes on one line a folded color-mix() the theme spreads across lines', a
                                                   + '    red 30%,\n    black\n  );\n}\n'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(1)
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '.vitepress/theme/components/styles/hero.css: the minifier folds color-mix(in srgb, red 30%, black) into '
     + 'a fixed color'
+  ])
+})
+
+test('reports a folded color-mix() a class of the theme’s sources writes as an arbitrary value', async ({
+  root,
+  write
+}) => {
+  await plant(root, {
+    '.vitepress/theme/components/dim.tsx' : 'export const Dim = () => '
+                                          + '<p class="bg-[color-mix(in_srgb,red_30%,black)]" />',
+    '.vitepress/theme/styles/dim.css'     : '@tailwind utilities source(none);\n\n@source \'..\';\n'
+  })
+
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '.vitepress/theme/styles/dim.css: the minifier folds color-mix(in srgb,red 30%,black) into a fixed color'
   ])
 })
 
@@ -86,14 +102,14 @@ test('reads no stylesheet outside the theme as a source', async ({ root, write }
     '.vitepress/lib/daylight/frame.css': '.a { color: color-mix(in srgb, red 30%, black) }'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(await (await Bundle.read(root)).report(write)).toBe(0)
   expect(write).not.toHaveBeenCalled()
 })
 
 test('reports a stylesheet naming another layer ahead of the default theme’s', async ({ root, write }) => {
   await plant(root, { '.vitepress/dist/assets/chunks/late.css': '@layer theme,vitepress;' })
 
-  expect(await Bundle.read(root).report(write)).toBe(1)
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '.vitepress/dist/assets/chunks/late.css: names the theme layer ahead of vitepress'
   ])
@@ -107,7 +123,7 @@ test('reports a property set outside every layer that no rule of the theme sets 
     '.vitepress/dist/assets/chunks/nav.css': '.VPNav{color:red}@media (hover:hover){:root{--b:red}}'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(1)
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '.vitepress/dist/assets/chunks/nav.css: .VPNav { color } sits outside every layer',
     '.vitepress/dist/assets/chunks/nav.css: :root { --b } sits outside every layer'
@@ -123,7 +139,7 @@ test('reads the frames of a keyframes rule and each rule beneath a layer as laye
                                             + '@layer utilities{@media (hover:hover){.a:hover{color:red}}}'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(0)
+  expect(await (await Bundle.read(root)).report(write)).toBe(0)
   expect(write).not.toHaveBeenCalled()
 })
 
@@ -137,7 +153,7 @@ test('reports a query outside the default theme’s layer naming a width the the
                                             + '@media (width>=48rem){.b{color:red}}}'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(1)
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '.vitepress/dist/assets/chunks/wide.css: a container query names 37rem, a width the theme declares '
     + 'none of',
@@ -151,7 +167,7 @@ test('reports a color set to a number outside the default theme’s layer', asyn
                                             + '@layer utilities{@container (width<38rem){.a{color:0}}}'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(1)
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '.vitepress/dist/assets/chunks/zero.css: .a { color: 0 } sets a color to a number'
   ])
@@ -164,14 +180,14 @@ test('reports a color-mix() toward black outside the default theme’s layer', a
                                            + '.a{color:color-mix(in srgb, var(--a) 30%, black)}}'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(1)
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '.vitepress/dist/assets/chunks/dim.css: color-mix(in srgb, var(--a) 30%, black) mixes toward black'
   ])
 })
 
 test('reports a build that wrote no page, rather than passing it', async ({ root, write }) => {
-  expect(await Bundle.read(join(root, '.vitepress', 'theme')).report(write)).toBe(1)
+  expect(await (await Bundle.read(join(root, '.vitepress', 'theme'))).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual(['.vitepress/dist: holds no page to inspect'])
 })
 
@@ -183,7 +199,7 @@ test('writes one line per defect, naming the file each sits in, and returns 1', 
     '.vitepress/theme/components/styles/hero.css' : '.hero { color: color-mix(in srgb, red 30%, black) }'
   })
 
-  expect(await Bundle.read(root).report(write)).toBe(1)
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '.vitepress/dist/assets/chunks/node.js: carries the empty module Vite builds in place of a Node built-in',
     '.vitepress/dist/assets/chunks/hero.css: [src$="/sun.png"] matches no element on any page',

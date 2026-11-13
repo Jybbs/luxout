@@ -1,6 +1,8 @@
 import { globSync, readFileSync } from 'node:fs'
-import { join }                   from 'node:path'
+import { dirname, join }          from 'node:path'
 
+import { compile }                 from '@tailwindcss/node'
+import { Scanner }                 from '@tailwindcss/oxide'
 import { Window }                  from 'happy-dom'
 import { type Targets, transform } from 'lightningcss'
 import { resolveConfig }           from 'vite'
@@ -21,33 +23,37 @@ const WIDTHS = [['container', 'container'], ['media', 'breakpoint']] as const
  * stylesheets of the theme it builds from.
  */
 export class Bundle {
-  readonly #chunks  : Chunk[]
-  readonly #pages   : string[]
-  readonly #sheets  : Sheet[]
-  readonly #sources : Sheet[]
+  readonly #chunks   : Chunk[]
+  readonly #compiled : Sheet[]
+  readonly #pages    : string[]
+  readonly #sheets   : Sheet[]
+  readonly #sources  : Sheet[]
 
   /**
    * Reads the build and the theme's stylesheets from the site package at
-   * `root`.
+   * `root`, beside each stylesheet as Tailwind compiles it.
    */
-  static read(root: string): Bundle {
+  static async read(root: string): Promise<Bundle> {
     const files = (pattern: string) => globSync(pattern, { cwd: root })
       .toSorted()
       .map((file) => [file, readFileSync(join(root, file), 'utf8')] as const)
+    const theme = files(join('.vitepress', 'theme', '**', '*.css'))
 
     return new Bundle(
       files(join(DIST, 'assets', '**', '*.js')).map(([file, code]) => new Chunk(code, file)),
+      await Promise.all(theme.map(([file, text]) => compiled(file, join(root, file), text))),
       files(join(DIST, '**', '*.html')).map(([, html]) => html),
       files(join(DIST, 'assets', '**', '*.css')).map((entry) => new Sheet(...entry)),
-      files(join('.vitepress', 'theme', '**', '*.css')).map((entry) => new Sheet(...entry))
+      theme.map((entry) => new Sheet(...entry))
     )
   }
 
-  constructor(chunks: Chunk[], pages: string[], sheets: Sheet[], sources: Sheet[]) {
-    this.#chunks  = chunks
-    this.#pages   = pages
-    this.#sheets  = sheets
-    this.#sources = sources
+  constructor(chunks: Chunk[], compiled: Sheet[], pages: string[], sheets: Sheet[], sources: Sheet[]) {
+    this.#chunks   = chunks
+    this.#compiled = compiled
+    this.#pages    = pages
+    this.#sheets   = sheets
+    this.#sources  = sources
   }
 
   /**
@@ -72,8 +78,9 @@ export class Bundle {
   }
 
   /**
-   * Lists each `color-mix()` call of the theme that the minifier replaced with
-   * the fixed color it computes, since no built stylesheet holds the call as
+   * Lists each `color-mix()` call of the theme as Tailwind compiles it, a
+   * class's arbitrary value included, that the minifier replaced with the
+   * fixed color it computes, since no built stylesheet holds the call as
    * Lightning CSS writes it under the targets the build passes.
    */
   async #folded(): Promise<string[]> {
@@ -81,7 +88,7 @@ export class Bundle {
     const { css } = await resolveConfig(config, 'build')
     const built   = new Set(this.#sheets.flatMap(({ mixes }) => mixes))
 
-    return this.#sources.flatMap(({ file, mixes }) => mixes
+    return this.#compiled.flatMap(({ file, mixes }) => mixes
       .filter((mix) => !minified(mix, css.lightningcss?.targets).some((kept) => built.has(kept)))
       .map((mix) => `${file}: the minifier folds ${flat(mix)} into a fixed color`))
   }
@@ -105,7 +112,8 @@ export class Bundle {
    *
    * - A query naming a width the theme's `@theme` declares none of
    * - A color property set to a bare number, which no color is
-   * - A `color-mix()` toward black, which the minifier folds into another color
+   * - A `color-mix()` toward black that the minifier kept, which only a mix
+   *   carrying a `var()` argument is
    */
   #outside(): string[] {
     const widths = WIDTHS.map(([kind, namespace]) =>
@@ -140,6 +148,19 @@ export class Bundle {
 
     return unmatched
   }
+}
+
+/**
+ * Compiles the theme's stylesheet `text`, read from `file` at `path`, as
+ * `@tailwindcss/vite` does, over the class names the sources it declares hold.
+ */
+async function compiled(file: string, path: string, text: string): Promise<Sheet> {
+  const base     = dirname(path)
+  const compiler = await compile(text, { base, from: path, onDependency: () => undefined })
+  const root     = compiler.root ?? { base, pattern: '**/*' }
+  const sources  = root === 'none' ? compiler.sources : [{ ...root, negated: false }, ...compiler.sources]
+
+  return new Sheet(file, compiler.build(new Scanner({ sources }).scan()))
 }
 
 /**

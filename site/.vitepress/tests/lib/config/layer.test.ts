@@ -14,9 +14,9 @@ it('wraps the default theme’s stylesheets before Vite compiles them', () => {
 it.each([
   `${THEME}/styles/base.css`,
   `${THEME}/components/VPNav.vue?vue&type=style&index=0&scoped=3f6a2b1c&lang.css`
-])('wraps %s in the vitepress layer', (id) => {
-  expect(wrap('.a { color: red }', id))
-    .toEqual({ code: `@layer ${LAYER} {\n.a { color: red }\n}`, map: null })
+])('wraps %s in the vitepress layer, keeping each line where it was', (id) => {
+  expect(wrap('.a { color: red }\n.b { color: blue }', id))
+    .toEqual({ code: `@layer ${LAYER} {.a { color: red }\n.b { color: blue }\n}`, map: null })
 })
 
 it.each([

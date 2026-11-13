@@ -274,10 +274,7 @@ export const ThreeFactors = defineComponent({
             <div aria-hidden class="relative h-3.5">
               {...HOUR_MARKS.map((hour) => (
                 <span
-                  class={[
-                    'absolute top-0 -translate-x-1/2 font-mono text-[0.64rem]/none font-medium text-muted',
-                    'first:translate-x-0 last:-translate-x-full'
-                  ]}
+                  class="widget-hour top-0 -translate-x-1/2 first:translate-x-0 last:-translate-x-full"
                   style={{ left: hourLeft(hour) }}
                 >
                   {hourWord(hour)}

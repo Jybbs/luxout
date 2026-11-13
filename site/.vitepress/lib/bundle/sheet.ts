@@ -32,14 +32,17 @@ export class Sheet {
   }
 
   /**
-   * Lists the cascade layers the stylesheet names, in the order it first names
-   * each, which is the order the cascade ranks them in, lowest first.
+   * Lists the top-level cascade layers the stylesheet names, in the order it
+   * first names each, which is the order the cascade ranks them in, lowest
+   * first.
    */
   get layers(): string[] {
     const found = new Set<string>()
 
-    this.#root.walkAtRules('layer', ({ params }) => {
-      for (const name of list.comma(params)) found.add(name)
+    this.#root.each((node) => {
+      if (node.type === 'atrule' && node.name === 'layer') {
+        for (const name of list.comma(node.params)) found.add(name)
+      }
     })
 
     return [...found]

@@ -28,13 +28,13 @@ vi.mock('../lib/settings/settings.data.ts', () => import('./common/data/settings
 vi.mock('../lib/troubleshooting/debug-line.data.ts', () => import('./common/data/debug-line.ts'))
 
 /**
- * VitePress's own breakpoints, at which a media query may reflow a widget with
+ * The VitePress breakpoints at which a media query may reflow a widget with
  * the page around it.
  */
 const BREAKPOINTS = { lg: '60rem', md: '48rem', sm: '40rem' }
 /**
- * Matches a variant moving a utility from the element carrying it to the
- * element's children or to a descendant a selector names.
+ * Matches a variant moving a utility from the element carrying it to its
+ * children, to every descendant, or to a child or descendant a selector names.
  */
 const DESCENDANT = /(?:^|:)(?:\*\*?|\[&[_>])/
 /**
@@ -100,7 +100,7 @@ function utilitiesOf(name: string): Set<string> {
   return new Set([...widgets.get(name)!.querySelectorAll('*')].flatMap(({ classList }) => [...classList]))
 }
 
-it('declares VitePress’s breakpoints as the theme’s', () => {
+it('declares the VitePress breakpoints a widget reflows at as the theme’s', () => {
   expect(Object.keys(BREAKPOINTS).map((size) => tokens.resolve(`--breakpoint-${size}`, 'light')))
     .toEqual(Object.values(BREAKPOINTS))
 })
@@ -165,24 +165,80 @@ it.each(Object.keys(FRAME_MARKS))('draws the %s frame on the ground of each sche
 })
 
 it.each([
-  { color: 'dial-wash-0', name: 'day-estimate', property: 'fill', selector: '.day-estimate-wash-0' },
-  { color: 'dial-wash-1', name: 'day-estimate', property: 'fill', selector: '.day-estimate-wash-1' },
-  { color: 'dial-wash-2', name: 'day-estimate', property: 'fill', selector: '.day-estimate-wash-2' },
-  { color: 'dial-wash-3', name: 'day-estimate', property: 'fill', selector: '.day-estimate-wash-3' },
-  { color: 'sky-fill', name: 'day-estimate', property: 'fill', selector: '.day-estimate-sky' },
-  { color: 'place-cell', name: 'rounded-place', property: 'fill', selector: '.rounded-place-cell' },
-  { color: 'gap-band', name: 'the-gap', property: 'fill', selector: '.the-gap-band' },
-  { color: 'gap-on', name: 'the-gap', property: 'fill', selector: '.the-gap-on' },
-  { color: 'bridge-line', name: 'twilight-bridge', property: 'stroke', selector: '.twilight-bridge-roof' },
-  { color: 'bridge-wash', name: 'twilight-bridge', property: 'fill', selector: '.twilight-bridge-wash' },
-  { color: 'sky-fill', name: 'twilight-bridge', property: 'fill', selector: '.twilight-bridge-sky' }
-])('colors $selector in the frame as the theme mixes $color in each scheme', ({
+  {
+    color    : 'dial-wash-0',
+    name     : 'day-estimate',
+    property : 'fill',
+    selector : '.day-estimate-wash-0',
+    widget   : 'DayEstimate'
+  },
+  {
+    color    : 'dial-wash-1',
+    name     : 'day-estimate',
+    property : 'fill',
+    selector : '.day-estimate-wash-1',
+    widget   : 'DayEstimate'
+  },
+  {
+    color    : 'dial-wash-2',
+    name     : 'day-estimate',
+    property : 'fill',
+    selector : '.day-estimate-wash-2',
+    widget   : 'DayEstimate'
+  },
+  {
+    color    : 'dial-wash-3',
+    name     : 'day-estimate',
+    property : 'fill',
+    selector : '.day-estimate-wash-3',
+    widget   : 'DayEstimate'
+  },
+  {
+    color    : 'sky-fill',
+    name     : 'day-estimate',
+    property : 'fill',
+    selector : '.day-estimate-sky',
+    widget   : 'DayEstimate'
+  },
+  {
+    color    : 'place-cell',
+    name     : 'rounded-place',
+    property : 'fill',
+    selector : '.rounded-place-cell',
+    widget   : 'RoundedPlace'
+  },
+  { color: 'gap-band', name: 'the-gap', property: 'fill', selector: '.the-gap-band', widget: 'TheGap' },
+  { color: 'gap-on', name: 'the-gap', property: 'fill', selector: '.the-gap-on', widget: 'TheGap' },
+  {
+    color    : 'bridge-line',
+    name     : 'twilight-bridge',
+    property : 'stroke',
+    selector : '.twilight-bridge-roof',
+    widget   : 'TwilightBridge'
+  },
+  {
+    color    : 'bridge-wash',
+    name     : 'twilight-bridge',
+    property : 'fill',
+    selector : '.twilight-bridge-wash',
+    widget   : 'TwilightBridge'
+  },
+  {
+    color    : 'sky-fill',
+    name     : 'twilight-bridge',
+    property : 'fill',
+    selector : '.twilight-bridge-sky',
+    widget   : 'TwilightBridge'
+  }
+])('colors $selector in the frame and in $widget as the theme mixes $color in each scheme', ({
   color: name,
   property,
   selector,
+  widget,
   ...frame
 }) => {
   expect(inFrame(frame.name, property, selector)).toEqual(SCHEMES.map((scheme) => color(name, scheme)))
+  expect(utilitiesOf(widget)).toContain(`[&_${selector}]:${property}-${name}`)
 })
 
 it.each(SCHEMES)('holds the roof and the cut at 3:1 on the wash and on the %s ground', (scheme) => {
@@ -215,8 +271,7 @@ it.each([
   { utility: '[&_.sun-path-hair]:stroke-sun-hair', widget: 'SunPath' },
   { utility: '[&_.sun-path-month]:[stroke-dasharray:2_3]', widget: 'SunPath' },
   { utility: '[&.year_.sun-path-curve]:stroke-[3.4]', widget: 'SunPath' },
-  { utility: '[&_.twilight-bridge-cut]:stroke-bridge-line', widget: 'TwilightBridge' },
-  { utility: '[&_.twilight-bridge-roof]:stroke-bridge-line', widget: 'TwilightBridge' }
+  { utility: '[&_.twilight-bridge-cut]:stroke-bridge-line', widget: 'TwilightBridge' }
 ])('styles $widget with $utility', ({ utility, widget }) => {
   expect(utilitiesOf(widget)).toContain(utility)
 })

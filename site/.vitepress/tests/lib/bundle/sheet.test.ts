@@ -26,9 +26,9 @@ it('lists each color-mix() a declaration holds as written, nested calls included
   ])
 })
 
-it('lists each cascade layer in the order the stylesheet first names it', () => {
+it('lists each top-level cascade layer in the order the stylesheet first names it', () => {
   const sheet = new Sheet('a.css', [
-    '@layer vitepress { a { color: red } }',
+    '@layer vitepress { @layer __vitepress_base { a { color: red } } }',
     '@layer theme, base;',
     '@layer vitepress, utilities;'
   ].join('\n'))

@@ -21,7 +21,7 @@ export function layerTheme(): Plugin {
     enforce   : 'pre',
     name      : 'luxout:layer-theme',
     transform : (code, id) => THEME.test(id)
-                            ? { code: `@layer ${LAYER} {\n${code}\n}`, map: null }
+                            ? { code: `@layer ${LAYER} {${code}\n}`, map: null }
                             : undefined
   }
 }
