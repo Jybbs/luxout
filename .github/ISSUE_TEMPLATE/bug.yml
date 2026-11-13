@@ -25,7 +25,7 @@ body:
     type : input
 
     attributes:
-      description : The version the Homebridge UI's Plugins tab shows, or `npm ls homebridge-luxout` prints from the Homebridge storage directory
+      description : The version the Homebridge UI's Plugins tab shows, or Homebridge logs at start in its `Loaded plugin: homebridge-luxout@…` line
       label       : homebridge-luxout version
 
     validations:

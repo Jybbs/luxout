@@ -2,7 +2,6 @@ import type { Place } from '../../../../src/config/place.ts'
 import * as clock     from './clock.ts'
 
 const FACTOR_DIGITS = 3     // The decimals a cloud factor other than exactly 1 takes
-const HOUR          = 60 * clock.MINUTE
 const SMALLEST      = 1e-4  // The lux below which a value takes scientific notation
 const SUPERSCRIPTS  = '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'
 const clockFormat   = clock.clockFormatIn('UTC')
@@ -21,7 +20,7 @@ const tinyFormat        = new Intl.NumberFormat('en-US', { maximumFractionDigits
 const wholeFormat       = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
 /**
- * Writes `value` of `unit` in words, as in `5 minutes`.
+ * Writes `value` beside the full name of `unit`, as in `5 minutes`.
  */
 export function formatAmount(value: number, unit: 'hour' | 'minute' | 'second'): string {
   return new Intl.NumberFormat('en-US', { style: 'unit', unit, unitDisplay: 'long' }).format(value)
@@ -82,13 +81,21 @@ export function formatPlace({ latitude, longitude }: Place): string {
  * and 45 minutes`.
  */
 export function formatSpan(milliseconds: number): string {
-  const hours   = Math.floor(milliseconds / HOUR)
-  const minutes = (milliseconds - hours * HOUR) / clock.MINUTE
+  const hours   = Math.floor(milliseconds / clock.HOUR)
+  const minutes = (milliseconds - hours * clock.HOUR) / clock.MINUTE
 
   return listFormat.format([
     ...hours ? [formatAmount(hours, 'hour')] : [],
     ...minutes ? [formatAmount(minutes, 'minute')] : []
   ])
+}
+
+/**
+ * Writes a span of `steps` forecast steps in whole hours and minutes, as in
+ * `5 hours and 45 minutes`.
+ */
+export function formatSteps(steps: number): string {
+  return formatSpan(steps * clock.STEP_MINUTES * clock.MINUTE)
 }
 
 /**

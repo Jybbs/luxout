@@ -276,3 +276,8 @@ it.each([
 ])('declares $property on $selector as $value', ({ property, selector, value }) => {
   expect(declared(sheet, property, selector)).toEqual([value])
 })
+
+it('holds the request clock’s later marks back until the failing hour', () => {
+  expect(declared(sheet, 'opacity', '.request-clock-face .later')).toEqual(['0'])
+  expect(declared(sheet, 'opacity', ".request-clock-face[data-on='fails'] .later")).toEqual(['1'])
+})

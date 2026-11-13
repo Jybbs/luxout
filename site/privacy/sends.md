@@ -20,7 +20,7 @@ The plugin asks [Open-Meteo](https://open-meteo.com/en/docs) for the forecast on
 
 <!-- /clock-table -->
 
-Open-Meteo's [terms](https://open-meteo.com/en/terms#privacy) say its free API collects IP addresses and keeps server logs that may hold the coordinates a request carries, and deletes those logs after 90 days.
+Open-Meteo's [terms](https://open-meteo.com/en/terms#privacy) say its free API may collect IP addresses and keeps server logs that may hold the coordinates a request carries, and deletes those logs after 90 days.
 
 ## The Place Each Request Carries
 

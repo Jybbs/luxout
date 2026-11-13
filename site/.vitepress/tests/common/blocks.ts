@@ -1,7 +1,7 @@
 import { BRIDGE_SPAN, type ClearSky }      from '../../../../src/daylight/clear-sky.ts'
 import type { CLOUD_TUNING }               from '../../../../src/daylight/cloud-factor.ts'
 import type { REQUEST_TUNING }             from '../../../../src/weather/client.ts'
-import { MINUTE, STEP_MINUTES }            from '../../lib/daylight/clock.ts'
+import { HOUR, MINUTE, STEP_MINUTES }      from '../../lib/daylight/clock.ts'
 import type { CloudSteps }                 from '../../lib/daylight/cloud-steps.ts'
 import type { DayDial }                    from '../../lib/daylight/day-dial.ts'
 import type { FactorDay }                  from '../../lib/daylight/factor-day.ts'
@@ -21,7 +21,6 @@ import type { DebugLine }                  from '../../lib/troubleshooting/debug
 type Cell = number | string
 
 const BRIDGE_ALTITUDES = [BRIDGE_SPAN[0], -5, -4, -3, -2, -1, curve.SUNSET, 0, 5, 10]  // Degrees
-const HOUR             = 60 * MINUTE
 const LEVELS           = [
   { altitude: BRIDGE_SPAN[0], name: 'The end of civil twilight' },
   { altitude: curve.SUNSET, name: 'Sunset' },
@@ -33,10 +32,6 @@ function markdownTable(headers: readonly string[], rows: readonly (readonly Cell
   const head = line(headers.map((header) => `**${header}**`))
 
   return [head, `|${'---|'.repeat(headers.length)}`, ...rows.map(line)].join('\n')
-}
-
-function stepSpan(steps: number): string {
-  return format.formatSpan(steps * STEP_MINUTES * MINUTE)
 }
 
 /**
@@ -146,7 +141,7 @@ export function factorTable({ minutes, rest, terms }: FactorDay): string {
 export function fetchReach({ forecast }: typeof REQUEST_TUNING): string {
   const reach = (forecast - 1) * STEP_MINUTES * MINUTE
 
-  return `A window's last step starts ${format.formatSpan(reach)} after the step its fetch falls in, `
+  return `A window's last step starts ${format.formatSteps(forecast - 1)} after the step its fetch falls in, `
        + `which carries the reading through ${Math.floor(reach / HOUR)} failed hourly fetches in a row.`
 }
 
@@ -299,7 +294,8 @@ export function requestWords({ forecast, past }: typeof REQUEST_TUNING): string 
   return "Each fetch sends one request to [Open-Meteo's forecast API](https://open-meteo.com/en/docs) for "
        + '`shortwave_radiation_instant` under `minutely_15`, covering '
        + `${past} steps before the current step and ${forecast} counted from it, so the window starts `
-       + `${stepSpan(past)} back and its last step starts ${stepSpan(forecast - 1)} ahead.`
+       + `${format.formatSteps(past)} back and its last step starts `
+       + `${format.formatSteps(forecast - 1)} ahead.`
 }
 
 /**

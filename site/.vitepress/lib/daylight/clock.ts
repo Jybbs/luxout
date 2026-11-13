@@ -3,6 +3,7 @@ export const HOUR_MARKS   = [0, 6, 12, 18, 24]
 export const MINUTE       = 60_000  // Milliseconds
 export const STEP_MINUTES = 15      // The minutes between two steps of a forecast
 export const DAY          = DAY_MINUTES * MINUTE
+export const HOUR         = 60 * MINUTE
 
 /**
  * Builds the format that writes a 24-hour clock time in `timeZone`.
