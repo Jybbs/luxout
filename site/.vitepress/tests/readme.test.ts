@@ -50,13 +50,18 @@ describe('the tracked README files', () => {
     await expect(await preview.record(scheme)).toMatchFileBytes(site(previewAddress(scheme)))
   })
 
-  it.for(SCHEMES)('keep the %s preview at least 800 pixels wide, looping, and under 6 MB', async (scheme) => {
-    const gif = await readFile(site(previewAddress(scheme)))
+  it.for(SCHEMES)(
+    'keep the %s preview at least 800 pixels wide, looping without end, and under 6 MB',
+    async (scheme) => {
+      const gif  = await readFile(site(previewAddress(scheme)))
+      const loop = gif.indexOf('NETSCAPE2.0')
 
-    expect(gif.readUInt16LE(6)).toBeGreaterThanOrEqual(800)
-    expect(gif.indexOf('NETSCAPE2.0')).toBeGreaterThan(0)
-    expect(gif.length).toBeLessThan(6_000_000)
-  })
+      expect(gif.readUInt16LE(6)).toBeGreaterThanOrEqual(800)
+      expect(loop).toBeGreaterThan(0)
+      expect(gif.readUInt16LE(loop + 13)).toBe(0)
+      expect(gif.length).toBeLessThan(6_000_000)
+    }
+  )
 
   it.for(forms)('hold the $scheme card $card.word as the site draws it', async ({ card, scheme }) => {
     await expect(`${await renderToString(cards.draw(card, scheme))}\n`)
@@ -87,7 +92,7 @@ describe('the README', () => {
     expect(readme).toContain(`${manifest.homepage}${startCards.cardAddress(card, scheme)}`)
   })
 
-  it.for([...pages])('links %s to a page and a heading the site holds', async (link) => {
+  it.for([...pages])('links %s to a page the site holds and any heading its fragment names', async (link) => {
     const { hash, pathname } = new URL(link)
     const page               = [`.${pathname}.md`, `.${pathname}index.md`]
       .map((file) => new URL(file, new URL('../', root)))
@@ -95,7 +100,8 @@ describe('the README', () => {
 
     expect(page).toBeDefined()
 
-    const ids = md.render(await readFile(page!, 'utf8'), {}).matchAll(/ id="([^"]+)"/g).map(([, id]) => id)
+    const html = md.render(await readFile(page!, 'utf8'), {})
+    const ids  = html.matchAll(/<h[1-6][^>]* id="([^"]+)"/g).map(([, id]) => id)
 
     expect(['', ...ids]).toContain(hash.slice(1))
   })

@@ -22,9 +22,9 @@ interface Pacing {
 }
 
 const CLOSE   = 12   // The squared distance in channel steps that marks a sampled color as one already held
-const COLORS  = 255  // The most colors the palette holds, the next index left for the pixels a frame keeps
+const COLORS  = 255  // The palette's color limit, the index after its last marking the pixels a frame keeps
 const FILLER  = [255, 0, 255] as const
-const SAMPLES = 24   // The fewest frames sampled across the recording for the palette's remaining colors
+const SAMPLES = 24   // The fewest frames sampled for the palette, or every frame of a shorter recording
 
 /**
  * Builds the palette from `seeds`, then fills the rest of it with the colors
