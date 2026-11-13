@@ -1,15 +1,15 @@
-import { usePreferredReducedMotion, whenever }                          from '@vueuse/core'
-import { type VNode, defineComponent, h, onMounted, shallowRef, useId } from 'vue'
+import { usePreferredReducedMotion, whenever }                       from '@vueuse/core'
+import { type VNode, defineComponent, onMounted, shallowRef, useId } from 'vue'
 
 import { HOUR_MARKS, hourWord }    from '../../../lib/daylight/clock.ts'
 import { data }                    from '../../../lib/daylight/factor-day.data.ts'
 import { FrameClock }              from '../../../lib/motion/frame-clock.ts'
 import { Glide }                   from '../../../lib/motion/glide.ts'
-import { Announcer }               from '../../controls/announcer.ts'
-import { layers }                  from '../../controls/layers.ts'
-import { plotMarks }               from '../../controls/plot-marks.ts'
+import { Announcer }               from '../../controls/announcer.tsx'
+import { layers }                  from '../../controls/layers.tsx'
+import { plotMarks }               from '../../controls/plot-marks.tsx'
 import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
-import { Tablist, tabPanel }       from '../../controls/tablist.ts'
+import { Tablist, tabPanel }       from '../../controls/tablist.tsx'
 
 import './styles/three-factors.css'
 
@@ -22,15 +22,15 @@ const LAST     = minutes.length - 1
 const PLAY     = { from: 300, pace: 0.06, to: 810 }  // Minutes of the morning, and of the day per millisecond
 const SWATCHES = [
   () => [
-    h('rect', { class: 'three-factors-sky', height: 8, width: 22, y: 4 }),
-    h('path', { class: 'three-factors-sky-edge', d: 'M0 4.5H22' })
+    <rect class="three-factors-sky" height={8} width={22} y={4} />,
+    <path class="three-factors-sky-edge" d="M0 4.5H22" />
   ],
   () => [
-    h('path', { class: 'three-factors-share', d: 'M1 6H21' }),
-    h('circle', { class: 'three-factors-share-dot', cx: 11, cy: 6, r: 2.6 }),
-    h('path', { class: 'three-factors-fall', d: 'M1 6H21' })
+    <path class="three-factors-share" d="M1 6H21" />,
+    <circle class="three-factors-share-dot" cx={11} cy={6} r={2.6} />,
+    <path class="three-factors-fall" d="M1 6H21" />
   ],
-  () => [h('circle', { class: 'three-factors-reading-dot', cx: 11, cy: 6, r: 4 })]
+  () => [<circle class="three-factors-reading-dot" cx={11} cy={6} r={4} />]
 ]
 const percents = minutes.map((_, minute) => `${minute / minutes.length * 100}%`)
 const spoken   = minutes.map((clock, minute) => {
@@ -164,83 +164,74 @@ export const ThreeFactors = defineComponent({
   setup() {
     const clock = new FactorClock()
 
-    return () => h('div', { class: 'widget three-factors', ref: clock.root }, [
-      h(
-        Tablist,
-        {
-          id       : clock.id,
-          label    : 'The terms of the reading',
-          name     : 'three-factors',
-          onSelect : (index: number) => clock.selected.value = index,
-          selected : clock.selected.value,
-          tabs     : tabs
-        },
-        { default: termFace }
-      ),
-      h(
-        'div',
-        { ...tabPanel(clock.id, clock.selected.value), class: 'three-factors-slot' },
-        layers(
-          terms.map(({ label, note }, index) => h('div', { class: 'three-factors-layer' }, [
-            h(
-              'div',
-              {
-                'aria-label' : label,
-                class        : `three-factors-plot three-factors-plot-${index}`,
-                role         : 'img',
-                style        : { height: pixels(height) }
-              },
-              DRAWINGS[index]!()
-            ),
-            h('p', { class: 'widget-note' }, note)
-          ])),
-          clock.selected.value
-        )
-      ),
-      h('div', { class: 'three-factors-control' }, [
-        h(
-          'button',
-          {
-            'aria-pressed' : clock.playing.value,
-            class          : 'widget-pill',
-            disabled       : clock.motion.value === 'reduce',
-            onClick        : () => clock.toggle(),
-            type           : 'button'
-          },
-          clock.playing.value ? 'Pause' : 'Play the morning'
-        ),
-        h('div', { class: 'three-factors-time' }, [
-          h(
-            'div',
-            {
-              class: 'widget-track three-factors-track',
-              ...clock.slider.attributes('Minute of the sample day', rest, spoken[rest])
-            },
-            [
-              h('span', { class: 'widget-rail' }),
-              h('span', {
-                class : 'three-factors-window',
-                style : { left: `${track.from}%`, width: `${track.to - track.from}%` }
-              }),
-              ...HOUR_MARKS.slice(1, -1).map((hour) => h('span', {
-                class : 'widget-tick',
-                style : { left: hourLeft(hour) }
-              })),
-              h('span', { class: 'widget-thumb three-factors-thumb', style: { left: percents[rest] } })
-            ]
-          ),
-          h('div', { 'aria-hidden': true, class: 'three-factors-hours' }, HOUR_MARKS.map((hour) =>
-            h('span', { style: { left: hourLeft(hour) } }, hourWord(hour))
-          ))
-        ])
-      ]),
-      clock.announcer.region
-    ])
+    return () => (
+      <div class="widget three-factors" ref={clock.root}>
+        <Tablist
+          id={clock.id}
+          label="The terms of the reading"
+          name="three-factors"
+          onSelect={(index: number) => clock.selected.value = index}
+          selected={clock.selected.value}
+          tabs={tabs}
+        >
+          {{ default: termFace }}
+        </Tablist>
+        <div {...tabPanel(clock.id, clock.selected.value)} class="three-factors-slot">
+          {layers(
+            terms.map(({ label, note }, index) => (
+              <div class="three-factors-layer">
+                <div
+                  aria-label={label}
+                  class={`three-factors-plot three-factors-plot-${index}`}
+                  role="img"
+                  style={{ height: pixels(height) }}
+                >
+                  {...DRAWINGS[index]!()}
+                </div>
+                <p class="widget-note">{note}</p>
+              </div>
+            )),
+            clock.selected.value
+          )}
+        </div>
+        <div class="three-factors-control">
+          <button
+            aria-pressed={clock.playing.value}
+            class="widget-pill"
+            disabled={clock.motion.value === 'reduce'}
+            onClick={() => clock.toggle()}
+            type="button"
+          >
+            {clock.playing.value ? 'Pause' : 'Play the morning'}
+          </button>
+          <div class="three-factors-time">
+            <div
+              class="widget-track three-factors-track"
+              {...clock.slider.attributes('Minute of the sample day', rest, spoken[rest])}
+            >
+              <span class="widget-rail" />
+              <span
+                class="three-factors-window"
+                style={{ left: `${track.from}%`, width: `${track.to - track.from}%` }}
+              />
+              {...HOUR_MARKS.slice(1, -1).map((hour) => (
+                <span class="widget-tick" style={{ left: hourLeft(hour) }} />
+              ))}
+              <span class="widget-thumb three-factors-thumb" style={{ left: percents[rest] }} />
+            </div>
+            <div aria-hidden class="three-factors-hours">
+              {...HOUR_MARKS.map((hour) => <span style={{ left: hourLeft(hour) }}>{hourWord(hour)}</span>)}
+            </div>
+          </div>
+        </div>
+        {clock.announcer.region}
+      </div>
+    )
   }
 })
 
 function along(word: string, x: number): VNode {
-  return h('span', { class: 'three-factors-word three-factors-along', style: { left: percentOf(x) } }, word)
+  return <span class="three-factors-word three-factors-along" style={{ left: percentOf(x) }}>{word}</span>
 }
 
 function attribute(element: Element, name: string, values: readonly string[]): Write {
@@ -250,11 +241,11 @@ function attribute(element: Element, name: string, values: readonly string[]): W
 function curveDrawing(): VNode[] {
   return [
     marks([
-      h('path', { class: 'three-factors-sky', d: curve.area }),
-      h('path', { class: 'three-factors-sky-edge', d: curve.edge }),
-      h('path', { class: 'three-factors-ceiling', d: `M0 ${curve.ceiling}H${width}` }),
-      h('path', { class: 'three-factors-axis', d: `M0 ${axis}H${width}` }),
-      h('path', { class: 'three-factors-altitude', d: tickAt(curve.x[rest]!, curve.y[rest]!) })
+      <path class="three-factors-sky" d={curve.area} />,
+      <path class="three-factors-sky-edge" d={curve.edge} />,
+      <path class="three-factors-ceiling" d={`M0 ${curve.ceiling}H${width}`} />,
+      <path class="three-factors-axis" d={`M0 ${axis}H${width}`} />,
+      <path class="three-factors-altitude" d={tickAt(curve.x[rest]!, curve.y[rest]!)} />
     ]),
     ...curve.ticks.map(({ word, x }) => along(word, x)),
     dot('sun', curve.x[rest]!, curve.y[rest]!)
@@ -271,27 +262,24 @@ function curveMarks(altitude: SVGPathElement, sun: HTMLElement): Write[] {
 }
 
 function dot(name: string, x: number, y: number): VNode {
-  return h('span', {
-    class : `three-factors-dot three-factors-${name}`,
-    style : { left: percentOf(x), top: pixels(y) }
-  })
+  return (
+    <span class={`three-factors-dot three-factors-${name}`} style={{ left: percentOf(x), top: pixels(y) }} />
+  )
 }
 
 function factorDrawing(): VNode[] {
   return [
     marks([
-      h('path', { class: 'three-factors-axis', d: `M0 ${axis}H${width}` }),
-      h('path', { class: 'three-factors-grid', d: `M0 ${factor.grid}H${width}` }),
-      h('path', { class: 'three-factors-fall', d: factor.fall }),
-      h('path', { class: 'three-factors-share', d: factor.line })
+      <path class="three-factors-axis" d={`M0 ${axis}H${width}`} />,
+      <path class="three-factors-grid" d={`M0 ${factor.grid}H${width}`} />,
+      <path class="three-factors-fall" d={factor.fall} />,
+      <path class="three-factors-share" d={factor.line} />
     ]),
-    ...factor.steps.map(({ low, x, y }) =>
-      h('span', { class: ['three-factors-mark', { low }], style: { left: percentOf(x), top: pixels(y) } })
-    ),
-    ...factor.yWords.map(({ word, y }) => h(
-      'span',
-      { class: 'three-factors-word three-factors-level', style: { top: pixels(y) } },
-      word
+    ...factor.steps.map(({ low, x, y }) => (
+      <span class={['three-factors-mark', { low }]} style={{ left: percentOf(x), top: pixels(y) }} />
+    )),
+    ...factor.yWords.map(({ word, y }) => (
+      <span class="three-factors-word three-factors-level" style={{ top: pixels(y) }}>{word}</span>
     )),
     ...factor.window.map(({ word, x }) => along(word, x)),
     dot('step', factor.x[rest]!, factor.y[rest]!)
@@ -327,16 +315,14 @@ function rangeDrawing(): VNode[] {
 
   return [
     marks([
-      h('path', { class: 'three-factors-axis', d: range.axis }),
-      h('path', { class: 'three-factors-link', d: linkAt(range.clear[rest]!, range.reading[rest]!) })
+      <path class="three-factors-axis" d={range.axis} />,
+      <path class="three-factors-link" d={linkAt(range.clear[rest]!, range.reading[rest]!)} />
     ]),
     along(low, 0),
     along(high, width),
-    h(
-      'span',
-      { class: 'three-factors-word three-factors-under', style: { visibility: 'hidden' } },
-      `◂ under ${low}`
-    ),
+    <span class="three-factors-word three-factors-under" style={{ visibility: 'hidden' }}>
+      {`◂ under ${low}`}
+    </span>,
     dot('clear', range.clear[rest]!, upper),
     dot('reading', range.reading[rest]!, axis)
   ]
@@ -375,19 +361,15 @@ function termFace({ index }: { index: number }): VNode[] {
   const { figures, name, sources, unit } = terms[index]!
 
   return [
-    h('span', { class: 'three-factors-name' }, [
-      h(
-        'svg',
-        { 'aria-hidden': true, class: 'three-factors-swatch', viewBox: '0 0 22 12' },
-        SWATCHES[index]!()
-      ),
-      name
-    ]),
-    h('span', { class: 'three-factors-figure' }, [
-      h('span', { class: 'three-factors-big' }, figures[rest]),
-      h('small', { class: { 'three-factors-ghost': !unit } }, 'lux')
-    ]),
-    h('span', { class: 'three-factors-source' }, sources[rest])
+    <span class="three-factors-name">
+      <svg aria-hidden class="three-factors-swatch" viewBox="0 0 22 12">{...SWATCHES[index]!()}</svg>
+      {name}
+    </span>,
+    <span class="three-factors-figure">
+      <span class="three-factors-big">{figures[rest]}</span>
+      <small class={{ 'three-factors-ghost': !unit }}>lux</small>
+    </span>,
+    <span class="three-factors-source">{sources[rest]}</span>
   ]
 }
 

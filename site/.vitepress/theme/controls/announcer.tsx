@@ -1,5 +1,5 @@
 import { tryOnScopeDispose } from '@vueuse/core'
-import { type PropType, type ShallowRef, type VNode, defineComponent, h, shallowRef } from 'vue'
+import { type PropType, type ShallowRef, type VNode, defineComponent, shallowRef } from 'vue'
 
 import { PAUSES } from '../../lib/motion/timing.ts'
 
@@ -22,7 +22,7 @@ export class Announcer {
   }
 
   get region(): VNode {
-    return h(LiveRegion, { live: this.#live })
+    return <LiveRegion live={this.#live} />
   }
 
   say(words: string): void {
@@ -40,6 +40,6 @@ const LiveRegion = defineComponent({
   name  : 'LiveRegion',
   props : { live: { required: true, type: Object as PropType<ShallowRef<string>> } },
   setup(props) {
-    return () => h('p', { 'aria-live': 'polite', class: 'visually-hidden' }, props.live.value)
+    return () => <p aria-live="polite" class="visually-hidden">{props.live.value}</p>
   }
 })

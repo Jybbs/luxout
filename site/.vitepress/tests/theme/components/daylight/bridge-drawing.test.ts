@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { expect } from 'vitest'
 
-import { bridgeDrawing, dropAt } from '../../../../theme/components/daylight/bridge-drawing.ts'
+import { bridgeDrawing, dropAt } from '../../../../theme/components/daylight/bridge-drawing.tsx'
 import { data }                  from '../../../common/data/twilight-bridge.ts'
 import { test }                  from '../../../common/mount.ts'
 

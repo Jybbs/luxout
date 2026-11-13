@@ -4,7 +4,7 @@ import { expect, vi }           from 'vitest'
 import { nextTick }             from 'vue'
 
 import { PAUSES }          from '../../../../lib/motion/timing.ts'
-import { TheCloudFactor }  from '../../../../theme/components/daylight/the-cloud-factor.ts'
+import { TheCloudFactor }  from '../../../../theme/components/daylight/the-cloud-factor.tsx'
 import { data }            from '../../../common/data/cloud-steps.ts'
 import { pressable, test } from '../../../common/mount.ts'
 

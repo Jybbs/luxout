@@ -1,4 +1,4 @@
-import { defineComponent, h } from 'vue'
+import { defineComponent } from 'vue'
 
 import './styles/table-fold.css'
 
@@ -10,6 +10,11 @@ export const TableFold = defineComponent({
   name  : 'TableFold',
   props : { summary: { required: true, type: String } },
   setup(props, { slots }) {
-    return () => h('details', { class: 'table-fold' }, [h('summary', props.summary), slots.default?.()])
+    return () => (
+      <details class="table-fold">
+        <summary>{props.summary}</summary>
+        {slots.default?.()}
+      </details>
+    )
   }
 })

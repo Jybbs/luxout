@@ -3,7 +3,7 @@ import { fireEvent, getAllByRole }           from '@testing-library/dom'
 import { type Mock, beforeEach, expect, vi } from 'vitest'
 import { nextTick }                          from 'vue'
 
-import { SettingsReference } from '../../../../theme/components/settings/settings-reference.ts'
+import { SettingsReference } from '../../../../theme/components/settings/settings-reference.tsx'
 import { data as rows }      from '../../../common/data/settings.ts'
 import { test }              from '../../../common/mount.ts'
 

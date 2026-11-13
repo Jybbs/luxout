@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 
+import vueJsx           from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitepress'
 
 import manifest            from '../../package.json' with { type: 'json' }
@@ -26,12 +27,17 @@ export default defineConfig({
   title             : manifest.displayName,
   transformHead     : transformHead(manifest.homepage),
   transformPageData : transformPage(manifest, luxRange, root, SECTIONS),
-  vite              : { css: { transformer: 'lightningcss' } },
-  markdown          : {
+
+  markdown: {
     eagerFrontmatterInterpolation: false,
     config(md) {
       footnotesByWork(md)
       placeWidgets(md, PLACEMENTS)
     }
+  },
+
+  vite: {
+    css     : { transformer: 'lightningcss' },
+    plugins : [vueJsx({ tsTransform: 'built-in' })]
   }
 })

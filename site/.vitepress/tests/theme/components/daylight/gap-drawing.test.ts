@@ -3,7 +3,7 @@ import { sum }    from 'd3-array'
 import { expect } from 'vitest'
 import { h }      from 'vue'
 
-import { gapDrawing } from '../../../../theme/components/daylight/gap-drawing.ts'
+import { gapDrawing } from '../../../../theme/components/daylight/gap-drawing.tsx'
 import { data }       from '../../../common/data/daylight.ts'
 import { test }       from '../../../common/mount.ts'
 

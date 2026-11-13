@@ -2,7 +2,7 @@
 import { fireEvent, getByRole } from '@testing-library/dom'
 import { expect, vi }           from 'vitest'
 
-import { moreButton } from '../../../theme/controls/more-button.ts'
+import { moreButton } from '../../../theme/controls/more-button.tsx'
 import { test }       from '../../common/mount.ts'
 
 test('names the region it controls and whether that region is open', ({ mount }) => {

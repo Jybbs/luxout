@@ -1,13 +1,13 @@
-import { type VNode, h } from 'vue'
+import type { VNode } from 'vue'
 
 import type { DayDial } from '../../../lib/daylight/day-dial.ts'
 import { DIAL }         from '../../../lib/daylight/dial-lens.ts'
-import { plotDrawing }  from '../../controls/plot-marks.ts'
+import { plotDrawing }  from '../../controls/plot-marks.tsx'
 
 function pair(rest: readonly (readonly string[])[], name: string, place: number): VNode[] {
-  return rest.map((paths, half) =>
-    h('path', { class: `day-estimate-${name}`, d: paths[place] || undefined, 'data-half': half })
-  )
+  return rest.map((paths, half) => (
+    <path class={`day-estimate-${name}`} d={paths[place] || undefined} data-half={half} />
+  ))
 }
 
 /**
@@ -31,19 +31,20 @@ export function dialDrawing(
     ...sample.marks.washes.flatMap((_, depth) => next(`wash-${depth}`)),
     ...next('sky'),
     ...next('edge'),
-    h('circle', { class: 'day-estimate-rim', cx: center.x, cy: center.y, r: rim }),
-    h('circle', { class: 'day-estimate-floor', cx: center.x, cy: center.y, r: floor }),
+    <circle class="day-estimate-rim" cx={center.x} cy={center.y} r={rim} />,
+    <circle class="day-estimate-floor" cx={center.x} cy={center.y} r={floor} />,
     ...next('quiet'),
     ...next('cover'),
     ...next('fall'),
-    ...sample.stretches.map((_, index) => h(
-      'g',
-      {
-        class       : 'day-estimate-layer',
-        'data-on'   : index === selected || undefined,
-        'data-peek' : index === peek || undefined
-      },
-      [...next('bracket'), ...next('line')]
+    ...sample.stretches.map((_, index) => (
+      <g
+        class="day-estimate-layer"
+        data-on={index === selected || undefined}
+        data-peek={index === peek || undefined}
+      >
+        {...next('bracket')}
+        {...next('line')}
+      </g>
     )),
     ...next('tick')
   ])

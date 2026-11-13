@@ -4,11 +4,11 @@ import { type Component, defineAsyncComponent } from 'vue'
 
 import { writeTiming }       from '../lib/motion/timing.ts'
 import type { WidgetName }   from '../lib/widgets/placements.ts'
-import { LuxScale }          from './components/daylight/lux-scale.ts'
-import { TheGap }            from './components/daylight/the-gap.ts'
-import { LocationSearch }    from './components/search/location-search.ts'
-import { SettingsReference } from './components/settings/settings-reference.ts'
-import { TableFold }         from './controls/table-fold.ts'
+import { LuxScale }          from './components/daylight/lux-scale.tsx'
+import { TheGap }            from './components/daylight/the-gap.tsx'
+import { LocationSearch }    from './components/search/location-search.tsx'
+import { SettingsReference } from './components/settings/settings-reference.tsx'
+import { TableFold }         from './controls/table-fold.tsx'
 
 import '@fontsource-variable/bodoni-moda/opsz.css'
 import '@fontsource-variable/bodoni-moda/opsz-italic.css'
@@ -27,35 +27,35 @@ const WIDGETS = {
   TheGap            : TheGap,
 
   DayEstimate: defineAsyncComponent(async () =>
-    (await import('./components/daylight/day-estimate.ts')).DayEstimate
+    (await import('./components/daylight/day-estimate.tsx')).DayEstimate
   ),
 
   DebugLine: defineAsyncComponent(async () =>
-    (await import('./components/troubleshooting/debug-line.ts')).DebugLine
+    (await import('./components/troubleshooting/debug-line.tsx')).DebugLine
   ),
 
   RequestClock: defineAsyncComponent(async () =>
-    (await import('./components/privacy/request-clock.ts')).RequestClock
+    (await import('./components/privacy/request-clock.tsx')).RequestClock
   ),
 
   RoundedPlace: defineAsyncComponent(async () =>
-    (await import('./components/privacy/rounded-place.ts')).RoundedPlace
+    (await import('./components/privacy/rounded-place.tsx')).RoundedPlace
   ),
 
   SunPath: defineAsyncComponent(async () =>
-    (await import('./components/daylight/sun-path.ts')).SunPath
+    (await import('./components/daylight/sun-path.tsx')).SunPath
   ),
 
   TheCloudFactor: defineAsyncComponent(async () =>
-    (await import('./components/daylight/the-cloud-factor.ts')).TheCloudFactor
+    (await import('./components/daylight/the-cloud-factor.tsx')).TheCloudFactor
   ),
 
   ThreeFactors: defineAsyncComponent(async () =>
-    (await import('./components/daylight/three-factors.ts')).ThreeFactors
+    (await import('./components/daylight/three-factors.tsx')).ThreeFactors
   ),
 
   TwilightBridge: defineAsyncComponent(async () =>
-    (await import('./components/daylight/twilight-bridge.ts')).TwilightBridge
+    (await import('./components/daylight/twilight-bridge.tsx')).TwilightBridge
   )
 } satisfies Record<WidgetName, Component>
 

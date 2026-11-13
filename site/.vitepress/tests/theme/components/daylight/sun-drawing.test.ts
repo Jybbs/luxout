@@ -4,7 +4,7 @@ import { h }      from 'vue'
 
 import { formatClock } from '../../../../lib/daylight/format.ts'
 import { SUN_LAYOUTS } from '../../../../lib/daylight/sun-curve.ts'
-import { sunDrawing }  from '../../../../theme/components/daylight/sun-drawing.ts'
+import { sunDrawing }  from '../../../../theme/components/daylight/sun-drawing.tsx'
 import { data }        from '../../../common/data/sun-year.ts'
 import { test }        from '../../../common/mount.ts'
 

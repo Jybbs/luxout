@@ -1,8 +1,8 @@
-import { type VNode, h } from 'vue'
+import type { VNode } from 'vue'
 
 import type * as gap              from '../../../lib/daylight/gap.ts'
 import { tenth }                  from '../../../lib/daylight/tenth.ts'
-import { plotDrawing, plotWords } from '../../controls/plot-marks.ts'
+import { plotDrawing, plotWords } from '../../controls/plot-marks.tsx'
 
 const CHIP_CHARACTER = 7.1  // Width of one letter of a chip's label, in the drawing's units
 const CHIP_PADDING   = 18
@@ -27,17 +27,17 @@ function lane(
   const middle = (top + bottom) / 2
 
   return [
-    h('path', { class: 'the-gap-off', d: `M${left} ${bottom}H${right}` }),
-    ...spans.map(({ width, x }) => h('rect', { class: 'the-gap-on', height, width, x, y: top })),
-    ...rings.map((cx) => h('circle', { class: 'the-gap-ring', cx, cy: middle, r: 4.5 })),
-    h('rect', {
-      class  : 'the-gap-chip',
-      height : 18,
-      rx     : 9,
-      width  : tenth(name.length * CHIP_CHARACTER + CHIP_PADDING),
-      x      : left,
-      y      : chip - 9
-    }),
+    <path class="the-gap-off" d={`M${left} ${bottom}H${right}`} />,
+    ...spans.map(({ width, x }) => <rect class="the-gap-on" height={height} width={width} x={x} y={top} />),
+    ...rings.map((cx) => <circle class="the-gap-ring" cx={cx} cy={middle} r={4.5} />),
+    <rect
+      class="the-gap-chip"
+      height={18}
+      rx={9}
+      width={tenth(name.length * CHIP_CHARACTER + CHIP_PADDING)}
+      x={left}
+      y={chip - 9}
+    />,
     word(name, left + CHIP_PADDING / 2, chip, { name: 'the-gap-chip-name' }),
     word('on', left - 8, top + 4, { anchor: 'end' }),
     word('off', left - 8, bottom - 4, { anchor: 'end' }),
@@ -58,17 +58,11 @@ export function gapDrawing(layout: gap.GapLayout, sample: gap.Gap, ...cursor: re
   const label              = [sample.label, ...sample.sensors.map((sensor) => sensor.label)].join('. ')
 
   return plotDrawing('the-gap-drawing', label, width, height, [
-    h('rect', {
-      class  : 'the-gap-band',
-      height : tenth(offY - onY),
-      width  : tenth(right - left),
-      x      : left,
-      y      : onY
-    }),
-    ...[offY, onY].map((level) => h('path', { class: 'the-gap-edge', d: `M${left} ${level}H${right}` })),
-    ...ties.map((d) => h('path', { class: 'the-gap-tie', d })),
-    h('path', { class: 'the-gap-halo', d: path }),
-    h('path', { class: 'the-gap-reading', d: path }),
+    <rect class="the-gap-band" height={tenth(offY - onY)} width={tenth(right - left)} x={left} y={onY} />,
+    ...[offY, onY].map((level) => <path class="the-gap-edge" d={`M${left} ${level}H${right}`} />),
+    ...ties.map((d) => <path class="the-gap-tie" d={d} />),
+    <path class="the-gap-halo" d={path} />,
+    <path class="the-gap-reading" d={path} />,
     word(onAt, levelX, onY, { name: 'the-gap-figure' }),
     word('gap', levelX, (onY + offY) / 2),
     word(offBelow, levelX, offY, { name: 'the-gap-figure' }),

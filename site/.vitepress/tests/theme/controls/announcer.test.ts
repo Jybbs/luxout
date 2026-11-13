@@ -3,7 +3,7 @@ import { expect, vi }                        from 'vitest'
 import { type VNode, effectScope, nextTick } from 'vue'
 
 import { PAUSES }    from '../../../lib/motion/timing.ts'
-import { Announcer } from '../../../theme/controls/announcer.ts'
+import { Announcer } from '../../../theme/controls/announcer.tsx'
 import { test }      from '../../common/mount.ts'
 
 test('speaks only the latest words, once the speech pause has passed', async ({ mount }) => {

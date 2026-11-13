@@ -2,6 +2,8 @@
   "compilerOptions": {
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
     "lib": ["dom", "dom.iterable", "es2024", "es2025.collection", "es2025.iterator", "esnext.array"],
     "module": "nodenext",
     "noEmit": true,

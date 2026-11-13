@@ -6,7 +6,7 @@ import { nextTick }             from 'vue'
 import { formatClock }       from '../../../../lib/daylight/format.ts'
 import * as curve            from '../../../../lib/daylight/sun-curve.ts'
 import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
-import { SunPath }           from '../../../../theme/components/daylight/sun-path.ts'
+import { SunPath }           from '../../../../theme/components/daylight/sun-path.tsx'
 import { data }              from '../../../common/data/sun-year.ts'
 import { pressable, test }   from '../../../common/mount.ts'
 

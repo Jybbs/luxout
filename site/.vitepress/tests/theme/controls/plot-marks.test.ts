@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { h }          from 'vue'
 
-import { plotDrawing, plotMarks, plotWords } from '../../../theme/controls/plot-marks.ts'
+import { plotDrawing, plotMarks, plotWords } from '../../../theme/controls/plot-marks.tsx'
 
 it('stretches the marks across their element and hides them from the accessibility tree', () => {
   const child                     = h('rect')
@@ -36,7 +36,7 @@ it('writes a word centered on its row in the plain class, at a tenth of a unit',
   const { children, props, type } = plotWords('some-word')('lux', 4, 8.04)
 
   expect(type).toBe('text')
-  expect(children).toBe('lux')
+  expect(children).toEqual(['lux'])
   expect(props).toEqual({
     class               : 'some-word',
     'dominant-baseline' : 'central',
