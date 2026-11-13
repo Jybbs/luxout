@@ -1,0 +1,52 @@
+name        : Bug
+description : Report a reading or a setting that misbehaves
+labels      : 🐞 bug
+
+body:
+  - id   : what
+    type : textarea
+
+    attributes:
+      description : What the reading or the setting did, and what you expected it to do
+      label       : What happened
+
+    validations:
+      required: true
+
+  - id   : debug-line
+    type : textarea
+
+    attributes:
+      description : The line the plugin logs at debug level for a minute the reading looked wrong, as [Reading the Debug Line](https://luxout.fyi/troubleshooting/debug-line) names its fields
+      label       : Debug line
+      render      : text
+
+  - id   : luxout
+    type : input
+
+    attributes:
+      description : "The version the Homebridge UI's Plugins tab shows, or Homebridge logs at start in its `Loaded plugin: homebridge-luxout@…` line"
+      label       : homebridge-luxout version
+
+    validations:
+      required: true
+
+  - id   : homebridge
+    type : input
+
+    attributes:
+      description : The version Homebridge logs at start, in its `Homebridge v… is running on port` line
+      label       : Homebridge version
+
+    validations:
+      required: true
+
+  - id   : node
+    type : input
+
+    attributes:
+      description : The version the Node running Homebridge prints for `--version`, which the Homebridge apt package keeps at `/opt/homebridge/bin/node`
+      label       : Node version
+
+    validations:
+      required: true

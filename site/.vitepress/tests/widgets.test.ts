@@ -15,13 +15,14 @@ import { frameSheet }               from './common/frames.ts'
  * The widths a container query may name, each where a widget reflows inside its
  * column.
  */
-const CONTAINER_WIDTHS = new Set(['30rem', '38rem'])
+const CONTAINER_WIDTHS = new Set(['30rem', '38rem', '40rem'])
 /**
  * The inks of each frame, by the class name after the frame's own name, the
  * fills being words and the strokes being marks.
  */
 const FRAME_MARKS = {
   'day-estimate'    : { fills: ['caption', 'figure', 'name'], strokes: ['cover', 'edge', 'fall', 'line'] },
+  'rounded-place'   : { fills: ['word'], strokes: ['cell', 'dim'] },
   'sun-path'        : { fills: ['figure', 'word'], strokes: ['curve', 'horizon'] },
   'the-gap'         : { fills: ['figure', 'word'], strokes: ['edge', 'reading'] },
   'twilight-bridge' : { fills: ['caps', 'end', 'word'], strokes: ['cut', 'drop', 'edge', 'roof'] }
@@ -118,10 +119,11 @@ it('styles no widget’s root inside a container query, which reads the width of
     .toEqual([])
 })
 
-it('names the root of each widget the sheet styles, the day estimate styling `.widget` alone', () => {
+it('names the root of each widget the sheet styles, apart from those styling `.widget` alone', () => {
   const styled = new Set(descendants(sheet).flatMap((node) => node.type === 'rule' ? node.selectors : []))
 
-  expect(new Set(WIDGET_NAMES.map(rootSelector)).difference(styled)).toEqual(new Set(['.day-estimate']))
+  expect(new Set(WIDGET_NAMES.map(rootSelector)).difference(styled))
+    .toEqual(new Set(['.day-estimate', '.debug-line', '.rounded-place']))
 })
 
 it('writes no color-mix toward black, which the minifier folds into another color', () => {
@@ -186,6 +188,7 @@ it.each([
   { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-1' },
   { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-2' },
   { color: '--widget-geometry', name: 'day-estimate', selector: '.day-estimate-wash-3' },
+  { color: '--widget-forecast', name: 'rounded-place', selector: '.rounded-place-cell' },
   { color: '--widget-sensor', name: 'the-gap', selector: '.the-gap-band' },
   { color: '--widget-sensor', name: 'the-gap', selector: '.the-gap-on' }
 ])('tints $selector in the frame as the sheet mixes it', ({ color, name, selector }) => {
@@ -272,4 +275,9 @@ it.each([
   { property: 'stroke-width', selector: '.sun-path.year .sun-path-curve', value: '3.4' }
 ])('declares $property on $selector as $value', ({ property, selector, value }) => {
   expect(declared(sheet, property, selector)).toEqual([value])
+})
+
+it('holds the request clock’s later marks back until the failing hour', () => {
+  expect(declared(sheet, 'opacity', '.request-clock-face .later')).toEqual(['0'])
+  expect(declared(sheet, 'opacity', ".request-clock-face[data-on='fails'] .later")).toEqual(['1'])
 })

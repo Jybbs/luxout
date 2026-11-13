@@ -46,7 +46,9 @@ it('replaces a package key a page declares with the facts package.json declares'
 it.each([
   { link: '/sensors/', page: 'install/home.md', text: 'Sensors' },
   { link: '/settings/', page: 'sensors/thresholds.md', text: 'Settings' },
-  { link: '/estimate/', page: 'settings/thresholds.md', text: 'Estimate' }
+  { link: '/estimate/', page: 'settings/thresholds.md', text: 'Estimate' },
+  { link: '/privacy/', page: 'estimate/failed-fetches.md', text: 'Privacy' },
+  { link: '/troubleshooting/', page: 'privacy/sends.md', text: 'Troubleshooting' }
 ])('closes $page on a card into $text', async ({ link, page, text }) => {
   const { frontmatter } = await transform({ ...setup, relativePath: page }, context)
 
@@ -55,7 +57,7 @@ it.each([
 
 it.each([
   { name: 'a page inside a section', page: 'install/place.md' },
-  { name: 'the last section, which has none to lead to', page: 'estimate/failed-fetches.md' }
+  { name: 'the last section, which has none to lead to', page: 'troubleshooting/reporting.md' }
 ])('sets no card on $name', async ({ page }) => {
   const { frontmatter } = await transform({ ...setup, relativePath: page }, context)
 

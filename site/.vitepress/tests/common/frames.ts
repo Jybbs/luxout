@@ -1,10 +1,12 @@
-import { readFile } from 'node:fs/promises'
+import { glob, readFile } from 'node:fs/promises'
+import { join }           from 'node:path'
 
 import { AtRule, type Root, parse } from 'postcss'
 
 import { Tokens } from '../../lib/theme/tokens.ts'
 
 const DARK   = '(prefers-color-scheme: dark)'
+const lib    = join(import.meta.dirname, '..', '..', 'lib')
 const tokens = await Tokens.read(new URL('../../', import.meta.url))
 
 /**
@@ -14,7 +16,8 @@ const tokens = await Tokens.read(new URL('../../', import.meta.url))
  * else.
  */
 export async function frameSheet(name: string): Promise<Root> {
-  const root = parse(await readFile(new URL(`../../lib/daylight/${name}-frame.css`, import.meta.url), 'utf8'))
+  const [path] = await Array.fromAsync(glob(`*/${name}-frame.css`, { cwd: lib }))
+  const root   = parse(await readFile(join(lib, path!), 'utf8'))
 
   root.walkDecls((declaration) => {
     const query  = declaration.parent?.parent

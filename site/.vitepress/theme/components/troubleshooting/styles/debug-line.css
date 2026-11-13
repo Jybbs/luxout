@@ -1,0 +1,165 @@
+.debug-line [data-hue] { --debug-line-edge: var(--debug-line-wash); }
+
+.debug-line [data-hue='plain'] {
+  --debug-line-edge : var(--widget-rule);
+  --debug-line-wash : var(--widget-muted);
+  --debug-line-tint : 0%;
+}
+
+.debug-line [data-hue='estimate'] { --debug-line-wash: var(--widget-estimate); }
+
+.debug-line [data-hue='geometry'] { --debug-line-wash: var(--widget-geometry); }
+
+.debug-line [data-hue='sky'] {
+  --debug-line-edge : color-mix(in srgb, var(--widget-sky) 75%, var(--widget-ink));
+  --debug-line-wash : var(--widget-sky);
+  --debug-line-tint : 30%;
+}
+
+.dark .debug-line [data-hue='sky'] { --debug-line-tint: 16%; }
+
+.debug-line [data-hue='forecast'] { --debug-line-wash: var(--widget-forecast); }
+
+.debug-line-log {
+  display       : grid;
+  gap           : 14px;
+  min-width     : 0;
+  padding       : 12px 20px 20px;
+  border-radius : 10px;
+  background    : var(--widget-raised);
+  box-shadow    : 0 0 0 1px var(--widget-rule);
+  font          : 400 0.78rem/1.75 var(--vp-font-family-mono);
+}
+
+.debug-line-bar {
+  min-height     : 26px;
+  padding-bottom : 8px;
+  border-bottom  : 1px solid var(--widget-rule);
+}
+
+.vp-doc .debug-line-raw {
+  margin         : 0;
+  padding-bottom : 12px;
+  border-bottom  : 1px solid var(--widget-rule);
+  color          : var(--widget-muted);
+  font           : 400 0.74rem/1.6 var(--vp-font-family-mono);
+  overflow-wrap  : break-word;
+}
+
+.debug-line-tabs {
+  display               : grid;
+  gap                   : 10px;
+  grid-template-columns : repeat(4, minmax(0, 1fr));
+  min-width             : 0;
+}
+
+.debug-line-tab {
+  min-width  : 0;
+  text-align : left;
+  cursor     : pointer;
+}
+
+.debug-line-tab:focus-visible {
+  border-radius  : 9px;
+  outline-offset : 3px;
+}
+
+.debug-line-tile, .debug-line-callout {
+  border        : 1.5px solid var(--debug-line-edge);
+  border-radius : 10px;
+  background    : color-mix(in srgb, var(--debug-line-wash) var(--debug-line-tint), var(--widget-raised));
+}
+
+.debug-line-tile {
+  --debug-line-tint : 13%;
+
+  display       : grid;
+  align-content : start;
+  gap           : 5px;
+  height        : 100%;
+  padding       : 9px 12px 11px;
+  color         : var(--widget-ink);
+  transition    : box-shadow var(--timing-fade) var(--timing-ease);
+}
+
+.debug-line-tile[data-hue='plain'] { background: var(--widget-sunken); }
+
+[aria-selected='true'] > .debug-line-tile {
+  box-shadow : 0 0 0 3px color-mix(in srgb, var(--debug-line-wash) 34%, transparent);
+}
+
+.debug-line-word.widget-caps {
+  font-size   : 0.62rem;
+  line-height : 1.3;
+  transition  : color var(--timing-hover) var(--timing-ease);
+  white-space : nowrap;
+}
+
+.debug-line-tab:hover .debug-line-word, [aria-selected='true'] .debug-line-word { color: var(--widget-ink); }
+
+.debug-line-value {
+  font-size     : 0.9rem;
+  font-weight   : 500;
+  line-height   : 1.25;
+  overflow-wrap : anywhere;
+}
+
+.debug-line-callout {
+  --debug-line-tint : 7%;
+
+  display       : flex;
+  align-items   : center;
+  gap           : 14px;
+  min-width     : 0;
+  padding       : 10px 14px 11px;
+  transition    : border-color var(--timing-fade) var(--timing-ease),
+                  background-color var(--timing-fade) var(--timing-ease);
+}
+
+.debug-line-callout[data-hue='sky'] { --debug-line-tint: 15%; }
+
+.debug-line-map {
+  display               : grid;
+  flex                  : none;
+  gap                   : 2px;
+  grid-auto-rows        : 6px;
+  grid-template-columns : repeat(4, 10px);
+}
+
+.debug-line-cell {
+  border-radius : 1.5px;
+  box-shadow    : inset 0 0 0 1px var(--widget-muted);
+  transition    : background-color var(--timing-fade) var(--timing-ease),
+                  box-shadow var(--timing-fade) var(--timing-ease);
+}
+
+.debug-line-cell.on {
+  background : var(--debug-line-wash);
+  box-shadow : inset 0 0 0 1px var(--debug-line-edge);
+}
+
+.debug-line-notes {
+  flex      : 1;
+  min-width : 0;
+}
+
+.vp-doc .debug-line-notes p {
+  margin : 0;
+  font   : 400 0.94rem/1.5 var(--vp-font-family-base);
+}
+
+@container (width < 40rem) {
+  .debug-line-log {
+    padding   : 12px 14px 16px;
+    font-size : 0.74rem;
+  }
+
+  .debug-line-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .debug-line-callout {
+    gap            : 12px;
+    padding-inline : 12px;
+  }
+
+  .debug-line-map { grid-template-columns: repeat(2, 10px); }
+}

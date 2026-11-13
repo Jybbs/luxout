@@ -1,5 +1,6 @@
 .widget {
   --widget-accent   : var(--vp-c-brand-1);
+  --widget-area     : var(--luxout-accent-4);
   --widget-display  : var(--luxout-font-display);
   --widget-estimate : var(--luxout-accent-1);
   --widget-fallback : var(--luxout-warning);

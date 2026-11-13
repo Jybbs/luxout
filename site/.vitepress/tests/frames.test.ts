@@ -12,11 +12,13 @@ import { SampleDay }                from '../lib/daylight/sample-day.ts'
 import { SUNSET_WORD, SUN_LAYOUTS } from '../lib/daylight/sun-curve.ts'
 import { sunYear }                  from '../lib/daylight/sun-year.ts'
 import { twilightBridge }           from '../lib/daylight/twilight-bridge.ts'
+import { roundedPlace }             from '../lib/privacy/rounded-place.ts'
 import { PLACEMENTS }               from '../lib/widgets/placements.ts'
 import { bridgeDrawing }            from '../theme/components/daylight/bridge-drawing.ts'
 import { dialDrawing }              from '../theme/components/daylight/dial-drawing.ts'
 import { gapDrawing }               from '../theme/components/daylight/gap-drawing.ts'
 import { sunDrawing }               from '../theme/components/daylight/sun-drawing.ts'
+import { placeDrawing }             from '../theme/components/privacy/place-drawing.ts'
 import { plotDrawing }              from '../theme/controls/plot-marks.ts'
 import { data }                     from './common/data/daylight.ts'
 import { frameSheet }               from './common/frames.ts'
@@ -111,6 +113,11 @@ it('commits the frame The Twilight Bridge opens on, with its words', async () =>
 
   await expect(await frameOf(drawing, 'twilight-bridge', words.join('')))
     .toMatchFileSnapshot(join(site, 'estimate', 'twilight-bridge.svg'))
+})
+
+it('commits the frame The Rounded Place opens on, as the widget draws it', async () => {
+  await expect(await frameOf(placeDrawing(roundedPlace(day.window.place)), 'rounded-place'))
+    .toMatchFileSnapshot(join(site, 'privacy', 'rounded-place.svg'))
 })
 
 it('describes the bridge’s frame on estimate/clear-sky.md through the figures it draws', async () => {
