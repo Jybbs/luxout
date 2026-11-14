@@ -13,7 +13,13 @@ import { angeles, boston, delhi }              from '../common/places.js'
 import { thresholdEntry }                      from '../common/threshold.js'
 import { spaced }                              from '../common/window.js'
 
-const MINUTE = 60_000
+const MINUTE   = 60_000
+const TEMPLATE = {
+  covered   : 'Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, '
+            + 'and a cloud factor of %s interpolated between %s at %s and %s at %s',
+  uncovered : 'Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, '
+            + 'and a cloud factor of %s, since no forecast covers the minute'
+}
 
 test('shows a reading at start and one each minute after it', ({ bridge, log }) => {
   const { accessory, reading } = meter(bridge, log, delhi)
@@ -74,21 +80,10 @@ test('logs the altitude, the clear sky, the factor, and both steps behind a read
   reading.use(spaced(Array(28).fill(200), delhi, '2026-10-11T01:00:00Z'))
   reading.start(new AbortController().signal)
 
-  expect(vi.mocked(log.debug).mock.calls).toMatchInlineSnapshot(`
-    [
-      [
-        "Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, and a cloud factor of %s interpolated between %s at %s and %s at %s",
-        "18380",
-        "15.87",
-        "22190",
-        "0.8286",
-        "0.9243",
-        "2026-10-11T02:00:00.000Z",
-        "0.7328",
-        "2026-10-11T02:15:00.000Z",
-      ],
-    ]
-  `)
+  expect(vi.mocked(log.debug).mock.calls).toEqual([[
+    TEMPLATE.covered, '18380', '15.87', '22190', '0.8286', '0.9243',
+    '2026-10-11T02:00:00.000Z', '0.7328', '2026-10-11T02:15:00.000Z'
+  ]])
 })
 
 test(
@@ -96,34 +91,14 @@ test(
   ({ bridge, log }) => {
     meter(bridge, log, delhi).reading.start(new AbortController().signal)
 
-    expect(vi.mocked(log.debug).mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          "Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, and a cloud factor of %s, since no forecast covers the minute",
-          "22190",
-          "15.87",
-          "22190",
-          "1",
-        ],
-      ]
-    `)
+    expect(vi.mocked(log.debug).mock.calls).toEqual([[TEMPLATE.uncovered, '22190', '15.87', '22190', '1']])
   }
 )
 
 test('logs the clamped reading and a clear sky of 0 lux under a night sun', ({ bridge, log }) => {
   meter(bridge, log, boston).reading.start(new AbortController().signal)
 
-  expect(vi.mocked(log.debug).mock.calls).toMatchInlineSnapshot(`
-    [
-      [
-        "Outside reads %s lux from a solar altitude of %s°, a clear-sky illuminance of %s lux, and a cloud factor of %s, since no forecast covers the minute",
-        "0.0001",
-        "-42.54",
-        "0",
-        "1",
-      ],
-    ]
-  `)
+  expect(vi.mocked(log.debug).mock.calls).toEqual([[TEMPLATE.uncovered, '0.0001', '-42.54', '0', '1']])
 })
 
 test('warns once as the reading falls back to the clear sky, for minutes on end', ({ bridge, log }) => {

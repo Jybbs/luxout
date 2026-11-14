@@ -69,7 +69,8 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   + '`&a` is a YAML anchor or alias, which GitHub rejects in an action manifest',
     '::error file=.github/workflows/ci.yml,line=1,title=Concurrency::The workflow runs on `pull_request` '
   + 'and sets no `concurrency` group, so a superseded pull-request run keeps running',
-    '::error file=.github/workflows/ci.yml,line=3,title=Reading gate::The workflow ends on no `✨ Reading` gate'
+    '::error file=.github/workflows/ci.yml,line=3,title=Reading gate::'
+  + 'The workflow ends on no `✨ Reading` gate'
   ])
 })
 
@@ -158,11 +159,48 @@ test('throws what mise printed to standard error where it prints nothing else', 
     .toThrow(new Error('mise ERROR Error parsing task file'))
 })
 
-test('throws the error starting mise raised', ({ scratch }) => {
-  const error = new Error('spawnSync mise ENOENT')
-  const audit = new Audit(scratch, () => ({ error, stderr: '', stdout: '' }))
+test.for([
+  { call: (audit: Audit) => audit.tracked('*.ts'), command: 'git' },
+  { call: (audit: Audit) => audit.mise('tasks', 'ls'), command: 'mise' }
+])('throws the error starting $command raised', ({ call, command }, { scratch }) => {
+  const error = new Error(`spawnSync ${command} ENOENT`)
 
-  expect(() => audit.mise('tasks', 'ls')).toThrow(error)
+  expect(() => call(new Audit(scratch, () => ({ error, stderr: '', stdout: '' })))).toThrow(error)
+})
+
+test('reads each file git tracks that the working tree still holds', async ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: '', stdout: 'a.ts\0gone.ts\0src/b.tsx\0' }))
+
+  await plant(scratch, { 'a.ts': 'a', 'c.ts': 'c', 'src/b.tsx': 'b' })
+
+  expect(new Audit(scratch, run).tracked('*.ts', '*.tsx')).toEqual({ 'a.ts': 'a', 'src/b.tsx': 'b' })
+  expect(run).toHaveBeenCalledExactlyOnceWith('git', ['ls-files', '-z', '--', '*.ts', '*.tsx'], {
+    cwd      : scratch,
+    encoding : 'utf8'
+  })
+})
+
+test('throws what git printed to standard error', ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: 'fatal: not a git repository\n', stdout: '' }))
+
+  expect(() => new Audit(scratch, run).tracked('*.ts')).toThrow(new Error('fatal: not a git repository'))
+})
+
+test('prints each tracked TypeScript line past the budget', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.mise/config.toml' : CONFIG,
+    'package.json'      : manifest('5.0.3'),
+    'src/a.ts'          : `${'a'.repeat(111)}\n`
+  })
+
+  expect(new Audit(scratch, mise([], [], 'src/a.ts\0'), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=src/a.ts,line=1,title=Line length::'
+  + 'The line runs 111 characters, past the 110-character budget'
+  ])
 })
 
 test('reads a file and names a path relative to the checkout', async ({ scratch }) => {

@@ -5,6 +5,7 @@ import { join, relative, resolve }            from 'node:path'
 import { Actions }         from './actions.ts'
 import type { Finding }    from './finding.ts'
 import { LabelRegistry }   from './labels.ts'
+import { LineBudget }      from './lines.ts'
 import { MiseConfig }      from './mise.ts'
 import { PackageManifest } from './package.ts'
 import { ReleaseNotes }    from './release.ts'
@@ -46,7 +47,8 @@ export class Audit {
       ...Rulesets.read(this).findings(workflows),
       ...labels.findings,
       ...ReleaseNotes.read(this).findings(labels),
-      ...IssueTemplates.read(this).findings(labels)
+      ...IssueTemplates.read(this).findings(labels),
+      ...LineBudget.read(this).findings
     ]
   }
 
@@ -59,9 +61,8 @@ export class Audit {
    * its exit status, which `mise tasks validate` sets nonzero on a defect.
    */
   mise(...args: string[]): string {
-    const { error, stderr, stdout } = this.#run('mise', args, { cwd: this.#root, encoding: 'utf8' })
+    const { stderr, stdout } = this.#spawn('mise', args)
 
-    if (error) throw error
     if (stdout === '') throw new Error(stderr.trim())
 
     return stdout
@@ -81,11 +82,33 @@ export class Audit {
     return relative(this.#root, resolve(this.#root, path))
   }
 
+  /**
+   * Reads each file git tracks in the checkout under one of `patterns`, keyed
+   * by its path, leaving out a tracked file the working tree no longer holds.
+   */
+  tracked(...patterns: string[]): Record<string, string> {
+    const { stderr, stdout } = this.#spawn('git', ['ls-files', '-z', '--', ...patterns])
+
+    if (stderr !== '') throw new Error(stderr.trim())
+
+    const files = stdout.split('\0').filter((file) => file !== '' && this.exists(file))
+
+    return Object.fromEntries(files.map((file) => [file, this.read(file)]))
+  }
+
   report(): number {
     const findings = this.#findings
 
     for (const finding of findings) this.#write(finding.annotation)
 
     return Number(findings.length > 0)
+  }
+
+  #spawn(command: string, args: string[]): Output {
+    const output = this.#run(command, args, { cwd: this.#root, encoding: 'utf8' })
+
+    if (output.error) throw output.error
+
+    return output
   }
 }

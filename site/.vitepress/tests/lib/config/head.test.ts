@@ -3,7 +3,13 @@ import { expect, it }       from 'vitest'
 
 import { transformHead } from '../../../lib/config/head.ts'
 
-const ABOUT  = 'What the plugin reads and how it turns that into lux.'
+const ABOUT = 'What the plugin reads and how it turns that into lux.'
+const ALT   = {
+  estimate : 'The title Estimate beside a six-pane window with one pane lit at an hour of the day, '
+           + 'with that hour’s time, sun angle, and reading in lux.',
+  site     : 'The Luxout logo and tagline over a hillside town at dusk, '
+           + 'with the address luxout.fyi on a glowing yellow chip.'
+}
 const ASSETS = [
   '/assets/bodoni-moda-latin-opsz-normal.B1x9.woff2', '/assets/jetbrains-mono-latin-wght-normal.C2y8.woff2',
   '/assets/source-serif-4-latin-opsz-italic.D3z7.woff2', '/assets/source-serif-4-latin-opsz-normal.E4w6.woff2'
@@ -20,17 +26,25 @@ const page = (relativePath: string, title: string, description = ABOUT) => head(
 
 /**
  * Reads the tags other than the preloads as one record, keyed by what each tag
- * names and holding its content, with the JSON-LD parsed.
+ * names and holding its content, with the JSON-LD parsed, and returns the Open
+ * Graph and X image descriptions apart from the rest.
  */
-const preview = (tags: HeadConfig[]) => Object.fromEntries(tags
-  .filter(([, { rel }]) => rel !== 'preload')
-  .map(([, { content, href, name, property, rel, type }, inner = '{}']) => [
-    property ?? name ?? rel ?? type,
-    content ?? href ?? JSON.parse(inner)
-  ]))
+const preview = (tags: HeadConfig[]) => {
+  const { 'og:image:alt': og, 'twitter:image:alt': twitter, ...rest } = Object.fromEntries(tags
+    .filter(([, { rel }]) => rel !== 'preload')
+    .map(([, { content, href, name, property, rel, type }, inner = '{}']) => [
+      property ?? name ?? rel ?? type,
+      content ?? href ?? JSON.parse(inner)
+    ]))
+
+  return { alt: [og, twitter], tags: rest }
+}
 
 it('writes the preview, the canonical link, and an article for a page past the front page', () => {
-  expect(preview(page('estimate/index.md', 'Estimate'))).toMatchInlineSnapshot(`
+  const { alt, tags } = preview(page('estimate/index.md', 'Estimate'))
+
+  expect(alt).toEqual([ALT.estimate, ALT.estimate])
+  expect(tags).toMatchInlineSnapshot(`
     {
       "application/ld+json": {
         "@context": "https://schema.org",
@@ -49,7 +63,6 @@ it('writes the preview, the canonical link, and an article for a page past the f
       "canonical": "https://luxout.fyi/estimate/",
       "og:description": "What the plugin reads and how it turns that into lux.",
       "og:image": "https://luxout.fyi/cards/estimate/index.png",
-      "og:image:alt": "The title Estimate beside a six-pane window with one pane lit at an hour of the day, with that hour’s time, sun angle, and reading in lux.",
       "og:image:height": "630",
       "og:image:type": "image/png",
       "og:image:width": "1200",
@@ -60,13 +73,15 @@ it('writes the preview, the canonical link, and an article for a page past the f
       "og:url": "https://luxout.fyi/estimate/",
       "twitter:card": "summary_large_image",
       "twitter:image": "https://luxout.fyi/cards/estimate/index.png",
-      "twitter:image:alt": "The title Estimate beside a six-pane window with one pane lit at an hour of the day, with that hour’s time, sun angle, and reading in lux.",
     }
   `)
 })
 
 it('describes the front page as the site, with the site card', () => {
-  expect(preview(page('index.md', 'Luxout', SITE))).toMatchInlineSnapshot(`
+  const { alt, tags } = preview(page('index.md', 'Luxout', SITE))
+
+  expect(alt).toEqual([ALT.site, ALT.site])
+  expect(tags).toMatchInlineSnapshot(`
     {
       "application/ld+json": {
         "@context": "https://schema.org",
@@ -78,7 +93,6 @@ it('describes the front page as the site, with the site card', () => {
       "canonical": "https://luxout.fyi/",
       "og:description": "An outdoor light sensor for Apple Home.",
       "og:image": "https://luxout.fyi/cards/index.png",
-      "og:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi on a glowing yellow chip.",
       "og:image:height": "630",
       "og:image:type": "image/png",
       "og:image:width": "1200",
@@ -89,13 +103,15 @@ it('describes the front page as the site, with the site card', () => {
       "og:url": "https://luxout.fyi/",
       "twitter:card": "summary_large_image",
       "twitter:image": "https://luxout.fyi/cards/index.png",
-      "twitter:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi on a glowing yellow chip.",
     }
   `)
 })
 
 it('describes the not-found page as the site, with the site card', () => {
-  expect(preview(page('404.md', '404', 'Not Found'))).toMatchInlineSnapshot(`
+  const { alt, tags } = preview(page('404.md', '404', 'Not Found'))
+
+  expect(alt).toEqual([ALT.site, ALT.site])
+  expect(tags).toMatchInlineSnapshot(`
     {
       "application/ld+json": {
         "@context": "https://schema.org",
@@ -107,7 +123,6 @@ it('describes the not-found page as the site, with the site card', () => {
       "canonical": "https://luxout.fyi/404",
       "og:description": "Not Found",
       "og:image": "https://luxout.fyi/cards/index.png",
-      "og:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi on a glowing yellow chip.",
       "og:image:height": "630",
       "og:image:type": "image/png",
       "og:image:width": "1200",
@@ -118,7 +133,6 @@ it('describes the not-found page as the site, with the site card', () => {
       "og:url": "https://luxout.fyi/404",
       "twitter:card": "summary_large_image",
       "twitter:image": "https://luxout.fyi/cards/index.png",
-      "twitter:image:alt": "The Luxout logo and tagline over a hillside town at dusk, with the address luxout.fyi on a glowing yellow chip.",
     }
   `)
 })

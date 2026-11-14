@@ -1,7 +1,7 @@
 /** @module-tag spawns */
-import { spawnSync } from 'node:child_process'
-import { chmod }     from 'node:fs/promises'
-import { join }      from 'node:path'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { chmod }                   from 'node:fs/promises'
+import { join }                    from 'node:path'
 
 import { expect } from 'vitest'
 
@@ -14,10 +14,13 @@ test('runs under Node’s type stripping and exits 1 on the annotations it print
     '.mise/config.toml'             : '[tools]\nnode = "24.21.0"\n',
     '.mise/tasks/plugin/bake'       : '#!/usr/bin/env bash\nbun install\n',
     'package.json'                  : JSON.stringify({ engines: { node: '^24.21.0 || ^26.10.0' } }),
+    'src/long.ts'                   : `${'a'.repeat(111)}\n`,
     'tests/vet/floor/package.json'  : '{}',
     'tests/vet/pinned/package.json' : '{}'
   })
   await chmod(join(scratch, '.mise', 'tasks', 'plugin', 'bake'), 0o755)
+  execFileSync('git', ['init', '--quiet'], { cwd: scratch })
+  execFileSync('git', ['add', 'src/long.ts'], { cwd: scratch })
 
   const { status, stdout } = spawnSync(process.execPath, [entry], {
     cwd      : scratch,
@@ -31,5 +34,7 @@ test('runs under Node’s type stripping and exits 1 on the annotations it print
            + '^26.10.0, the newest line `engines` admits\n'
            + '::error file=.mise/tasks/plugin/bake,line=2,title=Unfrozen install::`bun install` '
            + 'runs without `--frozen-lockfile` or `--lockfile-only`\n'
+           + '::error file=src/long.ts,line=1,title=Line length::The line runs 111 characters, '
+           + 'past the 110-character budget\n'
   })
 })
