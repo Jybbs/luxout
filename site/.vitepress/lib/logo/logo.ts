@@ -13,7 +13,7 @@ import { FONT_FILES }                      from '../type/typeface.ts'
 import { CONSTRUCTION, type Construction } from './construction.ts'
 import * as wordmark                       from './wordmark.ts'
 
-type Asset = (typeof ASSETS)[number]
+export type Asset = (typeof ASSETS)[number]
 
 /**
  * The box a drawing fills and the stretch its horizon runs, in whole font units
@@ -61,7 +61,7 @@ export class Logo {
       Faces.read(root),
       Tokens.read(root)
     ])
-    const tagline = pageOpening(fileURLToPath(new URL('../index.md', root)))
+    const tagline = readTagline(root)
 
     return new Logo(tokens, wordmark.measure(font, construction), construction, { faces, tagline })
   }
@@ -221,4 +221,12 @@ export class Logo {
  */
 export function addressOf(asset: Asset, scheme: Scheme): string {
   return `/logo/${asset}-${scheme}.svg`
+}
+
+/**
+ * Reads the tagline, the paragraph opening the front page beside `root`, the
+ * site's `.vitepress` directory.
+ */
+export function readTagline(root: URL): string {
+  return pageOpening(fileURLToPath(new URL('../index.md', root)))
 }

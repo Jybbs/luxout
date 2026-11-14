@@ -1,0 +1,18 @@
+{
+  "--luxout-primary": {
+    "meaning": "The light of a clear sky, drawn as the clear-sky curve and the glow",
+    "name": "Eureka"
+  },
+  "--luxout-accent-1": {
+    "meaning": "The estimate the plugin writes, and links on the light ground",
+    "name": "Toronto"
+  },
+  "--luxout-accent-2": { "meaning": "Open-Meteo's forecast", "name": "Seacaller" },
+  "--luxout-accent-3": { "meaning": "The sun's geometry", "name": "Ube" },
+  "--luxout-accent-4": { "meaning": "An area, filled and never drawn as a line", "name": "Apricot" },
+  "--luxout-accent-5": { "meaning": "A threshold sensor", "name": "Chambray" },
+  "--luxout-warning": { "meaning": "The fallback to the clear-sky curve", "name": "Caramel Coating" },
+  "--luxout-critical": { "meaning": "A sensor showing No Response", "name": "Brick Red" },
+  "--luxout-ground": { "meaning": "The light ground, and text on the dark ground", "name": "Cararra" },
+  "--luxout-dark": { "meaning": "The dark ground, and text on the light ground", "name": "Near Black" }
+}
