@@ -182,6 +182,10 @@ test('waits out the dwell pause again for a mouse that leaves and returns', asyn
   fireEvent.pointerMove(slider.parentElement!, { clientX: 70, pointerType: 'mouse' })
 
   expect(set).not.toHaveBeenCalled()
+
+  vi.advanceTimersByTime(PAUSES.dwell)
+
+  expect(set).toHaveBeenCalledExactlyOnceWith(7, false)
 })
 
 test('ignores a touch moving with no press', ({ mount }) => {

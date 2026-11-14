@@ -242,7 +242,7 @@ test('steps a key from the minute the playing morning shows', async ({ mount }) 
   expect(slider.getAttribute('aria-valuenow')).toBe(String(now + 1))
 })
 
-test('writes the minute in words on the slider as the morning plays', async ({ mount }) => {
+test('writes the minute’s clock and reading on the slider as the morning plays', async ({ mount }) => {
   const host   = mount(ThreeFactors)
   const button = getByRole(host, 'button', { name: 'Play the morning' })
   const slider = getByRole(host, 'slider')
