@@ -7,7 +7,7 @@ import { parseSync }           from 'oxc-parser'
 import manifest                            from '../../../../package.json' with { type: 'json' }
 import COLORS                              from '../../theme/styles/colors.json' with { type: 'json' }
 import { CONSTRUCTION, type Construction } from '../logo/construction.ts'
-import { ASSETS, type Asset, addressOf, readTagline } from '../logo/logo.ts'
+import * as logo                          from '../logo/logo.ts'
 import { SCHEMES, type Scheme, Tokens }    from '../theme/tokens.ts'
 
 /**
@@ -27,7 +27,7 @@ export interface Identity {
   byline  : string
   colors  : Swatch[]
   faces   : LoadedFace[]
-  logo    : { construction: Construction, svgs: Record<Asset, Record<Scheme, string>> }
+  logo    : { construction: Construction, svgs: Record<logo.Asset, Record<Scheme, string>> }
   tagline : string
 }
 
@@ -167,20 +167,20 @@ export function facesOf(
       const tags                 = named.intersection(new Set(Object.keys(variable)))
 
       return {
+        family : family,
+        italic : files.some(({ italic }) => italic),
+        role   : property.slice('--font-'.length),
         axes   : Object.fromEntries([...tags].sort().map((tag) => [tag, {
           default : Number(variable[tag]!.default),
           max     : Number(variable[tag]!.max),
           min     : Number(variable[tag]!.min)
-        }])),
-        family : family,
-        italic : files.some(({ italic }) => italic),
-        role   : property.slice('--font-'.length)
+        }]))
       }
     })
 }
 
 /**
- * Reads the identity from beneath `root`, the site's `.vitepress` directory:
+ * Reads the identity from the site whose `.vitepress` directory is `root`:
  *
  * - The palette and the faces, from the theme's tokens and theme module
  * - The logo's construction and the forms of it the site serves
@@ -192,11 +192,11 @@ export async function readIdentity(root: URL): Promise<Identity> {
     Tokens.read(root),
     readFile(new URL('theme/index.ts', root), 'utf8')
   ])
-  const svgs = Object.fromEntries(await Promise.all(ASSETS.map(async (asset) => [
+  const svgs = Object.fromEntries(await Promise.all(logo.ASSETS.map(async (asset) => [
     asset,
     Object.fromEntries(await Promise.all(SCHEMES.map(async (scheme) => [
       scheme,
-      await readFile(new URL(`../public${addressOf(asset, scheme)}`, root), 'utf8')
+      await readFile(new URL(`../public${logo.addressOf(asset, scheme)}`, root), 'utf8')
     ])))
   ]))) as Identity['logo']['svgs']
 
@@ -205,6 +205,6 @@ export async function readIdentity(root: URL): Promise<Identity> {
     colors  : colorsOf(tokens),
     faces   : facesOf(createRequire(root), theme, tokens),
     logo    : { construction: CONSTRUCTION, svgs },
-    tagline : readTagline(root)
+    tagline : logo.readTagline(root)
   }
 }

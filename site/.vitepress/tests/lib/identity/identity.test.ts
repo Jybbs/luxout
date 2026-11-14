@@ -36,9 +36,20 @@ describe('the palette', () => {
     }
   )
 
+  it.each([
+    { hex: '#767676', use: 'text' },
+    { hex: '#777777', use: 'mark' },
+    { hex: '#949494', use: 'mark' },
+    { hex: '#959595', use: 'fill' }
+  ])('admits $use for $hex on a white ground, by the WCAG 2.2 ratio it holds there', ({ hex, use }) => {
+    const sheet = Tokens.parse(`@theme { --color-ground: #fff; } :root { --luxout-a: ${hex}; }`)
+
+    expect(colorsOf(sheet, { '--luxout-a': { meaning: '', name: 'A' } })[0]!.use.light).toBe(use)
+  })
+
   it('fails where colors.json names a color whose value differs between the schemes', () => {
     const sheet = Tokens.parse(':root { --luxout-a: #fff; --luxout-b: #000; } .dark { --luxout-b: #111; }')
-    const named ={ '--luxout-a': { meaning: '', name: 'A' }, '--luxout-b': { meaning: '', name: 'B' } }
+    const named = { '--luxout-a': { meaning: '', name: 'A' }, '--luxout-b': { meaning: '', name: 'B' } }
 
     expect(() => colorsOf(sheet, named)).toThrow('colors.json and the tokens disagree on --luxout-b')
   })
@@ -73,6 +84,11 @@ describe('the faces', () => {
         role   : 'mono'
       }
     ])
+  })
+
+  it('lists each face’s axes by tag', () => {
+    expect(identity.faces.map(({ axes }) => Object.keys(axes)))
+      .toEqual([['opsz', 'wght'], ['opsz', 'wght'], ['wght']])
   })
 
   it('reads the weight axis alone from a face’s weight stylesheet', () => {
