@@ -132,7 +132,7 @@
     border-radius  : 10px;
     background     : color-mix(in srgb, var(--color-raised) 92%, transparent);
     box-shadow     : 0 0 0 1px var(--color-rule), 0 12px 26px -18px var(--color-shadow);
-    transition     : translate var(--timing-move);
+    transition     : translate var(--timing-move) var(--timing-ease);
     pointer-events : none;
   }
 

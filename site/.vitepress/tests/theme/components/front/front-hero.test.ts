@@ -61,14 +61,46 @@ test('carries the shared minute from noon to HomeKit’s floor as the page scrol
   expect(useFrontMinute().value).toBe(floor)
 })
 
-test('holds the hero at noon while the site’s drawings are paused', async ({ mount }) => {
-  mount(Home)
+test('holds the minute and the glow where they stand once the site’s drawings are paused', async ({
+  mount
+}) => {
+  const word = mount(Home).querySelector<HTMLElement>('.front-word')!
+
   scroll(1e4)
   await nextTick()
 
   useMotion().set(true)
   await nextTick()
+  scroll(0)
+  await nextTick()
+
+  expect(useFrontMinute().value).toBe(floor)
+  expect(word.style.getPropertyValue('--front-fade')).toBe('0.000')
+})
+
+test('shows noon on a page that loads with the site’s drawings paused', async ({ mount }) => {
+  localStorage.setItem('luxout-paused', 'true')
+  vi.stubGlobal('scrollY', 1e4)
+
+  const word = mount(Home).querySelector<HTMLElement>('.front-word')!
+
   await nextTick()
 
   expect(useFrontMinute().value).toBe(day.noon)
+  expect(word.style.getPropertyValue('--front-fade')).toBe('1.000')
+})
+
+test('sinks the sun and its glow below the horizon once the scroll carries the light past sunset', async ({
+  mount
+}) => {
+  const word = mount(Home).querySelector<HTMLElement>('.front-word')!
+
+  expect(word.style.getPropertyValue('--front-up')).toBe('1')
+  expect(word.style.getPropertyValue('--front-y')).toBe('0.0000')
+
+  scroll(1e4)
+  await nextTick()
+
+  expect(word.style.getPropertyValue('--front-up')).toBe('0')
+  expect(Number(word.style.getPropertyValue('--front-y'))).toBeGreaterThan(1)
 })

@@ -1,3 +1,11 @@
+import type { Bibliography } from '../citations/bibliography.ts'
+
+/**
+ * One source as the site lists it, its address read from the bibliography's
+ * entry under `cite` wherever the bibliography holds the work.
+ */
+type Listed = Omit<Source, 'link'> & ({ cite: string } | { link: string })
+
 /**
  * One source the reading rests on, with what it supplies, the terms the site
  * credits it under, and the mark and color the front page draws it in.
@@ -12,7 +20,7 @@ export interface Source {
   tone  : 'area' | 'forecast' | 'geometry' | 'muted' | 'sky'
 }
 
-export const SOURCES: readonly Source[] = [
+const SOURCES: readonly Listed[] = [
   {
     link  : 'https://open-meteo.com/en/docs',
     mark  : 'bars',
@@ -23,7 +31,7 @@ export const SOURCES: readonly Source[] = [
     tone  : 'forecast'
   },
   {
-    link  : 'https://www.geonames.org/',
+    cite  : 'geonames',
     mark  : 'pin',
     name  : 'GeoNames',
     role  : 'The place',
@@ -41,7 +49,7 @@ export const SOURCES: readonly Source[] = [
     tone  : 'geometry'
   },
   {
-    link  : 'https://archive.org/details/DTIC_ADA182110',
+    cite  : 'janiczek1987',
     mark  : 'curve',
     name  : 'Circular 171',
     role  : 'The clear-sky curve',
@@ -50,12 +58,26 @@ export const SOURCES: readonly Source[] = [
     tone  : 'sky'
   },
   {
-    link  : 'https://doi.org/10.2172/1039404',
+    cite  : 'reno2012',
     mark  : 'bell',
     name  : 'Haurwitz',
     role  : 'The clear-sky irradiance',
     says  : 'The clear sky’s W/m² the forecast is divided by, per Sandia report SAND2012-2389.',
-    terms : 'Published model',
+    terms : 'U.S. Department of Energy report',
     tone  : 'area'
   }
 ]
+
+/**
+ * Lists the sources the reading rests on in the order the front page sets them
+ * out, each address read from `bibliography` where the source cites a work.
+ */
+export function sourcesFrom(bibliography: Bibliography): Source[] {
+  return SOURCES.map((listed) => {
+    if ('link' in listed) return listed
+
+    const { cite, ...source } = listed
+
+    return { ...source, link: bibliography.address(cite) }
+  })
+}

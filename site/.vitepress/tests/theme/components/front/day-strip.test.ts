@@ -3,6 +3,7 @@ import { getByRole }                         from '@testing-library/dom'
 import { afterEach, beforeEach, expect, vi } from 'vitest'
 import { nextTick }                          from 'vue'
 
+import { DAY_MINUTES }                   from '../../../../lib/daylight/clock.ts'
 import { useFrontFacts, useFrontMinute } from '../../../../lib/front/minute.ts'
 import { DURATIONS }                     from '../../../../lib/motion/timing.ts'
 import { DayStrip }                      from '../../../../theme/components/front/day-strip.tsx'
@@ -54,6 +55,37 @@ test.for([
   await nextTick()
 
   expect(host.querySelector('.day-strip-sun')!.hasAttribute('data-down')).toBe(down)
+})
+
+test('docks the card at the scene’s far end once the beam comes within its reach, and back', async ({
+  mount
+}) => {
+  const resized: ResizeObserverCallback[] = []
+
+  vi.stubGlobal('ResizeObserver', class {
+    disconnect = vi.fn<() => void>()
+    observe    = vi.fn<() => void>()
+
+    constructor(callback: ResizeObserverCallback) {
+      resized.push(callback)
+    }
+  })
+
+  const card = mount(DayStrip).querySelector<HTMLElement>('.day-strip-card')!
+
+  resized[0]!([{ contentRect: { height: 120, width: 1000 } }] as never, {} as never)
+
+  useFrontMinute().value = DAY_MINUTES
+  await nextTick()
+  expect(card.dataset.end).toBe('left')
+
+  useFrontMinute().value = day.noon
+  await nextTick()
+  expect(card.dataset.end).toBe('left')
+
+  useFrontMinute().value = 0
+  await nextTick()
+  expect(card.dataset.end).toBe('right')
 })
 
 test('marks the card assumed outside the forecast window', async ({ mount }) => {

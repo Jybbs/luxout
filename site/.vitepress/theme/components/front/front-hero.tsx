@@ -30,6 +30,7 @@ const steps         = hero.schemes.dark.skies.length - 1
 class HeroScene {
   readonly root    = shallowRef<HTMLElement>()
   #band            : Element | undefined
+  #fade            = 1
   #height          = 1
   #hero            : HTMLElement | undefined
   #home            : HTMLElement | undefined
@@ -40,12 +41,6 @@ class HeroScene {
 
   constructor() {
     onMounted(() => this.#mount())
-  }
-
-  get #fade(): number {
-    const travel = this.#height * CARRY.travel
-
-    return this.#paused.value ? 1 : 1 - clamp((scrollY - travel) / (this.#height * CARRY.clear), 0, 1)
   }
 
   /**
@@ -68,7 +63,7 @@ class HeroScene {
    * bands below tinted by it, the tint easing to a quarter while the page's
    * rising edge flares around sunset.
    */
-  #draw(minute: number, fade: number): void {
+  #draw(minute: number): void {
     const place = positionOf(day, valueAt(day.readings, minute))
     const step  = Math.round(place * steps)
     const edge  = 1 - smoothstep(Math.abs(place - CARRY.edge.at) / CARRY.edge.width)
@@ -83,9 +78,9 @@ class HeroScene {
       home.setProperty(`--front-sky-${scheme}`, skies[step]!)
     }
 
-    home.setProperty('--front-a', (edge * fade).toFixed(3))
-    home.setProperty('--front-share', (CARRY.tint * (1 - 0.75 * edge) * fade).toFixed(4))
-    word.setProperty('--front-fade', fade.toFixed(3))
+    home.setProperty('--front-a', (edge * this.#fade).toFixed(3))
+    home.setProperty('--front-share', (CARRY.tint * (1 - 0.75 * edge) * this.#fade).toFixed(4))
+    word.setProperty('--front-fade', this.#fade.toFixed(3))
     word.setProperty('--front-up', up >= 0 ? '1' : '0')
     word.setProperty('--front-x', ((minute - day.noon + hero.reach) / (2 * hero.reach)).toFixed(4))
     word.setProperty('--front-y', Math.max(0, 1 - up / peak).toFixed(4))
@@ -116,25 +111,30 @@ class HeroScene {
       this.#scroll()
     })
     useEventListener('scroll', () => this.#scroll(), { passive: true })
-    watch(this.#minute, (minute) => this.#draw(minute, this.#fade))
+    watch(this.#minute, (minute) => this.#draw(minute))
     watch(this.#paused, () => this.#scroll())
     this.#scroll()
+
+    if (this.#paused.value) this.#draw(this.#minute.value)
   }
 
   /**
    * Runs the light from noon to HomeKit's floor at one pace along its
    * logarithm over `CARRY.travel` hero heights of scroll, writing the shared
-   * minute each time the scroll moves it, and holds at noon while the site's
-   * drawings are paused.
+   * minute each time the scroll moves it, and holds the minute and the glow
+   * where they stand while the site's drawings are paused.
    */
   #scroll(): void {
-    const scroll = this.#paused.value ? 0 : scrollY
-    const run    = clamp(scroll / (this.#height * CARRY.travel), 0, 1)
-    const at     = this.#minuteAt(logs[0]! + (logs.at(-1)! - logs[0]!) * run)
-
     this.#cover()
 
-    if (at === this.#scrolled) return this.#draw(this.#minute.value, this.#fade)
+    if (this.#paused.value) return
+
+    const travel = this.#height * CARRY.travel
+    const at     = this.#minuteAt(logs[0]! + (logs.at(-1)! - logs[0]!) * clamp(scrollY / travel, 0, 1))
+
+    this.#fade = 1 - clamp((scrollY - travel) / (this.#height * CARRY.clear), 0, 1)
+
+    if (at === this.#scrolled) return this.#draw(this.#minute.value)
 
     this.#scrolled     = at
     this.#minute.value = at

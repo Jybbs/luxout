@@ -141,7 +141,8 @@
     }
   }
 
-  [data-paused] .source-lamps-wash::after, [data-paused] .source-lamps-orb::before {
+  [data-paused] .source-lamps:has(.source-lamps-row:hover) .source-lamps-wash::after,
+  [data-paused] .source-lamps-row:hover [data-state='checked'] > .source-lamps-orb::before {
     animation-play-state: paused;
   }
 

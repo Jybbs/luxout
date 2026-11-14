@@ -3,10 +3,14 @@ import { fireEvent, getAllByRole, getByRole } from '@testing-library/dom'
 import { expect, vi }                         from 'vitest'
 import { nextTick }                           from 'vue'
 
-import { SOURCES }     from '../../../../lib/config/sources.ts'
 import { PAUSES }      from '../../../../lib/motion/timing.ts'
 import { SourceLamps } from '../../../../theme/components/front/source-lamps.tsx'
+import { data }        from '../../../common/data/front.ts'
 import { test }        from '../../../common/mount.ts'
+
+vi.mock('../../../../lib/front/front.data.ts', () => import('../../../common/data/front.ts'))
+
+const { sources } = data
 
 function credited(host: HTMLElement): string {
   return host.querySelector('.source-lamps-slot .shown a')!.getAttribute('href')!
@@ -18,13 +22,19 @@ test('sets the sources out as a radio group in a row, the first chosen', ({ moun
 
   expect(getByRole(host, 'radiogroup', { name: 'The sources the reading rests on' })).toBeTruthy()
   expect(radios.map((radio) => radio.getAttribute('aria-labelledby') !== null))
-    .toEqual(SOURCES.map(() => true))
+    .toEqual(sources.map(() => true))
   expect(radios.map((radio) => (radio as HTMLInputElement).checked))
-    .toEqual(SOURCES.map((_, index) => index === 0))
+    .toEqual(sources.map((_, index) => index === 0))
 })
 
 test('credits the chosen source’s link beneath the row', ({ mount }) => {
-  expect(credited(mount(SourceLamps))).toBe(SOURCES[0]!.link)
+  expect(credited(mount(SourceLamps))).toBe(sources[0]!.link)
+})
+
+test('names each source’s license on its card', ({ mount }) => {
+  const cards = mount(SourceLamps).querySelectorAll('.source-lamps-credit span.widget-caps')
+
+  expect([...cards].map(({ textContent }) => textContent)).toEqual(sources.map(({ terms }) => terms))
 })
 
 test('chooses the source a mouse rests on through the dwell pause and speaks it', async ({ mount }) => {
@@ -35,10 +45,10 @@ test('chooses the source a mouse rests on through the dwell pause and speaks it'
   vi.advanceTimersByTime(PAUSES.dwell)
   await nextTick()
 
-  expect(credited(host)).toBe(SOURCES[2]!.link)
+  expect(credited(host)).toBe(sources[2]!.link)
 
   vi.advanceTimersByTime(PAUSES.speech)
-  expect(host.querySelector('[aria-live]')!.textContent).toBe(`${SOURCES[2]!.says} ${SOURCES[2]!.terms}.`)
+  expect(host.querySelector('[aria-live]')!.textContent).toBe(`${sources[2]!.says} ${sources[2]!.terms}.`)
 })
 
 test('chooses nothing for a touch resting on a lamp', async ({ mount }) => {
@@ -48,5 +58,5 @@ test('chooses nothing for a touch resting on a lamp', async ({ mount }) => {
   vi.advanceTimersByTime(PAUSES.dwell)
   await nextTick()
 
-  expect(credited(host)).toBe(SOURCES[0]!.link)
+  expect(credited(host)).toBe(sources[0]!.link)
 })

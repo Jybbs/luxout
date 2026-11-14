@@ -1,5 +1,6 @@
 import { defineLoader } from 'vitepress'
 
+import { Bibliography }              from '../citations/bibliography.ts'
 import { SampleDay }                 from '../daylight/sample-day.ts'
 import { Logo }                      from '../logo/logo.ts'
 import recording                     from '../search/recording.json' with { type: 'json' }
@@ -12,9 +13,11 @@ export { data }
 
 export default defineLoader({
   async load(): Promise<FrontPage> {
-    const root           = new URL('../../', import.meta.url)
-    const [logo, tokens] = await Promise.all([Logo.read(root), Tokens.read(root)])
+    const root                         = new URL('../../', import.meta.url)
+    const [bibliography, logo, tokens] = await Promise.all([
+      Bibliography.read(root), Logo.read(root), Tokens.read(root)
+    ])
 
-    return frontPage(SampleDay.record(), logo, recording.results[0]!, tokens)
+    return frontPage(bibliography, SampleDay.record(), logo, recording.results[0]!, tokens)
   }
 })

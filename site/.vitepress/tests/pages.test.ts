@@ -9,7 +9,6 @@ import { REQUEST_TUNING }            from '../../../src/weather/client.ts'
 import { SCHEDULE_TUNING }           from '../../../src/weather/schedule.ts'
 import config                        from '../config.ts'
 import { SECTIONS }                  from '../lib/config/sections.ts'
-import { SOURCES }                   from '../lib/config/sources.ts'
 import { cloudSteps }                from '../lib/daylight/cloud-steps.ts'
 import { dayDial }                   from '../lib/daylight/day-dial.ts'
 import { factorDay }                 from '../lib/daylight/factor-day.ts'
@@ -21,6 +20,7 @@ import { PLACEMENTS, WIDGET_NAMES }  from '../lib/widgets/placements.ts'
 import * as blocks                   from './common/blocks.ts'
 import { data }                      from './common/data/daylight.ts'
 import { data as line }              from './common/data/debug-line.ts'
+import { data as front }             from './common/data/front.ts'
 import { data as privacy }           from './common/data/privacy.ts'
 
 const day               = SampleDay.record()
@@ -67,7 +67,7 @@ const pageBlocks: Readonly<Record<string, Readonly<Record<string, string>>>> = {
 
   'index.md': {
     'front-lamps'   : blocks.lampsTable(SECTIONS),
-    'front-sources' : blocks.sourcesTable(SOURCES)
+    'front-sources' : blocks.sourcesTable(front.sources)
   },
 
   'privacy/sends.md': {

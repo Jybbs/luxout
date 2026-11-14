@@ -2,10 +2,11 @@ import * as radio                                 from '@zag-js/radio-group'
 import { mergeProps, normalizeProps, useMachine } from '@zag-js/vue'
 import { type VNode, computed, defineComponent, shallowRef, useId } from 'vue'
 
-import { SOURCES, type Source } from '../../../lib/config/sources.ts'
-import { Speech }               from '../../../lib/motion/speech.ts'
-import { layers }               from '../../controls/layers.tsx'
-import { Pauses }               from '../../controls/pauses.ts'
+import type { Source } from '../../../lib/config/sources.ts'
+import { data }        from '../../../lib/front/front.data.ts'
+import { Speech }      from '../../../lib/motion/speech.ts'
+import { layers }      from '../../controls/layers.tsx'
+import { Pauses }      from '../../controls/pauses.ts'
 
 const INK = 'fill-none stroke-ink stroke-1'
 
@@ -49,6 +50,7 @@ const MARKS = {
     <circle class={INK} cx="22" cy="11" r="3.4" />
   ]
 } satisfies Record<Source['mark'], () => VNode[]>
+const { sources } = data
 
 /**
  * Sets the sources the reading rests on as round lamps in a row, a radio group
@@ -61,7 +63,7 @@ export const SourceLamps = defineComponent({
   setup() {
     const id      = useId()
     const root    = shallowRef<HTMLElement>()
-    const chosen  = shallowRef(SOURCES[0]!.name)
+    const chosen  = shallowRef(sources[0]!.name)
     const speech  = new Speech(root)
     const service = useMachine(radio.machine, computed(() => ({
       id            : id,
@@ -73,22 +75,22 @@ export const SourceLamps = defineComponent({
     const api    = computed(() => radio.connect(service, normalizeProps))
     const pauses = new Pauses((name: string) => api.value.setValue(name))
     const choose = (name: string) => {
-      const { says, terms } = SOURCES.find((source) => source.name === name)!
+      const { says, terms } = sources.find((source) => source.name === name)!
 
       chosen.value = name
       speech.say(`${says} ${terms}.`)
     }
 
     return () => {
-      const at    = SOURCES.findIndex(({ name }) => name === chosen.value)
-      const style = { '--lit': at, '--sources': SOURCES.length, '--tone': toneOf(SOURCES[at]!) }
+      const at    = sources.findIndex(({ name }) => name === chosen.value)
+      const style = { '--lit': at, '--sources': sources.length, '--tone': toneOf(sources[at]!) }
 
       return (
         <div class="source-lamps widget" ref={root} style={style}>
           <div aria-hidden class="source-lamps-wash" />
           <div {...api.value.getRootProps()} class="source-lamps-row group/row">
             <span {...api.value.getLabelProps()} class="sr-only">The sources the reading rests on</span>
-            {...SOURCES.map((source) => (
+            {...sources.map((source) => (
               <label
                 {...mergeProps(api.value.getItemProps({ value: source.name }), {
                   onPointerenter : (event: PointerEvent) => pauses.rest(event, source.name),
@@ -111,7 +113,7 @@ export const SourceLamps = defineComponent({
             ))}
           </div>
           <div class="source-lamps-slot">
-            {layers(SOURCES.map(credit), at)}
+            {layers(sources.map(credit), at)}
           </div>
         </div>
       )

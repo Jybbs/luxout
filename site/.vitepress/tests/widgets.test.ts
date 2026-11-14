@@ -1,3 +1,4 @@
+import { globSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
@@ -55,7 +56,8 @@ const FRAME_MARKS = {
  * and the dark one inside its media query.
  */
 const SCHEMES: Scheme[] = ['light', 'dark']
-const source            = await readFile(new URL('../theme/styles/tokens.css', import.meta.url), 'utf8')
+const STYLES            = new URL('../theme/styles/', import.meta.url)
+const source            = await readFile(new URL('tokens.css', STYLES), 'utf8')
 const tokens            = Tokens.parse(source)
 const frameInks         = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [
   ...fills.map((word) => ({ floor: 4.5, name, property: 'fill', selector: `.${name}-${word}` })),
@@ -297,3 +299,10 @@ it('holds the request clock’s later marks back until the failing hour', () => 
     !classList.contains('opacity-0') || !classList.contains('group-data-[on=fails]:opacity-100')
   )).toEqual([])
 })
+
+it.each(globSync('*.css', { cwd: STYLES }))(
+  'pauses each animation %s runs while the site’s drawings are paused',
+  async (name) => {
+    expect(new Sheet(name, await readFile(new URL(name, STYLES), 'utf8')).unpaused).toEqual([])
+  }
+)

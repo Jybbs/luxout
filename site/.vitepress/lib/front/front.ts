@@ -6,6 +6,8 @@ import { renderToString }                               from 'vue/server-rendere
 import { TWILIGHT }                            from '../../../../src/daylight/clear-sky.ts'
 import { seeded }                              from '../cards/seeded.ts'
 import { colorAt, mix }                        from '../cards/sky.ts'
+import type { Bibliography }                   from '../citations/bibliography.ts'
+import { type Source, sourcesFrom }            from '../config/sources.ts'
 import { DAY_MINUTES, HOUR_MINUTES, hourWord } from '../daylight/clock.ts'
 import { phaseOf }                             from '../daylight/day-dial.ts'
 import { luxRange }                            from '../daylight/homekit.ts'
@@ -55,11 +57,12 @@ interface FrontHero {
  * Everything the front page draws from the sample day.
  */
 export interface FrontPage {
-  readonly date  : string
-  readonly day   : FrontDay
-  readonly hero  : FrontHero
-  readonly place : string
-  readonly strip : FrontStrip
+  readonly date    : string
+  readonly day     : FrontDay
+  readonly hero    : FrontHero
+  readonly place   : string
+  readonly sources : readonly Source[]
+  readonly strip   : FrontStrip
 }
 
 /**
@@ -143,13 +146,15 @@ const oklab        = converter('oklab')
 
 /**
  * Reads the front page's drawings off `day` at `place`, the sky's shades
- * against the two grounds `tokens` declares, and the hero's title from `logo`.
+ * against the two grounds `tokens` declares, the hero's title from `logo`, and
+ * the sources' addresses from `bibliography`.
  */
 export async function frontPage(
-  day    : SampleDay,
-  logo   : Logo,
-  place  : Place,
-  tokens : Tokens
+  bibliography : Bibliography,
+  day          : SampleDay,
+  logo         : Logo,
+  place        : Place,
+  tokens       : Tokens
 ): Promise<FrontPage> {
   const noon        = maxIndex(day.altitudes)
   const [rise, set] = crossings(day.altitudes, TWILIGHT.sunset)
@@ -158,8 +163,9 @@ export async function frontPage(
   const floor       = day.readings.findIndex((lux, minute) => minute > noon && lux <= luxRange.min)
 
   return {
-    date  : dateIn(place.timezone),
-    place : place.name,
+    date    : dateIn(place.timezone),
+    place   : place.name,
+    sources : sourcesFrom(bibliography),
 
     day: {
       altitudes  : day.altitudes.map(tenth),
