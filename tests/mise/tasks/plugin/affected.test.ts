@@ -35,16 +35,17 @@ async function canned(
 }
 
 /**
- * Runs the task from a repository under `scratch` whose branch changes only
- * `changed` since it left `origin/main`, where a stand-in `mise` runs each task
- * file it names and Vitest runs one plugin test, which imports `src/a.ts`,
- * under the suite's own configuration.
+ * Runs the task from a repository at `folder` under `scratch` whose branch
+ * changes only `changed` since it left `origin/main`, where a stand-in `mise`
+ * runs each task file it names and Vitest runs one plugin test, which imports
+ * `src/a.ts`, under the suite's own configuration.
  */
 async function selected(
   changed : string,
-  scratch : string
+  scratch : string,
+  folder  = 'repo'
 ): Promise<{ ran: boolean, status: number | null }> {
-  const repo = join(scratch, 'repo')
+  const repo = join(scratch, folder)
   const git  = (...args: string[]): Buffer => execFileSync('git', [
     '-c', 'commit.gpgsign=false', '-c', 'user.email=luxout@example.com', '-c', 'user.name=Luxout', ...args
   ], { cwd: repo })
@@ -114,5 +115,16 @@ test.for([
   '$name where a branch changes only $changed',
   async ({ changed, ran }, { scratch }) => {
     expect(await selected(changed, scratch)).toEqual({ ran: ran, status: 0 })
+  }
+)
+
+test.for([
+  { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
+  { changed: 'package.json', name: 'runs every plugin test', ran: true },
+  { changed: 'src/package.json', name: 'runs every plugin test', ran: true }
+])(
+  '$name where a branch changes only $changed in a checkout under luxout (old)',
+  async ({ changed, ran }, { scratch }) => {
+    expect(await selected(changed, scratch, 'luxout (old)')).toEqual({ ran: ran, status: 0 })
   }
 )
