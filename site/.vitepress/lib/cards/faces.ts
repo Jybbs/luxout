@@ -29,17 +29,22 @@ export interface Voice {
 }
 
 /**
- * Closes the gap after `W` in font units in each pair a page title sets, since
- * Bodoni Moda's `GPOS` table kerns W against no lowercase letter.
+ * The voice of a drawing's display words, a start card's word and the credit's
+ * heading.
  */
-const DISPLAY_PAIRS = { Wh: -160, Wi: -160 }
+export const DISPLAY: Voice = { axes: { opsz: 12, wght: 600 }, face: 'display' }
 /**
  * The voice of a card's address and of the unit beside its reading.
  */
 export const MONO: Voice = { axes: { wght: 500 }, face: 'mono' }
+/**
+ * Closes the gap after `W` in font units in each pair a page title sets, since
+ * Bodoni Moda's `GPOS` table kerns W against no lowercase letter.
+ */
+const PAIRS: Partial<Record<Face, Readonly<Record<string, number>>>> = { display: { Wh: -160, Wi: -160 } }
 
 /**
- * The three faces the cards set their words in.
+ * The faces the drawings set their words in, the body face's italic among them.
  */
 export class Faces {
   readonly #faces: Record<Face, typeface.Typeface>
@@ -49,14 +54,11 @@ export class Faces {
    * directory.
    */
   static async read(root: URL): Promise<Faces> {
-    const file                   = (face: Face) => readFile(new URL(typeface.FONT_FILES[face], root))
-    const [display, mono, serif] = await Promise.all([file('display'), file('mono'), file('serif')])
+    const faces = await Promise.all(Object.entries(typeface.FONT_FILES).map(async ([face, file]) =>
+      [face, new typeface.Typeface(await readFile(new URL(file, root)), PAIRS[face as Face])] as const
+    ))
 
-    return new Faces({
-      display : new typeface.Typeface(display, DISPLAY_PAIRS),
-      mono    : new typeface.Typeface(mono),
-      serif   : new typeface.Typeface(serif)
-    })
+    return new Faces(Object.fromEntries(faces) as Record<Face, typeface.Typeface>)
   }
 
   constructor(faces: Record<Face, typeface.Typeface>) {

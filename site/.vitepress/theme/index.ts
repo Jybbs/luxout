@@ -5,6 +5,7 @@ import { type Component, defineAsyncComponent, h } from 'vue'
 import { writePaused }       from '../lib/motion/motion.ts'
 import { writeTiming }       from '../lib/motion/timing.ts'
 import type { WidgetName }   from '../lib/widgets/placements.ts'
+import { Credits }           from './components/credit/credits.tsx'
 import { LuxScale }          from './components/daylight/lux-scale.tsx'
 import { TheGap }            from './components/daylight/the-gap.tsx'
 import { DayStrip }          from './components/front/day-strip.tsx'
@@ -31,6 +32,7 @@ const SLOTS = {
   'home-hero-info'  : () => h(FrontHero)
 }
 const WIDGETS = {
+  Credits           : Credits,
   LocationSearch    : LocationSearch,
   LuxScale          : LuxScale,
   SectionLamps      : SectionLamps,

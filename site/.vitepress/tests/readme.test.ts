@@ -7,8 +7,12 @@ import { describe, expect, it }   from 'vitest'
 import { renderToString }         from 'vue/server-renderer'
 
 import manifest                       from '../../../package.json' with { type: 'json' }
+import { TWILIGHT }                   from '../../../src/daylight/clear-sky.ts'
 import config                         from '../config.ts'
+import * as credit                    from '../lib/credit/credit.ts'
+import { Seal, plaqueAddress }        from '../lib/credit/seal.ts'
 import { SampleDay }                  from '../lib/daylight/sample-day.ts'
+import { Logo, addressOf }            from '../lib/logo/logo.ts'
 import { DayPreview, previewAddress } from '../lib/readme/day-preview.ts'
 import * as startCards                from '../lib/readme/start-cards.ts'
 import { SCHEMES }                    from '../lib/theme/tokens.ts'
@@ -26,6 +30,8 @@ const root      = new URL('../', import.meta.url)
 const cards     = await startCards.StartCards.read(root)
 const md        = await createMarkdownRenderer(fileURLToPath(new URL('../', root)), config.markdown)
 const preview   = await DayPreview.read(root, dialDrawing)
+const seal      = await Seal.read(root)
+const logo      = await Logo.read(root)
 const readme    = await readFile(new URL('../../.github/README.md', root), 'utf8')
 const site      = (address: string) => new URL(`../public${address}`, root)
 const pages     = new Set(readme.matchAll(/(?:href="|\]\()(https:\/\/luxout\.fyi\/[^")]+)/g)
@@ -68,17 +74,63 @@ describe('the tracked README files', () => {
       .toMatchFileSnapshot(site(startCards.cardAddress(card, scheme)).pathname)
   })
 
-  it('show the card Check at the first minute past noon the sun sits below -6 degrees', () => {
+  it.for([
+    { level: TWILIGHT.civil, word: 'Understand' },
+    { level: TWILIGHT.sunset, word: 'Check' }
+  ])('show the card $word at the morning’s first minute at $level degrees', ({ level, word }) => {
     const day    = SampleDay.record()
-    const minute = startCards.START_CARDS.find(({ word }) => word === 'Check')!.minute(day)
+    const minute = startCards.START_CARDS.find((card) => card.word === word)!.minute(day)
 
-    expect(minute).toBeGreaterThan(SampleDay.NOON)
-    expect(day.altitudes[minute - 1]).toBeGreaterThanOrEqual(-6)
-    expect(day.altitudes[minute]).toBeLessThan(-6)
+    expect(minute).toBeLessThan(SampleDay.NOON)
+    expect(day.altitudes[minute - 1]).toBeLessThan(level)
+    expect(day.altitudes[minute]).toBeGreaterThanOrEqual(level)
+  })
+
+  it.for(SCHEMES)('hold the %s credit as the site draws it', async (scheme) => {
+    await expect(`${await renderToString(seal.plaque(scheme))}\n`)
+      .toMatchFileSnapshot(site(plaqueAddress(scheme)).pathname)
+  })
+
+  it('order the cards by the height of their sun, ending on noon', () => {
+    const day     = SampleDay.record()
+    const minutes = startCards.START_CARDS.map((card) => card.minute(day))
+    const heights = minutes.map((minute) => day.altitudes[minute]!)
+
+    expect(minutes.at(-1)).toBe(SampleDay.NOON)
+    expect(heights).toEqual(heights.toSorted((a, b) => a - b))
   })
 })
 
 describe('the README', () => {
+  it.for(SCHEMES)('shows the %s lockup and credit from luxout.fyi', (scheme) => {
+    expect(readme).toContain(`${manifest.homepage}${addressOf('lockup', scheme)}`)
+    expect(readme).toContain(`${manifest.homepage}${plaqueAddress(scheme)}`)
+  })
+
+  it('names the lockup in its alternative text as the drawing labels itself', () => {
+    expect(readme).toContain(`alt="${logo.lockup('light').props!['aria-label']}"`)
+  })
+
+  it('names the credit in the plaque’s alternative text', () => {
+    expect(readme).toContain(`alt="${credit.creditLabel()}"`)
+  })
+
+  it('sets out every row of the credit as a centered line, its label held to its value', () => {
+    const lines = credit.creditRows().map(({ code, href, label, value }) =>
+        `<code>${label.toUpperCase()}</code>&nbsp;${code ? `<code>${code}</code> ` : ''}`
+      + (href ? `<a href="${href}">${value}</a>` : value)
+    )
+
+    expect(readme).toContain(`<p align="center">\n  ${lines.join('<br>\n  ')}\n</p>`)
+  })
+
+  it('names in its one Node badge the lowest line engines sets', () => {
+    const lowest = Math.min(...manifest.engines.node.matchAll(/\^(\d+)/g).map(([, major]) => Number(major)))
+
+    expect(readme.match(/img\.shields\.io\/badge\/LTS%20(\d+)%2B/)?.[1]).toBe(String(lowest))
+    expect(readme).not.toContain('img.shields.io/node/')
+  })
+
   it.for(SCHEMES)('shows the %s preview from luxout.fyi', (scheme) => {
     expect(readme).toContain(`${manifest.homepage}${previewAddress(scheme)}`)
   })

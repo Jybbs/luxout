@@ -18,6 +18,7 @@ import { frameSheet }               from './common/frames.ts'
 
 vi.mock('vitepress', () => ({ inBrowser: false }))
 vi.mock('vitepress/theme-without-fonts', () => ({ default: { Layout: 'Layout' } }))
+vi.mock('../lib/credit/credit.data.ts', () => import('./common/data/credit.ts'))
 vi.mock('../lib/daylight/cloud-steps.data.ts', () => import('./common/data/cloud-steps.ts'))
 vi.mock('../lib/daylight/day-dial.data.ts', () => import('./common/data/day-dial.ts'))
 vi.mock('../lib/daylight/daylight.data.ts', () => import('./common/data/daylight.ts'))

@@ -15,16 +15,33 @@ interface SectionPage {
 
 const HEADING = /(?<=^# ).+$/m
 const LINK    = /(?<=\]\(\.\/)[\w-]+(?=\.md\))/g
+const OPENING = /(?<=^# .+\n\n).+$/m
+
+/**
+ * Reads the text `pattern` matches in the page at `path` without its emphasis
+ * marks, failing with `missing` where the pattern matches nothing.
+ */
+function plainMatch(path: string, pattern: RegExp, missing: string): string {
+  const match = pattern.exec(readFileSync(path, 'utf8'))
+
+  if (!match) throw new Error(`${path} ${missing}`)
+
+  return match[0].replaceAll('*', '')
+}
+
+/**
+ * Reads the paragraph opening the page at `path`, the one beneath its first
+ * heading, as plain text.
+ */
+export function pageOpening(path: string): string {
+  return plainMatch(path, OPENING, 'opens on no paragraph beneath its first heading')
+}
 
 /**
  * Reads the first heading of the page at `path` as plain text.
  */
 export function pageTitle(path: string): string {
-  const heading = HEADING.exec(readFileSync(path, 'utf8'))
-
-  if (!heading) throw new Error(`${path} opens on no first-level heading`)
-
-  return heading[0].replaceAll('*', '')
+  return plainMatch(path, HEADING, 'opens on no first-level heading')
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { Bibliography } from '../citations/bibliography.ts'
+import { CREDIT }            from '../credit/credit.ts'
 
 /**
  * One source as the site lists it, its address read from the bibliography's
@@ -27,7 +28,7 @@ const SOURCES: readonly Listed[] = [
     name  : 'Open-Meteo',
     role  : 'The forecast',
     says  : 'Sunlight at the ground every 15 minutes, six hours ahead, fetched once an hour.',
-    terms : 'Data CC BY 4.0',
+    terms : `Data ${CREDIT.license.text}`,
     tone  : 'forecast'
   },
   {

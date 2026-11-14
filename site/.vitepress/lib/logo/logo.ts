@@ -1,8 +1,11 @@
-import { readFile } from 'node:fs/promises'
+import { readFile }      from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
 import { noop }                      from '@vueuse/core'
 import { type VNode, cloneVNode, h } from 'vue'
 
+import { Faces, MONO }                     from '../cards/faces.ts'
+import { pageOpening }                     from '../config/pages.ts'
 import { SVG_NAMESPACE }                   from '../daylight/svg.ts'
 import { tenth }                           from '../daylight/tenth.ts'
 import { type Scheme, Tokens }             from '../theme/tokens.ts'
@@ -26,6 +29,15 @@ interface Frame {
 }
 
 /**
+ * The faces the lockup sets its tagline in and the tagline it sets, the
+ * paragraph opening the site's front page.
+ */
+interface Lettering {
+  faces   : Faces
+  tagline : string
+}
+
+/**
  * The color the letters above the horizon take, the scheme's ink where it is
  * left out, and the text every id a drawing defines opens on.
  */
@@ -34,29 +46,38 @@ interface Paint {
   prefix? : string
 }
 
-export const ASSETS = ['mark', 'title'] as const
+export const ASSETS = ['lockup', 'mark', 'title'] as const
 
 /**
- * Draws the logo's title and mark in either scheme from the construction, with
- * every coordinate on a whole font unit.
+ * Draws the logo's lockup, title, and mark in either scheme from the
+ * construction, with every coordinate of the title and the mark on a whole font
+ * unit.
  */
 export class Logo {
   readonly #construction : Construction
+  readonly #lettering    : Lettering
   readonly #tokens       : Tokens
   readonly #word         : wordmark.Wordmark
 
   /**
-   * Reads Bodoni Moda and the theme's tokens from beneath `root`, the site's
-   * `.vitepress` directory.
+   * Reads Bodoni Moda, the faces, and the theme's tokens from beneath `root`,
+   * the site's `.vitepress` directory, and the tagline from the front page
+   * beside it.
    */
   static async read(root: URL, construction: Construction = CONSTRUCTION): Promise<Logo> {
-    const [font, tokens] = await Promise.all([readFile(new URL(FONT_FILES.display, root)), Tokens.read(root)])
+    const [font, faces, tokens] = await Promise.all([
+      readFile(new URL(FONT_FILES.display, root)),
+      Faces.read(root),
+      Tokens.read(root)
+    ])
+    const tagline = pageOpening(fileURLToPath(new URL('../index.md', root)))
 
-    return new Logo(tokens, wordmark.measure(font, construction), construction)
+    return new Logo(tokens, wordmark.measure(font, construction), construction, { faces, tagline })
   }
 
-  constructor(tokens: Tokens, word: wordmark.Wordmark, construction: Construction) {
+  constructor(tokens: Tokens, word: wordmark.Wordmark, construction: Construction, lettering: Lettering) {
     this.#construction = construction
+    this.#lettering    = lettering
     this.#tokens       = tokens
     this.#word         = word
   }
@@ -94,6 +115,46 @@ export class Logo {
    */
   hero(scheme: Scheme): VNode {
     return this.#title(scheme, { above: 'currentColor', prefix: `${scheme}-` })
+  }
+
+  /**
+   * Draws the title `lockup.width` pixels wide over the tagline in capitals,
+   * tracked so its ink runs the length of the horizon, the drawing cropped from
+   * the top of the glow to half the tagline's size below its baseline.
+   */
+  lockup(scheme: Scheme): VNode {
+    const { glow, ink, lockup, word } = this.#construction
+    const { faces, tagline }          = this.#lettering
+    const { ascent, sun, width }      = this.#word
+
+    const margin   = this.#margin
+    const scale    = lockup.width / (width + 2 * margin)
+    const left     = (this.#word.ink.left + margin) * scale
+    const right    = (this.#word.ink.right + margin) * scale
+    const horizon  = (ascent + margin - sun.cy) * scale
+    const baseline = horizon + sun.r * lockup.below * scale
+    const top      = Math.floor(horizon - sun.r * glow.radius * scale)
+    const height   = Math.ceil(baseline + lockup.size / 2) - top
+    const capitals = tagline.toUpperCase().replace(/\.$/, '')
+    const plain    = faces.set(MONO, lockup.size, capitals).ink
+    const track    = (right - left - plain.right + plain.left) / (capitals.length - 1)
+
+    return h('svg', {
+      'aria-label' : `${word}. ${tagline}`,
+      height       : height,
+      role         : 'img',
+      viewBox      : `0 ${top} ${lockup.width} ${height}`,
+      width        : lockup.width,
+      xmlns        : SVG_NAMESPACE
+    }, [
+      this.titleAcross(left, right, scheme, horizon),
+      faces.say(capitals, { ...MONO, track }, {
+        fill : this.#tokens.resolve(ink[scheme], scheme),
+        size : lockup.size,
+        x    : left,
+        y    : baseline
+      })
+    ])
   }
 
   /**

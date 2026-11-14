@@ -7,6 +7,7 @@ import { useMotion }         from '../../../lib/motion/motion.ts'
 import { Speech }            from '../../../lib/motion/speech.ts'
 import type { SearchStage }  from '../../../lib/search/replay.ts'
 import { data }              from '../../../lib/search/search.data.ts'
+import { codeSpans }         from '../../controls/code-spans.tsx'
 import { layers }            from '../../controls/layers.tsx'
 import { Tablist, tabPanel } from '../../controls/tablist.tsx'
 import { settingsPage }      from './settings-page.tsx'
@@ -150,7 +151,7 @@ function wire({ code, label, note }: SearchStage): VNode {
           '[&_code]:normal-case'
         ]}
       >
-        {...words(label)}
+        {...codeSpans(label)}
       </span>
       {code.length
         ? (
@@ -164,11 +165,7 @@ function wire({ code, label, note }: SearchStage): VNode {
           </pre>
         )
         : undefined}
-      {note ? <p class="widget-note">{...words(note)}</p> : undefined}
+      {note ? <p class="widget-note">{...codeSpans(note)}</p> : undefined}
     </div>
   )
-}
-
-function words(text: string): (VNode | string)[] {
-  return text.split('`').map((piece, index) => index % 2 ? <code>{piece}</code> : piece)
 }

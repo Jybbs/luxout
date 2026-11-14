@@ -23,6 +23,13 @@ export type WidgetName = (typeof ROWS)[number]['widget']
 
 const ROWS = [
   {
+    fold    : 'The credit as a table',
+    heading : 'Credits',
+    page    : 'estimate/bibliography.md',
+    widget  : 'Credits',
+    words   : true
+  },
+  {
     fold    : 'Each stretch as a table',
     frame   : './day-estimate.svg',
     heading : 'A Day of the Reading',
