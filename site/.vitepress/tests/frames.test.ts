@@ -1,10 +1,10 @@
 import { readFile }      from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
-import { Window }                               from 'happy-dom'
-import { expect, it }                           from 'vitest'
-import { type VNode, cloneVNode, createSSRApp } from 'vue'
-import { renderToString }                       from 'vue/server-renderer'
+import { Window }                 from 'happy-dom'
+import { expect, it }             from 'vitest'
+import { type VNode, cloneVNode } from 'vue'
+import { renderToString }         from 'vue/server-renderer'
 
 import { dayDial }                  from '../lib/daylight/day-dial.ts'
 import * as dialLens                from '../lib/daylight/dial-lens.ts'
@@ -37,7 +37,7 @@ const year    = sunYear(day)
  * with the words the widget sets around it in HTML, every word an outline.
  */
 async function frameOf(drawing: VNode, name: string, words = ''): Promise<string> {
-  const markup = await renderToString(createSSRApp({ render: () => drawing }))
+  const markup = await renderToString(drawing)
 
   return framed(markup.replace(/<\/svg>$/, `${words}</svg>`), await frameSheet(name))
 }

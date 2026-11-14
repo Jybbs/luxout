@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
-import { wcagContrast }               from 'culori'
-import { cross, min }                 from 'd3-array'
-import { Window }                     from 'happy-dom'
-import { afterAll, expect, it, vi }   from 'vitest'
-import { createApp, createSSRApp, h } from 'vue'
-import { renderToString }             from 'vue/server-renderer'
+import { hyphenate }                from '@vueuse/core'
+import { wcagContrast }             from 'culori'
+import { cross, min }               from 'd3-array'
+import { type Element, Window }     from 'happy-dom'
+import { afterAll, expect, it, vi } from 'vitest'
+import { createApp, h }             from 'vue'
+import { renderToString }           from 'vue/server-renderer'
 
 import { Sheet }                    from '../lib/bundle/sheet.ts'
 import { type Scheme, Tokens }      from '../lib/theme/tokens.ts'
@@ -68,7 +69,7 @@ const window   = new Window()
 theme.enhanceApp({ app: registry, router: {} as never, siteData: {} as never })
 
 const widgets = new Map(await Promise.all(WIDGET_NAMES.map(async (name) => {
-  const markup = await renderToString(createSSRApp({ render: () => h(registry.component(name)!) }))
+  const markup = await renderToString(h(registry.component(name)!))
 
   return [name, new window.DOMParser().parseFromString(markup, 'text/html').body] as const
 })))
@@ -94,6 +95,13 @@ function inFrame(name: string, property: string, selector: string): string[] {
 }
 
 /**
+ * Finds the root of the widget `name`, the element carrying the `widget` class.
+ */
+function rootOf(name: string): Element {
+  return widgets.get(name)!.querySelector('.widget')!
+}
+
+/**
  * Lists every utility the widget `name` renders on any of its elements.
  */
 function utilitiesOf(name: string): Set<string> {
@@ -110,10 +118,14 @@ it('writes no color-mix() toward black, which the minifier folds into another co
 })
 
 it.each(WIDGET_NAMES)('styles the root of %s itself inside no container query', (name) => {
-  const root = widgets.get(name)!.querySelector('.widget')!
+  const root = rootOf(name)
 
   expect([...root.classList].filter((utility) => /(?:^|:)@/.test(utility) && !DESCENDANT.test(utility)))
     .toEqual([])
+})
+
+it.each(WIDGET_NAMES)('gives the root of %s a class named for the widget', (name) => {
+  expect([...rootOf(name).classList]).toContain(hyphenate(name))
 })
 
 it.each(SCHEMES)('holds the widget’s text at 4.5:1 on each surface of the %s ground', (scheme) => {

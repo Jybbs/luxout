@@ -1,9 +1,8 @@
-import { useTimeoutFn }                             from '@vueuse/core'
 import * as tabs                                    from '@zag-js/tabs'
 import { mergeProps, normalizeProps, useMachine }   from '@zag-js/vue'
 import { type PropType, computed, defineComponent } from 'vue'
 
-import { PAUSES } from '../../lib/motion/timing.ts'
+import { Pauses } from './pauses.ts'
 
 /**
  * The utilities the tablist and each of its tabs take.
@@ -41,7 +40,7 @@ export const Tablist = defineComponent({
 
   setup(props, { emit, slots }) {
     const select  = (index: number) => emit('select', index)
-    const dwell   = useTimeoutFn(select, PAUSES.dwell, { immediate: false })
+    const pauses  = new Pauses(select)
     const service = useMachine(tabs.machine, computed(() => ({
       ...tabsContext(props.id, props.label),
       onValueChange : ({ value }: tabs.ValueChangeDetails) => select(Number(value)),
@@ -49,7 +48,7 @@ export const Tablist = defineComponent({
     })))
     const api  = computed(() => tabs.connect(service, normalizeProps))
     const rest = (event: PointerEvent, index: number) => {
-      if (event.pointerType === 'mouse') dwell.start(index)
+      if (event.pointerType === 'mouse') pauses.dwell.start(index)
     }
 
     return () => (
@@ -58,7 +57,7 @@ export const Tablist = defineComponent({
           <button
             {...mergeProps(api.value.getTriggerProps({ value: String(index) }), {
               onPointerenter : (event: PointerEvent) => rest(event, index),
-              onPointerleave : dwell.stop
+              onPointerleave : pauses.dwell.stop
             })}
             aria-label={label}
             class={props.classes.tab}

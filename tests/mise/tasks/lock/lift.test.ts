@@ -19,9 +19,9 @@ interface Setup {
 
 const ADVISORIES = {
   vitest: [
-    { id: 1, url: 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc', vulnerable_versions: '<5.0.4' },
-    { id: 2, url: 'https://github.com/advisories/GHSA-dddd-eeee-ffff', vulnerable_versions: '<5.0.6' },
-    { id: 3, url: 'https://github.com/advisories/GHSA-gggg-hhhh-iiii', vulnerable_versions: '<5.0.1' }
+    { id: 2, url: 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc', vulnerable_versions: '<5.0.4' },
+    { id: 3, url: 'https://github.com/advisories/GHSA-dddd-eeee-ffff', vulnerable_versions: '<5.0.6' },
+    { id: 1, url: 'https://github.com/advisories/GHSA-gggg-hhhh-iiii', vulnerable_versions: '<5.0.1' }
   ]
 }
 const CHECKOUT                        = '1'.repeat(40)
@@ -286,10 +286,9 @@ function row(stdout: string, pin: string): string[] {
 test('prints every pin behind its newest release as one Markdown table', async ({ scratch }) => {
   const { status, steps, stdout } = await lift(scratch)
 
-  expect({ status, steps, stdout }).toMatchInlineSnapshot(`
-    {
-      "status": 0,
-      "stdout": "| **Pin**          | **Current** | **Newest** | **Major** | **Age** | **Clears**          | **Held** |
+  expect({ status, steps }).toEqual({ status: 0, steps: [] })
+  expect(stdout).toMatchInlineSnapshot(`
+    "| **Pin**          | **Current** | **Newest** | **Major** | **Age** | **Clears**          | **Held** |
     | ---------------- | ----------- | ---------- | --------- | ------- | ------------------- | -------- |
     | @types/node      | 22.20.5     | 26.6.5     | yes       | 8 days  |                     | yes      |
     | actions/checkout | v5.1.0      | v6.0.0     | yes       | 3 days  |                     |          |
@@ -300,10 +299,14 @@ test('prints every pin behind its newest release as one Markdown table', async (
     | unbash           | 5.0.0       | 6.0.0      | yes       | 1 day   |                     |          |
     | vitest           | 5.0.3       | 5.0.5      | no        | 2 days  | GHSA-aaaa-bbbb-cccc |          |
     | zizmor           | 1.30.1      | 1.31.1     | no        |         |                     |          |
-    ",
-      "steps": [],
-    }
+    "
   `)
+})
+
+test('decides every version comparison the run makes in one Bun process', async ({ scratch }) => {
+  const { invoked } = await lift(scratch, { args: ['--try'] })
+
+  expect(invoked.filter(({ args }) => args.some((arg) => arg.includes('Bun.semver')))).toHaveLength(1)
 })
 
 test.for([{ args: [] }, { args: ['--try', '--write'] }])(
@@ -402,9 +405,9 @@ test('trials the lift in a scratch clone, leaving the checkout as it was', async
   const { moved, status, steps, stdout } = await lift(scratch, { args: ['--try'] })
   const log                              = await readFile(join(scratch, '.cache/lift/whole.log'), 'utf8')
 
-  expect({ files: await read(scratch), log: log.split('\n')[0], moved, status, steps, stdout }).toEqual({
+  expect({ files: await read(scratch), log, moved, status, steps, stdout }).toEqual({
     files  : FILES,
-    log    : 'Lifting actions/checkout, bun, min_version, node, plugin:test:24, unbash, vitest, zizmor',
+    log    : 'Lifting actions/checkout, bun, min_version, node, plugin:test:24, unbash, vitest, zizmor\n',
     moved  : false,
     status : 0,
     steps  : [['clone', ...RELOCK], ['clone', ...VERIFY]],
