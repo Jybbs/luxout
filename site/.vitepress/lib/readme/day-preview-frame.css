@@ -1,5 +1,3 @@
-.day-preview-plate { fill: var(--color-ground); }
-
 .day-preview-hand {
   stroke         : var(--color-ink);
   stroke-linecap : round;
@@ -12,9 +10,39 @@
   stroke-width : 1.5;
 }
 
+.day-preview-chip {
+  fill         : none;
+  stroke       : var(--color-rule);
+  stroke-width : 1.2;
+}
+
+.day-preview-chip-step { stroke: var(--color-estimate); }
+
+.day-preview-track { fill: var(--color-sunken); }
+
+.day-preview-on, .day-preview-chip-on {
+  fill   : var(--color-sensor);
+  stroke : var(--color-ink);
+}
+
+.day-preview-on { stroke-width: 1; }
+
+.day-preview-step { fill: var(--color-rule); }
+
+.day-preview-step[data-past] { fill: var(--color-forecast); }
+
+.day-preview-step[data-now] { fill: var(--color-estimate); }
+
 .day-preview-cursor {
   stroke       : var(--color-ink);
-  stroke-width : 2;
+  stroke-width : 1.5;
 }
 
 .day-estimate-layer[data-peek] { opacity: 1; }
+
+@media (prefers-color-scheme: dark) {
+  .day-preview-on, .day-preview-chip-on {
+    fill   : var(--color-gap-on);
+    stroke : var(--color-sensor);
+  }
+}

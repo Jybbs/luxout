@@ -10,7 +10,7 @@ import { tenth }                      from './tenth.ts'
 /**
  * One 15-minute step of the forecast, with the words and the bars it opens.
  */
-interface CloudStep {
+export interface CloudStep {
   readonly bars     : { readonly clear: number, readonly forecast: number }
   readonly borrowed : boolean
   readonly clear    : string
