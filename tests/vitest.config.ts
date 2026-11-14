@@ -1,15 +1,18 @@
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 
 import { defineConfig } from 'vitest/config'
 
 import thresholds from './coverage.json' with { type: 'json' }
 
+const root = dirname(import.meta.dirname)
+
 export default defineConfig({
   cacheDir : '.cache/vite',
-  root     : dirname(import.meta.dirname),
+  root     : root,
   test     : {
     environmentOptions  : { happyDOM: { settings: { handleDisabledFileLoadingAsSuccess: true } } },
     expect              : { requireAssertions: true },
+    forceRerunTriggers  : [import.meta.filename, join(root, '{,!(site)/**/}package.json')],
     include             : ['tests/**/*.test.ts'],
     resolveSnapshotPath : (testPath, extension) => testPath + extension,
     restoreMocks        : true,

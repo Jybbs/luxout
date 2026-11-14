@@ -7,14 +7,12 @@ import { expect } from 'vitest'
 import { test } from '../../../common/scratch.js'
 import { sync } from '../../../common/sync.js'
 
-const BASE   = '5cb3ee2'
-const MERGE  = ['git', 'merge-base', 'origin/main', 'HEAD']
-const PLUGIN = ['mise', 'run', 'plugin:test', '--', '--changed', BASE]
-const SITE   = ['mise', 'run', 'site:test', '--', '--changed', BASE]
+const PLUGIN = ['mise', 'run', 'plugin:affected']
+const SITE   = ['mise', 'run', 'site:affected']
 
 /**
- * Runs the task in `scratch` beside stand-ins for `git` and `mise`, where the
- * merge base is `BASE` and the call `failing` names exits 1.
+ * Runs the task in `scratch` beside a stand-in for `mise`, where the call
+ * `failing` names exits 1.
  */
 async function run(
   scratch  : string,
@@ -22,7 +20,6 @@ async function run(
 ): Promise<{ calls: string[][], status: number | null }> {
   const { invoked, status } = await sync(scratch, 'repo:check', {
     canned : {
-      [MERGE.join(' ')]  : { stdout: `${BASE}\n` },
       [PLUGIN.join(' ')] : {},
       [SITE.join(' ')]   : {},
       ...failing && { [failing.join(' ')]: { status: 1 } }
@@ -44,17 +41,13 @@ test('runs the type and lint checks of the plugin and the site before its own bo
   })
 })
 
-test(
-  'runs the plugin tests and then the site tests Vitest selects against the merge base',
-  async ({ scratch }) => {
-    expect(await run(scratch)).toEqual({ calls: [MERGE, PLUGIN, SITE], status: 0 })
-  }
-)
+test('runs the plugin tests and then the site tests a branch reaches', async ({ scratch }) => {
+  expect(await run(scratch)).toEqual({ calls: [PLUGIN, SITE], status: 0 })
+})
 
 test.for([
-  { calls: [MERGE], failing: MERGE, name: '`git merge-base`' },
-  { calls: [MERGE, PLUGIN], failing: PLUGIN, name: '`plugin:test`' },
-  { calls: [MERGE, PLUGIN, SITE], failing: SITE, name: '`site:test`' }
+  { calls: [PLUGIN], failing: PLUGIN, name: '`plugin:affected`' },
+  { calls: [PLUGIN, SITE], failing: SITE, name: '`site:affected`' }
 ])('fails and runs nothing further once $name fails', async ({ calls, failing }, { scratch }) => {
   expect(await run(scratch, failing)).toEqual({ calls: calls, status: 1 })
 })
