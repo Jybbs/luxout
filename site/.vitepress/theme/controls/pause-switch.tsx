@@ -41,14 +41,14 @@ class Drawings {
 
   /**
    * Lets the thumb slide and its glyphs fade only from the second frame after
-   * the page mounts, so the switch takes a stored pause without moving.
+   * the switch mounts, so it takes a stored pause without moving.
    */
   constructor() {
     onMounted(() => requestAnimationFrame(() => requestAnimationFrame(() => { this.#moving.value = true })))
   }
 
   /**
-   * Whether the drawings play, read as playing until the page mounts and from
+   * Whether the drawings play, read as playing until the switch mounts and from
    * the site's one paused state after it.
    */
   get playing(): boolean {

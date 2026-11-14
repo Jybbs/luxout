@@ -37,18 +37,24 @@ test('shows a swell in its thumb while on and a level line while off', ({ mount 
   expect(level!.classList.contains('group-aria-checked:opacity-0')).toBe(true)
 })
 
-test('slides its thumb only from the second frame after it mounts', async ({ mount }) => {
+test('animates its thumb and glyphs only from the second frame after it mounts', async ({ mount }) => {
   stubMedia(() => false)
 
-  const thumb = getByRole(mount(PauseSwitch), 'switch').firstElementChild!
+  const thumb          = getByRole(mount(PauseSwitch), 'switch').firstElementChild!
+  const [swell, level] = thumb.querySelectorAll('path')
+  const moving         = (): boolean[] => [
+    thumb.classList.contains('motion-safe:transition-[translate,color]'),
+    swell!.classList.contains('motion-safe:transition-opacity'),
+    level!.classList.contains('motion-safe:transition-opacity')
+  ]
 
   vi.advanceTimersToNextFrame()
   await nextTick()
-  expect(thumb.classList.contains('motion-safe:transition-[translate,color]')).toBe(false)
+  expect(moving()).toEqual([false, false, false])
 
   vi.advanceTimersToNextFrame()
   await nextTick()
-  expect(thumb.classList.contains('motion-safe:transition-[translate,color]')).toBe(true)
+  expect(moving()).toEqual([true, true, true])
 })
 
 test('turns off once mounted for a reader who prefers reduced motion', async ({ mount }) => {
