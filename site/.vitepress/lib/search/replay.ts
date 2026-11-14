@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 
 import schema           from '../../../../config.schema.json' with { type: 'json' }
 import { Geocoder }     from '../../../../src/ui/geocoder.ts'
@@ -85,7 +85,7 @@ const TYPE_HOLD = 500  // Milliseconds the typing stage holds past its last char
  * both watch.
  */
 export const replaySources = ['../../../../config.schema.json', './recording.json']
-  .map((path) => fileURLToPath(new URL(path, import.meta.url)))
+  .map((path) => join(import.meta.dirname, path))
 const result = recording.results[0]!
 
 function jsonLines(value: unknown): string[] {

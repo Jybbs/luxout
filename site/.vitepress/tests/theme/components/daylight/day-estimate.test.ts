@@ -273,6 +273,21 @@ test('keeps a peek open for a pointer returning within the leave pause', async (
   expect(tab.classList.contains('peeked')).toBe(true)
 })
 
+test('keeps the peek on its stretch for a pointer returning ahead of a dwell on another', async ({ mount }) => {
+  const host = mount(DayEstimate)
+  const plot = overDial(host)
+  const tab  = getAllByRole(host, 'tab')[DAY]!
+
+  await dwellOver(plot)
+  fireEvent.pointerMove(plot, { ...pointAt(DIAL.rim - 10, 0), pointerType: 'mouse' })
+  vi.advanceTimersByTime(PAUSES.leave - 1)
+  fireEvent.pointerMove(plot, HOVER)
+  vi.advanceTimersByTime(PAUSES.dwell)
+  await nextTick()
+
+  expect(tab.classList.contains('peeked')).toBe(true)
+})
+
 test('peeks at nothing once the pointer leaves ahead of a dwell on a second stretch', async ({ mount }) => {
   const host = mount(DayEstimate)
   const plot = overDial(host)
