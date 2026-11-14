@@ -12,7 +12,7 @@ import config                         from '../config.ts'
 import * as credit                    from '../lib/credit/credit.ts'
 import { Seal, plaqueAddress }        from '../lib/credit/seal.ts'
 import { SampleDay }                  from '../lib/daylight/sample-day.ts'
-import { addressOf }                  from '../lib/logo/logo.ts'
+import { Logo, addressOf }            from '../lib/logo/logo.ts'
 import { DayPreview, previewAddress } from '../lib/readme/day-preview.ts'
 import * as startCards                from '../lib/readme/start-cards.ts'
 import { SCHEMES }                    from '../lib/theme/tokens.ts'
@@ -31,6 +31,7 @@ const cards     = await startCards.StartCards.read(root)
 const md        = await createMarkdownRenderer(fileURLToPath(new URL('../', root)), config.markdown)
 const preview   = await DayPreview.read(root, dialDrawing)
 const seal      = await Seal.read(root)
+const logo      = await Logo.read(root)
 const readme    = await readFile(new URL('../../.github/README.md', root), 'utf8')
 const site      = (address: string) => new URL(`../public${address}`, root)
 const pages     = new Set(readme.matchAll(/(?:href="|\]\()(https:\/\/luxout\.fyi\/[^")]+)/g)
@@ -101,9 +102,13 @@ describe('the tracked README files', () => {
 })
 
 describe('the README', () => {
-  it.for(SCHEMES)('shows the %s lockup and the %s credit from luxout.fyi', (scheme) => {
+  it.for(SCHEMES)('shows the %s lockup and credit from luxout.fyi', (scheme) => {
     expect(readme).toContain(`${manifest.homepage}${addressOf('lockup', scheme)}`)
     expect(readme).toContain(`${manifest.homepage}${plaqueAddress(scheme)}`)
+  })
+
+  it('names the lockup in its alternative text as the drawing labels itself', () => {
+    expect(readme).toContain(`alt="${logo.lockup('light').props!['aria-label']}"`)
   })
 
   it('names the credit in the plaque’s alternative text', () => {

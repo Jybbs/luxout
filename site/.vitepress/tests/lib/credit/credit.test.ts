@@ -9,8 +9,8 @@ const page   = await readFile(new URL('../../../../estimate/bibliography.md', im
 const client = await readFile(new URL('../../../../../src/weather/client.ts', import.meta.url), 'utf8')
 
 it('holds the Bibliography page’s Credits section to the record', () => {
-  const rows = credit.creditRows().map(({ code, href, label, value }) =>
-    `| ${label} | ${code ? `\`${code}\` ` : ''}${href ? `[${value}](${href})` : value} |`
+  const rows = credit.creditRows().map(({ code, detail, href, label, value }) =>
+    `| ${label} | ${detail ?? `${code ? `\`${code}\` ` : ''}${href ? `[${value}](${href})` : value}`} |`
   )
 
   expect(page).toContain(
@@ -32,8 +32,13 @@ it('holds the record to the forecast’s entry in the bibliography', () => {
   })
 })
 
-it('names the field of the forecast the plugin requests', () => {
-  expect(/minutely_15\s*:\s*'(\w+)'/.exec(client)?.[1]).toBe(credit.CREDIT.variable)
+it('names the field of the forecast the plugin requests and the minutes between its steps', () => {
+  const [, minutes, variable] = /minutely_(\d+)\s*:\s*'(\w+)'/.exec(client) ?? []
+
+  expect({ step: `${minutes} min`, variable }).toEqual({
+    step     : credit.CREDIT.step,
+    variable : credit.CREDIT.variable
+  })
 })
 
 it('letters the rim with the creator’s surname over the year and the license', () => {

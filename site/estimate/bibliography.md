@@ -13,7 +13,7 @@ These pages rest on the works below, and the plugin rests on the two services cr
 | Creators | Patrick Zippenfenig |
 | Published | Zenodo, 2024 |
 | License | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
-| Changed | `shortwave_radiation_instant` ÷ clear sky |
+| Changed | Reads `shortwave_radiation_instant` at each `15 min` step and divides it by a clear sky’s to give the cloud factor |
 
 Open-Meteo's forecast API serves every forecast the plugin reads and the forecast behind this site's sample day, and its geocoding API serves each result of the settings page's location search.[^zippenfenig2024]
 

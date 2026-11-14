@@ -1,12 +1,15 @@
 /**
  * One labeled row of the credit, its value linked where `href` names an
- * address and led by the field `code` names where it changes one.
+ * address and led by the field `code` names where it changes one, and the
+ * sentence the site sets in its place, in Markdown code spans, where `detail`
+ * holds one.
  */
 export interface CreditRow {
-  label  : string
-  value  : string
-  code?  : string
-  href?  : string
+  label    : string
+  value    : string
+  code?    : string
+  detail?  : string
+  href?    : string
 }
 
 /**
@@ -23,6 +26,7 @@ export const CREDIT = {
   license   : { href: 'https://creativecommons.org/licenses/by/4.0/', text: 'CC BY 4.0' },
   publisher : 'Zenodo',
   source    : { href: 'https://open-meteo.com/', text: 'Weather data by Open-Meteo.com' },
+  step      : '15 min',
   variable  : 'shortwave_radiation_instant',
   year      : 2024
 }
@@ -47,7 +51,7 @@ export function creditRim({ creator, license, year } = CREDIT): { bottom: string
  * Lists the credit's labeled rows in the order each place sets them out.
  */
 export function creditRows(
-  { creator, doi, license, publisher, source, variable, year } = CREDIT
+  { creator, doi, license, publisher, source, step, variable, year } = CREDIT
 ): CreditRow[] {
   return [
     { href: source.href, label: 'Data', value: source.text },
@@ -55,6 +59,12 @@ export function creditRows(
     { label: 'Creators', value: creator },
     { label: 'Published', value: `${publisher}, ${year}` },
     { href: license.href, label: 'License', value: license.text },
-    { code: variable, label: 'Changed', value: '÷ clear sky' }
+    {
+      code   : variable,
+      detail : `Reads \`${variable}\` at each \`${step}\` step`
+             + ' and divides it by a clear sky’s to give the cloud factor',
+      label  : 'Changed',
+      value  : '÷ clear sky'
+    }
   ]
 }

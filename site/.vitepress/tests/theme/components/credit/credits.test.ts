@@ -16,7 +16,9 @@ test('sets each row of the credit beside its label, linking each value with an a
     [...host.querySelectorAll(selector)].map(({ textContent }) => textContent)
 
   expect(texts('dt')).toEqual(rows.map(({ label }) => label))
-  expect(texts('dd')).toEqual(rows.map(({ code, value }) => code ? `${code} ${value}` : value))
+  expect(texts('dd')).toEqual(rows.map(({ code, detail, value }) =>
+    detail?.replaceAll('`', '') ?? (code ? `${code} ${value}` : value)
+  ))
   expect([...host.querySelectorAll('dd a')].map((link) => link.getAttribute('href')))
     .toEqual(rows.flatMap(({ href }) => href ? [href] : []))
 })
@@ -41,4 +43,11 @@ test('holds the section’s words beside the seal', ({ mount }) => {
   const host = mount(Credits, {}, () => h('p', 'The forecast'))
 
   expect(host.querySelector('.credits-words p')!.textContent).toBe('The forecast')
+})
+
+test('sets the plugin’s change as the site’s sentence, its field and its step as code', ({ mount }) => {
+  const changed = [...mount(Credits).querySelectorAll('dd')].at(-1)!
+
+  expect([...changed.querySelectorAll('code')].map(({ textContent }) => textContent))
+    .toEqual(['shortwave_radiation_instant', '15 min'])
 })

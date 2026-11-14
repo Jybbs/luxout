@@ -47,6 +47,8 @@ export const Credits = defineComponent({
   }
 })
 
-function value({ code, href, value: text }: CreditRow): (VNode | string)[] {
+function value({ code, detail, href, value: text }: CreditRow): (VNode | string)[] {
+  if (detail) return detail.split('`').map((part, at) => at % 2 ? <code>{part}</code> : part)
+
   return [...code ? [<code>{code}</code>, ' '] : [], href ? <a href={href}>{text}</a> : text]
 }
