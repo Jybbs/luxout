@@ -7,6 +7,7 @@ import { renderToString }                     from 'vue/server-renderer'
 import { PAUSES }         from '../../../../lib/motion/timing.ts'
 import { LocationSearch } from '../../../../theme/components/search/location-search.tsx'
 import { data }           from '../../../common/data/search.ts'
+import { stubMedia }      from '../../../common/media.ts'
 import { test }           from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/search/search.data.ts', () => import('../../../common/data/search.ts'))
@@ -173,7 +174,7 @@ test('leaves no frame and no timer running once unmounted', ({ mount, unmount })
 })
 
 test('turns the replay off under reduced motion', async ({ mount }) => {
-  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  stubMedia(() => true)
 
   const host = mount(LocationSearch)
 
@@ -182,8 +183,30 @@ test('turns the replay off under reduced motion', async ({ mount }) => {
   expect(host.querySelector<HTMLButtonElement>('.location-search-play')!.disabled).toBe(true)
 })
 
+test('turns the replay off while the reader has paused the site’s drawings', async ({ mount }) => {
+  localStorage.setItem('luxout-paused', 'true')
+
+  const host = mount(LocationSearch)
+
+  await nextTick()
+
+  expect(host.querySelector<HTMLButtonElement>('.location-search-play')!.disabled).toBe(true)
+})
+
+test('pauses the spinner while the site’s drawings are paused', async ({ mount }) => {
+  const host = mount(LocationSearch)
+
+  await choose(host, stages.findIndex(({ page }) => page.activity === 'spinning'))
+
+  const spinners = [...host.querySelectorAll('[class~="motion-safe:animate-turn"]')]
+
+  expect(spinners).not.toEqual([])
+  expect(spinners.map(({ classList }) => classList.contains('paused:[animation-play-state:paused]')))
+    .toEqual(spinners.map(() => true))
+})
+
 test('keeps the Play button enabled through the server render under reduced motion', async () => {
-  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  stubMedia(() => true)
 
   const host = document.createElement('div')
 

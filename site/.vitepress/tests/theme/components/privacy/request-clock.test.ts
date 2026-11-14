@@ -6,6 +6,7 @@ import { nextTick }                from 'vue'
 import { DURATIONS, PAUSES } from '../../../../lib/motion/timing.ts'
 import { RequestClock }      from '../../../../theme/components/privacy/request-clock.tsx'
 import { data }              from '../../../common/data/privacy.ts'
+import { stubMedia }         from '../../../common/media.ts'
 import { test }              from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/privacy/privacy.data.ts', () => import('../../../common/data/privacy.ts'))
@@ -114,8 +115,18 @@ test('fades the core back in over the enter duration and then stops its frames',
   expect(vi.getTimerCount()).toBe(0)
 })
 
+test('lands a state at once while the reader has paused the site’s drawings', async ({ mount }) => {
+  localStorage.setItem('luxout-paused', 'true')
+
+  const host = mount(RequestClock)
+
+  await choose(host, 2)
+
+  expect(face(host).dataset.on).toBe(clock.states[2]!.key)
+})
+
 test('lands a state at once under reduced motion', async ({ mount }) => {
-  vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce') }))
+  stubMedia((query) => query.includes('reduce'))
 
   const host = mount(RequestClock)
 
@@ -136,7 +147,7 @@ test('lands a state on the next frame once reduced motion turns on mid-journey',
 
   expect(face(host).dataset.on).toBe('away')
 
-  vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce') }))
+  stubMedia((query) => query.includes('reduce'))
   await wait(FRAME)
 
   expect(face(host).dataset.on).toBe(sends.key)

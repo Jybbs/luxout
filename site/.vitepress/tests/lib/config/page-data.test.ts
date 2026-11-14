@@ -1,4 +1,5 @@
-import { join } from 'node:path'
+import { access } from 'node:fs/promises'
+import { join }   from 'node:path'
 
 import { expect, it } from 'vitest'
 
@@ -8,6 +9,12 @@ import { SECTIONS }      from '../../../lib/config/sections.ts'
 import { luxRange }      from '../../../lib/daylight/homekit.ts'
 
 const context = { siteConfig: { srcDir: join(import.meta.dirname, 'fixtures') } }
+const front   = {
+  filePath     : 'index.md',
+  frontmatter  : {},
+  relativePath : 'index.md',
+  title        : 'Daybreak'
+}
 const setup   = {
   filePath     : 'setup.md',
   frontmatter  : { title: 'Setup' },
@@ -65,13 +72,6 @@ it.each([
 })
 
 it('gives the front page the home layout and a hero restating its title and opening paragraph', async () => {
-  const front = {
-    filePath     : 'index.md',
-    frontmatter  : {},
-    relativePath : 'index.md',
-    title        : 'Daybreak'
-  }
-
   const { frontmatter } = await transform(front, context)
 
   expect(frontmatter).toMatchObject({
@@ -84,7 +84,25 @@ it('sets an empty tagline on a front page that opens on no paragraph', async () 
   const bare            = { ...setup, filePath: 'bare.md', relativePath: 'index.md' }
   const { frontmatter } = await transform(bare, context)
 
-  expect(frontmatter.hero).toEqual({ name: 'Setup', tagline: '' })
+  expect(frontmatter.hero).toMatchObject({ name: 'Setup', tagline: '' })
+})
+
+it('leads the hero into Install and then Estimate', async () => {
+  const { frontmatter } = await transform(front, context)
+
+  expect(frontmatter.hero.actions).toEqual([
+    { link: '/install/', text: 'Set It Up', theme: 'brand' },
+    { link: '/estimate/', text: 'How the Estimate Works', theme: 'alt' }
+  ])
+})
+
+it('opens a page of the site on each hero action', async () => {
+  const { frontmatter } = await transform(front, context)
+  const pages           = frontmatter.hero.actions.map(({ link }: { link: string }) =>
+    join(site, link, 'index.md')
+  )
+
+  await expect(Promise.all(pages.map((page: string) => access(page)))).resolves.toBeDefined()
 })
 
 it('leaves the layout and the hero of every other page to the page', async () => {

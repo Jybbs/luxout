@@ -25,6 +25,7 @@
     "@zag-js/accordion": "1.48.0",
     "@zag-js/collapsible": "1.48.0",
     "@zag-js/live-region": "1.48.0",
+    "@zag-js/radio-group": "1.48.0",
     "@zag-js/slider": "1.48.0",
     "@zag-js/tabs": "1.48.0",
     "@zag-js/toggle": "1.48.0",

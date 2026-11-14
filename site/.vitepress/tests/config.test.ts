@@ -62,7 +62,7 @@ it('sets the front page hero to the title and the tagline the page opens on', as
   const data = await config.transformPageData?.(front, { siteConfig: config })
 
   expect(data?.frontmatter.hero)
-    .toEqual({ name: 'Luxout', tagline: 'An outdoor light sensor for Apple Home.' })
+    .toMatchObject({ name: 'Luxout', tagline: 'An outdoor light sensor for Apple Home.' })
 })
 
 it('renders the value transformPageData sets wherever a page interpolates a fact', () => {

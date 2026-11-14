@@ -1,6 +1,8 @@
 import { BRIDGE_SPAN, type ClearSky, TWILIGHT } from '../../../../src/daylight/clear-sky.ts'
 import type { CLOUD_TUNING }                    from '../../../../src/daylight/cloud-factor.ts'
 import type { REQUEST_TUNING }                  from '../../../../src/weather/client.ts'
+import type { Section }                         from '../../lib/config/sections.ts'
+import type { Source }                          from '../../lib/config/sources.ts'
 import { HOUR_MINUTES, STEP_MINUTES }           from '../../lib/daylight/clock.ts'
 import type { CloudSteps }                      from '../../lib/daylight/cloud-steps.ts'
 import type { DayDial }                         from '../../lib/daylight/day-dial.ts'
@@ -222,6 +224,17 @@ export function gapTable({ sensors, span }: Gap): string {
 }
 
 /**
+ * Writes the table of the sections in reading order, each with the question it
+ * answers and the page it opens on.
+ */
+export function lampsTable(sections: readonly Section[]): string {
+  return markdownTable(
+    ['Section', 'Question', 'Opens On'],
+    sections.map(({ asks, label, slug }) => [label, asks, `[${slug}/index.md](./${slug}/index.md)`])
+  )
+}
+
+/**
  * Writes the curve's lux at each level a threshold is set against, each linked
  * to its decade on the Lux Scale.
  */
@@ -326,6 +339,17 @@ export function settingsTable(rows: readonly SettingRow[]): string {
       does,
       `${needed ? 'Needed' : 'Optional'}, and without it, ${without}`
     ])
+  )
+}
+
+/**
+ * Writes the table of the sources the reading rests on, each linked, with what
+ * it supplies and the terms it is credited under.
+ */
+export function sourcesTable(sources: readonly Source[]): string {
+  return markdownTable(
+    ['Source', 'Supplies', 'Terms'],
+    sources.map(({ link, name, role, says, terms }) => [`[${name}](${link})`, `${role}. ${says}`, terms])
   )
 }
 
