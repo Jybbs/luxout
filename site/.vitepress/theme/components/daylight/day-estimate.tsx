@@ -1,3 +1,4 @@
+import { noop }                       from '@vueuse/core'
 import * as tabs                      from '@zag-js/tabs'
 import { normalizeProps, useMachine } from '@zag-js/vue'
 import { range }                      from 'd3-array'
@@ -123,7 +124,7 @@ class StretchPicker {
     this.#glides = dialLens.HALVES.map((half) => new Glide(
       opened[half]!,
       this.root,
-      () => undefined,
+      noop,
       (value) => this.#paint(half, value),
       DURATIONS.settle
     ))

@@ -3,6 +3,7 @@ import { dirname, join }          from 'node:path'
 
 import { compile }                 from '@tailwindcss/node'
 import { Scanner }                 from '@tailwindcss/oxide'
+import { noop }                    from '@vueuse/core'
 import { Window }                  from 'happy-dom'
 import { type Targets, transform } from 'lightningcss'
 import { resolveConfig }           from 'vite'
@@ -162,7 +163,7 @@ export class Bundle {
  */
 async function compiled(file: string, site: string, text: string): Promise<Sheet> {
   const path     = join(site, file)
-  const compiler = await compile(text, { base: dirname(path), from: path, onDependency: () => undefined })
+  const compiler = await compile(text, { base: dirname(path), from: path, onDependency: noop })
   const root     = compiler.root ?? { base: site, pattern: '**/*' }
   const sources  = root === 'none' ? compiler.sources : [{ ...root, negated: false }, ...compiler.sources]
 

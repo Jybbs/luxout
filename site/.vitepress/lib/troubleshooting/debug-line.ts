@@ -1,6 +1,7 @@
 import { format } from 'node:util'
 
 import * as hap                                 from '@homebridge/hap-nodejs'
+import { noop }                                 from '@vueuse/core'
 import type { API, Logging, PlatformAccessory } from 'homebridge'
 
 import schema                     from '../../../../config.schema.json' with { type: 'json' }
@@ -91,12 +92,12 @@ export function debugLine(day: SampleDay): DebugLine {
   const logged: unknown[][] = []
   const log                 = Object.assign(() => undefined, {
     debug   : (...line: unknown[]) => logged.push(line),
-    error   : () => undefined,
-    info    : () => undefined,
-    log     : () => undefined,
+    error   : noop,
+    info    : noop,
+    log     : noop,
     prefix  : schema.pluginAlias,
-    success : () => undefined,
-    warn    : () => undefined
+    success : noop,
+    warn    : noop
   }) as unknown as Logging
   const accessory = new hap.Accessory(OUTSIDE.name, hap.uuid.generate(OUTSIDE.serial))
   const sensor    = new OutsideSensor(accessory as unknown as PlatformAccessory, { hap } as unknown as API)

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 
+import { noop }                      from '@vueuse/core'
 import { type VNode, cloneVNode, h } from 'vue'
 
 import { SVG_NAMESPACE }                   from '../daylight/svg.ts'
@@ -119,12 +120,12 @@ export class Logo {
     const opening = Math.round(r * this.#construction.horizon.gap)
     const stroke  = Math.round(this.#word.size * horizon.stroke)
     const edge    = Math.round(cy - stroke / 2)
-    const letters = (fill: (glyph: wordmark.Glyph) => string | undefined) => glyphs.map((glyph) =>
+    const letters = (fill: (glyph: wordmark.Glyph) => string | void) => glyphs.map((glyph) =>
       h('path', { d: glyph.d, fill: fill(glyph), transform: `translate(${glyph.x})` })
     )
     const across = right - left
     const sunlit = letters((glyph) => glyph.sun ? colors.sun : undefined)
-    const dimmed = letters(() => undefined)
+    const dimmed = letters(noop)
 
     return h('svg', { viewBox: `${left} ${-top} ${across} ${top - bottom}`, xmlns: SVG_NAMESPACE }, [
       h('defs', [
