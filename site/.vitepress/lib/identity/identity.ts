@@ -7,7 +7,7 @@ import { parseSync }           from 'oxc-parser'
 import manifest                            from '../../../../package.json' with { type: 'json' }
 import COLORS                              from '../../theme/styles/colors.json' with { type: 'json' }
 import { CONSTRUCTION, type Construction } from '../logo/construction.ts'
-import * as logo                          from '../logo/logo.ts'
+import * as logo                           from '../logo/logo.ts'
 import { SCHEMES, type Scheme, Tokens }    from '../theme/tokens.ts'
 
 /**
