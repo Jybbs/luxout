@@ -55,3 +55,10 @@ it.each([
 ])('writes a span of $milliseconds ms as $expected', ({ expected, milliseconds }) => {
   expect(format.formatSpan(milliseconds)).toBe(expected)
 })
+
+it.each([
+  { expected: 'STEP 12:00 · 612.4 W/m² ÷ 840.0 W/m²', text: 'step 12:00 · 612.4 W/m² ÷ 840.0 W/m²' },
+  { expected: 'ON AT 1,000 LUX', text: 'on at 1,000 lux' }
+])('writes $text in capitals, each W/m² keeping its own case', ({ expected, text }) => {
+  expect(format.capitals(text)).toBe(expected)
+})

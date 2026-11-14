@@ -11,7 +11,7 @@ import * as faces                      from '../cards/faces.ts'
 import * as clock                      from '../daylight/clock.ts'
 import { type DayDial, dayDial }       from '../daylight/day-dial.ts'
 import * as dialLens                   from '../daylight/dial-lens.ts'
-import { formatFactor, formatLux }     from '../daylight/format.ts'
+import * as format                     from '../daylight/format.ts'
 import { SampleDay }                   from '../daylight/sample-day.ts'
 import { SVG_NAMESPACE }               from '../daylight/svg.ts'
 import { tenth }                       from '../daylight/tenth.ts'
@@ -149,8 +149,8 @@ export class DayPreview {
 
     return `The Day Estimate dial sweeping once around the sample day in ${recording.results[0]!.name} `
          + `beside the threshold sensor ${entry.name} switching off at ${at(switches[0]!)} as the `
-         + `dawn passes ${formatLux(entry.offLux)} lux and on at ${at(switches[1]!)} as the dusk `
-         + `falls to ${formatLux(entry.onLux)} lux, and the forecast’s ${steps.length} quarter-hour `
+         + `dawn passes ${format.formatLux(entry.offLux)} lux and on at ${at(switches[1]!)} as the dusk `
+         + `falls to ${format.formatLux(entry.onLux)} lux, and the forecast’s ${steps.length} quarter-hour `
          + `steps of sunlight at the ground from ${at(from)} to ${at(to)}, the step in use lit, its `
          + 'sunlight divided by the clear sky’s to give the factor, which holds at 1 where the forecast '
          + 'runs past a clear sky, and a step with the sun under '
@@ -227,7 +227,7 @@ export class DayPreview {
         h('path', { class: 'day-preview-hand', d: `M${point(floor).join(' ')}L${point(rim + 6).join(' ')}` }),
         h('circle', { class: 'day-preview-dot', cx: x, cy: y, r: dot })
       ]),
-      hub(formatLux(this.#day.readings[minute]!), ink, figure, figure.rise),
+      hub(format.formatLux(this.#day.readings[minute]!), ink, figure, figure.rise),
       hub(`lux at ${this.#day.clock(minute)}`, muted, caption, figure.rise + caption.gap),
       ...stretches.map(({ name: word, place }) => this.#say(word, ink, {
         ...name,
@@ -258,7 +258,7 @@ export class DayPreview {
                     + `mean of ${step.borrowed} steps`
 
     return this.#lane(top, minute, scheme, {
-      chip  : step === undefined ? 'none' : `×${formatFactor(step.factor)}`,
+      chip  : step === undefined ? 'none' : `×${format.formatFactor(step.factor)}`,
       state : step === undefined ? undefined : 'step',
       title : 'The Forecast',
       width : LAYOUT.widths.forecast,
@@ -338,10 +338,10 @@ export class DayPreview {
 
   /**
    * Sets `text` where `place` puts it, in capitals wherever its face is the
-   * mono face.
+   * mono face, each unit of an established case kept as written.
    */
   #say(text: string, fill: string, { anchor, size, voice, x, y }: Place): VNode {
-    const words = voice.face === 'mono' ? text.toUpperCase() : text
+    const words = voice.face === 'mono' ? format.capitals(text) : text
 
     return this.#faces.say(words, voice, { anchor, fill, size, x, y })
   }
@@ -364,7 +364,7 @@ export class DayPreview {
       title : entry.name,
       width : LAYOUT.widths.sensor,
       words : [
-        `on at ${formatLux(entry.onLux)} lux, off past ${formatLux(entry.offLux)}`,
+        `on at ${format.formatLux(entry.onLux)} lux, off past ${format.formatLux(entry.offLux)}`,
         `switched ${count === 1 ? 'once' : `${count} times`}`
       ],
 
