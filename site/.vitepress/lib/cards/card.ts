@@ -1,8 +1,8 @@
-import { Resvg }                       from '@resvg/resvg-js'
-import { wcagContrast }                from 'culori'
-import { quantile, range }             from 'd3-array'
-import { type VNode, createSSRApp, h } from 'vue'
-import { renderToString }              from 'vue/server-renderer'
+import { Resvg }           from '@resvg/resvg-js'
+import { wcagContrast }    from 'culori'
+import { quantile, range } from 'd3-array'
+import { type VNode, h }   from 'vue'
+import { renderToString }  from 'vue/server-renderer'
 
 import manifest        from '../../../../package.json' with { type: 'json' }
 import { tenth }       from '../daylight/tenth.ts'
@@ -173,9 +173,7 @@ export class Card {
   }
 
   async #render(drawing: VNode) {
-    const svg = await renderToString(createSSRApp({ render: () => drawing }))
-
-    return new Resvg(svg, {
+    return new Resvg(await renderToString(drawing), {
       fitTo : { mode: 'width', value: WIDTH },
       font  : { loadSystemFonts: false }
     }).render()

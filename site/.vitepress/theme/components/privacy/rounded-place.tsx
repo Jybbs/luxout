@@ -1,9 +1,8 @@
-import { useTimeoutFn }                            from '@vueuse/core'
 import { type VNode, defineComponent, shallowRef } from 'vue'
 
-import { PAUSES }                               from '../../../lib/motion/timing.ts'
 import { data }                                 from '../../../lib/privacy/privacy.data.ts'
 import { type MarkKey, type PlaceMark, markAt } from '../../../lib/privacy/rounded-place.ts'
+import { Pauses }                               from '../../controls/pauses.ts'
 import { placeDrawing }                         from './place-drawing.tsx'
 
 /**
@@ -60,9 +59,7 @@ const SWATCHES = {
  * leave pause passes after the mouse goes.
  */
 class Key {
-  readonly shown  = shallowRef<MarkKey>()
-  readonly #dwell = useTimeoutFn((key: MarkKey) => this.show(key), PAUSES.dwell, { immediate: false })
-  readonly #leave = useTimeoutFn(() => this.show(undefined), PAUSES.leave, { immediate: false })
+  readonly shown = shallowRef<MarkKey>()
 
   readonly #onPointerdown = (event: PointerEvent): void => {
     if (event.pointerType === 'touch') this.show(this.#under(event))
@@ -76,7 +73,8 @@ class Key {
     if (event.pointerType === 'mouse') this.rest(this.#under(event))
   }
 
-  #wanted : MarkKey | undefined
+  readonly #pauses = new Pauses((key: MarkKey) => this.show(key), () => this.show(undefined))
+  #wanted          : MarkKey | undefined
 
   renderPlot(): VNode {
     return (
@@ -123,8 +121,8 @@ class Key {
 
     this.#stop(key)
 
-    if (key) this.#dwell.start(key)
-    else this.#leave.start()
+    if (key) this.#pauses.dwell.start(key)
+    else this.#pauses.leave.start()
   }
 
   show(key: MarkKey | undefined): void {
@@ -133,8 +131,7 @@ class Key {
   }
 
   #stop(key: MarkKey | undefined): void {
-    this.#dwell.stop()
-    this.#leave.stop()
+    this.#pauses.stop()
     this.#wanted = key
   }
 
