@@ -30,17 +30,17 @@
   .VPHome .VPHero .container { display: block; }
 
   .VPHome .VPHero .main {
+    --front-span          : 82cqi;
     position              : static;
     display               : grid;
     grid-template-columns : minmax(0, 1fr);
     justify-items         : center;
     gap                   : 12px 20px;
-    width                 : min-content;
+    width                 : var(--front-span);
     margin-inline         : auto;
   }
 
   .front-word {
-    --front-span : 82cqi;
     --front-word : calc(var(--front-span) / var(--front-ink));
     --front-y-at : calc(var(--front-word) * var(--front-horizon));
     position     : relative;
@@ -196,23 +196,22 @@
                    transparent 32px
                  ),
                  var(--front-tint);
-    box-shadow : 0 0 0 100vmax var(--front-tint),
-                 0 -1px 0
+    box-shadow : 0 -1px 0
                    color-mix(in srgb, var(--front-sky) calc(100% * var(--front-a, 0)), var(--vp-c-divider)),
                  0 -26px 34px -14px
                    color-mix(in srgb, var(--front-sky) calc(85% * var(--front-a, 0)), transparent);
     clip-path  : inset(-60px -100vmax 0);
   }
 
-  @container (width < 40rem) {
+  @media (width < 40rem) {
     .front-dots-2 { display: inline; }
   }
 
-  @container (40rem <= width < 60rem) {
+  @media (40rem <= width < 60rem) {
     .front-dots-1 { display: inline; }
   }
 
-  @container (width >= 60rem) {
+  @media (width >= 60rem) {
     .front-dots-0 { display: inline; }
   }
 
@@ -220,6 +219,7 @@
     .VPHome .VPHero { padding: calc(var(--vp-nav-height) + 4rem) 2rem 3.25rem; }
 
     .VPHome .VPHero .main {
+      --front-span          : min(35rem, 70cqi);
       grid-template-columns : minmax(0, 1fr) auto;
       justify-items         : stretch;
     }
@@ -232,8 +232,6 @@
       grid-auto-flow : column;
       align-self     : center;
     }
-
-    .front-word { --front-span: min(35rem, 70cqi); }
 
     .front-arc { --front-rise: 1rem; }
   }

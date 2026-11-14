@@ -126,13 +126,13 @@ function credit(source: Source): VNode {
     <div class="source-lamps-credit" style={{ '--tone': toneOf(source) }}>
       <svg
         aria-hidden
-        class="mt-0.5 block h-7.5 w-11 overflow-visible @max-[40rem]:h-6 @max-[40rem]:w-9"
+        class="mt-0.5 block h-7.5 w-11 overflow-visible @max-lg:h-6 @max-lg:w-9"
         viewBox="0 0 44 30"
       >
         {...MARKS[mark]()}
       </svg>
       <div class="grid min-w-0 justify-items-start gap-1">
-        <p class="m-0 widget-caps @min-[40rem]:hidden">{role}</p>
+        <p class="m-0 widget-caps @lg:hidden">{role}</p>
         <p class="m-0 text-[0.92rem]/normal text-ink">{says}</p>
         <p class="m-0 mt-0.5 flex flex-wrap items-baseline gap-x-4.5 gap-y-0.5">
           <span class="widget-caps">{terms}</span>

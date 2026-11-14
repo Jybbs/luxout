@@ -7,7 +7,6 @@ import { positionOf, valueAt } from '../../../lib/front/facts.ts'
 import { useFrontMinute }      from '../../../lib/front/minute.ts'
 import { useMotion }           from '../../../lib/motion/motion.ts'
 import { smoothstep }          from '../../../lib/motion/timing.ts'
-import { SCHEMES }             from '../../../lib/theme/tokens.ts'
 import { HeroReading }         from './hero-reading.tsx'
 
 /**
@@ -20,6 +19,7 @@ const INKS  = { dark: 'var(--luxout-dark)', light: 'var(--luxout-ground)' }
 const { day, hero } = data
 const { logs }      = hero
 const peak          = day.altitudes[day.noon]!
+const schemes       = Object.entries(hero.schemes)
 const steps         = hero.schemes.dark.skies.length - 1
 
 /**
@@ -76,9 +76,7 @@ class HeroScene {
     const word  = this.root.value!.style
     const up    = valueAt(day.altitudes, minute)
 
-    for (const scheme of SCHEMES) {
-      const { dark, skies, tints } = hero.schemes[scheme]
-
+    for (const [scheme, { dark, skies, tints }] of schemes) {
       home.setProperty(`--front-above-${scheme}`, dark[step] ? INKS.dark : INKS.light)
       home.setProperty(`--front-edge-${scheme}`, dark[step] ? INKS.dark : 'none')
       home.setProperty(`--front-point-${scheme}`, tints[step]!)
@@ -155,15 +153,11 @@ export const FrontHero = defineComponent({
     const { frontmatter } = useData()
     const shares          = hero.shares
     const step            = Math.round(positionOf(day, day.readings[day.noon]!) * steps)
-    const noon            = Object.fromEntries(SCHEMES.flatMap((scheme) => {
-      const { dark, skies } = hero.schemes[scheme]
-
-      return [
-        [`--front-noon-above-${scheme}`, dark[step] ? INKS.dark : INKS.light],
-        [`--front-noon-edge-${scheme}`, dark[step] ? INKS.dark : 'none'],
-        [`--front-noon-sky-${scheme}`, skies[step]]
-      ]
-    }))
+    const noon            = Object.fromEntries(schemes.flatMap(([scheme, { dark, skies }]) => [
+      [`--front-noon-above-${scheme}`, dark[step] ? INKS.dark : INKS.light],
+      [`--front-noon-edge-${scheme}`, dark[step] ? INKS.dark : 'none'],
+      [`--front-noon-sky-${scheme}`, skies[step]]
+    ]))
 
     return () => (
       <div class="contents">

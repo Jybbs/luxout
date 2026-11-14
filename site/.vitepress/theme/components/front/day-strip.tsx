@@ -267,7 +267,7 @@ export const DayStrip = defineComponent({
     const id    = (name: string) => `${scene.id}-${name}`
 
     return () => (
-      <figure class="widget day-strip m-0" ref={scene.root}>
+      <figure class="widget day-strip my-0" ref={scene.root}>
         <figcaption class="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
           <span class={[FACE, 'text-ink']}>{`${place} · ${date}`}</span>
           <span class="text-[0.86rem]/[1.4] text-muted italic">
@@ -409,8 +409,8 @@ function lane(): VNode {
           ]}
           style={{ left: percent(start), width: percent(end - start) }}
         >
-          <span class={[CHIP, 'relative @max-[150px]:hidden']}>{long}</span>
-          <span class={[CHIP, 'relative hidden @max-[150px]:inline @max-[94px]:hidden']}>{short}</span>
+          <span class={[CHIP, 'relative @max-xs:hidden']}>{long}</span>
+          <span class={[CHIP, 'relative hidden @max-xs:inline @max-2xs:hidden']}>{short}</span>
         </span>
       ))}
     </div>
@@ -449,7 +449,7 @@ function scale(): VNode {
           class={[
             'absolute top-2.5 font-mono text-[0.6875rem]/[18px] text-muted tabular-nums',
             index === 0 ? '' : index === last ? '-translate-x-full' : '-translate-x-1/2',
-            { '@max-[40rem]:hidden': near }
+            { '@max-lg:hidden': near }
           ]}
           style={{ left: percent(at) }}
         >
@@ -463,7 +463,7 @@ function scale(): VNode {
         >
           <i class="absolute top-0 left-1/2 h-2 w-0.5 -translate-x-1/2 bg-geometry" />
           <span class={CHIP}>
-            <span class="hidden @min-[60rem]:inline">{`${name} `}</span>
+            <span class="hidden lg:inline">{`${name} `}</span>
             {formatClock(minute)}
           </span>
         </span>

@@ -145,7 +145,7 @@
     animation-play-state: paused;
   }
 
-  @container (width < 48rem) {
+  @media (width < 48rem) {
     .source-lamps-row {
       grid-template-columns : repeat(6, minmax(0, 1fr));
       row-gap               : 12px;
