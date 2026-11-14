@@ -8,7 +8,7 @@ import { SampleDay, runsOf }           from '../daylight/sample-day.ts'
  * One 15-minute step of the forecast as the lane draws it, its sunlight at the
  * ground in W/m² beside the factor it gives.
  */
-interface ForecastStep extends Pick<CloudStep, 'clear' | 'clock' | 'forecast'> {
+interface ForecastStep extends Pick<CloudStep, 'clear' | 'clock' | 'forecast' | 'held'> {
   readonly borrowed : number | undefined  // The count of daylight steps whose mean factor the step takes
   readonly factor   : number
   readonly minute   : number
@@ -69,7 +69,7 @@ export class ForecastSteps {
 
     this.#covered = day.steps
     this.steps    = cloud.steps.map(({ factor, time }, index) => {
-      const { borrowed, clear, clock, forecast } = drawn[index]!
+      const { borrowed, clear, clock, forecast, held } = drawn[index]!
 
       return {
         borrowed : borrowed ? cloud.nearest(time).length : undefined,
@@ -77,6 +77,7 @@ export class ForecastSteps {
         clock    : clock,
         factor   : factor,
         forecast : forecast,
+        held     : held,
         minute   : day.minuteOf(time),
         share    : window.irradiances[index]! / highest
       }

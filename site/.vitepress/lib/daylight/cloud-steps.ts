@@ -17,6 +17,7 @@ export interface CloudStep {
   readonly clock    : string
   readonly drawn    : string
   readonly forecast : string
+  readonly held     : boolean
   readonly how      : string
   readonly lead     : string
   readonly share    : string
@@ -138,6 +139,7 @@ export function cloudSteps(day: SampleDay): CloudSteps {
         drawn    : `At ${clock}, a clear sky’s ${figures.clear} W/m² against the forecast’s `
                  + `${figures.forecast} W/m²`,
         forecast : `${figures.forecast} W/m²`,
+        held     : held,
         share    : share,
         text     : `${clock}, ${share} of a clear sky’s sunlight${borrowed ? ', borrowed' : ''}`,
         top      : tenth(top(factor))

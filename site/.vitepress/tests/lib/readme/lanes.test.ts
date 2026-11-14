@@ -89,12 +89,12 @@ describe('the forecast’s steps', () => {
 
   it.for(borrowed)(
     'give the $clock step, its sun under the floor, the mean factor of the nearest daylight steps',
-    ({ factor, minute, time, ...step }) => {
+    ({ factor, time, ...step }) => {
       const nearest = day.cloud.nearest(time)
 
       expect(step.borrowed).toBe(CLOUD_TUNING.nearest)
       expect(factor).toBeCloseTo(mean(nearest, (each) => each.factor)!)
-      expect(day.altitudes[minute]).toBeLessThan(CLOUD_TUNING.floor)
+      expect(day.litAt(time)).toBe(false)
     }
   )
 
@@ -103,5 +103,16 @@ describe('the forecast’s steps', () => {
 
     expect(step.borrowed).toBeUndefined()
     expect(step.factor).toBeCloseTo(Number.parseFloat(step.forecast) / Number.parseFloat(step.clear), 2)
+  })
+
+  it('hold the 11:45 step, its forecast past its clear sky, at a factor of 1', () => {
+    const step = forecast.at(705)!
+
+    expect(step).toMatchObject({ clock: '11:45', factor: 1, held: true })
+    expect(Number.parseFloat(step.forecast)).toBeGreaterThan(Number.parseFloat(step.clear))
+  })
+
+  it('hold no step but the 11:45 one at 1', () => {
+    expect(forecast.steps.filter(({ held }) => held).map(({ clock }) => clock)).toEqual(['11:45'])
   })
 })

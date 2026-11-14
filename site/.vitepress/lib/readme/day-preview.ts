@@ -252,6 +252,7 @@ export class DayPreview {
                     ? `${this.#day.clock(minute)} · no step, clear sky`
                     : step.borrowed === undefined
                     ? `step ${step.clock} · ${step.forecast} ÷ ${step.clear}`
+                    + (step.held ? ', held at 1' : '')
                     : `step ${step.clock} · sun under ${CLOUD_TUNING.floor}°, `
                     + `mean of ${step.borrowed} steps`
 
