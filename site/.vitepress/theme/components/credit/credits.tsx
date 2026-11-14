@@ -3,6 +3,7 @@ import { type VNode, defineComponent, useId } from 'vue'
 import { type CreditRow, creditRows }        from '../../../lib/credit/credit.ts'
 import { data }                              from '../../../lib/credit/credit.data.ts'
 import { SEAL, type SealColor, sealDrawing } from '../../../lib/credit/seal-drawing.ts'
+import { codeSpans }                         from '../../controls/code-spans.tsx'
 
 /**
  * Sets the seal beside the section's words and the credit's labeled rows,
@@ -48,7 +49,7 @@ export const Credits = defineComponent({
 })
 
 function value({ code, detail, href, value: text }: CreditRow): (VNode | string)[] {
-  if (detail) return detail.split('`').map((part, at) => at % 2 ? <code>{part}</code> : part)
+  if (detail) return codeSpans(detail)
 
   return [...code ? [<code>{code}</code>, ' '] : [], href ? <a href={href}>{text}</a> : text]
 }

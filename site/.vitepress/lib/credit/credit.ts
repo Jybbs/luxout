@@ -1,8 +1,9 @@
 /**
  * One labeled row of the credit, its value linked where `href` names an
- * address and led by the field `code` names where it changes one, and the
- * sentence the site sets in its place, in Markdown code spans, where `detail`
- * holds one.
+ * address and led by the field `code` names where it changes one.
+ *
+ * The site sets the sentence `detail` holds in place of `code` and `value`
+ * where a row carries one, setting each span between backticks as code.
  */
 export interface CreditRow {
   label    : string
