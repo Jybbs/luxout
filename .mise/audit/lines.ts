@@ -5,9 +5,13 @@ const BUDGET  = 110
 const SOURCES = ['*.cts', '*.mts', '*.ts', '*.tsx']
 /**
  * Matches a row holding one regular expression literal or one quoted glob and
- * nothing else but the commas, semicolons, and parentheses closing its call.
+ * nothing else but the commas, semicolons, and parentheses closing its call,
+ * where a `/` inside a character class stays part of the pattern and a glob
+ * holds a `*`, a `?`, or a brace list but no URL, `=`, or substitution.
  */
-const WHOLE     = /^(?:\/(?![*/])(?:\\.|[^\\/])+\/[dgimsuvy]*|(['"`])[^\s'"`]*[*?{][^\s'"`]*\1)[,;)]*$/
+const REGEX     = /\/(?!\*)(?:\\.|\[(?:\\.|[^\\\]])*\]|[^\\/[])+\/[dgimsuvy]*/
+const GLOB      = /(['"`])(?![^'"`]*(?:\$\{|:\/\/|=))[^\s'"`]*(?:[*?]|\{[^}]*,)[^\s'"`]*\1/
+const WHOLE     = new RegExp(`^(?:${REGEX.source}|${GLOB.source})[,;)]*$`)
 const segmenter = new Intl.Segmenter('en')
 
 /**

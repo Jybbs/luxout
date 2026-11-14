@@ -187,6 +187,7 @@ test('throws what git printed to standard error', ({ scratch }) => {
 })
 
 test('prints each tracked TypeScript line past the budget', async ({ scratch }) => {
+  const run   = mise([], [], 'src/a.ts\0')
   const write = vi.fn<(line: string) => void>()
 
   await plant(scratch, {
@@ -196,7 +197,11 @@ test('prints each tracked TypeScript line past the budget', async ({ scratch }) 
     'src/a.ts'          : `${'a'.repeat(111)}\n`
   })
 
-  expect(new Audit(scratch, mise([], [], 'src/a.ts\0'), write).report()).toBe(1)
+  expect(new Audit(scratch, run, write).report()).toBe(1)
+  expect(run).toHaveBeenCalledWith('git', ['ls-files', '-z', '--', '*.cts', '*.mts', '*.ts', '*.tsx'], {
+    cwd      : scratch,
+    encoding : 'utf8'
+  })
   expect(write.mock.calls.flat()).toEqual([
     '::error file=src/a.ts,line=1,title=Line length::'
   + 'The line runs 111 characters, past the 110-character budget'
