@@ -20,7 +20,9 @@ ui=$(jq --raw-output '.customUiPath | ltrimstr("./")' config.schema.json)
 packed README.md "npm shows no README for the package"
 packed "$ui/public/index.html" "the Homebridge UI has no settings page to show"
 packed "$ui/public/index.css" "the settings page has no stylesheet to load"
-packed "$ui/public/index.js" "the settings page has no script to search for a location"
+packed \
+  "$ui/public/index.js" \
+  "the settings page cannot search for a location or show the generated form below it"
 packed "$ui/server.js" "the settings page has no server script to answer it"
 
 name=$(jq --raw-output '.[0].name' <<<"$pack")

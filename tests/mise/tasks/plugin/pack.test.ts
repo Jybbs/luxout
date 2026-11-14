@@ -119,7 +119,10 @@ test('fails a tarball whose files leave out README.md', async ({ scratch }) => {
 test.for([
   { file: 'dist/ui/public/index.css', reason: 'the settings page has no stylesheet to load' },
   { file: 'dist/ui/public/index.html', reason: 'the Homebridge UI has no settings page to show' },
-  { file: 'dist/ui/public/index.js', reason: 'the settings page has no script to search for a location' },
+  {
+    file   : 'dist/ui/public/index.js',
+    reason : 'the settings page cannot search for a location or show the generated form below it'
+  },
   { file: 'dist/ui/server.js', reason: 'the settings page has no server script to answer it' }
 ])('fails a tarball leaving out $file', async ({ file, reason }, { scratch }) => {
   const files = Object.fromEntries(Object.entries(PACKAGE).filter(([path]) => path !== file))
@@ -139,6 +142,15 @@ test('looks for the settings page under the customUiPath config.schema.json name
     stderr : 'The tarball holds no dist/page/public/index.html, '
            + 'so the Homebridge UI has no settings page to show\n'
   })
+})
+
+test('passes a settings page packed under another customUiPath', async ({ scratch }) => {
+  const moved  = Object.entries(PACKAGE).map(([file, text]) => [file.replace('dist/ui/', 'dist/page/'), text])
+  const schema = JSON.stringify({ customUiPath: './dist/page' })
+
+  const { status } = await pack({ ...Object.fromEntries(moved), 'config.schema.json': schema }, scratch)
+
+  expect(status).toBe(0)
 })
 
 test.for([
