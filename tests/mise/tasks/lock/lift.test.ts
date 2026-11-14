@@ -306,6 +306,12 @@ test('prints every pin behind its newest release as one Markdown table', async (
   `)
 })
 
+test('decides every version comparison the run makes in one Bun process', async ({ scratch }) => {
+  const { invoked } = await lift(scratch, { args: ['--try'] })
+
+  expect(invoked.filter(({ args }) => args.some((arg) => arg.includes('Bun.semver')))).toHaveLength(1)
+})
+
 test.for([{ args: [] }, { args: ['--try', '--write'] }])(
   'prints only that every pin stands at its newest release where none lags, given $args',
   async ({ args }, { scratch }) => {
