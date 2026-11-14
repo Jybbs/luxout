@@ -44,13 +44,16 @@ test('fails on a page the overview leaves unlinked', async ({ root }) => {
   expect(() => sectionPages(root, SECTION)).toThrow('The guide overview links no page named stray')
 })
 
-test('reads the paragraph beneath a page’s first heading, with the name styling dropped', async ({ root }) => {
-  const page = join(root, 'guide', 'alpha.md')
+test(
+  'reads the paragraph beneath a page’s first heading, with the name styling dropped',
+  async ({ root }) => {
+    const page = join(root, 'guide', 'alpha.md')
 
-  await writeFile(page, '# Alpha\n\nAn *Alpha* line.\n\nMore.\n')
+    await writeFile(page, '# Alpha\n\nAn *Alpha* line.\n\nMore.\n')
 
-  expect(pageOpening(page)).toBe('An Alpha line.')
-})
+    expect(pageOpening(page)).toBe('An Alpha line.')
+  }
+)
 
 test('fails on a page with no paragraph beneath its first heading', ({ root }) => {
   expect(() => pageOpening(join(root, 'guide', 'zeta.md')))

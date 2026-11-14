@@ -24,7 +24,12 @@ it('holds the record to the forecast’s entry in the bibliography', () => {
   const field  = (name: string) => new RegExp(`${name}\\s*=\\s*\\{([^}]+)\\}`).exec(entry)?.[1]
   const [last] = field('author')!.split(',')
 
-  expect({ doi: field('doi'), publisher: field('publisher'), surname: last, year: Number(field('year')) }).toEqual({
+  expect({
+    doi       : field('doi'),
+    publisher : field('publisher'),
+    surname   : last,
+    year      : Number(field('year'))
+  }).toEqual({
     doi       : credit.CREDIT.doi,
     publisher : credit.CREDIT.publisher,
     surname   : credit.CREDIT.creator.split(' ').at(-1),

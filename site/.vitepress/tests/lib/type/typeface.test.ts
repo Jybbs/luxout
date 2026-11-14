@@ -112,7 +112,9 @@ it.each(Object.entries(typeface.FONT_FILES).map(([name, file]) => ({ file, name 
     const style          = file.endsWith('-italic.ttf') ? 'italic' : 'normal'
     const [kept, served] = await Promise.all([
       readFile(new URL(`../../../${file}`, import.meta.url)),
-      readFile(new URL(import.meta.resolve(`@fontsource-variable/${id}/files/${id}-latin-wght-${style}.woff2`)))
+      readFile(new URL(import.meta.resolve(
+        `@fontsource-variable/${id}/files/${id}-latin-wght-${style}.woff2`
+      )))
     ])
 
     expect(revisionOf(typeface.fontOf(kept).face.referenceTable('head')!)).toBe(revisionOf(headOf(served)))
