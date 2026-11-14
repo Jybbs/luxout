@@ -1,3 +1,4 @@
+import { noop }       from '@vueuse/core'
 import { expect, it } from 'vitest'
 
 import { data } from '../../common/data/debug-line.ts'
@@ -22,4 +23,8 @@ it('finds each field’s value in the line, in the order the line prints them', 
 it('names the prefix each bridge falls back to where the platform block sets no name', () => {
   expect(fields.find(({ key }) => key === 'prefix')!.note).toBe('The platform block’s name where it sets '
     + 'one, and otherwise the platform name on the main bridge or the package name on a child bridge.')
+})
+
+it('leaves the shared `noop` bare once it builds the stand-in logger', () => {
+  expect(Object.keys(noop)).toEqual([])
 })
