@@ -1,21 +1,22 @@
-import { useMounted }                from '@vueuse/core'
-import { type VNode, defineComponent } from 'vue'
+import { useMounted }                                         from '@vueuse/core'
+import { type VNode, defineComponent, onMounted, shallowRef } from 'vue'
 
 import { useMotion } from '../../lib/motion/motion.ts'
 
 /**
  * The utilities the switch's track, its thumb, and each glyph the thumb draws
  * take, the thumb standing at the track's far end in the link color while the
- * switch is on and each glyph fading out while the other shows.
+ * switch is on and each glyph fading out while the other shows, and the
+ * transitions that slide the thumb and fade each glyph.
  */
 const CLASSES = {
-  glyph: 'motion-safe:transition-opacity motion-safe:duration-(--timing-move)',
+  fade  : 'motion-safe:transition-opacity motion-safe:duration-(--timing-move)',
+  slide : 'motion-safe:transition-[translate,color] motion-safe:duration-(--timing-move)',
 
   thumb: [
     'absolute top-px left-px grid size-4.5 place-items-center rounded-full bg-(--vp-c-neutral-inverse)',
     'text-muted shadow-(--vp-shadow-1) dark:text-ink group-aria-checked:translate-x-4.5',
-    'group-aria-checked:text-accent motion-safe:transition-[translate,color]',
-    'motion-safe:duration-(--timing-move)'
+    'group-aria-checked:text-accent'
   ],
 
   track: [
@@ -36,6 +37,15 @@ class Drawings {
 
   readonly #motion  = useMotion()
   readonly #mounted = useMounted()
+  readonly #moving  = shallowRef(false)
+
+  /**
+   * Lets the thumb slide and its glyphs fade only from the second frame after
+   * the page mounts, so the switch takes a stored pause without moving.
+   */
+  constructor() {
+    onMounted(() => requestAnimationFrame(() => requestAnimationFrame(() => { this.#moving.value = true })))
+  }
 
   /**
    * Whether the drawings play, read as playing until the page mounts and from
@@ -50,6 +60,7 @@ class Drawings {
    * level line while they hold.
    */
   switch(): VNode {
+    const moving  = this.#moving.value
     const playing = this.playing
 
     return (
@@ -62,7 +73,7 @@ class Drawings {
         type="button"
         onClick={this.press}
       >
-        <span class={CLASSES.thumb}>
+        <span class={[CLASSES.thumb, moving && CLASSES.slide]}>
           <svg
             aria-hidden
             class="size-3 fill-none stroke-current"
@@ -71,10 +82,10 @@ class Drawings {
             viewBox="0 0 12 12"
           >
             <path
-              class={['opacity-0 group-aria-checked:opacity-100', CLASSES.glyph]}
+              class={['opacity-0 group-aria-checked:opacity-100', moving && CLASSES.fade]}
               d="M1.4 6.8Q3 3.6 4.6 6.2T7.8 6.2T10.6 5.4"
             />
-            <path class={['group-aria-checked:opacity-0', CLASSES.glyph]} d="M1.6 6H10.4" />
+            <path class={['group-aria-checked:opacity-0', moving && CLASSES.fade]} d="M1.6 6H10.4" />
           </svg>
         </span>
       </button>
@@ -85,10 +96,13 @@ class Drawings {
 /**
  * Plays every drawing on the site or holds each where it stands, through a
  * button taking the ARIA switch pattern that is on while the drawings play.
+ *
  * The button is named for the drawings, and its title says what a press does.
  * It takes the measures of the default theme's appearance switch so the two
  * read as a pair, standing in the bar from the medium breakpoint and, under
- * `row`, as a labeled row in the small-screen menu, as that switch does.
+ * `row`, as a labeled row in the small-screen menu, as that switch does. It
+ * keeps its place in the bar where that switch moves into the More options
+ * menu, since the theme's overflow handling counts it as a fixed width.
  */
 export const PauseSwitch = defineComponent({
   name  : 'PauseSwitch',

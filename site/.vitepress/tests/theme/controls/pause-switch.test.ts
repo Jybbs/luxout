@@ -28,6 +28,29 @@ test('reads as a switch named for the drawings, on while they play', ({ mount })
   expect(shown(control)).toEqual(PLAYING)
 })
 
+test('shows a swell in its thumb while on and a level line while off', ({ mount }) => {
+  stubMedia(() => false)
+
+  const [swell, level] = mount(PauseSwitch).querySelectorAll('path')
+
+  expect(swell!.classList.contains('group-aria-checked:opacity-100')).toBe(true)
+  expect(level!.classList.contains('group-aria-checked:opacity-0')).toBe(true)
+})
+
+test('slides its thumb only from the second frame after it mounts', async ({ mount }) => {
+  stubMedia(() => false)
+
+  const thumb = getByRole(mount(PauseSwitch), 'switch').firstElementChild!
+
+  vi.advanceTimersToNextFrame()
+  await nextTick()
+  expect(thumb.classList.contains('motion-safe:transition-[translate,color]')).toBe(false)
+
+  vi.advanceTimersToNextFrame()
+  await nextTick()
+  expect(thumb.classList.contains('motion-safe:transition-[translate,color]')).toBe(true)
+})
+
 test('turns off once mounted for a reader who prefers reduced motion', async ({ mount }) => {
   stubMedia(() => true)
 
