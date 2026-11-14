@@ -41,7 +41,8 @@ export class Bibliography {
   }
 
   /**
-   * Reads the site's `references.bib` from the `.vitepress` folder at `root`.
+   * Reads the site's `references.bib`, which sits beside `root`, the site's
+   * `.vitepress` directory.
    */
   static async read(root: URL): Promise<Bibliography> {
     return Bibliography.parse(await readFile(new URL('../references.bib', root), 'utf8'))

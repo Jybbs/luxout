@@ -14,9 +14,9 @@ import { HeroReading }         from './hero-reading.tsx'
  * hero's height, beside the flare the page's rising edge takes around sunset.
  */
 const CARRY = { clear: 0.6, edge: { at: 0.7, width: 0.18 }, tint: 0.12, travel: 2 }
-const INKS  = { dark: 'var(--luxout-dark)', light: 'var(--luxout-ground)' }
 
 const { day, hero } = data
+const inks          = { dark: `var(${hero.inks.dark})`, light: `var(${hero.inks.light})` }
 const { logs }      = hero
 const peak          = day.altitudes[day.noon]!
 const schemes       = Object.entries(hero.schemes)
@@ -72,8 +72,8 @@ class HeroScene {
     const up    = valueAt(day.altitudes, minute)
 
     for (const [scheme, { dark, skies, tints }] of schemes) {
-      home.setProperty(`--front-above-${scheme}`, dark[step] ? INKS.dark : INKS.light)
-      home.setProperty(`--front-edge-${scheme}`, dark[step] ? INKS.dark : 'none')
+      home.setProperty(`--front-above-${scheme}`, dark[step] ? inks.dark : inks.light)
+      home.setProperty(`--front-edge-${scheme}`, dark[step] ? inks.dark : 'none')
       home.setProperty(`--front-point-${scheme}`, tints[step]!)
       home.setProperty(`--front-sky-${scheme}`, skies[step]!)
     }
@@ -154,8 +154,8 @@ export const FrontHero = defineComponent({
     const shares          = hero.shares
     const step            = Math.round(positionOf(day, day.readings[day.noon]!) * steps)
     const noon            = Object.fromEntries(schemes.flatMap(([scheme, { dark, skies }]) => [
-      [`--front-noon-above-${scheme}`, dark[step] ? INKS.dark : INKS.light],
-      [`--front-noon-edge-${scheme}`, dark[step] ? INKS.dark : 'none'],
+      [`--front-noon-above-${scheme}`, dark[step] ? inks.dark : inks.light],
+      [`--front-noon-edge-${scheme}`, dark[step] ? inks.dark : 'none'],
       [`--front-noon-sky-${scheme}`, skies[step]]
     ]))
 

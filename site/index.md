@@ -27,7 +27,7 @@ The estimate rests on these sources, each credited under its own terms.
 
 | **Source** | **Supplies** | **Terms** |
 |---|---|---|
-| [Open-Meteo](https://open-meteo.com/en/docs) | The forecast. Sunlight at the ground every 15 minutes, six hours ahead, fetched once an hour. | Data CC BY 4.0 |
+| [Open-Meteo](https://open-meteo.com/en/docs) | The forecast. Sunlight at the ground every 15 minutes, 6 hours ahead, fetched once an hour. | Data CC BY 4.0 |
 | [GeoNames](https://www.geonames.org/) | The place. The town a zip code or a city resolves to, through Open-Meteo’s geocoding API. | Data CC BY 4.0 |
 | [astronomy-engine](https://www.npmjs.com/package/astronomy-engine) | The sun’s position. The sun’s altitude at the stored place, computed every minute on the bridge. | MIT License |
 | [Circular 171](https://archive.org/details/DTIC_ADA182110) | The clear-sky curve. The U.S. Naval Observatory’s lux from the sun and sky, through day and twilight alike. | U.S. Government work |

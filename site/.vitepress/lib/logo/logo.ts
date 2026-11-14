@@ -125,15 +125,13 @@ export class Logo {
   lockup(scheme: Scheme): VNode {
     const { glow, ink, lockup, word } = this.#construction
     const { faces, tagline }          = this.#lettering
-    const { ascent, sun, width }      = this.#word
+    const shares                      = this.shares
 
-    const margin   = this.#margin
-    const scale    = lockup.width / (width + 2 * margin)
-    const left     = (this.#word.ink.left + margin) * scale
-    const right    = (this.#word.ink.right + margin) * scale
-    const horizon  = (ascent + margin - sun.cy) * scale
-    const baseline = horizon + sun.r * lockup.below * scale
-    const top      = Math.floor(horizon - sun.r * glow.radius * scale)
+    const left     = shares.left * lockup.width
+    const right    = shares.right * lockup.width
+    const horizon  = shares.horizon * lockup.width
+    const baseline = horizon + shares.sun * lockup.below * lockup.width
+    const top      = Math.floor(horizon - shares.sun * glow.radius * lockup.width)
     const height   = Math.ceil(baseline + lockup.size / 2) - top
     const capitals = tagline.toUpperCase().replace(/\.$/, '')
     const plain    = faces.set(MONO, lockup.size, capitals).ink
@@ -187,16 +185,14 @@ export class Logo {
    * `right` and its horizon on `y`, all in that drawing's units.
    */
   titleAcross(left: number, right: number, scheme: Scheme, y: number): VNode {
-    const { ascent, descent, ink, sun, width } = this.#word
-
-    const margin = this.#margin
-    const scale  = (right - left) / (ink.right - ink.left)
+    const shares = this.shares
+    const across = (right - left) / (shares.right - shares.left)
 
     return cloneVNode(this.title(scheme), {
-      height : tenth((ascent - descent + 2 * margin) * scale),
-      width  : tenth((width + 2 * margin) * scale),
-      x      : tenth(left - (ink.left + margin) * scale),
-      y      : tenth(y - (ascent + margin - sun.cy) * scale)
+      height : tenth(shares.height * across),
+      width  : tenth(across),
+      x      : tenth(left - shares.left * across),
+      y      : tenth(y - shares.horizon * across)
     })
   }
 

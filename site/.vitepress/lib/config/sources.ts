@@ -1,5 +1,7 @@
+import { REQUEST_TUNING }    from '../../../../src/weather/client.ts'
 import type { Bibliography } from '../citations/bibliography.ts'
 import { CREDIT }            from '../credit/credit.ts'
+import { formatSteps }       from '../daylight/format.ts'
 
 /**
  * One source as the site lists it, its address read from the bibliography's
@@ -27,7 +29,8 @@ const SOURCES: readonly Listed[] = [
     mark  : 'bars',
     name  : 'Open-Meteo',
     role  : 'The forecast',
-    says  : 'Sunlight at the ground every 15 minutes, six hours ahead, fetched once an hour.',
+    says  : `Sunlight at the ground every ${formatSteps(1)}, ${formatSteps(REQUEST_TUNING.forecast)} ahead, `
+          + 'fetched once an hour.',
     terms : `Data ${CREDIT.license.text}`,
     tone  : 'forecast'
   },

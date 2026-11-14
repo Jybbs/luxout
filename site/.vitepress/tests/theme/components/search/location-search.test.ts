@@ -193,6 +193,18 @@ test('turns the replay off while the reader has paused the site’s drawings', a
   expect(host.querySelector<HTMLButtonElement>('.location-search-play')!.disabled).toBe(true)
 })
 
+test('pauses the spinner while the site’s drawings are paused', async ({ mount }) => {
+  const host = mount(LocationSearch)
+
+  await choose(host, stages.findIndex(({ page }) => page.activity === 'spinning'))
+
+  const spinners = [...host.querySelectorAll('[class~="motion-safe:animate-turn"]')]
+
+  expect(spinners).not.toEqual([])
+  expect(spinners.map(({ classList }) => classList.contains('paused:[animation-play-state:paused]')))
+    .toEqual(spinners.map(() => true))
+})
+
 test('keeps the Play button enabled through the server render under reduced motion', async () => {
   stubMedia(() => true)
 
