@@ -2,6 +2,7 @@ import { pairs, transpose } from 'd3-array'
 import { expect, it }       from 'vitest'
 
 import { CLOUD_TUNING } from '../../../../../src/daylight/cloud-factor.ts'
+import { DEPTHS }       from '../../../lib/daylight/day-dial.ts'
 import { SampleDay }    from '../../../lib/daylight/sample-day.ts'
 import { data }         from '../../common/data/day-dial.ts'
 
@@ -38,6 +39,10 @@ it('runs the day from the dawn’s end to the dusk’s start', () => {
 
 it('sets the window’s minutes on the track outside the dial', () => {
   expect(marks.window).toEqual(marks.spans[named('Window')])
+})
+
+it('lists the depths of twilight from the deepest up, ending at sunset', () => {
+  expect(DEPTHS).toEqual([-18, -12, -6, -5 / 6])
 })
 
 it('nests each depth of twilight inside the one before it', () => {

@@ -1,9 +1,9 @@
-.the-gap-drawing { background: #f2f1ee; }
+.the-gap-drawing { background: var(--color-ground); }
 
-.the-gap-band { fill: #bdd5e8; }
+.the-gap-band { fill: var(--color-gap-band); }
 
 .the-gap-edge {
-  stroke       : #1a1a1a;
+  stroke       : var(--color-ink);
   stroke-width : 1.2;
 }
 
@@ -20,18 +20,18 @@
 }
 
 .the-gap-halo {
-  stroke       : #f2f1ee;
+  stroke       : var(--color-ground);
   stroke-width : 6;
 }
 
 .the-gap-reading {
-  stroke       : #5069ad;
+  stroke       : var(--color-estimate);
   stroke-width : 2;
 }
 
 .the-gap-on {
-  fill         : #b2cfe6;
-  stroke       : #1a1a1a;
+  fill         : var(--color-gap-on);
+  stroke       : var(--color-ink);
   stroke-width : 1.2;
 }
 
@@ -41,8 +41,8 @@
 }
 
 .the-gap-ring {
-  fill         : #f2f1ee;
-  stroke       : #1a1a1a;
+  fill         : var(--color-ground);
+  stroke       : var(--color-ink);
   stroke-width : 1.5;
 }
 
@@ -56,10 +56,10 @@
 
 .the-gap-word { fill: var(--luxout-muted); }
 
-.the-gap-figure { fill: #1a1a1a; }
+.the-gap-figure { fill: var(--color-ink); }
 
 .the-gap-chip-name {
-  fill           : #1a1a1a;
+  fill           : var(--color-ink);
   font-size      : 10px;
   font-weight    : 600;
   letter-spacing : 0.08em;
@@ -67,24 +67,24 @@
 }
 
 .the-gap-count {
-  fill        : #1a1a1a;
+  fill        : var(--color-ink);
   font-weight : 600;
 }
 
 @media (prefers-color-scheme: dark) {
-  .the-gap-drawing { background: #1a1a1a; }
+  .the-gap-drawing { background: var(--color-ground); }
 
-  .the-gap-band { fill: #475f73; }
+  .the-gap-band { fill: var(--color-gap-band); }
 
-  .the-gap-edge, .the-gap-on, .the-gap-ring { stroke: #f2f1ee; }
+  .the-gap-edge, .the-gap-on, .the-gap-ring { stroke: var(--color-ink); }
 
   .the-gap-tie, .the-gap-off { stroke: var(--luxout-muted); }
 
-  .the-gap-halo { stroke: #1a1a1a; }
+  .the-gap-halo { stroke: var(--color-ground); }
 
-  .the-gap-on { fill: #506e87; }
+  .the-gap-on { fill: var(--color-gap-on); }
 
-  .the-gap-ring { fill: #1a1a1a; }
+  .the-gap-ring { fill: var(--color-ground); }
 
   .the-gap-chip {
     fill   : var(--luxout-sunken);
@@ -93,5 +93,5 @@
 
   .the-gap-word { fill: var(--luxout-muted); }
 
-  .the-gap-figure, .the-gap-chip-name, .the-gap-count { fill: #f2f1ee; }
+  .the-gap-figure, .the-gap-chip-name, .the-gap-count { fill: var(--color-ink); }
 }

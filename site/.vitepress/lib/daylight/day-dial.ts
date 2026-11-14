@@ -1,12 +1,12 @@
-import { extent, minIndex, pairs } from 'd3-array'
-import { scaleLog }                from 'd3-scale'
+import { extent, minIndex, pairs, sort } from 'd3-array'
+import { scaleLog }                      from 'd3-scale'
 
+import { TWILIGHT }                     from '../../../../src/daylight/clear-sky.ts'
 import { CLOUD_TUNING }                 from '../../../../src/daylight/cloud-factor.ts'
 import { DIAL, type DialMarks }         from './dial-lens.ts'
 import * as format                      from './format.ts'
 import { luxRange }                     from './homekit.ts'
 import { SampleDay, crossings, runsOf } from './sample-day.ts'
-import { SUNSET }                       from './sun-curve.ts'
 import { tenth }                        from './tenth.ts'
 
 /**
@@ -34,10 +34,14 @@ interface DialStretch {
   readonly why     : string
 }
 
-export const DEPTHS = [-18, -12, -6, SUNSET]  // The sun's altitudes in degrees ending each depth of twilight
-const GAP           = 22                      // The room between the rim and the nearest edge of a name
-const LETTER        = 11                      // The width of one letter of a name
-const NAME          = 24                      // The height of a name
+/**
+ * The sun's altitudes in degrees ending each depth of twilight, from the
+ * deepest up.
+ */
+export const DEPTHS = sort(Object.values(TWILIGHT))
+const GAP           = 22  // The room between the rim and the nearest edge of a name
+const LETTER        = 11  // The width of one letter of a name
+const NAME          = 24  // The height of a name
 const shareScale    = scaleLog([luxRange.min, luxRange.max], [0, 1]).clamp(true)
 
 function placeOf(from: number, name: string, to: number): DialStretch['place'] {
@@ -65,7 +69,7 @@ export function dayDial(day: SampleDay): DayDial {
   const { altitudes, clearSkies, cloud, readings } = day
 
   const [floorRise, floorSet] = runsOf(readings.map((lux) => lux > luxRange.min))[0]!
-  const [rise, set]           = crossings(altitudes, SUNSET)
+  const [rise, set]           = crossings(altitudes, TWILIGHT.sunset)
   const [from, to]            = day.span
 
   const low           = minIndex(clearSkies)

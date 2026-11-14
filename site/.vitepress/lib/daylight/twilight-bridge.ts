@@ -2,10 +2,10 @@ import { range, sort }           from 'd3-array'
 import { scaleLinear, scaleLog } from 'd3-scale'
 import { area, line }            from 'd3-shape'
 
-import { BRIDGE_SPAN, type ClearSky } from '../../../../src/daylight/clear-sky.ts'
-import { formatLux, signed }          from './format.ts'
-import * as curve                     from './sun-curve.ts'
-import { tenth }                      from './tenth.ts'
+import { BRIDGE_SPAN, type ClearSky, TWILIGHT } from '../../../../src/daylight/clear-sky.ts'
+import { formatLux, signed }                    from './format.ts'
+import * as curve                               from './sun-curve.ts'
+import { tenth }                                from './tenth.ts'
 
 /**
  * A mark on the drawing's two scales, in the units of its `viewBox`.
@@ -63,7 +63,7 @@ const TOP_LUX = 30_000
 const WIDTH   = 540
 const TICKS   = [
   { at: FLOOR },
-  { at: curve.SUNSET },
+  { at: TWILIGHT.sunset },
   { at: 3, minor: true },
   { at: 6 },
   { at: 9, minor: true },
@@ -75,7 +75,7 @@ function tickMarks(ticks: readonly BridgeTick[]): string {
 }
 
 function tickWord(altitude: number): string {
-  return altitude === curve.SUNSET ? curve.SUNSET_WORD : `${signed(altitude)}°`
+  return altitude === TWILIGHT.sunset ? curve.SUNSET_WORD : `${signed(altitude)}°`
 }
 
 /**
@@ -88,7 +88,7 @@ export function twilightBridge(sky: ClearSky): TwilightBridge {
   const top     = (altitude: number) => y(sky.illuminance(altitude))
   const luxWord = (altitude: number) => `${formatLux(sky.illuminance(altitude))} lux`
   const tenths  = range(FLOOR * TENTHS, LOW_SUN * TENTHS + 1).map((step) => step / TENTHS)
-  const stops   = sort([...tenths, curve.SUNSET])
+  const stops   = sort([...tenths, TWILIGHT.sunset])
   const ticks   = TICKS.map(({ at, minor }) => ({ at: tenth(x(at)), minor, word: tickWord(at) }))
   const endAt   = (altitude: number) => ({
     word : luxWord(altitude),
@@ -96,13 +96,13 @@ export function twilightBridge(sky: ClearSky): TwilightBridge {
     y    : tenth(top(altitude))
   })
 
-  const high = endAt(curve.SUNSET)
+  const high = endAt(TWILIGHT.sunset)
   const low  = endAt(FLOOR)
 
   return {
     area    : area<number>().digits(1).x(x).y0(HEIGHT).y1(top)(stops)!,
     axis    : `M0 ${HEIGHT}H${WIDTH}${tickMarks(ticks.filter(({ minor }) => !minor))}`,
-    cut     : stops.indexOf(curve.SUNSET),
+    cut     : stops.indexOf(TWILIGHT.sunset),
     decades : DECADES.map((lux) => ({ at: tenth(y(lux)), word: formatLux(lux) })),
     degrees : stops.map(curve.altitudeWord),
     edge    : line<number>().digits(1).x(x).y(top)(stops)!,

@@ -3,11 +3,12 @@ import { fileURLToPath } from 'node:url'
 import { type VNode, h } from 'vue'
 
 import manifest                 from '../../../../package.json' with { type: 'json' }
+import { TWILIGHT }             from '../../../../src/daylight/clear-sky.ts'
 import * as faces               from '../cards/faces.ts'
 import { shadeAt }              from '../cards/sky.ts'
 import { pageTitle }            from '../config/pages.ts'
 import { SampleDay, crossings } from '../daylight/sample-day.ts'
-import { SUNSET }               from '../daylight/sun-curve.ts'
+import { SVG_NAMESPACE }        from '../daylight/svg.ts'
 import { type Scheme, Tokens }  from '../theme/tokens.ts'
 
 /**
@@ -34,10 +35,17 @@ const LAYOUT = {
 }
 export const START_CARDS: readonly StartCard[] = [
   { minute: () => SampleDay.NOON, page: 'estimate/index.md', word: 'Understand' },
-  { minute: ({ altitudes }) => crossings(altitudes, -6)[1], page: 'troubleshooting/index.md', word: 'Check' },
-  { minute: ({ altitudes }) => crossings(altitudes, SUNSET)[0], page: 'install/installing.md', word: 'Run' }
+  {
+    minute : ({ altitudes }) => crossings(altitudes, TWILIGHT.civil)[1],
+    page   : 'troubleshooting/index.md',
+    word   : 'Check'
+  },
+  {
+    minute : ({ altitudes }) => crossings(altitudes, TWILIGHT.sunset)[0],
+    page   : 'install/installing.md',
+    word   : 'Run'
+  }
 ]
-const SVG                = 'http://www.w3.org/2000/svg'
 const WORD : faces.Voice = { axes: { opsz: 12, wght: 600 }, face: 'display' }
 
 /**
@@ -86,7 +94,7 @@ export class StartCards {
       role         : 'img',
       viewBox      : `0 0 ${width} ${height}`,
       width        : width / 2,
-      xmlns        : SVG
+      xmlns        : SVG_NAMESPACE
     }, [
       h('clipPath', { id: 'card' }, [h('rect', { height, rx, width })]),
       h('g', { 'clip-path': 'url(#card)' }, [

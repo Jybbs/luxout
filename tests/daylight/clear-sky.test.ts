@@ -1,9 +1,9 @@
 import { fc, test }   from '@fast-check/vitest'
 import { expect, it } from 'vitest'
 
-import { BRIDGE_SPAN, ClearSky } from '../../src/daylight/clear-sky.js'
-import { Sun }                   from '../../src/daylight/sun.js'
-import { boston }                from '../common/places.js'
+import { BRIDGE_SPAN, ClearSky, TWILIGHT } from '../../src/daylight/clear-sky.js'
+import { Sun }                             from '../../src/daylight/sun.js'
+import { boston }                          from '../common/places.js'
 
 /**
  * The sun illuminance that U.S. Naval Observatory Circular 171 prints under sky
@@ -57,6 +57,10 @@ it.each([
 
 it('names the span the curve bridges, from civil twilight’s lower limit to the refraction cutoff', () => {
   expect(BRIDGE_SPAN).toEqual([-6, -5 / 6])
+})
+
+it('places sunset at -5/6° and the ends of civil, nautical, and astronomical twilight below it', () => {
+  expect(TWILIGHT).toEqual({ astronomical: -18, civil: -6, nautical: -12, sunset: -5 / 6 })
 })
 
 test.prop([fc.double({ max: -5 / 6, maxExcluded: true, min: -6, minExcluded: true, noNaN: true })])(

@@ -1,6 +1,7 @@
 import type { VNode } from 'vue'
 
-import { tenth } from '../../lib/daylight/tenth.ts'
+import { SVG_NAMESPACE } from '../../lib/daylight/svg.ts'
+import { tenth }         from '../../lib/daylight/tenth.ts'
 
 interface WordStyle {
   readonly anchor? : 'end' | 'middle'
@@ -25,7 +26,7 @@ export function plotDrawing(
       class={name}
       role="img"
       viewBox={`0 0 ${width} ${height}`}
-      xmlns="http://www.w3.org/2000/svg"
+      xmlns={SVG_NAMESPACE}
     >
       {...children}
     </svg>

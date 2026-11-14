@@ -4,9 +4,10 @@ import { quantile, range }             from 'd3-array'
 import { type VNode, createSSRApp, h } from 'vue'
 import { renderToString }              from 'vue/server-renderer'
 
-import manifest        from '../../../../package.json' with { type: 'json' }
-import { tenth }       from '../daylight/tenth.ts'
-import type * as faces from './faces.ts'
+import manifest          from '../../../../package.json' with { type: 'json' }
+import { SVG_NAMESPACE } from '../daylight/svg.ts'
+import { tenth }         from '../daylight/tenth.ts'
+import type * as faces   from './faces.ts'
 
 /**
  * A rectangle on a card, its corner at `x`, `y`.
@@ -184,7 +185,7 @@ export class Card {
   #svg(parts: readonly VNode[], grounded = true): VNode {
     const size = { height: HEIGHT, width: WIDTH }
 
-    return h('svg', { ...size, viewBox: `0 0 ${WIDTH} ${HEIGHT}`, xmlns: 'http://www.w3.org/2000/svg' }, [
+    return h('svg', { ...size, viewBox: `0 0 ${WIDTH} ${HEIGHT}`, xmlns: SVG_NAMESPACE }, [
       h('defs', this.#defs),
       ...grounded ? [h('rect', { ...size, fill: this.#ground })] : [],
       ...parts

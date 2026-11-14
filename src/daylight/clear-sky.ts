@@ -1,17 +1,22 @@
 import { DEG2RAD } from 'astronomy-engine'
 
-const CIVIL_TWILIGHT = -6         // Circular 171's altitude in degrees at the lower limit of civil twilight
 const EXTINCTION     = 0.21       // Circular 171's extinction coefficient of the direct rays per air mass
 const RADIUS         = 753.66156  // Circular 171's Earth radius over the homogeneous atmosphere's height
 const SKYLIGHT       = 0.0289     // Circular 171's coefficient of the empirical skylight term
 const SKY_EXTINCTION = 0.042      // Circular 171's extinction coefficient of the skylight term per air mass
 const SUNLIGHT       = 133775     // Circular 171's sun illuminance at the top of the atmosphere, in lux
-const UNREFRACTED    = -5 / 6     // Circular 171's altitude in degrees below which no refraction is added
+/**
+ * The sun's geometric altitudes in degrees at sunset, where the sun's upper
+ * edge meets the horizon, and at the end of civil, nautical, and astronomical
+ * twilight.
+ */
+export const TWILIGHT = { astronomical: -18, civil: -6, nautical: -12, sunset: -5 / 6 } as const
+const UNREFRACTED     = -5 / 6  // Circular 171's altitude in degrees below which no refraction is added
 /**
  * The altitudes in degrees between which the curve bridges the circular's step,
  * from the lower limit of civil twilight to the refraction cutoff.
  */
-export const BRIDGE_SPAN = [CIVIL_TWILIGHT, UNREFRACTED] as const
+export const BRIDGE_SPAN = [TWILIGHT.civil, UNREFRACTED] as const
 
 /**
  * Evaluates the sun illuminance model of U.S. Naval Observatory Circular 171
@@ -20,8 +25,8 @@ export const BRIDGE_SPAN = [CIVIL_TWILIGHT, UNREFRACTED] as const
  * the sky together on a horizontal surface at sea level.
  */
 export class ClearSky {
-  readonly #high = this.#circular(UNREFRACTED)
-  readonly #low  = this.#circular(CIVIL_TWILIGHT)
+  readonly #high = this.#circular(BRIDGE_SPAN[1])
+  readonly #low  = this.#circular(BRIDGE_SPAN[0])
 
   /**
    * Computes the unclamped illuminance in lux for the sun at the geometric
@@ -33,11 +38,11 @@ export class ClearSky {
    * degrees without the step the circular's refraction makes there.
    */
   illuminance(altitude: number): number {
-    if (altitude <= CIVIL_TWILIGHT || altitude >= UNREFRACTED) return this.#circular(altitude)
+    const [from, to] = BRIDGE_SPAN
 
-    const fraction = (altitude - CIVIL_TWILIGHT) / (UNREFRACTED - CIVIL_TWILIGHT)
+    if (altitude <= from || altitude >= to) return this.#circular(altitude)
 
-    return this.#low * (this.#high / this.#low) ** fraction
+    return this.#low * (this.#high / this.#low) ** ((altitude - from) / (to - from))
   }
 
   /**

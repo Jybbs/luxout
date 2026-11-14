@@ -1,9 +1,9 @@
 import { bisector, cumsum, range, sum } from 'd3-array'
 import { line }                         from 'd3-shape'
 
-import { smoothstep }  from '../motion/timing.ts'
-import { DAY_MINUTES } from './clock.ts'
-import { tenth }       from './tenth.ts'
+import { smoothstep }                from '../motion/timing.ts'
+import { DAY_MINUTES, HOUR_MINUTES } from './clock.ts'
+import { tenth }                     from './tenth.ts'
 
 /**
  * The marks the dial draws, each radius a share of the way from HomeKit's floor
@@ -116,7 +116,9 @@ export class DialPlot {
 
         return [arc(part, bracket), part ? curve(reading)(pointsOf(part))! : '']
       }),
-      range(low, low + HALF, 60).map((hour) => `M${point(hour, rim + 2)}L${point(hour, rim + 6)}`).join('')
+      range(low, low + HALF, HOUR_MINUTES)
+        .map((hour) => `M${point(hour, rim + 2)}L${point(hour, rim + 6)}`)
+        .join('')
     ]
   }
 

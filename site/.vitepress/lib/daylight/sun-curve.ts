@@ -1,5 +1,6 @@
 import { line } from 'd3-shape'
 
+import { TWILIGHT }                   from '../../../../src/daylight/clear-sky.ts'
 import { DAY_MINUTES }                from './clock.ts'
 import { formatClock, formatDegrees } from './format.ts'
 import { tenth }                      from './tenth.ts'
@@ -28,8 +29,7 @@ interface SunSizes {
   readonly width   : number
 }
 
-export const SUN_GRID    = 30      // Minutes between a day's samples
-export const SUNSET      = -5 / 6  // The altitude in degrees of sunrise and sunset
+export const SUN_GRID    = 30  // Minutes between a day's samples
 export const SUNSET_WORD = '−5/6°'
 const curve              = line<number>()
   .digits(1)
@@ -130,7 +130,7 @@ export function altitudeOn({ altitudes }: SunDay, minute: number): number {
  * sunset, where a tenth would name another point on the curve.
  */
 export function altitudeWord(altitude: number): string {
-  return altitude === SUNSET ? SUNSET_WORD : formatDegrees(altitude)
+  return altitude === TWILIGHT.sunset ? SUNSET_WORD : formatDegrees(altitude)
 }
 
 /**
@@ -155,7 +155,7 @@ export function sunCurve({ altitudes }: SunDay): string {
 export function sunPhrase(day: SunDay, altitude: number, minute: number): string {
   const { peak, rise, set } = day
 
-  if (altitude >= SUNSET) {
+  if (altitude >= TWILIGHT.sunset) {
     return minute < peak.minute
       ? `the sun stands ${where(altitude)}, climbing toward ${peakWord(day)}.`
       : `the sun stands ${where(altitude)}, sinking toward sunset at ${formatClock(set)}.`
