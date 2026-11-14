@@ -15,7 +15,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://luxout.fyi/readme/day-estimate-dark.gif">
-  <img alt="The Day Estimate dial sweeping once around the sample day in Boston beside the threshold sensor Dark Out switching off at 06:48 as the dawn passes 662 lux and on at 18:49 as the dusk falls to 2.99 lux, and the forecast’s 28 quarter-hour steps of sunlight at the ground from 06:15 to 13:00, the step in use lit, its sunlight divided by the clear sky’s to give the factor, and a step with the sun under 5° taking the mean factor of the 4 nearest daylight steps." src="https://luxout.fyi/readme/day-estimate-light.gif" width="100%">
+  <img alt="The Day Estimate dial sweeping once around the sample day in Boston beside the threshold sensor Dark Out switching off at 06:48 as the dawn passes 662 lux and on at 18:49 as the dusk falls to 2.99 lux, and the forecast’s 28 quarter-hour steps of sunlight at the ground from 06:15 to 13:00, the step in use lit, its sunlight divided by the clear sky’s to give the factor, which holds at 1 where the forecast runs past a clear sky, and a step with the sun under 5° taking the mean factor of the 4 nearest daylight steps." src="https://luxout.fyi/readme/day-estimate-light.gif" width="100%">
 </picture>
 
 <p align="center">

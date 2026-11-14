@@ -152,7 +152,8 @@ export class DayPreview {
          + `dawn passes ${formatLux(entry.offLux)} lux and on at ${at(switches[1]!)} as the dusk `
          + `falls to ${formatLux(entry.onLux)} lux, and the forecast’s ${steps.length} quarter-hour `
          + `steps of sunlight at the ground from ${at(from)} to ${at(to)}, the step in use lit, its `
-         + 'sunlight divided by the clear sky’s to give the factor, and a step with the sun under '
+         + 'sunlight divided by the clear sky’s to give the factor, which holds at 1 where the forecast '
+         + 'runs past a clear sky, and a step with the sun under '
          + `${CLOUD_TUNING.floor}° taking the mean factor of the ${CLOUD_TUNING.nearest} nearest `
          + 'daylight steps.'
   }
