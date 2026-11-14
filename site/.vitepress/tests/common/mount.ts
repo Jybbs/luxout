@@ -15,7 +15,7 @@ export type Mount = (
 /**
  * Stops the clock and the animation frame together and mounts a component into
  * the document, unmounting each one once the case ends or once it calls
- * `unmount`.
+ * `unmount`, and clearing the choices the case stored.
  */
 export const test = base.extend('apps', (): App[] => [])
   .extend('unmount', ({ apps }) => () => {
@@ -28,6 +28,7 @@ export const test = base.extend('apps', (): App[] => [])
     onCleanup(() => {
       unmount()
       document.body.replaceChildren()
+      localStorage.clear()
       vi.useRealTimers()
     })
 

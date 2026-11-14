@@ -1,21 +1,21 @@
 import { readFile } from 'node:fs/promises'
 
-import { bisectRight, range }        from 'd3-array'
+import { range }                     from 'd3-array'
 import { lineRadial, pointRadial }   from 'd3-shape'
 import { type VNode, cloneVNode, h } from 'vue'
 import { renderToString }            from 'vue/server-renderer'
 
-import * as faces                       from '../cards/faces.ts'
-import { shadeAt }                      from '../cards/sky.ts'
-import { DAY_MINUTES }                  from '../daylight/clock.ts'
-import { DEPTHS, type DayDial, dayDial } from '../daylight/day-dial.ts'
-import * as dialLens                    from '../daylight/dial-lens.ts'
-import { formatLux }                    from '../daylight/format.ts'
-import { SampleDay }                    from '../daylight/sample-day.ts'
-import { SVG_NAMESPACE }                from '../daylight/svg.ts'
-import { tenth }                        from '../daylight/tenth.ts'
-import { type Scheme, Tokens }          from '../theme/tokens.ts'
-import { record }                       from './recording.ts'
+import * as faces                         from '../cards/faces.ts'
+import { shadeAt }                        from '../cards/sky.ts'
+import { DAY_MINUTES }                    from '../daylight/clock.ts'
+import { type DayDial, dayDial, phaseOf } from '../daylight/day-dial.ts'
+import * as dialLens                      from '../daylight/dial-lens.ts'
+import { formatLux }                      from '../daylight/format.ts'
+import { SampleDay }                      from '../daylight/sample-day.ts'
+import { SVG_NAMESPACE }                  from '../daylight/svg.ts'
+import { tenth }                          from '../daylight/tenth.ts'
+import { type Scheme, Tokens }            from '../theme/tokens.ts'
+import { record }                         from './recording.ts'
 
 /**
  * Draws the Day Estimate dial from the paths of each half of the clock, with the
@@ -39,13 +39,8 @@ interface Place extends Pick<faces.Saying, 'size' | 'x' | 'y'> {
 const FRAMES  = 500  // The frames of one pass around the dial, ten seconds at 20 milliseconds a frame
 const HEIGHT  = 330
 const HORIZON = 292
-/**
- * Names the stretch of the day by how many of `DEPTHS` the sun stands at or
- * above.
- */
-const PHASES = ['Night', 'Astronomical twilight', 'Nautical twilight', 'Civil twilight', 'Daylight']
-const SHEETS = ['daylight/day-estimate-frame.css', 'readme/day-preview-frame.css']
-const WIDTH  = 880  // The pixels the preview is recorded wide, past the README column GitHub shows
+const SHEETS  = ['daylight/day-estimate-frame.css', 'readme/day-preview-frame.css']
+const WIDTH   = 880  // The pixels the preview is recorded wide, past the README column GitHub shows
 /**
  * The frame's parts in pixels, the dial's own in the dial's units.
  */
@@ -130,7 +125,7 @@ export class DayPreview {
       h('rect', { ...plate, class: 'day-preview-plate', x: (WIDTH - plate.width) / 2 }),
       h('g', { transform: shift }, this.#dialAt(minute, scheme)),
       this.#say(this.#day.clock(minute), sky.ink, clock),
-      this.#say(PHASES[bisectRight(DEPTHS, this.#day.altitudes[minute]!)]!, sky.ink, phase),
+      this.#say(phaseOf(this.#day.altitudes[minute]!), sky.ink, phase),
       ...spread(strip.bands).map((at, band) => h('rect', {
         fill   : shadeAt(this.#day.readings[at]!).fill,
         height : strip.height,

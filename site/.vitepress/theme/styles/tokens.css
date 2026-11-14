@@ -6,6 +6,7 @@
 @source '..';
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant paused (&:where([data-paused], [data-paused] *));
 
 @theme {
   --breakpoint-*  : initial;
@@ -13,10 +14,12 @@
   --breakpoint-md : 48rem;
   --breakpoint-lg : 60rem;
 
-  --container-*  : initial;
-  --container-sm : 30rem;
-  --container-md : 38rem;
-  --container-lg : 40rem;
+  --container-*   : initial;
+  --container-2xs : 5.875rem;
+  --container-xs  : 9.375rem;
+  --container-sm  : 30rem;
+  --container-md  : 38rem;
+  --container-lg  : 40rem;
 
   --font-*       : initial;
   --font-base    : var(--vp-font-family-base);
@@ -227,6 +230,11 @@
 @utility widget-num {
   font-family          : var(--font-mono);
   font-variant-numeric : tabular-nums;
+}
+
+@utility widget-time {
+  font                 : 600 1.35rem/1 var(--font-display);
+  font-variant-numeric : lining-nums tabular-nums;
 }
 
 @utility widget-caps {

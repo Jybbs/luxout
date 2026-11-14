@@ -3,8 +3,8 @@ import { bisectRight, cumsum }                            from 'd3-array'
 import { type VNode, defineComponent, shallowRef, useId } from 'vue'
 
 import { FrameClock }        from '../../../lib/motion/frame-clock.ts'
+import { useMotion }         from '../../../lib/motion/motion.ts'
 import { Speech }            from '../../../lib/motion/speech.ts'
-import { motionReduced }     from '../../../lib/motion/timing.ts'
 import type { SearchStage }  from '../../../lib/search/replay.ts'
 import { data }              from '../../../lib/search/search.data.ts'
 import { codeSpans }         from '../../controls/code-spans.tsx'
@@ -38,9 +38,10 @@ class Player {
   readonly id      = useId()
   readonly mounted = useMounted()
   readonly panel   = shallowRef<HTMLElement>()
+  readonly paused  = useMotion().paused
 
   readonly play = (): void => {
-    this.#started = performance.now()
+    this.#started = this.#clock.now()
     this.#show(0)
     this.#clock.start()
   }
@@ -120,7 +121,7 @@ export const LocationSearch = defineComponent({
               'widget-pill location-search-play transition-[border-color] duration-(--timing-hover)',
               'focus-visible:outline-offset-1 enabled:hover:border-ink'
             ]}
-            disabled={player.mounted.value && motionReduced()}
+            disabled={player.mounted.value && player.paused.value}
             onClick={player.play}
             type="button"
           >

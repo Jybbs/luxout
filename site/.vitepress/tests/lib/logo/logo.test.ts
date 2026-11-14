@@ -25,3 +25,27 @@ it('places the title in a larger drawing, its height following the span its ink 
   expect(wide.x).toBeLessThan(60)
   expect(wide.y).toBeLessThan(164)
 })
+
+it.each(SCHEMES)('inks the %s hero’s letters above the horizon in the page’s color', async (scheme) => {
+  const hero = await renderToString(logo.hero(scheme))
+
+  expect(hero).toContain('fill="currentColor"')
+  expect(await renderToString(logo.title(scheme))).not.toContain('currentColor')
+})
+
+it.each(SCHEMES)('opens every id and reference in the %s hero on the scheme', async (scheme) => {
+  const hero = await renderToString(logo.hero(scheme))
+  const ids  = [...hero.matchAll(/id="([^"]+)"|url\(#([^)]+)\)/g)].map(([, id, url]) => id ?? url)
+
+  expect(ids).not.toHaveLength(0)
+  expect(ids.filter((id) => !id!.startsWith(`${scheme}-`))).toEqual([])
+})
+
+it('gives the title’s parts as shares of its width, the horizon below its top', () => {
+  const { height, horizon, left, line, right, sun } = logo.shares
+
+  expect(left).toBeLessThan(right)
+  expect(right).toBeLessThan(1)
+  expect(horizon).toBeLessThan(height)
+  expect([line, sun].map((share) => share > 0 && share < left + sun)).toEqual([true, true])
+})

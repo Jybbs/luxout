@@ -1,3 +1,4 @@
+import { globSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
@@ -24,6 +25,7 @@ vi.mock('../lib/daylight/daylight.data.ts', () => import('./common/data/daylight
 vi.mock('../lib/daylight/factor-day.data.ts', () => import('./common/data/factor-day.ts'))
 vi.mock('../lib/daylight/sun-year.data.ts', () => import('./common/data/sun-year.ts'))
 vi.mock('../lib/daylight/twilight-bridge.data.ts', () => import('./common/data/twilight-bridge.ts'))
+vi.mock('../lib/front/front.data.ts', () => import('./common/data/front.ts'))
 vi.mock('../lib/privacy/privacy.data.ts', () => import('./common/data/privacy.ts'))
 vi.mock('../lib/search/search.data.ts', () => import('./common/data/search.ts'))
 vi.mock('../lib/settings/settings.data.ts', () => import('./common/data/settings.ts'))
@@ -55,7 +57,8 @@ const FRAME_MARKS = {
  * and the dark one inside its media query.
  */
 const SCHEMES: Scheme[] = ['light', 'dark']
-const source            = await readFile(new URL('../theme/styles/tokens.css', import.meta.url), 'utf8')
+const STYLES            = new URL('../theme/styles/', import.meta.url)
+const source            = await readFile(new URL('tokens.css', STYLES), 'utf8')
 const tokens            = Tokens.parse(source)
 const frameInks         = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [
   ...fills.map((word) => ({ floor: 4.5, name, property: 'fill', selector: `.${name}-${word}` })),
@@ -297,3 +300,10 @@ it('holds the request clock’s later marks back until the failing hour', () => 
     !classList.contains('opacity-0') || !classList.contains('group-data-[on=fails]:opacity-100')
   )).toEqual([])
 })
+
+it.each(globSync('*.css', { cwd: STYLES }))(
+  'pauses each animation %s runs while the site’s drawings are paused',
+  async (name) => {
+    expect(new Sheet(name, await readFile(new URL(name, STYLES), 'utf8')).unpaused).toEqual([])
+  }
+)

@@ -69,10 +69,22 @@ const ROWS = [
     widget  : 'RoundedPlace'
   },
   {
+    fold    : 'Each section as a table',
+    heading : 'Light Reading',
+    page    : 'index.md',
+    widget  : 'SectionLamps'
+  },
+  {
     fold    : 'Every setting as a table',
     heading : 'Settings Reference',
     page    : 'settings/index.md',
     widget  : 'SettingsReference'
+  },
+  {
+    fold    : 'Each source as a table',
+    heading : 'Where the Reading Comes From',
+    page    : 'index.md',
+    widget  : 'SourceLamps'
   },
   {
     fold    : 'Each named day as a table',
