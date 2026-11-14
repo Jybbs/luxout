@@ -70,9 +70,20 @@ export class Tokens {
   }
 
   /**
+   * Reads `value` as `scheme` computes it, following a value that is one `var()`
+   * to the value it names and mixing a `color-mix()` found there into a hex code,
+   * and returns any other value as written.
+   */
+  computed(value: string, scheme: Scheme): string {
+    const followed = this.follow(value, scheme)
+
+    return MIX.test(followed) ? this.#paint(followed, scheme) : followed
+  }
+
+  /**
    * Writes the stylesheet `css` as `scheme` applies it, the rules under its dark
-   * media query kept in the dark scheme alone and each value that is one
-   * `var()` written as the value it follows to.
+   * media query kept in the dark scheme alone and each value written as
+   * `computed` reads it.
    */
   flatten(css: string, scheme: Scheme): string {
     const root = parse(css)
@@ -83,7 +94,7 @@ export class Tokens {
       else query.remove()
     })
     root.walkDecls((declaration) => {
-      declaration.value = this.follow(declaration.value, scheme)
+      declaration.value = this.computed(declaration.value, scheme)
     })
 
     return root.toString()

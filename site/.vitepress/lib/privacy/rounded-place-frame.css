@@ -1,57 +1,57 @@
-.rounded-place-drawing { background: #f2f1ee; }
+.rounded-place-drawing { background: var(--color-ground); }
 
 .rounded-place-cell {
-  fill         : #d7e0de;
-  stroke       : #4b8488;
+  fill         : var(--color-place-cell);
+  stroke       : var(--color-forecast);
   stroke-width : 1.5;
 }
 
 .rounded-place-tile {
   fill         : none;
-  stroke       : #4b8488;
+  stroke       : var(--color-forecast);
   stroke-width : 1;
 }
 
 .rounded-place-area {
-  fill         : #eba795;
-  stroke       : #1a1a1a;
+  fill         : var(--color-place-area);
+  stroke       : var(--color-ink);
   stroke-width : 1.2;
 }
 
 .rounded-place-ring {
   fill         : none;
-  stroke       : #1a1a1a;
+  stroke       : var(--color-ink);
   stroke-width : 1.5;
 }
 
-.rounded-place-dot { fill: #1a1a1a; }
+.rounded-place-dot { fill: var(--color-ink); }
 
 .rounded-place-dim {
   fill         : none;
-  stroke       : var(--luxout-muted);
+  stroke       : var(--color-muted);
   stroke-width : 1;
 }
 
 .rounded-place-word {
-  fill      : var(--luxout-muted);
+  fill      : var(--color-muted);
   font-size : 11px;
 }
 
 @media (prefers-color-scheme: dark) {
-  .rounded-place-drawing { background: #1a1a1a; }
+  .rounded-place-drawing { background: var(--color-ground); }
 
-  .rounded-place-cell { fill: #222b2c; }
+  .rounded-place-cell { fill: var(--color-place-cell); }
 
   .rounded-place-area {
-    fill   : #e8876f;
-    stroke : #1a1a1a;
+    fill   : var(--color-area);
+    stroke : var(--color-ground);
   }
 
-  .rounded-place-ring { stroke: #1a1a1a; }
+  .rounded-place-ring { stroke: var(--color-ground); }
 
-  .rounded-place-dot { fill: #1a1a1a; }
+  .rounded-place-dot { fill: var(--color-ground); }
 
-  .rounded-place-dim { stroke: var(--luxout-muted); }
+  .rounded-place-dim { stroke: var(--color-muted); }
 
-  .rounded-place-word { fill: var(--luxout-muted); }
+  .rounded-place-word { fill: var(--color-muted); }
 }

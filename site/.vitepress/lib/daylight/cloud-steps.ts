@@ -1,11 +1,11 @@
 import { range, sort } from 'd3-array'
 import { scaleLinear } from 'd3-scale'
 
-import { CLOUD_TUNING, haurwitz } from '../../../../src/daylight/cloud-factor.ts'
-import { STEP_MINUTES }           from './clock.ts'
-import * as format                from './format.ts'
-import { SampleDay }              from './sample-day.ts'
-import { tenth }                  from './tenth.ts'
+import { CLOUD_TUNING, haurwitz }     from '../../../../src/daylight/cloud-factor.ts'
+import { HOUR_MINUTES, STEP_MINUTES } from './clock.ts'
+import * as format                    from './format.ts'
+import { SampleDay }                  from './sample-day.ts'
+import { tenth }                      from './tenth.ts'
 
 /**
  * One 15-minute step of the forecast, with the words and the bars it opens.
@@ -109,7 +109,7 @@ export function cloudSteps(day: SampleDay): CloudSteps {
     opens : window.times.findIndex((time) => day.minuteOf(time) === SampleDay.REST),
     strip : { axis: AXIS, bar: tenth(pitch * BAR), full: FULL, height: HEIGHT, pitch, width: WIDTH },
 
-    hours: range(Math.ceil(from / 60) * 60, to + 1, 60).map((minute) => ({
+    hours: range(Math.ceil(from / HOUR_MINUTES) * HOUR_MINUTES, to + 1, HOUR_MINUTES).map((minute) => ({
       word : day.clock(minute),
       x    : tenth(pitch * ((minute - from) / STEP_MINUTES + 0.5))
     })),

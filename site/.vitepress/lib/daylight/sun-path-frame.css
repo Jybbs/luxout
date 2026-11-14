@@ -1,62 +1,62 @@
-.sun-path-drawing { background: #f2f1ee; }
+.sun-path-drawing { background: var(--color-ground); }
 
 .sun-path-year { opacity: 0; }
 
 .sun-path-word, .sun-path-figure { font-size: 11px; }
 
-.sun-path-word { fill: var(--luxout-muted); }
+.sun-path-word { fill: var(--color-muted); }
 
-.sun-path-figure { fill: #1a1a1a; }
+.sun-path-figure { fill: var(--color-ink); }
 
 .sun-path-grid {
-  stroke       : var(--luxout-rule);
+  stroke       : var(--color-rule);
   stroke-width : 1;
 }
 
 .sun-path-glow-inner {
-  stop-color   : #e8c840;
+  stop-color   : var(--color-sky);
   stop-opacity : 0.55;
 }
 
 .sun-path-glow-outer {
-  stop-color   : #e8c840;
+  stop-color   : var(--color-sky);
   stop-opacity : 0;
 }
 
 .sun-path-sun {
-  fill         : #e8c840;
-  stroke       : #1a1a1a;
+  fill         : var(--color-sky);
+  stroke       : var(--color-ink);
   stroke-width : 1;
 }
 
-.sun-path-ground { fill: var(--luxout-sunken); }
+.sun-path-ground { fill: var(--color-sunken); }
 
 .sun-path-horizon {
-  stroke       : #1a1a1a;
+  stroke       : var(--color-ink);
   stroke-width : 1.2;
 }
 
 .sun-path-curve {
   fill            : none;
-  stroke          : #8a80cb;
+  stroke          : var(--color-geometry);
   stroke-linecap  : round;
   stroke-linejoin : round;
   stroke-width    : 2.4;
   vector-effect   : non-scaling-stroke;
 }
 
-.sun-path-crossing { fill: #8a80cb; }
+.sun-path-crossing { fill: var(--color-geometry); }
 
 @media (prefers-color-scheme: dark) {
-  .sun-path-drawing { background: #1a1a1a; }
+  .sun-path-drawing { background: var(--color-ground); }
 
-  .sun-path-word { fill: var(--luxout-muted); }
+  .sun-path-word { fill: var(--color-muted); }
 
-  .sun-path-figure { fill: #f2f1ee; }
+  .sun-path-figure { fill: var(--color-ink); }
 
-  .sun-path-grid { stroke: var(--luxout-rule); }
+  .sun-path-grid { stroke: var(--color-rule); }
 
-  .sun-path-sun, .sun-path-horizon { stroke: #f2f1ee; }
+  .sun-path-sun, .sun-path-horizon { stroke: var(--color-ink); }
 
-  .sun-path-ground { fill: var(--luxout-sunken); }
+  .sun-path-ground { fill: var(--color-sunken); }
 }

@@ -1,14 +1,14 @@
-.day-estimate-drawing { background: #f2f1ee; }
+.day-estimate-drawing { background: var(--color-ground); }
 
-.day-estimate-wash-0 { fill: #e6e3ea; }
+.day-estimate-wash-0 { fill: var(--color-dial-wash-0); }
 
-.day-estimate-wash-1 { fill: #eae8eb; }
+.day-estimate-wash-1 { fill: var(--color-dial-wash-1); }
 
-.day-estimate-wash-2 { fill: #edebec; }
+.day-estimate-wash-2 { fill: var(--color-dial-wash-2); }
 
-.day-estimate-wash-3 { fill: #efeeed; }
+.day-estimate-wash-3 { fill: var(--color-dial-wash-3); }
 
-.day-estimate-sky { fill: #ecd882; }
+.day-estimate-sky { fill: var(--color-sky-fill); }
 
 .day-estimate-edge,
 .day-estimate-rim,
@@ -23,40 +23,40 @@
 }
 
 .day-estimate-edge {
-  stroke       : #1a1a1a;
+  stroke       : var(--color-ink);
   stroke-width : 1.2;
 }
 
 .day-estimate-rim {
-  stroke       : var(--luxout-rule);
+  stroke       : var(--color-rule);
   stroke-width : 1;
 }
 
 .day-estimate-floor {
-  stroke           : var(--luxout-muted);
+  stroke           : var(--color-muted);
   stroke-dasharray : 3 3;
   stroke-width     : 1;
 }
 
 .day-estimate-quiet {
-  stroke          : var(--luxout-muted);
+  stroke          : var(--color-muted);
   stroke-linejoin : round;
   stroke-width    : 1.4;
 }
 
 .day-estimate-cover {
-  stroke       : #4b8488;
+  stroke       : var(--color-forecast);
   stroke-width : 2;
 }
 
 .day-estimate-fall {
-  stroke           : #b77610;
+  stroke           : var(--color-fallback);
   stroke-dasharray : 4 3;
   stroke-width     : 1.5;
 }
 
 .day-estimate-tick {
-  stroke         : var(--luxout-muted);
+  stroke         : var(--color-muted);
   stroke-linecap : round;
   stroke-width   : 1.2;
 }
@@ -66,13 +66,13 @@
 .day-estimate-layer[data-on] { opacity: 1; }
 
 .day-estimate-bracket {
-  stroke         : #1a1a1a;
+  stroke         : var(--color-ink);
   stroke-linecap : round;
   stroke-width   : 2;
 }
 
 .day-estimate-line {
-  stroke          : #5069ad;
+  stroke          : var(--color-estimate);
   stroke-linecap  : round;
   stroke-linejoin : round;
   stroke-width    : 2.25;
@@ -81,42 +81,42 @@
 .day-estimate-name, .day-estimate-figure, .day-estimate-caption { dominant-baseline: central; }
 
 .day-estimate-name {
-  fill        : #1a1a1a;
+  fill        : var(--color-ink);
   font-size   : 13px;
   font-weight : 600;
 }
 
 .day-estimate-figure {
-  fill        : #1a1a1a;
+  fill        : var(--color-ink);
   font-size   : 20px;
   font-weight : 600;
 }
 
 .day-estimate-caption {
-  fill      : var(--luxout-muted);
+  fill      : var(--color-muted);
   font-size : 9px;
 }
 
 @media (prefers-color-scheme: dark) {
-  .day-estimate-drawing { background: #1a1a1a; }
+  .day-estimate-drawing { background: var(--color-ground); }
 
-  .day-estimate-wash-0 { fill: #27262f; }
+  .day-estimate-wash-0 { fill: var(--color-dial-wash-0); }
 
-  .day-estimate-wash-1 { fill: #232228; }
+  .day-estimate-wash-1 { fill: var(--color-dial-wash-1); }
 
-  .day-estimate-wash-2 { fill: #201f23; }
+  .day-estimate-wash-2 { fill: var(--color-dial-wash-2); }
 
-  .day-estimate-wash-3 { fill: #1d1d1e; }
+  .day-estimate-wash-3 { fill: var(--color-dial-wash-3); }
 
-  .day-estimate-sky { fill: #77682b; }
+  .day-estimate-sky { fill: var(--color-sky-fill); }
 
-  .day-estimate-edge, .day-estimate-bracket { stroke: #f2f1ee; }
+  .day-estimate-edge, .day-estimate-bracket { stroke: var(--color-ink); }
 
-  .day-estimate-rim { stroke: var(--luxout-rule); }
+  .day-estimate-rim { stroke: var(--color-rule); }
 
-  .day-estimate-floor, .day-estimate-quiet, .day-estimate-tick { stroke: var(--luxout-muted); }
+  .day-estimate-floor, .day-estimate-quiet, .day-estimate-tick { stroke: var(--color-muted); }
 
-  .day-estimate-name, .day-estimate-figure { fill: #f2f1ee; }
+  .day-estimate-name, .day-estimate-figure { fill: var(--color-ink); }
 
-  .day-estimate-caption { fill: var(--luxout-muted); }
+  .day-estimate-caption { fill: var(--color-muted); }
 }

@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 
-import { BRIDGE_SPAN } from '../../../../../src/daylight/clear-sky.ts'
-import * as curve      from '../../../lib/daylight/sun-curve.ts'
+import { TWILIGHT } from '../../../../../src/daylight/clear-sky.ts'
+import * as curve   from '../../../lib/daylight/sun-curve.ts'
 
 const DAY: curve.SunDay = {
   altitudes : [-30, -10, 10, 30, 10],
@@ -10,10 +10,6 @@ const DAY: curve.SunDay = {
   set       : 120
 }
 const wide = curve.SUN_LAYOUTS[1]
-
-it('holds sunset at the altitude where the plugin’s curve stops bridging', () => {
-  expect(curve.SUNSET).toBe(BRIDGE_SPAN[1])
-})
 
 it('places the clock’s ends on the left and right of the layout', () => {
   expect([wide.xOf(0), wide.xOf(1440)]).toEqual([wide.left, wide.right])
@@ -40,7 +36,7 @@ it('finds the altitude on the line between the two samples around a minute', () 
 it('writes an altitude to a tenth, and sunset as its exact fraction', () => {
   expect(curve.altitudeWord(-6)).toBe('−6.0°')
   expect(curve.altitudeWord(-0.8)).toBe('−0.8°')
-  expect(curve.altitudeWord(curve.SUNSET)).toBe(curve.SUNSET_WORD)
+  expect(curve.altitudeWord(TWILIGHT.sunset)).toBe(curve.SUNSET_WORD)
 })
 
 it('writes the top of the path as its height and its clock time', () => {
@@ -52,11 +48,11 @@ it('draws the curve in minutes across and degrees up, with the horizon on 0', ()
 })
 
 it.each([
-  [10,           60,  'the sun stands 10.0° above the horizon, climbing toward 30.0° at 01:30.'],
-  [10,           100, 'the sun stands 10.0° above the horizon, sinking toward sunset at 02:00.'],
-  [curve.SUNSET, 30,  'the sun stands 0.8° below the horizon, climbing toward 30.0° at 01:30.'],
-  [-20,          15,  'the sun is 20.0° below the horizon and rises at 00:30.'],
-  [-20,          130, 'the sun is 20.0° below the horizon, having set at 02:00.']
+  [10,              60,  'the sun stands 10.0° above the horizon, climbing toward 30.0° at 01:30.'],
+  [10,              100, 'the sun stands 10.0° above the horizon, sinking toward sunset at 02:00.'],
+  [TWILIGHT.sunset, 30,  'the sun stands 0.8° below the horizon, climbing toward 30.0° at 01:30.'],
+  [-20,             15,  'the sun is 20.0° below the horizon and rises at 00:30.'],
+  [-20,             130, 'the sun is 20.0° below the horizon, having set at 02:00.']
 ])('writes %s° at minute %s as: %s', (altitude, minute, words) => {
   expect(curve.sunPhrase(DAY, altitude, minute)).toBe(words)
 })

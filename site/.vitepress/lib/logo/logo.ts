@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 
 import { type VNode, cloneVNode, h } from 'vue'
 
+import { SVG_NAMESPACE }                   from '../daylight/svg.ts'
 import { tenth }                           from '../daylight/tenth.ts'
 import { type Scheme, Tokens }             from '../theme/tokens.ts'
 import { FONT_FILES }                      from '../type/typeface.ts'
@@ -24,7 +25,6 @@ interface Frame {
 }
 
 export const ASSETS = ['mark', 'title'] as const
-const SVG           = 'http://www.w3.org/2000/svg'
 
 /**
  * Draws the logo's title and mark in either scheme from the construction, with
@@ -126,7 +126,7 @@ export class Logo {
     const sunlit = letters((glyph) => glyph.sun ? colors.sun : undefined)
     const dimmed = letters(() => undefined)
 
-    return h('svg', { viewBox: `${left} ${-top} ${across} ${top - bottom}`, xmlns: SVG }, [
+    return h('svg', { viewBox: `${left} ${-top} ${across} ${top - bottom}`, xmlns: SVG_NAMESPACE }, [
       h('defs', [
         h('clipPath', { id: 'sky' }, [h('rect', { height: top - cy, width: across, x: left, y: cy })]),
         h('clipPath', { id: 'land' }, [

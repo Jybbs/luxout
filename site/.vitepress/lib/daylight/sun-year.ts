@@ -1,7 +1,8 @@
 import { Seasons }                      from 'astronomy-engine'
 import { least, maxIndex, range, sort } from 'd3-array'
 
-import { DAY }                           from './clock.ts'
+import { TWILIGHT }                      from '../../../../src/daylight/clear-sky.ts'
+import { DAY, HOUR_MINUTES }             from './clock.ts'
 import { formatClock, formatDegrees }    from './format.ts'
 import { SampleDay, crossings, instant } from './sample-day.ts'
 import * as curve                        from './sun-curve.ts'
@@ -52,11 +53,11 @@ const monthWord = new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: '
 function crossing(altitudes: readonly number[], index: number): number {
   const before = altitudes[index - 1]!
 
-  return Math.ceil((index - 1 + (curve.SUNSET - before) / (altitudes[index]! - before)) * curve.SUN_GRID)
+  return Math.ceil((index - 1 + (TWILIGHT.sunset - before) / (altitudes[index]! - before)) * curve.SUN_GRID)
 }
 
 function dayFigures(altitudes: readonly number[]): Omit<curve.SunDay, 'altitudes'> {
-  const [up, down] = crossings(altitudes, curve.SUNSET)
+  const [up, down] = crossings(altitudes, TWILIGHT.sunset)
 
   const top       = maxIndex(altitudes)
   const [a, b, c] = [altitudes[top - 1]!, altitudes[top]!, altitudes[top + 1]!]
@@ -79,7 +80,7 @@ function hundredth(value: number): number {
 function midnightOf(day: SampleDay, index: number, sample: number): number {
   const minute = (index - sample) * SampleDay.MINUTES
 
-  return day.clock(minute) === '00:00' ? minute : minute + 60
+  return day.clock(minute) === '00:00' ? minute : minute + HOUR_MINUTES
 }
 
 function sunDay(day: SampleDay, index: number, sample: number): curve.SunDay {

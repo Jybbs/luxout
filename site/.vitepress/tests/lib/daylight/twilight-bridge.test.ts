@@ -1,10 +1,10 @@
 import { pairs }      from 'd3-array'
 import { expect, it } from 'vitest'
 
-import { ClearSky }            from '../../../../../src/daylight/clear-sky.ts'
-import { SUNSET, SUNSET_WORD } from '../../../lib/daylight/sun-curve.ts'
-import { tenth }               from '../../../lib/daylight/tenth.ts'
-import { data }                from '../../common/data/twilight-bridge.ts'
+import { BRIDGE_SPAN, ClearSky } from '../../../../../src/daylight/clear-sky.ts'
+import { SUNSET_WORD }           from '../../../lib/daylight/sun-curve.ts'
+import { tenth }                 from '../../../lib/daylight/tenth.ts'
+import { data }                  from '../../common/data/twilight-bridge.ts'
 
 const { cut, decades, degrees, figures, height, high, label, low, phrases, rest, ticks, width, x, y } = data
 
@@ -22,7 +22,7 @@ it('rests the sun at −3°, inside the span', () => {
 
 it('writes each stop’s lux from the plugin’s curve', () => {
   expect(figures[0]).toBe('2.99 lux')
-  expect(figures[cut]).toBe(`${Math.round(new ClearSky().illuminance(SUNSET))} lux`)
+  expect(figures[cut]).toBe(`${Math.round(new ClearSky().illuminance(BRIDGE_SPAN[1]))} lux`)
   expect(figures.at(-1)).toBe('14,755 lux')
 })
 

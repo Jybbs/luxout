@@ -12,6 +12,7 @@ import { DEPTHS, type DayDial, dayDial } from '../daylight/day-dial.ts'
 import * as dialLens                    from '../daylight/dial-lens.ts'
 import { formatLux }                    from '../daylight/format.ts'
 import { SampleDay }                    from '../daylight/sample-day.ts'
+import { SVG_NAMESPACE }                from '../daylight/svg.ts'
 import { tenth }                        from '../daylight/tenth.ts'
 import { type Scheme, Tokens }          from '../theme/tokens.ts'
 import { record }                       from './recording.ts'
@@ -44,7 +45,6 @@ const HORIZON = 292
  */
 const PHASES = ['Night', 'Astronomical twilight', 'Nautical twilight', 'Civil twilight', 'Daylight']
 const SHEETS = ['daylight/day-estimate-frame.css', 'readme/day-preview-frame.css']
-const SVG    = 'http://www.w3.org/2000/svg'
 const WIDTH  = 880  // The pixels the preview is recorded wide, past the README column GitHub shows
 /**
  * The frame's parts in pixels, the dial's own in the dial's units.
@@ -118,7 +118,12 @@ export class DayPreview {
     const left   = tenth((WIDTH - dialLens.DIAL.width * dial.scale) / 2)
     const shift  = `translate(${left} ${dial.y}) scale(${dial.scale})`
 
-    return h('svg', { height: HEIGHT, viewBox: `0 0 ${WIDTH} ${HEIGHT}`, width: WIDTH, xmlns: SVG }, [
+    return h('svg', {
+      height  : HEIGHT,
+      viewBox : `0 0 ${WIDTH} ${HEIGHT}`,
+      width   : WIDTH,
+      xmlns   : SVG_NAMESPACE
+    }, [
       h('style', { innerHTML: this.#sheets[scheme] }),
       h('rect', { fill: ground, height: HEIGHT, width: WIDTH }),
       h('rect', { fill: sky.fill, height: HORIZON, width: WIDTH }),

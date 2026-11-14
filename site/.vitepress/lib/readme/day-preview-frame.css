@@ -1,19 +1,19 @@
-.day-preview-plate { fill: var(--vp-c-bg); }
+.day-preview-plate { fill: var(--color-ground); }
 
 .day-preview-hand {
-  stroke         : var(--vp-c-text-1);
+  stroke         : var(--color-ink);
   stroke-linecap : round;
   stroke-width   : 1.2;
 }
 
 .day-preview-dot {
-  fill         : var(--luxout-accent-1);
-  stroke       : var(--vp-c-bg);
+  fill         : var(--color-estimate);
+  stroke       : var(--color-ground);
   stroke-width : 1.5;
 }
 
 .day-preview-cursor {
-  stroke       : var(--vp-c-text-1);
+  stroke       : var(--color-ink);
   stroke-width : 2;
 }
 

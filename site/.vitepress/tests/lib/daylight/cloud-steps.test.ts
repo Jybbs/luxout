@@ -1,8 +1,10 @@
+import { pairs }      from 'd3-array'
 import { expect, it } from 'vitest'
 
-import { CLOUD_TUNING } from '../../../../../src/daylight/cloud-factor.ts'
-import { SampleDay }    from '../../../lib/daylight/sample-day.ts'
-import { data }         from '../../common/data/cloud-steps.ts'
+import { CLOUD_TUNING }               from '../../../../../src/daylight/cloud-factor.ts'
+import { HOUR_MINUTES, STEP_MINUTES } from '../../../lib/daylight/clock.ts'
+import { SampleDay }                  from '../../../lib/daylight/sample-day.ts'
+import { data }                       from '../../common/data/cloud-steps.ts'
 
 const { floor, hours, opens, steps, strip } = data
 const borrowed                              = steps.filter(({ borrowed }) => borrowed)
@@ -70,4 +72,9 @@ it('places each hour’s word on the center of its step', () => {
   expect(hours.map(({ x }) => x)).toEqual(hours.map(({ word }) =>
     expect.closeTo(strip.pitch * (steps.findIndex(({ clock }) => clock === word) + 0.5), 0)
   ))
+})
+
+it('spaces the hour words one hour of steps apart across the strip', () => {
+  expect(pairs(hours, (left, right) => right.x - left.x))
+    .toEqual(hours.slice(1).map(() => expect.closeTo(strip.pitch * HOUR_MINUTES / STEP_MINUTES, 0)))
 })

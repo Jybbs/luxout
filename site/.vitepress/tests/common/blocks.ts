@@ -1,29 +1,29 @@
-import { BRIDGE_SPAN, type ClearSky }      from '../../../../src/daylight/clear-sky.ts'
-import type { CLOUD_TUNING }               from '../../../../src/daylight/cloud-factor.ts'
-import type { REQUEST_TUNING }             from '../../../../src/weather/client.ts'
-import { HOUR_MINUTES, STEP_MINUTES }      from '../../lib/daylight/clock.ts'
-import type { CloudSteps }                 from '../../lib/daylight/cloud-steps.ts'
-import type { DayDial }                    from '../../lib/daylight/day-dial.ts'
-import type { FactorDay }                  from '../../lib/daylight/factor-day.ts'
-import * as format                         from '../../lib/daylight/format.ts'
-import type { Gap, GapSensor }             from '../../lib/daylight/gap.ts'
-import { luxRange }                        from '../../lib/daylight/homekit.ts'
-import type { DecadeScale }                from '../../lib/daylight/lux-scale.ts'
-import type { SampleDay }                  from '../../lib/daylight/sample-day.ts'
-import * as curve                          from '../../lib/daylight/sun-curve.ts'
-import type { SunYear }                    from '../../lib/daylight/sun-year.ts'
-import { type RequestClock, retryOffsets } from '../../lib/privacy/request-clock.ts'
-import type { RoundedPlace }               from '../../lib/privacy/rounded-place.ts'
-import type { SearchReplay }               from '../../lib/search/replay.ts'
-import type { SettingRow }                 from '../../lib/settings/rows.ts'
-import type { DebugLine }                  from '../../lib/troubleshooting/debug-line.ts'
+import { BRIDGE_SPAN, type ClearSky, TWILIGHT } from '../../../../src/daylight/clear-sky.ts'
+import type { CLOUD_TUNING }                    from '../../../../src/daylight/cloud-factor.ts'
+import type { REQUEST_TUNING }                  from '../../../../src/weather/client.ts'
+import { HOUR_MINUTES, STEP_MINUTES }           from '../../lib/daylight/clock.ts'
+import type { CloudSteps }                      from '../../lib/daylight/cloud-steps.ts'
+import type { DayDial }                         from '../../lib/daylight/day-dial.ts'
+import type { FactorDay }                       from '../../lib/daylight/factor-day.ts'
+import * as format                              from '../../lib/daylight/format.ts'
+import type { Gap, GapSensor }                  from '../../lib/daylight/gap.ts'
+import { luxRange }                             from '../../lib/daylight/homekit.ts'
+import type { DecadeScale }                     from '../../lib/daylight/lux-scale.ts'
+import type { SampleDay }                       from '../../lib/daylight/sample-day.ts'
+import * as curve                               from '../../lib/daylight/sun-curve.ts'
+import type { SunYear }                         from '../../lib/daylight/sun-year.ts'
+import { type RequestClock, retryOffsets }      from '../../lib/privacy/request-clock.ts'
+import type { RoundedPlace }                    from '../../lib/privacy/rounded-place.ts'
+import type { SearchReplay }                    from '../../lib/search/replay.ts'
+import type { SettingRow }                      from '../../lib/settings/rows.ts'
+import type { DebugLine }                       from '../../lib/troubleshooting/debug-line.ts'
 
 type Cell = number | string
 
-const BRIDGE_ALTITUDES = [BRIDGE_SPAN[0], -5, -4, -3, -2, -1, curve.SUNSET, 0, 5, 10]  // Degrees
+const BRIDGE_ALTITUDES = [BRIDGE_SPAN[0], -5, -4, -3, -2, -1, TWILIGHT.sunset, 0, 5, 10]  // Degrees
 const LEVELS           = [
   { altitude: BRIDGE_SPAN[0], name: 'The end of civil twilight' },
-  { altitude: curve.SUNSET, name: 'Sunset' },
+  { altitude: TWILIGHT.sunset, name: 'Sunset' },
   { altitude: 10, name: 'A low sun' }
 ]
 
@@ -51,9 +51,9 @@ export function bridgeTable(sky: ClearSky): string {
  * Writes the sentences on the bridge, each figure from the curve itself.
  */
 export function bridgeWords(sky: ClearSky): string {
-  const step = (sky.refracted(curve.SUNSET) - curve.SUNSET).toFixed(2)
+  const step = (sky.refracted(BRIDGE_SPAN[1]) - BRIDGE_SPAN[1]).toFixed(2)
   const low  = format.formatLux(sky.illuminance(BRIDGE_SPAN[0]))
-  const high = format.formatLux(sky.illuminance(curve.SUNSET))
+  const high = format.formatLux(sky.illuminance(BRIDGE_SPAN[1]))
 
   return `Below an altitude of ${curve.SUNSET_WORD}, the circular's refraction correction adds nothing, so `
        + `its refracted altitude steps by about ${step}° there and its lux jumps. The plugin keeps the `

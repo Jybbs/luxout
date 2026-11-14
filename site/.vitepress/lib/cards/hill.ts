@@ -4,6 +4,7 @@ import { range }         from 'd3-array'
 import { encode }        from 'fast-png'
 import { type VNode, h } from 'vue'
 
+import { TWILIGHT }                  from '../../../../src/daylight/clear-sky.ts'
 import { type SampleDay, crossings } from '../daylight/sample-day.ts'
 import { tenth }                     from '../daylight/tenth.ts'
 import type { Logo }                 from '../logo/logo.ts'
@@ -41,7 +42,6 @@ const LAYOUT = {
  * room.
  */
 const LIVING                    = 50
-const NAUTICAL                  = -12  // Degrees of altitude at which nautical twilight ends
 const ROWS: readonly HouseRow[] = [
   { amp: 16, dim: 1.05, phase: 0.6, scale: 0.34, wave: 640, y: 378 },
   { amp: 18, dim: 1.5, phase: 2.1, scale: 0.46, wave: 520, y: 412 },
@@ -49,12 +49,11 @@ const ROWS: readonly HouseRow[] = [
   { amp: 16, dim: 2.8, phase: 1.2, scale: 0.86, wave: 560, y: 505 },
   { amp: 12, dim: 4.2, front: true, phase: 5.2, scale: 1.2, wave: 800, y: 570 }
 ]
-const SKY_DEPTH           = 3.1     // Decades the sky falls from the horizon to the top of the card
-const SKY_EASE            = 0.8     // The power of the height above the horizon that fall follows
-const SKY_HORIZON         = 470     // The y of the horizon the sky's height is measured from, in pixels
-const SUNSET              = -5 / 6  // Degrees of altitude at which the sun's upper edge meets the horizon
+const SKY_DEPTH            = 3.1  // Decades the sky falls from the horizon to the top of the card
+const SKY_EASE             = 0.8  // The power of the height above the horizon that fall follows
+const SKY_HORIZON          = 470  // The y of the horizon the sky's height is measured from, in pixels
 const TAGLINE: faces.Voice = { axes: { opsz: 32, wght: 400 }, face: 'serif' }
-const WINDOW_LIGHT       = '#f6dc86'
+const WINDOW_LIGHT         = '#f6dc86'
 
 /**
  * Writes the closed path through `points`.
@@ -140,8 +139,8 @@ export function hillCard(day: SampleDay, fonts: faces.Faces, logo: Logo, palette
   const { ground, ink, sun } = palette
 
   const drawing   = new card.Card(fonts, ground)
-  const from      = crossings(day.altitudes, SUNSET)[1] + 1
-  const to        = crossings(day.altitudes, NAUTICAL)[1] + 8
+  const from      = crossings(day.altitudes, TWILIGHT.sunset)[1] + 1
+  const to        = crossings(day.altitudes, TWILIGHT.nautical)[1] + 8
   const readingAt = (x: number) => {
     const minute = lerp(from, to, clamp(x / card.WIDTH, 0, 1))
     const whole  = Math.floor(minute)

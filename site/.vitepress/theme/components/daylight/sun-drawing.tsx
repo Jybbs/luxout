@@ -46,7 +46,7 @@ function words(layout: curve.SunLayout): VNode[] {
     word('Straight overhead', right, layout.yOf(90) - 10, { anchor: 'end' }),
     word('Horizon', left, horizon - 10),
     ...clock.HOUR_MARKS.map((hour) =>
-      word(clock.hourWord(hour), layout.xOf(hour * 60), height - 8, { anchor: 'middle' })
+      word(clock.hourWord(hour), layout.xOf(hour * clock.HOUR_MINUTES), height - 8, { anchor: 'middle' })
     )
   ]
 }

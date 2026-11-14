@@ -2,6 +2,7 @@ import { type VNode, h } from 'vue'
 
 import type { Faces, Voice } from '../cards/faces.ts'
 import type { Palette }      from '../cards/palette.ts'
+import { SVG_NAMESPACE }     from '../daylight/svg.ts'
 import { tenth }             from '../daylight/tenth.ts'
 
 export type Badge = (typeof BADGES)[number]
@@ -14,7 +15,6 @@ export const BADGES  = ['npm', 'node', 'docs'] as const
 const HEIGHT         = 28    // The pixels Shields draws a `for-the-badge` badge tall
 const PAD            = 12    // The pixels either side of the word
 const SIZE           = 11    // The pixels to the em
-const SVG            = 'http://www.w3.org/2000/svg'
 const VOICE: Voice   = { axes: { wght: 600 }, face: 'mono', track: 1.25 }
 
 /**
@@ -35,7 +35,7 @@ export function badgeLabel(faces: Faces, { ground, ink }: Palette, badge: Badge)
       role         : 'img',
       viewBox      : `0 0 ${width} ${HEIGHT}`,
       width        : width,
-      xmlns        : SVG
+      xmlns        : SVG_NAMESPACE
     },
     [
       h('rect', { fill: ground, height: HEIGHT, width }),

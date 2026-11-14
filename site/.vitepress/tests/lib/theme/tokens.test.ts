@@ -53,6 +53,17 @@ it('keeps a value that names no property as written', () => {
   expect(tokens.follow('1px solid', 'light')).toBe('1px solid')
 })
 
+it.for([['light', '#bcbbb9'], ['dark', '#f2f1ee']] as const)(
+  'computes a var() that ends on a color-mix() as the hex code the %s scheme mixes',
+  ([scheme, hex]) => {
+    expect(tokens.computed('var(--wash)', scheme)).toBe(hex)
+  }
+)
+
+it('computes a value that is no var() as written', () => {
+  expect(tokens.computed('1px solid', 'light')).toBe('1px solid')
+})
+
 it('names the property and the scheme that declare nothing', () => {
   expect(() => tokens.resolve('--sky', 'dark')).toThrow('The tokens declare no --sky in the dark scheme')
 })
