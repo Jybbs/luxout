@@ -1,17 +1,18 @@
-import { useTimeoutFn } from '@vueuse/core'
-import { range }        from 'd3-array'
-import { type VNode, defineComponent, onMounted, shallowRef, useId } from 'vue'
+import { useTimeoutFn }               from '@vueuse/core'
+import * as tabs                      from '@zag-js/tabs'
+import { normalizeProps, useMachine } from '@zag-js/vue'
+import { range }                      from 'd3-array'
+import { type ComputedRef, type VNode, computed, defineComponent, onMounted, shallowRef, useId } from 'vue'
 
-import { DAY_MINUTES }              from '../../../lib/daylight/clock.ts'
-import { data }                     from '../../../lib/daylight/day-dial.data.ts'
-import * as dialLens                from '../../../lib/daylight/dial-lens.ts'
-import { Glide }                    from '../../../lib/motion/glide.ts'
-import { DURATIONS, PAUSES }        from '../../../lib/motion/timing.ts'
-import { Announcer }                from '../../controls/announcer.tsx'
-import { FocusRow }                 from '../../controls/focus-row.ts'
-import { layers }                   from '../../controls/layers.tsx'
-import { panelId, tabId, tabPanel } from '../../controls/tablist.tsx'
-import { dialDrawing }              from './dial-drawing.tsx'
+import { DAY_MINUTES }           from '../../../lib/daylight/clock.ts'
+import { data }                  from '../../../lib/daylight/day-dial.data.ts'
+import * as dialLens             from '../../../lib/daylight/dial-lens.ts'
+import { Glide }                 from '../../../lib/motion/glide.ts'
+import { Speech }                from '../../../lib/motion/speech.ts'
+import { DURATIONS, PAUSES }     from '../../../lib/motion/timing.ts'
+import { layers }                from '../../controls/layers.tsx'
+import { tabPanel, tabsContext } from '../../controls/tablist.tsx'
+import { dialDrawing }           from './dial-drawing.tsx'
 
 const { marks, opens, stretches } = data
 
@@ -68,13 +69,13 @@ const rest      = dialLens.HALVES.map((half) => plot.paths(half, opened[half]!))
  * the first motion, so a motion allocates nothing as it moves.
  */
 class StretchPicker {
-  readonly announcer = new Announcer()
-  readonly id        = useId()
-  readonly names     = new FocusRow('ArrowRight', 'ArrowLeft')
-  readonly peek      = shallowRef(-1)
-  readonly plot      = shallowRef<HTMLElement>()
-  readonly root      = shallowRef<HTMLElement>()
-  readonly selected  = shallowRef(opens)
+  readonly id       = useId()
+  readonly names    : ComputedRef<tabs.Api>
+  readonly peek     = shallowRef(-1)
+  readonly plot     = shallowRef<HTMLElement>()
+  readonly root     = shallowRef<HTMLElement>()
+  readonly selected = shallowRef(opens)
+  readonly speech   = new Speech(this.root)
 
   readonly onPointerdown = (event: PointerEvent): void => {
     if (this.#named(event) >= 0) return
@@ -110,6 +111,16 @@ class StretchPicker {
   readonly #shown  : number[] = opened.map((open) => open * dialLens.OPENING_STEPS)
 
   constructor() {
+    const names = useMachine(tabs.machine, computed(() => ({
+      ...tabsContext(this.id, 'Stretches of the sample day'),
+      onValueChange : ({ value }: tabs.ValueChangeDetails) => this.pick(Number(value)),
+      value         : String(this.selected.value),
+      onFocusChange : ({ focusedValue }: tabs.FocusChangeDetails) => {
+        this.hold(focusedValue ? Number(focusedValue) : -1)
+      }
+    })))
+
+    this.names   = computed(() => tabs.connect(names, normalizeProps))
     this.#glides = dialLens.HALVES.map((half) => new Glide(
       opened[half]!,
       this.root,
@@ -134,7 +145,7 @@ class StretchPicker {
     const { caption, figure, name } = stretches[index]!
 
     this.selected.value = index
-    this.announcer.say(`${name}, ${figure} ${caption}`)
+    this.speech.say(`${name}, ${figure} ${caption}`)
     this.#peekAt(this.#held >= 0 ? this.#held : this.#over)
   }
 
@@ -178,7 +189,7 @@ class StretchPicker {
   #named({ target }: PointerEvent): number {
     const name = (target as Element).closest<HTMLElement>('[role=tab]')
 
-    return name ? Number(name.dataset.index) : -1
+    return name ? Number(name.dataset.value) : -1
   }
 
   #paint(half: dialLens.Half, open: number): void {
@@ -263,37 +274,19 @@ export const DayEstimate = defineComponent({
               ref={picker.plot}
             >
               {dialDrawing(data, rest, selected, peek)}
-              <div
-                aria-label="Stretches of the sample day"
-                class="pointer-events-none absolute inset-0"
-                role="tablist"
-              >
+              <div {...picker.names.value.getListProps()} class="pointer-events-none absolute inset-0">
                 {...stretches.map(({ name, place }, index) => (
                   <button
-                    aria-controls={panelId(picker.id)}
-                    aria-selected={index === selected}
+                    {...picker.names.value.getTriggerProps({ value: String(index) })}
                     class={[
                       'day-estimate-tab pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2',
                       'rounded-sm px-1 py-0.5 text-[0.92rem]/[1.3] font-semibold whitespace-nowrap',
                       'transition-colors duration-(--timing-hover) before:absolute before:-inset-1.5',
-                      '@max-md:text-[0.86rem]',
-                      index === selected
-                        ? 'cursor-default text-ink underline decoration-2 underline-offset-4'
-                        : index === peek
-                          ? 'peeked cursor-pointer text-ink'
-                          : 'cursor-pointer text-muted hover:text-ink'
+                      'cursor-pointer data-selected:cursor-default data-selected:underline',
+                      'data-selected:decoration-2 data-selected:underline-offset-4 @max-md:text-[0.86rem]',
+                      index === peek ? 'peeked text-ink' : 'text-muted hover:text-ink data-selected:text-ink'
                     ]}
-                    data-index={index}
-                    id={tabId(picker.id, index)}
-                    onBlur={() => picker.hold(-1)}
-                    onClick={() => picker.pick(index)}
-                    onFocus={() => picker.hold(index)}
-                    onKeydown={(event) => picker.names.move(event, index)}
-                    ref={(element) => picker.names.keep(element, index)}
-                    role="tab"
                     style={{ left: `${place.left}%`, top: `${place.top}%` }}
-                    tabindex={index === selected ? 0 : -1}
-                    type="button"
                   >
                     {name}
                   </button>
@@ -313,7 +306,6 @@ export const DayEstimate = defineComponent({
             <div {...tabPanel(picker.id, selected)} class="day-estimate-side">
               {layers(stretches.map(sideWords), selected)}
             </div>
-            {picker.announcer.region}
           </div>
         </div>
       )

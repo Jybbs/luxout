@@ -1,4 +1,6 @@
 import type { IHomebridgePluginUi, PluginConfig } from '@homebridge/plugin-ui-utils/ui.interface'
+import { type Api, type ListCollection, collection, connect, machine } from '@zag-js/listbox'
+import { VanillaMachine, normalizeProps, spreadProps }                 from '@zag-js/vanilla'
 
 import { PluginBlock }             from './block.js'
 import { type Coordinates, Match } from './match.js'
@@ -8,6 +10,7 @@ type Answer = Omit<Match, 'label'>
 interface Option {
   element : HTMLLIElement
   match   : Match
+  value   : string
 }
 
 const MINUS = '−'  // The minus sign the page writes a negative degree with
@@ -33,11 +36,19 @@ export class LocationPage {
   readonly #latitude   : HTMLOutputElement
   readonly #listbox    : HTMLUListElement
   readonly #longitude  : HTMLOutputElement
-  #options             : Option[]
+  #options             : ListCollection<Option>
   readonly #place      : HTMLOutputElement
   readonly #query      : HTMLInputElement
   readonly #template   : HTMLLIElement
   readonly #unkept     : HTMLElement
+
+  readonly #machine = new VanillaMachine(machine, {
+    collection        : collection.empty(),
+    id                : 'matches',
+    ids               : { content: 'matches', label: 'matches-label' },
+    onSelect          : ({ value }) => this.#choose(value),
+    selectOnHighlight : true
+  })
 
   /**
    * Shows the generated form below the page and opens the page on the blocks,
@@ -70,7 +81,7 @@ export class LocationPage {
     this.#latitude   = find(document, '#latitude', HTMLOutputElement)
     this.#listbox    = find(document, '#matches', HTMLUListElement)
     this.#longitude  = find(document, '#longitude', HTMLOutputElement)
-    this.#options    = []
+    this.#options    = collection<Option>({ items: [] })
     this.#place      = find(document, '#place', HTMLOutputElement)
     this.#query      = find(document, '#query', HTMLInputElement)
     this.#template   = find(find(document, '#option', HTMLTemplateElement).content, 'li', HTMLLIElement)
@@ -80,12 +91,26 @@ export class LocationPage {
       event.preventDefault()
       this.#submit().catch(this.#fail)
     })
-    this.#listbox.addEventListener('keydown', (event) => this.#move(event))
     homebridge.addEventListener('configChanged', (event) => {
       if (event instanceof MessageEvent) this.#block = PluginBlock.from(alias, event.data)
     })
 
+    this.#machine.subscribe(() => this.#render())
+    this.#machine.start()
     this.#show()
+  }
+
+  get #api(): Api {
+    return connect(this.#machine.service, normalizeProps)
+  }
+
+  /**
+   * Keeps the place of the match the listbox selected as `value`.
+   */
+  #choose(value: string): void {
+    const option = this.#options.find(value)
+
+    if (option) this.#keep(option.match.place, option.match).catch(this.#fail)
   }
 
   /**
@@ -103,46 +128,42 @@ export class LocationPage {
   }
 
   /**
-   * Lists `matches` as the options of the listbox, the first of them taking the
-   * focus a Tab key gives the list, and shows the hint in its place where none
-   * matched.
+   * Lists `matches` as the options of the listbox, clearing the selection the
+   * last search left, and shows the hint in its place where none matched.
    */
   #list(matches: Match[]): void {
-    this.#options = matches.map((match, index) => {
+    const items = matches.map((match, index) => {
       const element = this.#listbox.ownerDocument.importNode(this.#template, true)
 
-      element.addEventListener('click', () => this.#select(index))
-      element.tabIndex = index === 0 ? 0 : -1
       name(element, match)
 
-      return { element, match }
+      return { element, match, value: String(index) }
     })
 
-    this.#listbox.replaceChildren(...this.#options.map(({ element }) => element))
+    this.#options = collection({ itemToString: ({ match }) => match.label, items })
+
+    this.#listbox.replaceChildren(...items.map(({ element }) => element))
     this.#empty.hidden   = matches.length > 0
     this.#listbox.hidden = matches.length === 0
+
+    this.#api.clearValue()
+    this.#api.clearHighlightedValue()
+    this.#machine.updateProps({ collection: this.#options })
   }
 
   /**
-   * Moves the selection through the listbox as the ARIA practices for a
-   * listbox lay out, selecting the option the focus lands on.
+   * Spreads the props the listbox machine gives onto the list and each of its
+   * options, marking the selected option with the Homebridge UI's highlight.
    */
-  #move(event: KeyboardEvent): void {
-    const at   = this.#options.findIndex(({ element }) => element.tabIndex === 0)
-    const last = this.#options.length - 1
-    const to   = {
-      ' '       : at,
-      ArrowDown : Math.min(at + 1, last),
-      ArrowUp   : Math.max(at - 1, 0),
-      End       : last,
-      Enter     : at,
-      Home      : 0
-    }[event.key]
+  #render(): void {
+    const api = this.#api
 
-    if (to === undefined) return
+    spreadProps(this.#listbox, api.getContentProps())
 
-    event.preventDefault()
-    this.#select(to)
+    for (const item of this.#options.items) {
+      spreadProps(item.element, api.getItemProps({ item }))
+      item.element.classList.toggle('list-group-item-highlight', api.getItemState({ item }).selected)
+    }
   }
 
   async #search(query: string): Promise<void> {
@@ -154,21 +175,6 @@ export class LocationPage {
       this.#list(answers.map(({ country, name, place, region }) => new Match(name, place, country, region)))
     } finally {
       this.#homebridge.hideSpinner()
-    }
-  }
-
-  #select(index: number): void {
-    for (const [at, { element, match }] of this.#options.entries()) {
-      const chosen = at === index
-
-      element.classList.toggle('list-group-item-highlight', chosen)
-      element.setAttribute('aria-selected', String(chosen))
-      element.tabIndex = chosen ? 0 : -1
-
-      if (chosen) {
-        element.focus()
-        this.#keep(match.place, match).catch(this.#fail)
-      }
     }
   }
 

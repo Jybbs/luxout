@@ -169,26 +169,24 @@ it('keeps the match the user clicks, through the check, in the whole block it ha
 it.each([
   { keys: '{ArrowDown}', selected: ADDISON },
   { keys: '{ArrowDown}{ArrowUp}', selected: PARIS },
-  { keys: '{ArrowUp}', selected: PARIS },
   { keys: '{End}', selected: LOUVRE },
   { keys: '{End}{ArrowDown}', selected: LOUVRE },
   { keys: '{End}{Home}', selected: PARIS },
   { keys: '{Enter}', selected: PARIS },
   { keys: '[Space]', selected: PARIS }
-])('keeps the match $keys selects from the option the Tab key lands on', async ({ keys, selected }) => {
+])('keeps the match $keys selects from the option the Tab key highlights', async ({ keys, selected }) => {
   const { update, user } = await searched()
-  const prevented: boolean[] = []
+  const listbox          = screen.getByRole('listbox')
 
   await user.tab()
   await user.tab()
-  screen.getByRole('listbox').addEventListener('keydown', (event) => prevented.push(event.defaultPrevented))
 
-  expect(document.activeElement).toBe(option(PARIS))
+  expect(document.activeElement).toBe(listbox)
+  expect(listbox.getAttribute('aria-activedescendant')).toBe(option(PARIS).id)
 
   await user.keyboard(keys)
 
-  expect(document.activeElement).toBe(option(selected, true))
-  expect(new Set(prevented)).toStrictEqual(new Set([true]))
+  expect(listbox.getAttribute('aria-activedescendant')).toBe(option(selected, true).id)
   expect([...document.querySelectorAll('.list-group-item-highlight')]).toStrictEqual([option(selected, true)])
   await vi.waitFor(() => {
     expect(kept().place).toBe(selected)
@@ -198,12 +196,39 @@ it.each([
   ])
 })
 
-it('lets every other key through the listbox, so Tab leaves it with nothing kept', async () => {
+it('stops the Up Arrow at the first option, keeping nothing', async () => {
+  const { update, user } = await searched()
+
+  await user.tab()
+  await user.tab()
+  await user.keyboard('{ArrowUp}')
+
+  expect(screen.getByRole('listbox').getAttribute('aria-activedescendant')).toBe(option(PARIS).id)
+  expect(screen.queryByRole('option', { selected: true })).toBeNull()
+  expect(update).not.toHaveBeenCalled()
+})
+
+it('clears the option a search selected once the next search lists its matches', async () => {
+  const { submit, user } = await searched({ fetch: vi.fn<typeof fetch>(async () => Response.json(search)) })
+
+  await user.click(option(ADDISON))
+  await user.clear(screen.getByRole('searchbox'))
+  await submit('75001')
+  await labels()
+
+  expect(screen.queryByRole('option', { selected: true })).toBeNull()
+  expect(document.querySelector('.list-group-item-highlight')).toBeNull()
+})
+
+it('highlights a typed letter’s match without selecting it, so Tab keeps nothing', async () => {
   const { update, user } = await searched()
 
   await user.tab()
   await user.tab()
   await user.keyboard('{a}')
+
+  expect(screen.getByRole('listbox').getAttribute('aria-activedescendant')).toBe(option(ADDISON).id)
+
   await user.tab()
 
   expect(document.activeElement).toBe(screen.getByRole('link', { name: 'Weather data by Open-Meteo.com' }))

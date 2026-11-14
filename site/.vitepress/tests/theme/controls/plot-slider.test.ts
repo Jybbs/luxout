@@ -1,155 +1,207 @@
 /** @vitest-environment happy-dom */
-import { fireEvent }                                        from '@testing-library/dom'
-import { type Mock, afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { effectScope }                                      from 'vue'
+import { fireEvent, getByRole }      from '@testing-library/dom'
+import { type Mock, expect, vi }     from 'vitest'
+import { defineComponent, nextTick } from 'vue'
 
-import { PAUSES }                  from '../../../lib/motion/timing.ts'
-import { PlotSlider, shareAcross } from '../../../theme/controls/plot-slider.ts'
+import { PAUSES }                                      from '../../../lib/motion/timing.ts'
+import { OVERLAY, PlotSlider, plotSpans }              from '../../../theme/controls/plot-slider.tsx'
+import { type Mount, keyOn, pointed, pressable, test } from '../../common/mount.ts'
 
-const AT = 40
-
-function restless(): PlotSlider {
-  return new PlotSlider({ count: 10, page: 3, position: () => AT, set: () => undefined, value: () => 5 })
+/**
+ * A slider of ten values opening on 5, with the spies its options call and the
+ * instance a case holds.
+ */
+interface Harness {
+  readonly instance : PlotSlider
+  readonly rest     : Mock<() => void>
+  readonly set      : Mock<(value: number, eased: boolean) => void>
+  readonly slider   : HTMLElement
 }
 
-function slider(value = 5): {
-  capture : Mock<HTMLElement['setPointerCapture']>
-  element : HTMLElement
-  rest    : Mock<() => void>
-  set     : Mock<(value: number, eased: boolean) => void>
-} {
-  const capture  = vi.fn<HTMLElement['setPointerCapture']>()
-  const element  = document.createElement('div')
-  const rest     = vi.fn<() => void>()
-  const set      = vi.fn<(value: number, eased: boolean) => void>()
-  const instance = new PlotSlider({
-    count    : 10,
-    page     : 3,
-    position : () => AT,
-    rest     : rest,
-    set      : set,
-    value    : () => value
+function harness(mount: Mount, resting = true, at?: string): Harness {
+  const rest = vi.fn<() => void>()
+  const set  = vi.fn<(value: number, eased: boolean) => void>((value) => {
+    shown = value
   })
+  let instance: PlotSlider | undefined
+  let shown = 5
 
-  document.body.append(element)
-  element.tabIndex          = 0
-  element.setPointerCapture = capture
+  const host = mount(defineComponent({
+    setup() {
+      instance = new PlotSlider({
+        count : 10,
+        label : 'Some value',
+        page  : 3,
+        rest  : resting ? rest : undefined,
+        set   : set,
+        text  : (value) => `at ${value}`,
+        value : () => shown
+      })
 
-  for (const [name, listener] of Object.entries(instance.listeners)) {
-    element.addEventListener(name.slice(2).toLowerCase(), listener as EventListener)
-  }
+      return () => instance!.render(at ? { ...OVERLAY, at } : OVERLAY)
+    }
+  }))
+  const slider = getByRole(host, 'slider')
 
-  return { capture, element, rest, set }
+  pressable(slider, { left: 0, width: 90 })
+
+  return { instance: instance!, rest, set, slider }
 }
 
-beforeEach(() => {
-  vi.useFakeTimers()
+async function hover(slider: HTMLElement, clientX: number): Promise<void> {
+  fireEvent.pointerMove(slider.parentElement!, { clientX, pointerType: 'mouse' })
+  vi.advanceTimersByTime(PAUSES.dwell)
+  await nextTick()
+}
+
+test('names the slider and its value through the machine’s ARIA slider', ({ mount }) => {
+  const { slider } = harness(mount)
+
+  expect([
+    slider.getAttribute('aria-label'),
+    slider.getAttribute('aria-valuemin'),
+    slider.getAttribute('aria-valuemax'),
+    slider.getAttribute('aria-valuenow'),
+    slider.getAttribute('aria-valuetext')
+  ]).toEqual(['Some value', '0', '9', '5', 'at 5'])
 })
 
-afterEach(() => {
-  document.body.replaceChildren()
-  vi.useRealTimers()
-})
-
-it.each([
+test.for([
   { expected: 4, key: 'ArrowDown' },
   { expected: 4, key: 'ArrowLeft' },
   { expected: 6, key: 'ArrowRight' },
   { expected: 6, key: 'ArrowUp' },
   { expected: 9, key: 'End' },
   { expected: 0, key: 'Home' },
-  { expected: 2, key: 'PageDown' },
-  { expected: 8, key: 'PageUp' }
-])('eases to $expected on $key', ({ expected, key }) => {
-  const { element, set } = slider()
+  { expected: 3, key: 'PageDown' },
+  { expected: 9, key: 'PageUp' }
+])('eases to $expected on $key', async ({ expected, key }, { mount }) => {
+  const { set, slider } = harness(mount)
 
-  expect(fireEvent.keyDown(element, { key })).toBe(false)
+  await keyOn(slider, key)
+  await nextTick()
+
   expect(set).toHaveBeenCalledExactlyOnceWith(expected, true)
+  expect(slider.getAttribute('aria-valuenow')).toBe(String(expected))
 })
 
-it.each([
-  { key: 'PageUp', value: 9 },
-  { key: 'PageDown', value: 0 }
-])('holds the value inside the range on $key at $value', ({ key, value }) => {
-  const { element, set } = slider(value)
+test('leaves every other key to the browser', async ({ mount }) => {
+  const { set, slider } = harness(mount)
 
-  fireEvent.keyDown(element, { key })
+  slider.focus()
+  await nextTick()
 
-  expect(set).toHaveBeenCalledExactlyOnceWith(value, true)
-})
-
-it('leaves every other key to the browser', () => {
-  const { element, set } = slider()
-
-  expect(fireEvent.keyDown(element, { key: 'Tab' })).toBe(true)
+  expect(fireEvent.keyDown(slider, { key: 'Tab' })).toBe(true)
   expect(set).not.toHaveBeenCalled()
 })
 
-it('sets the value where a press lands and captures the pointer', () => {
-  const { capture, element, set } = slider()
+test('takes up the value the widget shows as the thumb takes the focus', async ({ mount }) => {
+  const { instance, set, slider } = harness(mount)
 
-  expect(fireEvent.pointerDown(element, { button: 0, pointerId: 3 })).toBe(false)
-  expect(set).toHaveBeenCalledExactlyOnceWith(AT, false)
-  expect(capture).toHaveBeenCalledWith(3)
-  expect(document.activeElement).toBe(element)
+  instance.hold(7)
+  await nextTick()
+
+  expect(slider.getAttribute('aria-valuenow')).toBe('7')
+  expect(set).not.toHaveBeenCalled()
+
+  slider.focus()
+  await nextTick()
+
+  expect(slider.getAttribute('aria-valuenow')).toBe('5')
+  expect(set).not.toHaveBeenCalled()
 })
 
-it('ignores a press of any other button', () => {
-  const { element, set } = slider()
+test(
+  'sets the value where a press lands, with no easing, and follows the drag until it lifts',
+  async ({ mount }) => {
+    const { set, slider } = harness(mount)
 
-  fireEvent.pointerDown(element, { button: 2 })
+    fireEvent.pointerDown(slider.parentElement!, { button: 0, clientX: 40, pointerId: 1 })
+    await pointed()
+    fireEvent.pointerMove(document, { clientX: 80, pointerId: 1 })
+    await pointed()
+    fireEvent.pointerUp(document, { pointerId: 1 })
+    fireEvent.pointerMove(document, { clientX: 10, pointerId: 1 })
+    await pointed()
+
+    expect(set.mock.calls).toEqual([[4, false], [8, false]])
+  }
+)
+
+test('ignores a press of any other button', async ({ mount }) => {
+  const { set, slider } = harness(mount)
+
+  fireEvent.pointerDown(slider.parentElement!, { button: 2, clientX: 40 })
+  await pointed()
 
   expect(set).not.toHaveBeenCalled()
 })
 
-it('follows a drag until the pointer lifts', () => {
-  const { element, set } = slider()
+test('sets the value once a mouse has rested for the dwell pause, then follows it', async ({ mount }) => {
+  const { set, slider } = harness(mount)
 
-  fireEvent.pointerDown(element, { button: 0 })
-  fireEvent.pointerMove(element, { pointerType: 'touch' })
-  fireEvent.pointerUp(element)
-  fireEvent.pointerMove(element, { pointerType: 'touch' })
-
-  expect(set).toHaveBeenCalledTimes(2)
-})
-
-it('sets the value once a mouse has rested for the dwell pause, then follows it', () => {
-  const { element, set } = slider()
-
-  fireEvent.pointerMove(element, { pointerType: 'mouse' })
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 20, pointerType: 'mouse' })
   vi.advanceTimersByTime(PAUSES.dwell - 1)
   expect(set).not.toHaveBeenCalled()
 
   vi.advanceTimersByTime(1)
-  expect(set).toHaveBeenCalledOnce()
+  await nextTick()
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 70, pointerType: 'mouse' })
+  await nextTick()
 
-  fireEvent.pointerMove(element, { pointerType: 'mouse' })
-  expect(set).toHaveBeenCalledTimes(2)
+  expect(set.mock.calls).toEqual([[2, false], [7, false]])
 })
 
-it('drops a resting mouse’s pending position once a press takes over', () => {
-  const { element, set } = slider()
+test('drops a resting mouse’s pending value once a press takes over', async ({ mount }) => {
+  const { set, slider } = harness(mount)
 
-  fireEvent.pointerMove(element, { pointerType: 'mouse' })
-  fireEvent.pointerDown(element, { button: 0 })
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 20, pointerType: 'mouse' })
+  fireEvent.pointerDown(slider.parentElement!, { button: 0, clientX: 40, pointerId: 1 })
+  await pointed()
   vi.advanceTimersByTime(PAUSES.dwell)
 
-  expect(set).toHaveBeenCalledOnce()
+  expect(set).toHaveBeenCalledExactlyOnceWith(4, false)
 })
 
-it('ignores a touch moving with no press', () => {
-  const { element, set } = slider()
+test('sets nothing where a mouse leaves ahead of the dwell pause', ({ mount }) => {
+  const { set, slider } = harness(mount)
 
-  fireEvent.pointerMove(element, { pointerType: 'touch' })
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 20, pointerType: 'mouse' })
+  fireEvent.pointerLeave(slider.parentElement!)
   vi.advanceTimersByTime(PAUSES.dwell)
 
   expect(set).not.toHaveBeenCalled()
 })
 
-it('returns to rest once a pointer has left for the leave pause', () => {
-  const { element, rest } = slider()
+test('waits out the dwell pause again for a mouse that leaves and returns', async ({ mount }) => {
+  const { set, slider } = harness(mount)
 
-  fireEvent.pointerLeave(element)
+  await hover(slider, 20)
+  fireEvent.pointerLeave(slider.parentElement!)
+  set.mockClear()
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 70, pointerType: 'mouse' })
+
+  expect(set).not.toHaveBeenCalled()
+
+  vi.advanceTimersByTime(PAUSES.dwell)
+
+  expect(set).toHaveBeenCalledExactlyOnceWith(7, false)
+})
+
+test('ignores a touch moving with no press', ({ mount }) => {
+  const { set, slider } = harness(mount)
+
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 20, pointerType: 'touch' })
+  vi.advanceTimersByTime(PAUSES.dwell)
+
+  expect(set).not.toHaveBeenCalled()
+})
+
+test('returns to rest once a pointer has left an unfocused slider for the leave pause', async ({ mount }) => {
+  const { rest, slider } = harness(mount)
+
+  await hover(slider, 20)
+  fireEvent.pointerLeave(slider.parentElement!)
   vi.advanceTimersByTime(PAUSES.leave - 1)
   expect(rest).not.toHaveBeenCalled()
 
@@ -157,117 +209,85 @@ it('returns to rest once a pointer has left for the leave pause', () => {
   expect(rest).toHaveBeenCalledOnce()
 })
 
-it('stays where it is while the slider holds focus', () => {
-  const { element, rest } = slider()
+test('stays where it is while the thumb holds the focus', async ({ mount }) => {
+  const { rest, slider } = harness(mount)
 
-  element.focus()
-  fireEvent.pointerLeave(element)
+  slider.focus()
+  await nextTick()
+  fireEvent.pointerLeave(slider.parentElement!)
   vi.advanceTimersByTime(PAUSES.leave)
 
   expect(rest).not.toHaveBeenCalled()
 })
 
-it('stays where it is while a drag continues outside the slider', () => {
-  const { element, rest } = slider()
+test('stays where it is while a drag continues outside the slider', async ({ mount }) => {
+  const { rest, slider } = harness(mount)
 
-  fireEvent.pointerDown(element, { button: 0 })
-  element.blur()
-  rest.mockClear()
-  fireEvent.pointerLeave(element)
+  fireEvent.pointerDown(slider.parentElement!, { button: 0, clientX: 40, pointerId: 1 })
+  await pointed()
+  fireEvent.pointerLeave(slider.parentElement!)
   vi.advanceTimersByTime(PAUSES.leave)
 
   expect(rest).not.toHaveBeenCalled()
 })
 
-it('cancels the leave pause once the pointer returns', () => {
-  const { element, rest } = slider()
+test('cancels the leave pause once the pointer returns', ({ mount }) => {
+  const { rest, slider } = harness(mount)
 
-  fireEvent.pointerLeave(element)
-  fireEvent.pointerMove(element, { pointerType: 'touch' })
+  fireEvent.pointerLeave(slider.parentElement!)
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 20, pointerType: 'touch' })
   vi.advanceTimersByTime(PAUSES.leave)
 
   expect(rest).not.toHaveBeenCalled()
 })
 
-it('returns to rest when the focus leaves', () => {
-  const { element, rest } = slider()
+test('returns to rest when the focus leaves', async ({ mount }) => {
+  const { rest, slider } = harness(mount)
 
-  element.focus()
-  element.blur()
+  slider.focus()
+  await nextTick()
+  slider.blur()
 
   expect(rest).toHaveBeenCalledOnce()
 })
 
-it('cancels every pause once its scope stops', () => {
-  const scope                  = effectScope()
-  const { element, rest, set } = scope.run(() => slider())!
+test('cancels every pause once the slider unmounts', ({ mount, unmount }) => {
+  const { rest, set, slider } = harness(mount)
 
-  fireEvent.pointerMove(element, { pointerType: 'mouse' })
-  fireEvent.pointerLeave(element)
-  scope.stop()
+  fireEvent.pointerMove(slider.parentElement!, { clientX: 20, pointerType: 'mouse' })
+  fireEvent.pointerLeave(slider.parentElement!)
+  unmount()
   vi.advanceTimersByTime(PAUSES.dwell + PAUSES.leave)
 
   expect(rest).not.toHaveBeenCalled()
   expect(set).not.toHaveBeenCalled()
 })
 
-it('does nothing on a blur or a leave where a slider holds no resting value', () => {
-  const { listeners } = restless()
-  const element       = document.createElement('div')
+test('does nothing on a blur or a leave where a slider holds no resting value', async ({ mount }) => {
+  const { slider } = harness(mount, false)
+
+  slider.focus()
+  await nextTick()
 
   expect(() => {
-    listeners.onBlur()
-    listeners.onPointerleave({ currentTarget: element } as unknown as PointerEvent)
+    slider.blur()
+    fireEvent.pointerLeave(slider.parentElement!)
     vi.advanceTimersByTime(PAUSES.leave)
   }).not.toThrow()
 })
 
-it('ends a drag when the pointer is cancelled', () => {
-  const { element, set } = slider()
+test('starts a thumb on a track where its look places it, through the `--at` property', ({ mount }) => {
+  const { slider } = harness(mount, true, '40%')
 
-  fireEvent.pointerDown(element, { button: 0, clientX: AT, pointerId: 1 })
-  fireEvent.pointerCancel(element, { pointerId: 1 })
-  fireEvent.pointerMove(element, { clientX: AT, pointerType: 'touch' })
-
-  expect(set).toHaveBeenCalledOnce()
+  expect(slider.style.getPropertyValue('--at')).toBe('40%')
+  expect(slider.classList.contains('left-(--at)')).toBe(true)
 })
 
-it('builds the attributes of an ARIA slider, reading its maximum from its count', () => {
-  const instance = restless()
-
-  expect(instance.attributes('Some value', 4, 'four')).toEqual({
-    'aria-label'     : 'Some value',
-    'aria-valuemax'  : 9,
-    'aria-valuemin'  : 0,
-    'aria-valuenow'  : 4,
-    'aria-valuetext' : 'four',
-    role             : 'slider',
-    tabindex         : 0,
-    ...instance.listeners
+test('writes where each layout’s plot starts and ends as a share of its drawing', () => {
+  expect(plotSpans([{ left: 50, right: 450, width: 500 }, { left: 0, right: 300, width: 400 }])).toEqual({
+    '--plot-left-0'  : '0.1',
+    '--plot-left-1'  : '0',
+    '--plot-right-0' : '0.9',
+    '--plot-right-1' : '0.75'
   })
-})
-
-it.each([
-  { clientX: 250, expected: 0.5, name: 'the middle' },
-  { clientX: 0, expected: 0, name: 'a pointer before the left edge' },
-  { clientX: 900, expected: 1, name: 'a pointer past the right edge' }
-])('finds the share across the whole element at $name', ({ clientX, expected }) => {
-  const element = document.createElement('div')
-
-  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ left: 100, width: 300 } as DOMRect)
-
-  expect(shareAcross(element, clientX)).toBe(expected)
-})
-
-it.each([
-  { clientX: 75, expected: 0, name: 'the plot’s left edge' },
-  { clientX: 250, expected: 0.5, name: 'the plot’s middle' },
-  { clientX: 425, expected: 1, name: 'the plot’s right edge' },
-  { clientX: 480, expected: 1, name: 'the margin past the plot' }
-])('finds the share across an inset plot at $name', ({ clientX, expected }) => {
-  const element = document.createElement('div')
-
-  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 500 } as DOMRect)
-
-  expect(shareAcross(element, clientX, { left: 150, right: 850, width: 1000 })).toBe(expected)
 })

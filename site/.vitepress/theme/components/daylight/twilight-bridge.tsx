@@ -1,11 +1,10 @@
-import { bisectCenter }                                       from 'd3-array'
 import { type VNode, defineComponent, onMounted, shallowRef } from 'vue'
 
-import { data }                    from '../../../lib/daylight/twilight-bridge.data.ts'
-import { Glide }                   from '../../../lib/motion/glide.ts'
-import { Announcer }               from '../../controls/announcer.tsx'
-import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
-import { bridgeDrawing, dropAt }   from './bridge-drawing.tsx'
+import { data }                  from '../../../lib/daylight/twilight-bridge.data.ts'
+import { Glide }                 from '../../../lib/motion/glide.ts'
+import { Speech }                from '../../../lib/motion/speech.ts'
+import { OVERLAY, PlotSlider }   from '../../controls/plot-slider.tsx'
+import { bridgeDrawing, dropAt } from './bridge-drawing.tsx'
 
 const END    = 'font-semibold text-ink'
 const FIGURE = 'widget-num text-right text-[0.9rem] font-semibold whitespace-nowrap'
@@ -42,27 +41,26 @@ const tops  = y.map(pixels)
  * built ahead of any motion, so a glide allocates nothing as it moves.
  */
 class BridgeWatch {
-  readonly announcer = new Announcer()
-  readonly root      = shallowRef<HTMLElement>()
-  readonly slider    : PlotSlider
-  #at                = rest
-  #degree            : HTMLElement | undefined
-  #drop              : SVGPathElement | undefined
-  #figure            : HTMLElement | undefined
-  readonly #glide    : Glide
-  #handle            : HTMLElement | undefined
-  #phrase            : HTMLElement | undefined
-  #plot              : HTMLElement | undefined
-  #sun               : HTMLElement | undefined
+  readonly root   = shallowRef<HTMLElement>()
+  readonly slider : PlotSlider
+  readonly speech = new Speech(this.root)
+  #at             = rest
+  #degree         : HTMLElement | undefined
+  #drop           : SVGPathElement | undefined
+  #figure         : HTMLElement | undefined
+  readonly #glide : Glide
+  #phrase         : HTMLElement | undefined
+  #sun            : HTMLElement | undefined
 
   constructor() {
     this.#glide = new Glide(rest, this.root, () => this.#settle(), (value) => this.#write(Math.round(value)))
     this.slider = new PlotSlider({
-      count    : x.length,
-      page     : 10,
-      position : (clientX) => this.#stopAt(clientX),
-      set      : (value, eased) => this.#glide.move(value, eased),
-      value    : () => this.#glide.goal
+      count : x.length,
+      label : 'The sun’s altitude',
+      page  : 10,
+      set   : (value, eased) => this.#glide.move(value, eased),
+      text  : spoken,
+      value : () => this.#glide.goal
     })
 
     onMounted(() => this.#mount())
@@ -75,22 +73,12 @@ class BridgeWatch {
     this.#degree = named('degree')
     this.#drop   = named('drop')
     this.#figure = named('figure')
-    this.#handle = root.querySelector('.widget-slider')!
     this.#phrase = named('phrase')
-    this.#plot   = named('plot')
     this.#sun    = named('sun')
   }
 
   #settle(): void {
-    const words = spoken(this.#at)
-
-    this.#handle!.setAttribute('aria-valuenow', String(this.#at))
-    this.#handle!.setAttribute('aria-valuetext', words)
-    this.announcer.say(words)
-  }
-
-  #stopAt(clientX: number): number {
-    return bisectCenter(x, shareAcross(this.#plot!, clientX) * width)
+    this.speech.say(spoken(this.#at))
   }
 
   #write(stop: number): void {
@@ -174,7 +162,7 @@ export const TwilightBridge = defineComponent({
             ]}
             style={{ left: lefts[rest], top: tops[rest] }}
           />
-          <div class="widget-slider" {...watch.slider.attributes('The sun’s altitude', rest, spoken(rest))} />
+          {watch.slider.render(OVERLAY)}
         </div>
         <div
           class={[
@@ -190,7 +178,6 @@ export const TwilightBridge = defineComponent({
             {phraseAt(rest)}
           </span>
         </div>
-        {watch.announcer.region}
       </div>
     )
   }

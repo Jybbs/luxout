@@ -3,10 +3,10 @@ import { bisectRight, cumsum }                            from 'd3-array'
 import { type VNode, defineComponent, shallowRef, useId } from 'vue'
 
 import { FrameClock }        from '../../../lib/motion/frame-clock.ts'
+import { Speech }            from '../../../lib/motion/speech.ts'
 import { motionReduced }     from '../../../lib/motion/timing.ts'
 import type { SearchStage }  from '../../../lib/search/replay.ts'
 import { data }              from '../../../lib/search/search.data.ts'
-import { Announcer }         from '../../controls/announcer.tsx'
 import { layers }            from '../../controls/layers.tsx'
 import { Tablist, tabPanel } from '../../controls/tablist.tsx'
 import { settingsPage }      from './settings-page.tsx'
@@ -20,7 +20,7 @@ const CLASSES = {
   tab  : [
     'group inline-flex items-center gap-1.75 rounded-full py-1 pr-2.5 pl-1 font-mono text-[0.68rem]/none',
     'font-medium tracking-[0.08em] text-muted uppercase focus-visible:outline-offset-1',
-    'aria-selected:text-ink @max-md:not-aria-selected:pr-1'
+    'data-selected:text-ink @max-md:not-data-selected:pr-1'
   ]
 }
 const spoken = data.stages.map(({ label, name, note }, index) =>
@@ -34,10 +34,9 @@ const tabs  = data.stages.map(({ name }, index) => ({ label: `${index + 1}, ${na
  * the query one character at a time, and stopping on the last stage.
  */
 class Player {
-  readonly announcer = new Announcer()
-  readonly id        = useId()
-  readonly mounted   = useMounted()
-  readonly panel     = shallowRef<HTMLElement>()
+  readonly id      = useId()
+  readonly mounted = useMounted()
+  readonly panel   = shallowRef<HTMLElement>()
 
   readonly play = (): void => {
     this.#started = performance.now()
@@ -50,6 +49,8 @@ class Player {
     this.#show(index)
   }
 
+  readonly root   = shallowRef<HTMLElement>()
+  readonly speech = new Speech(this.root)
   readonly stage  = shallowRef(data.stages.length - 1)
   readonly typed  = shallowRef<number>()
   readonly #clock = new FrameClock(this.panel, (now) => this.#tick(now))
@@ -58,7 +59,7 @@ class Player {
   #show(index: number): void {
     this.stage.value = index
     this.typed.value = undefined
-    this.announcer.say(spoken[index]!)
+    this.speech.say(spoken[index]!)
   }
 
   #tick(now: number): boolean {
@@ -85,7 +86,7 @@ export const LocationSearch = defineComponent({
     const player = new Player()
 
     return () => (
-      <div class="widget location-search grid gap-4">
+      <div class="widget location-search grid gap-4" ref={player.root}>
         <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
           <Tablist
             classes={CLASSES}
@@ -101,13 +102,13 @@ export const LocationSearch = defineComponent({
                   class={[
                     'inline-grid size-5.5 place-items-center rounded-full tracking-normal',
                     'inset-ring inset-ring-rule transition-[background-color,color]',
-                    'duration-(--timing-hover) group-aria-selected:bg-ink group-aria-selected:text-ground',
-                    'group-aria-selected:inset-ring-0'
+                    'duration-(--timing-hover) group-data-selected:bg-ink group-data-selected:text-ground',
+                    'group-data-selected:inset-ring-0'
                   ]}
                 >
                   {index + 1}
                 </span>,
-                <span class="@max-md:hidden @max-md:group-aria-selected:inline">
+                <span class="@max-md:hidden @max-md:group-data-selected:inline">
                   {data.stages[index]!.name}
                 </span>
               ]
@@ -133,7 +134,6 @@ export const LocationSearch = defineComponent({
           {settingsPage(data.stages[player.stage.value]!.page, player.typed.value)}
           {layers(data.stages.map(wire), player.stage.value)}
         </div>
-        {player.announcer.region}
       </div>
     )
   }

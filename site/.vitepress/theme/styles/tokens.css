@@ -213,7 +213,7 @@
 
   & :is(button, [tabindex]):focus-visible { outline: 2px solid var(--color-accent); }
 
-  & [role='slider']:focus-visible {
+  & [role='slider']:not(.widget-thumb):focus-visible {
     border-radius  : 6px;
     outline-offset : 2px;
   }
@@ -275,9 +275,20 @@
 
 @utility widget-slider {
   position     : absolute;
+  inset-block  : 0;
+  left         : calc(var(--plot-left, var(--plot-left-0, 0)) * 100%);
+  right        : calc((1 - var(--plot-right, var(--plot-right-0, 1))) * 100%);
   cursor       : ew-resize;
-  inset        : 0;
   touch-action : pan-y;
+}
+
+@utility widget-cover {
+  --plot-span    : calc(var(--plot-right, var(--plot-right-0, 1)) - var(--plot-left, var(--plot-left-0, 0)));
+  position       : absolute;
+  inset-block    : 0;
+  left           : calc(var(--plot-left, var(--plot-left-0, 0)) / var(--plot-span) * -100%);
+  right          : calc((1 - var(--plot-right, var(--plot-right-0, 1))) / var(--plot-span) * -100%);
+  pointer-events : none;
 }
 
 @utility widget-rail {

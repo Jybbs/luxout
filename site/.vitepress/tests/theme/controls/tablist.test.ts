@@ -3,9 +3,9 @@ import { fireEvent, getAllByRole } from '@testing-library/dom'
 import { expect, vi }              from 'vitest'
 import { h, nextTick }             from 'vue'
 
-import { PAUSES }                   from '../../../lib/motion/timing.ts'
-import { Tablist, tabId, tabPanel } from '../../../theme/controls/tablist.tsx'
-import { test }                     from '../../common/mount.ts'
+import { PAUSES }            from '../../../lib/motion/timing.ts'
+import { Tablist, tabPanel } from '../../../theme/controls/tablist.tsx'
+import { test }              from '../../common/mount.ts'
 
 const TABS = [{ label: 'One', style: { color: 'red' } }, { label: 'Two' }, { label: 'Three' }]
 
@@ -27,19 +27,29 @@ test('marks the selected tab and leaves it the one tab stop', ({ mount }) => {
     .toEqual([['false', -1], ['true', 0], ['false', -1]])
 })
 
-test('names each tab for its panel and its label, with the style the tab sets', ({ mount }) => {
+test('names each tab for its label, with the style the tab sets', ({ mount }) => {
   const [tab] = getAllByRole(mount(Tablist, props(vi.fn())), 'tab')
 
   expect(tab!.id).toBe('row-tab-0')
-  expect(tab!.getAttribute('aria-controls')).toBe('row-panel')
   expect(tab!.getAttribute('aria-label')).toBe('One')
   expect(tab!.style.color).toBe('red')
+})
+
+test('ties the selected tab alone to the panel', ({ mount }) => {
+  const tabs = getAllByRole(mount(Tablist, props(vi.fn())), 'tab')
+
+  expect(tabs.map((tab) => tab.getAttribute('aria-controls'))).toEqual([null, 'row-panel', null])
+})
+
+test('labels the row', ({ mount }) => {
+  expect(getAllByRole(mount(Tablist, props(vi.fn())), 'tablist')[0]!.getAttribute('aria-label'))
+    .toBe('The row')
 })
 
 test('writes the id each tab carries', ({ mount }) => {
   const tabs = getAllByRole(mount(Tablist, props(vi.fn())), 'tab')
 
-  expect(tabs.map((tab) => tab.id)).toEqual(TABS.map((_, index) => tabId('row', index)))
+  expect(tabs.map((tab) => tab.id)).toEqual(TABS.map((_, index) => `row-tab-${index}`))
 })
 
 test('labels the panel with the tab that controls it', ({ mount }) => {
@@ -68,14 +78,20 @@ test('selects on a click', ({ mount }) => {
 })
 
 test.for([
-  { expected: 0, key: 'ArrowLeft' },
-  { expected: 2, key: 'ArrowRight' }
-])('moves to tab $expected on $key from tab 1', async ({ expected, key }, { mount }) => {
+  { expected: 0, from: 1, key: 'ArrowLeft' },
+  { expected: 2, from: 1, key: 'ArrowRight' },
+  { expected: 0, from: 1, key: 'Home' },
+  { expected: 2, from: 1, key: 'End' },
+  { expected: 0, from: 2, key: 'ArrowRight' },
+  { expected: 2, from: 0, key: 'ArrowLeft' }
+])('moves to tab $expected on $key from tab $from', async ({ expected, from, key }, { mount }) => {
   const select = vi.fn<(index: number) => void>()
   const tabs   = getAllByRole(mount(Tablist, props(select)), 'tab')
 
-  fireEvent.keyDown(tabs[1]!, { key })
+  tabs[from]!.focus()
   await nextTick()
+  fireEvent.keyDown(tabs[from]!, { key })
+  await vi.runOnlyPendingTimersAsync()
 
   expect(select).toHaveBeenCalledExactlyOnceWith(expected)
   expect(document.activeElement).toBe(tabs[expected])
@@ -105,14 +121,15 @@ test('selects nothing where the mouse leaves ahead of the dwell pause', ({ mount
 })
 
 test('drops the dwell timer when the row unmounts', ({ mount, unmount }) => {
-  const host = mount(Tablist, props(vi.fn()))
+  const host  = mount(Tablist, props(vi.fn()))
+  const count = vi.getTimerCount()
 
   fireEvent.pointerEnter(getAllByRole(host, 'tab')[0]!, { pointerType: 'mouse' })
-  expect(vi.getTimerCount()).toBe(1)
+  expect(vi.getTimerCount()).toBe(count + 1)
 
   unmount()
 
-  expect(vi.getTimerCount()).toBe(0)
+  expect(vi.getTimerCount()).toBe(count)
 })
 
 test('selects nothing on a touch resting on a tab', ({ mount }) => {

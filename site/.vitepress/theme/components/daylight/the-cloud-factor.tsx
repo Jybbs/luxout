@@ -1,12 +1,12 @@
 import { useToggle }                                      from '@vueuse/core'
 import { type VNode, defineComponent, shallowRef, useId } from 'vue'
 
-import { data }                    from '../../../lib/daylight/cloud-steps.data.ts'
-import { Announcer }               from '../../controls/announcer.tsx'
-import { layers }                  from '../../controls/layers.tsx'
-import { moreButton }              from '../../controls/more-button.tsx'
-import { plotMarks }               from '../../controls/plot-marks.tsx'
-import { PlotSlider, shareAcross } from '../../controls/plot-slider.ts'
+import { data }                           from '../../../lib/daylight/cloud-steps.data.ts'
+import { Speech }                         from '../../../lib/motion/speech.ts'
+import { Disclosure }                     from '../../controls/disclosure.tsx'
+import { layers }                         from '../../controls/layers.tsx'
+import { plotMarks }                      from '../../controls/plot-marks.tsx'
+import { OVERLAY, PlotSlider, plotSpans } from '../../controls/plot-slider.tsx'
 
 const { floor, hours, opens, steps, strip } = data
 
@@ -28,34 +28,36 @@ const KEYS = [
   { mark: 'forecast', word: 'The forecast’s sunlight' },
   { mark: 'borrowed', word: `Sun under ${floor}°, share borrowed` }
 ] as const
+/**
+ * Spans the slider from the middle of the first bar to the middle of the last,
+ * so a pointer picks the bar it stands over.
+ */
+const SPANS = plotSpans([{ left: strip.pitch / 2, right: strip.width - strip.pitch / 2, width: strip.width }])
 
 /**
  * Holds the step a reader picks from the strip and whether the arithmetic
  * behind it is open.
  */
 class StepPicker {
-  readonly announcer = new Announcer()
-  readonly id        = useId()
-  readonly index     = shallowRef(opens)
-  readonly open      = shallowRef(false)
-  readonly plot      = shallowRef<HTMLElement>()
-  readonly slider    = new PlotSlider({
-    count    : steps.length,
-    page     : 4,
-    position : (clientX) => this.#stepAt(clientX),
-    value    : () => this.index.value,
-    set      : (value) => {
+  readonly id     = useId()
+  readonly index  = shallowRef(opens)
+  readonly open   = shallowRef(false)
+  readonly how    = new Disclosure(this.id, this.open, useToggle(this.open))
+  readonly root   = shallowRef<HTMLElement>()
+  readonly speech = new Speech(this.root)
+  readonly slider = new PlotSlider({
+    count : steps.length,
+    label : 'Forecast step',
+    page  : 4,
+    text  : (value) => steps[value]!.text,
+    value : () => this.index.value,
+    set   : (value) => {
       const step = steps[value]!
 
       this.index.value = value
-      this.announcer.say(`${step.share}${step.lead}`)
+      this.speech.say(`${step.share}${step.lead}`)
     }
   })
-  readonly toggle = useToggle(this.open)
-
-  #stepAt(clientX: number): number {
-    return Math.min(Math.floor(shareAcross(this.plot.value!, clientX) * steps.length), steps.length - 1)
-  }
 }
 
 /**
@@ -73,7 +75,7 @@ export const TheCloudFactor = defineComponent({
       const step  = steps[index]!
 
       return (
-        <div class="widget the-cloud-factor grid gap-4">
+        <div class="widget the-cloud-factor grid gap-4" ref={picker.root}>
           {layers(steps.map(leadWords), index)}
           <div
             aria-label={step.drawn}
@@ -90,10 +92,8 @@ export const TheCloudFactor = defineComponent({
           <div class="grid gap-1.5 pt-2">
             <span class="widget-caps">Each 15-minute step’s share · pick one</span>
             <div
-              class="the-cloud-factor-strip relative cursor-pointer touch-pan-y"
-              ref={picker.plot}
-              style={{ height: `${strip.height}px` }}
-              {...picker.slider.attributes('Forecast step', index, step.text)}
+              class="the-cloud-factor-strip relative"
+              style={{ ...SPANS, height: `${strip.height}px` }}
             >
               {stripMarks(index)}
               {...hours.map(({ word, x }) => (
@@ -104,6 +104,7 @@ export const TheCloudFactor = defineComponent({
                   {word}
                 </span>
               ))}
+              {picker.slider.render(OVERLAY)}
             </div>
           </div>
           <div
@@ -115,15 +116,8 @@ export const TheCloudFactor = defineComponent({
             <div id={picker.id}>
               {layers([keyRow(), layers(steps.map(howBody), index)], picker.open.value ? 1 : 0)}
             </div>
-            {moreButton(
-              picker.id,
-              'How',
-              picker.open.value,
-              () => picker.toggle(),
-              '@max-md:gap-0 @max-md:p-1.5 @max-md:text-[0px]'
-            )}
+            {picker.how.button('How', '@max-md:gap-0 @max-md:p-1.5 @max-md:text-[0px]')}
           </div>
-          {picker.announcer.region}
         </div>
       )
     }
