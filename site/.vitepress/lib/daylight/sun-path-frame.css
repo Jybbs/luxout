@@ -4,12 +4,12 @@
 
 .sun-path-word, .sun-path-figure { font-size: 11px; }
 
-.sun-path-word { fill: var(--luxout-muted); }
+.sun-path-word { fill: var(--color-muted); }
 
 .sun-path-figure { fill: var(--color-ink); }
 
 .sun-path-grid {
-  stroke       : var(--luxout-rule);
+  stroke       : var(--color-rule);
   stroke-width : 1;
 }
 
@@ -29,7 +29,7 @@
   stroke-width : 1;
 }
 
-.sun-path-ground { fill: var(--luxout-sunken); }
+.sun-path-ground { fill: var(--color-sunken); }
 
 .sun-path-horizon {
   stroke       : var(--color-ink);
@@ -50,13 +50,13 @@
 @media (prefers-color-scheme: dark) {
   .sun-path-drawing { background: var(--color-ground); }
 
-  .sun-path-word { fill: var(--luxout-muted); }
+  .sun-path-word { fill: var(--color-muted); }
 
   .sun-path-figure { fill: var(--color-ink); }
 
-  .sun-path-grid { stroke: var(--luxout-rule); }
+  .sun-path-grid { stroke: var(--color-rule); }
 
   .sun-path-sun, .sun-path-horizon { stroke: var(--color-ink); }
 
-  .sun-path-ground { fill: var(--luxout-sunken); }
+  .sun-path-ground { fill: var(--color-sunken); }
 }

@@ -52,6 +52,7 @@ export interface TwilightBridge {
   readonly y       : readonly number[]
 }
 
+const CUTOFF  = BRIDGE_SPAN[1]
 const DECADES = [1, 10, 100, 1000, 10_000]  // Lux
 const FLOOR   = BRIDGE_SPAN[0]
 const HEIGHT  = 260
@@ -63,7 +64,7 @@ const TOP_LUX = 30_000
 const WIDTH   = 540
 const TICKS   = [
   { at: FLOOR },
-  { at: TWILIGHT.sunset },
+  { at: CUTOFF },
   { at: 3, minor: true },
   { at: 6 },
   { at: 9, minor: true },
@@ -88,7 +89,7 @@ export function twilightBridge(sky: ClearSky): TwilightBridge {
   const top     = (altitude: number) => y(sky.illuminance(altitude))
   const luxWord = (altitude: number) => `${formatLux(sky.illuminance(altitude))} lux`
   const tenths  = range(FLOOR * TENTHS, LOW_SUN * TENTHS + 1).map((step) => step / TENTHS)
-  const stops   = sort([...tenths, TWILIGHT.sunset])
+  const stops   = sort([...tenths, CUTOFF])
   const ticks   = TICKS.map(({ at, minor }) => ({ at: tenth(x(at)), minor, word: tickWord(at) }))
   const endAt   = (altitude: number) => ({
     word : luxWord(altitude),
@@ -96,13 +97,13 @@ export function twilightBridge(sky: ClearSky): TwilightBridge {
     y    : tenth(top(altitude))
   })
 
-  const high = endAt(TWILIGHT.sunset)
+  const high = endAt(CUTOFF)
   const low  = endAt(FLOOR)
 
   return {
     area    : area<number>().digits(1).x(x).y0(HEIGHT).y1(top)(stops)!,
     axis    : `M0 ${HEIGHT}H${WIDTH}${tickMarks(ticks.filter(({ minor }) => !minor))}`,
-    cut     : stops.indexOf(TWILIGHT.sunset),
+    cut     : stops.indexOf(CUTOFF),
     decades : DECADES.map((lux) => ({ at: tenth(y(lux)), word: formatLux(lux) })),
     degrees : stops.map(curve.altitudeWord),
     edge    : line<number>().digits(1).x(x).y(top)(stops)!,

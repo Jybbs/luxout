@@ -51,9 +51,9 @@ export function bridgeTable(sky: ClearSky): string {
  * Writes the sentences on the bridge, each figure from the curve itself.
  */
 export function bridgeWords(sky: ClearSky): string {
-  const step = (sky.refracted(TWILIGHT.sunset) - TWILIGHT.sunset).toFixed(2)
+  const step = (sky.refracted(BRIDGE_SPAN[1]) - BRIDGE_SPAN[1]).toFixed(2)
   const low  = format.formatLux(sky.illuminance(BRIDGE_SPAN[0]))
-  const high = format.formatLux(sky.illuminance(TWILIGHT.sunset))
+  const high = format.formatLux(sky.illuminance(BRIDGE_SPAN[1]))
 
   return `Below an altitude of ${curve.SUNSET_WORD}, the circular's refraction correction adds nothing, so `
        + `its refracted altitude steps by about ${step}° there and its lux jumps. The plugin keeps the `

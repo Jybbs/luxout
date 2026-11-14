@@ -28,12 +28,12 @@
 
 .rounded-place-dim {
   fill         : none;
-  stroke       : var(--luxout-muted);
+  stroke       : var(--color-muted);
   stroke-width : 1;
 }
 
 .rounded-place-word {
-  fill      : var(--luxout-muted);
+  fill      : var(--color-muted);
   font-size : 11px;
 }
 
@@ -51,7 +51,7 @@
 
   .rounded-place-dot { fill: var(--color-ground); }
 
-  .rounded-place-dim { stroke: var(--luxout-muted); }
+  .rounded-place-dim { stroke: var(--color-muted); }
 
-  .rounded-place-word { fill: var(--luxout-muted); }
+  .rounded-place-word { fill: var(--color-muted); }
 }

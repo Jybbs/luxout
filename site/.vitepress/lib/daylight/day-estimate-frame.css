@@ -28,18 +28,18 @@
 }
 
 .day-estimate-rim {
-  stroke       : var(--luxout-rule);
+  stroke       : var(--color-rule);
   stroke-width : 1;
 }
 
 .day-estimate-floor {
-  stroke           : var(--luxout-muted);
+  stroke           : var(--color-muted);
   stroke-dasharray : 3 3;
   stroke-width     : 1;
 }
 
 .day-estimate-quiet {
-  stroke          : var(--luxout-muted);
+  stroke          : var(--color-muted);
   stroke-linejoin : round;
   stroke-width    : 1.4;
 }
@@ -56,7 +56,7 @@
 }
 
 .day-estimate-tick {
-  stroke         : var(--luxout-muted);
+  stroke         : var(--color-muted);
   stroke-linecap : round;
   stroke-width   : 1.2;
 }
@@ -93,7 +93,7 @@
 }
 
 .day-estimate-caption {
-  fill      : var(--luxout-muted);
+  fill      : var(--color-muted);
   font-size : 9px;
 }
 
@@ -112,11 +112,11 @@
 
   .day-estimate-edge, .day-estimate-bracket { stroke: var(--color-ink); }
 
-  .day-estimate-rim { stroke: var(--luxout-rule); }
+  .day-estimate-rim { stroke: var(--color-rule); }
 
-  .day-estimate-floor, .day-estimate-quiet, .day-estimate-tick { stroke: var(--luxout-muted); }
+  .day-estimate-floor, .day-estimate-quiet, .day-estimate-tick { stroke: var(--color-muted); }
 
   .day-estimate-name, .day-estimate-figure { fill: var(--color-ink); }
 
-  .day-estimate-caption { fill: var(--luxout-muted); }
+  .day-estimate-caption { fill: var(--color-muted); }
 }
