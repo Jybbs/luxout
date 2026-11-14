@@ -19,9 +19,9 @@ interface Setup {
 
 const ADVISORIES = {
   vitest: [
-    { id: 1, url: 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc', vulnerable_versions: '<5.0.4' },
-    { id: 2, url: 'https://github.com/advisories/GHSA-dddd-eeee-ffff', vulnerable_versions: '<5.0.6' },
-    { id: 3, url: 'https://github.com/advisories/GHSA-gggg-hhhh-iiii', vulnerable_versions: '<5.0.1' }
+    { id: 2, url: 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc', vulnerable_versions: '<5.0.4' },
+    { id: 3, url: 'https://github.com/advisories/GHSA-dddd-eeee-ffff', vulnerable_versions: '<5.0.6' },
+    { id: 1, url: 'https://github.com/advisories/GHSA-gggg-hhhh-iiii', vulnerable_versions: '<5.0.1' }
   ]
 }
 const CHECKOUT                        = '1'.repeat(40)
@@ -306,6 +306,12 @@ test('prints every pin behind its newest release as one Markdown table', async (
   `)
 })
 
+test('decides every version comparison the run makes in one Bun process', async ({ scratch }) => {
+  const { invoked } = await lift(scratch, { args: ['--try'] })
+
+  expect(invoked.filter(({ args }) => args.some((arg) => arg.includes('Bun.semver')))).toHaveLength(1)
+})
+
 test.for([{ args: [] }, { args: ['--try', '--write'] }])(
   'prints only that every pin stands at its newest release where none lags, given $args',
   async ({ args }, { scratch }) => {
@@ -402,9 +408,9 @@ test('trials the lift in a scratch clone, leaving the checkout as it was', async
   const { moved, status, steps, stdout } = await lift(scratch, { args: ['--try'] })
   const log                              = await readFile(join(scratch, '.cache/lift/whole.log'), 'utf8')
 
-  expect({ files: await read(scratch), log: log.split('\n')[0], moved, status, steps, stdout }).toEqual({
+  expect({ files: await read(scratch), log, moved, status, steps, stdout }).toEqual({
     files  : FILES,
-    log    : 'Lifting actions/checkout, bun, min_version, node, plugin:test:24, unbash, vitest, zizmor',
+    log    : 'Lifting actions/checkout, bun, min_version, node, plugin:test:24, unbash, vitest, zizmor\n',
     moved  : false,
     status : 0,
     steps  : [['clone', ...RELOCK], ['clone', ...VERIFY]],

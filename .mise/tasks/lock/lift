@@ -79,34 +79,6 @@ holding() {
   } | jq --compact-output --null-input --raw-input '[inputs]'
 }
 
-mark() {
-  local advisories clears=[] current id major=false newest range row=$1
-
-  IFS=$'\t' read -r current newest <<<"$(
-    jq --raw-output '"\(.current)\t\(.newest)"' <<<"$row"
-  )"
-  advisories=$(
-    jq --raw-output '
-      .advisories[]? | "\(.url | split("/")[-1])\t\(.vulnerable_versions)"
-    ' <<<"$row"
-  )
-
-  satisfies "$newest" "^$current" || major=true
-
-  while IFS=$'\t' read -r id range; do
-    [[ -n "$id" ]] || continue
-    satisfies "$current" "$range" || continue
-    satisfies "$newest" "$range" && continue
-    clears=$(jq --arg id "$id" --compact-output '. + [$id]' <<<"$clears")
-  done <<<"$advisories"
-
-  jq \
-    --argjson clears "$clears" \
-    --argjson major "$major" \
-    --compact-output \
-    'del(.advisories) + { $clears, $major }' <<<"$row"
-}
-
 minimum() {
   local current newest released
 
@@ -319,10 +291,6 @@ released() {
   '
 }
 
-satisfies() {
-  [[ "$(bun --print 'Bun.semver.satisfies(process.argv[1], process.argv[2])' "$1" "$2")" == true ]]
-}
-
 table() {
   jq --raw-output '
     [
@@ -397,6 +365,39 @@ trial() {
   ) >"$log" 2>&1
 }
 
+verdicts() {
+  local pairs
+
+  pairs=$(
+    jq --arg running "$running" --compact-output --slurp '
+      [
+        .[]
+        | [.newest, "^\(.current)"],
+          (
+            (.current, .newest) as $side
+            | .advisories[]?
+            | [$side, .vulnerable_versions]
+          ),
+          if .pin == "min_version" then [$running, ">=\(.newest)"] else empty end
+      ]
+      | unique
+    ' "$scratch/rows"
+  ) || return
+
+  bun --print '
+    JSON.stringify(JSON.parse(process.argv[1]).reduce(
+      (verdicts, [version, range]) => ({
+        ...verdicts,
+        [version]: {
+          ...verdicts[version],
+          [range]: Bun.semver.satisfies(version, range)
+        }
+      }),
+      {}
+    ))
+  ' "$pairs"
+}
+
 write() {
   local dir=$1 file rows=$2
 
@@ -451,20 +452,41 @@ done
 holds=$(bun --print 'JSON.stringify(require("./.mise/holds.toml"))')
 scratch=$(mktemp -d)
 version=$(mise version --json)
+running=$(jq --raw-output '.version | split(" ")[0]' <<<"$version")
 trap 'rm -rf "$scratch"' EXIT
 
 { actions; minimum; nodes; packages; tools; } >"$scratch/rows"
 
-while read -r row; do mark "$row"; done <"$scratch/rows" >"$scratch/marked"
-
+satisfied=$(verdicts)
 rows=$(
-  jq --argjson held "$held" --argjson holds "$holds" --compact-output --slurp '
-    sort_by(.pin)
-    | map(
-        .pin as $pin
-        | . + { held: ($holds | has($pin)) or any($held[]; . == $pin) }
+  jq \
+    --argjson held "$held" \
+    --argjson holds "$holds" \
+    --argjson satisfied "$satisfied" \
+    --compact-output \
+    --slurp \
+    '
+      map(
+        .current as $current
+        | .newest as $newest
+        | .pin as $pin
+        | del(.advisories) + {
+            held  : (($holds | has($pin)) or any($held[]; . == $pin)),
+            major : ($satisfied[$newest]["^\($current)"] | not),
+
+            clears: [
+              .advisories[]?
+              | .vulnerable_versions as $range
+              | select(
+                  $satisfied[$current][$range] and ($satisfied[$newest][$range] | not)
+                )
+              | .url
+              | split("/")[-1]
+            ]
+          }
       )
-  ' "$scratch/marked"
+      | sort_by(.pin)
+    ' "$scratch/rows"
 )
 
 if [[ "$rows" == "[]" ]]; then
@@ -494,10 +516,15 @@ if [[ "$lifted" == "[]" ]]; then
   exit 0
 fi
 
-floor=$(jq --raw-output '.[] | select(.pin == "min_version").newest' <<<"$lifted")
-running=$(jq --raw-output '.version | split(" ")[0]' <<<"$version")
+floor=$(
+  jq --arg running "$running" --argjson satisfied "$satisfied" --raw-output '
+    .[]
+    | select(.pin == "min_version" and ($satisfied[$running][">=\(.newest)"] | not))
+    | .newest
+  ' <<<"$lifted"
+)
 
-if [[ -n "$floor" ]] && ! satisfies "$running" ">=$floor"; then
+if [[ -n "$floor" ]]; then
   echo "Lifting \`min_version\` to $floor needs mise $floor or later," \
        "whereas mise $running runs here, so update mise or hold \`min_version\`" >&2
   exit 1
