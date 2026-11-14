@@ -4,7 +4,18 @@ These pages rest on the works below, and the plugin rests on the two services cr
 
 ## Credits
 
-[Weather data by Open-Meteo.com](https://open-meteo.com/), offered under [Attribution 4.0 International (CC BY 4.0)](https://open-meteo.com/en/licence). Open-Meteo's forecast API serves every forecast the plugin reads and the forecast behind this site's sample day, and its geocoding API serves each result of the settings page's location search.[^zippenfenig2023]
+*The forecast behind every reading, and the terms it is shared under.*
+
+| **Field** | **Credit** |
+|---|---|
+| Data | [Weather data by Open-Meteo.com](https://open-meteo.com/) |
+| DOI | [10.5281/zenodo.7970649](https://doi.org/10.5281/zenodo.7970649) |
+| Creators | Patrick Zippenfenig |
+| Published | Zenodo, 2024 |
+| License | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| Changed | `shortwave_radiation_instant` ÷ clear sky |
+
+Open-Meteo's forecast API serves every forecast the plugin reads and the forecast behind this site's sample day, and its geocoding API serves each result of the settings page's location search.[^zippenfenig2024]
 
 Location data from [GeoNames](https://www.geonames.org/), offered under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). GeoNames is the source of the geocoding results that search shows.[^geonames]
 
@@ -15,7 +26,7 @@ Location data from [GeoNames](https://www.geonames.org/), offered under [Creativ
 - [The Cloud Factor](./cloud-factor.md) divides by the Haurwitz clear-sky model, with the constants of this Sandia report.[^reno2012]
 - [The Sun's Altitude](./altitude.md) is held to the Solar Position Algorithm of this report.[^reda2008]
 
-[^zippenfenig2023]: Zippenfenig. 2023. "Open-Meteo.com Weather API." Zenodo. <https://doi.org/10.5281/zenodo.7970649>
+[^zippenfenig2024]: Zippenfenig. 2024. "Open-Meteo.com Weather API." Zenodo. <https://doi.org/10.5281/zenodo.7970649>
 
 [^geonames]: GeoNames. 2026. "GeoNames Gazetteer." GeoNames. <https://www.geonames.org/>
 

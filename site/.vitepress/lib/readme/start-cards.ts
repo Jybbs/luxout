@@ -1,19 +1,21 @@
 import { fileURLToPath } from 'node:url'
 
+import { scaleLinear }   from 'd3-scale'
 import { type VNode, h } from 'vue'
 
 import manifest                 from '../../../../package.json' with { type: 'json' }
 import { TWILIGHT }             from '../../../../src/daylight/clear-sky.ts'
 import * as faces               from '../cards/faces.ts'
-import { shadeAt }              from '../cards/sky.ts'
 import { pageTitle }            from '../config/pages.ts'
 import { SampleDay, crossings } from '../daylight/sample-day.ts'
 import { SVG_NAMESPACE }        from '../daylight/svg.ts'
+import { tenth }                from '../daylight/tenth.ts'
+import { CONSTRUCTION }         from '../logo/construction.ts'
 import { type Scheme, Tokens }  from '../theme/tokens.ts'
 
 /**
  * One card of the README's Where to Start row, the page it opens beneath the
- * site's root, the word it carries, and the minute of the sample day whose sky
+ * site's root, the word it carries, and the minute of the sample day whose sun
  * it shows.
  */
 interface StartCard {
@@ -23,35 +25,47 @@ interface StartCard {
 }
 
 /**
- * The card's parts in its own units, which the README shows at half size.
+ * The card's parts in its own units, which the README shows at half size, the
+ * word and the page's name set from `inset` and the sun standing at `sun.x`.
  */
 const LAYOUT = {
   height  : 232,
-  horizon : 158,
-  name    : { size: 22, y: 204 },
+  horizon : { stroke: 2, y: 150 },
+  inset   : 40,
+  name    : { size: 22, y: 190 },
   rx      : 20,
+  sun     : { r: 22, x: 432 },
   width   : 520,
-  word    : { size: 64, y: 106 }
+  word    : { size: 60, y: 110 }
 }
 export const START_CARDS: readonly StartCard[] = [
-  { minute: () => SampleDay.NOON, page: 'estimate/index.md', word: 'Understand' },
   {
-    minute : ({ altitudes }) => crossings(altitudes, TWILIGHT.civil)[1],
-    page   : 'troubleshooting/index.md',
-    word   : 'Check'
+    minute : ({ altitudes }) => crossings(altitudes, TWILIGHT.civil)[0],
+    page   : 'estimate/index.md',
+    word   : 'Understand'
   },
   {
     minute : ({ altitudes }) => crossings(altitudes, TWILIGHT.sunset)[0],
-    page   : 'install/installing.md',
-    word   : 'Run'
-  }
+    page   : 'troubleshooting/index.md',
+    word   : 'Check'
+  },
+  { minute: () => SampleDay.NOON, page: 'install/installing.md', word: 'Run' }
 ]
-const WORD : faces.Voice = { axes: { opsz: 12, wght: 600 }, face: 'display' }
 
 /**
- * Draws the README's start cards, each the sky at its page's minute of the
- * sample day above a horizon, its word in the ink that reads best on that sky
- * and its page's name on the ground beneath.
+ * Places the sun's center at an altitude in degrees, civil twilight carrying it
+ * from wholly below the horizon up to the horizon and the rest of the sky
+ * carrying it from there to the card's top edge at the zenith.
+ */
+const sunY = scaleLinear(
+  [TWILIGHT.civil, 0, 90],
+  [LAYOUT.horizon.y + LAYOUT.sun.r + LAYOUT.horizon.stroke, LAYOUT.horizon.y, LAYOUT.sun.r]
+).clamp(true)
+
+/**
+ * Draws the README's start cards, each the sun at its page's minute of the
+ * sample day on a horizon, drawn as the logo draws its o, beside its word and
+ * above its page's name on the raised ground.
  */
 export class StartCards {
   readonly #day    : SampleDay
@@ -80,13 +94,12 @@ export class StartCards {
    * Draws `card` in `scheme`.
    */
   draw(card: StartCard, scheme: Scheme): VNode {
-    const { height, horizon, name, rx, width, word } = LAYOUT
+    const { height, inset, name, rx, width, word } = LAYOUT
 
     const color = (property: string) => this.#tokens.resolve(property, scheme)
-    const sky   = shadeAt(this.#day.readings[card.minute(this.#day)]!)
     const title = this.title(card)
     const say   = (text: string, voice: faces.Voice, fill: string, at: Pick<faces.Saying, 'size' | 'y'>) =>
-      this.#faces.say(text, voice, { ...at, anchor: 'middle', fill, x: width / 2 })
+      this.#faces.say(text, voice, { ...at, fill, x: inset })
 
     return h('svg', {
       'aria-label' : `${card.word}: ${title}`,
@@ -96,19 +109,8 @@ export class StartCards {
       width        : width / 2,
       xmlns        : SVG_NAMESPACE
     }, [
-      h('clipPath', { id: 'card' }, [h('rect', { height, rx, width })]),
-      h('g', { 'clip-path': 'url(#card)' }, [
-        h('rect', { fill: color('--vp-c-bg'), height, width }),
-        h('rect', { fill: sky.fill, height: horizon, width })
-      ]),
-      h('path', {
-        d                : `M0 ${horizon}H${width}`,
-        stroke           : color('--vp-c-text-1'),
-        'stroke-opacity' : 0.55,
-        'stroke-width'   : 2
-      }),
       h('rect', {
-        fill           : 'none',
+        fill           : color('--vp-c-bg-soft'),
         height         : height - 2,
         rx             : rx,
         stroke         : color('--vp-c-divider'),
@@ -117,7 +119,8 @@ export class StartCards {
         x              : 1,
         y              : 1
       }),
-      say(card.word, WORD, sky.ink, word),
+      ...this.#sun(card, scheme),
+      say(card.word, faces.DISPLAY, color('--vp-c-text-1'), word),
       say(title, faces.MONO, color('--vp-c-text-2'), name)
     ])
   }
@@ -127,6 +130,45 @@ export class StartCards {
    */
   title(card: StartCard): string {
     return pageTitle(fileURLToPath(new URL(`../${card.page}`, this.#root)))
+  }
+
+  /**
+   * Draws the sun at `card`'s minute in the logo's colors, sunlit above the
+   * horizon and faded below it, on a horizon as wide as the logo's mark.
+   */
+  #sun(card: StartCard, scheme: Scheme): VNode[] {
+    const { below, horizon: line, ink, mark, sun: gold } = CONSTRUCTION
+    const { height, horizon, sun, width }               = LAYOUT
+
+    const cy    = tenth(sunY(this.#day.altitudes[card.minute(this.#day)]!))
+    const half  = sun.r * mark / 2
+    const inked = this.#tokens.resolve(ink[scheme], scheme)
+
+    return [
+      h('clipPath', { id: 'sky' }, [h('rect', { height: horizon.y, width })]),
+      h('clipPath', { id: 'land' }, [h('rect', { height: height - horizon.y, width, y: horizon.y })]),
+      h('circle', {
+        'clip-path' : 'url(#sky)',
+        cx          : sun.x,
+        cy          : cy,
+        fill        : this.#tokens.resolve(gold, scheme),
+        r           : sun.r
+      }),
+      h('circle', {
+        'clip-path'    : 'url(#land)',
+        cx             : sun.x,
+        cy             : cy,
+        fill           : inked,
+        'fill-opacity' : below[scheme],
+        r              : sun.r
+      }),
+      h('path', {
+        d                : `M${sun.x - half} ${horizon.y}H${sun.x + half}`,
+        stroke           : inked,
+        'stroke-opacity' : line.opacity,
+        'stroke-width'   : horizon.stroke
+      })
+    ]
   }
 }
 

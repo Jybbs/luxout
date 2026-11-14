@@ -4,6 +4,7 @@ import { type Component, defineAsyncComponent } from 'vue'
 
 import { writeTiming }       from '../lib/motion/timing.ts'
 import type { WidgetName }   from '../lib/widgets/placements.ts'
+import { Credits }           from './components/credit/credits.tsx'
 import { LuxScale }          from './components/daylight/lux-scale.tsx'
 import { TheGap }            from './components/daylight/the-gap.tsx'
 import { LocationSearch }    from './components/search/location-search.tsx'
@@ -18,6 +19,7 @@ import '@fontsource-variable/source-serif-4/opsz-italic.css'
 import './styles/tokens.css'
 
 const WIDGETS = {
+  Credits           : Credits,
   LocationSearch    : LocationSearch,
   LuxScale          : LuxScale,
   SettingsReference : SettingsReference,

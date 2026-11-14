@@ -14,6 +14,7 @@ const vitepress = vi.hoisted(() => ({
 
 vi.mock('vitepress', () => vitepress)
 vi.mock('vitepress/theme-without-fonts', () => ({ default: { Layout: 'Layout' } }))
+vi.mock('../../lib/credit/credit.data.ts', () => import('../common/data/credit.ts'))
 vi.mock('../../lib/daylight/daylight.data.ts', () => import('../common/data/daylight.ts'))
 vi.mock('../../lib/search/search.data.ts', () => import('../common/data/search.ts'))
 vi.mock('../../lib/settings/settings.data.ts', () => import('../common/data/settings.ts'))

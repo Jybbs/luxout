@@ -18,6 +18,7 @@ interface Settings {
  */
 export const FONT_FILES = {
   display : 'fonts/bodoni-moda/bodoni-moda.ttf',
+  italic  : 'fonts/source-serif-4/source-serif-4-italic.ttf',
   mono    : 'fonts/jetbrains-mono/jetbrains-mono.ttf',
   serif   : 'fonts/source-serif-4/source-serif-4.ttf'
 }

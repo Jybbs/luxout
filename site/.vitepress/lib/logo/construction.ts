@@ -10,6 +10,7 @@ export interface Construction {
   glow    : { radius: number, stops: readonly { offset: number, opacity: number }[] }
   horizon : { gap: number, opacity: number, stroke: { mark: number, title: number } }
   ink     : Record<Scheme, string>
+  lockup  : { below: number, size: number, width: number }
   mark    : number
   opsz    : number
   sun     : string
@@ -27,12 +28,16 @@ export interface Construction {
  *   and `mark` the side of the mark's square.
  * - `horizon.stroke` is the horizon's thickness in font sizes.
  * - `ink` and `sun` name the tokens each color reads.
+ * - `lockup` sets the title `width` pixels wide over the tagline, set at
+ *   `size` pixels with its baseline `below` the o's half-widths under the
+ *   horizon.
  */
 export const CONSTRUCTION: Construction = {
   below   : { dark: 0.38, light: 0.3 },
   frame   : 0.3,
   horizon : { gap: 1.35, opacity: 0.55, stroke: { mark: 0.05, title: 0.011 } },
   ink     : { dark: '--luxout-ground', light: '--luxout-dark' },
+  lockup  : { below: 2, size: 19, width: 560 },
   mark    : 6,
   opsz    : 96,
   sun     : '--luxout-primary',

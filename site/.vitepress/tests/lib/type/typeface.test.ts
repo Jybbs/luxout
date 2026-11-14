@@ -1,5 +1,5 @@
 import { readFile }             from 'node:fs/promises'
-import { basename }             from 'node:path'
+import { basename, dirname }    from 'node:path'
 import { brotliDecompressSync } from 'node:zlib'
 
 import { sum }        from 'd3-array'
@@ -108,10 +108,11 @@ it('places the pen where the transform names, on a baseline whose y runs down', 
 it.each(Object.entries(typeface.FONT_FILES).map(([name, file]) => ({ file, name })))(
   'outlines the $name face at the font revision its Fontsource package ships',
   async ({ file }) => {
-    const id             = basename(file, '.ttf')
+    const id             = basename(dirname(file))
+    const style          = file.endsWith('-italic.ttf') ? 'italic' : 'normal'
     const [kept, served] = await Promise.all([
       readFile(new URL(`../../../${file}`, import.meta.url)),
-      readFile(new URL(import.meta.resolve(`@fontsource-variable/${id}/files/${id}-latin-wght-normal.woff2`)))
+      readFile(new URL(import.meta.resolve(`@fontsource-variable/${id}/files/${id}-latin-wght-${style}.woff2`)))
     ])
 
     expect(revisionOf(typeface.fontOf(kept).face.referenceTable('head')!)).toBe(revisionOf(headOf(served)))
