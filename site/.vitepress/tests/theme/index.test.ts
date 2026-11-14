@@ -1,10 +1,11 @@
 /** @vitest-environment happy-dom */
-import DefaultTheme            from 'vitepress/theme-without-fonts'
-import { expect, it, vi }      from 'vitest'
-import { createApp, nextTick } from 'vue'
+import DefaultTheme                         from 'vitepress/theme-without-fonts'
+import { expect, it, vi }                   from 'vitest'
+import { type VNode, createApp, nextTick } from 'vue'
 
 import { useMotion }    from '../../lib/motion/motion.ts'
 import { WIDGET_NAMES } from '../../lib/widgets/placements.ts'
+import { PauseSwitch }  from '../../theme/controls/pause-switch.tsx'
 import theme            from '../../theme/index.ts'
 
 const vitepress = vi.hoisted(() => ({
@@ -35,8 +36,19 @@ it('registers each widget a placement names, and the fold beneath it', () => {
   expect([...WIDGET_NAMES, 'TableFold'].filter((name) => !enhanced.app.component(name))).toEqual([])
 })
 
-it('passes the hero and the Day Strip into the home layout’s slots', () => {
-  expect(Object.keys(theme.Layout().children as object)).toEqual(['home-hero-after', 'home-hero-info'])
+it('passes the hero, the Day Strip, and the pause switch into the layout’s slots', () => {
+  expect(Object.keys(theme.Layout().children as object)).toEqual([
+    'home-hero-after', 'home-hero-info', 'nav-bar-content-after', 'nav-screen-content-after'
+  ])
+})
+
+it.for([
+  ['nav-bar-content-after', null],
+  ['nav-screen-content-after', { row: true }]
+] as const)('passes the pause switch into %s with the props %o', ([slot, props]) => {
+  const slots = theme.Layout().children as Record<string, () => VNode>
+
+  expect(slots[slot]!()).toMatchObject({ props, type: PauseSwitch })
 })
 
 it('writes no timing during the server render', () => {

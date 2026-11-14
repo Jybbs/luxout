@@ -14,6 +14,7 @@ import { SectionLamps }      from './components/front/section-lamps.tsx'
 import { SourceLamps }       from './components/front/source-lamps.tsx'
 import { LocationSearch }    from './components/search/location-search.tsx'
 import { SettingsReference } from './components/settings/settings-reference.tsx'
+import { PauseSwitch }       from './controls/pause-switch.tsx'
 import { TableFold }         from './controls/table-fold.tsx'
 
 import '@fontsource-variable/bodoni-moda/opsz.css'
@@ -28,8 +29,10 @@ import './styles/section-lamps.css'
 import './styles/source-lamps.css'
 
 const SLOTS = {
-  'home-hero-after' : () => h('div', { class: 'front-strip' }, h(DayStrip)),
-  'home-hero-info'  : () => h(FrontHero)
+  'home-hero-after'          : () => h('div', { class: 'front-strip' }, h(DayStrip)),
+  'home-hero-info'           : () => h(FrontHero),
+  'nav-bar-content-after'    : () => h(PauseSwitch),
+  'nav-screen-content-after' : () => h(PauseSwitch, { row: true })
 }
 const WIDGETS = {
   Credits           : Credits,

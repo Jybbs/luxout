@@ -1,25 +1,40 @@
 /** @vitest-environment happy-dom */
-import { fireEvent, getByRole } from '@testing-library/dom'
-import { expect }               from 'vitest'
-import { nextTick }             from 'vue'
+import { fireEvent, getByRole, getByText } from '@testing-library/dom'
+import { expect, vi }                     from 'vitest'
+import { createSSRApp, h, nextTick }      from 'vue'
+import { renderToString }                 from 'vue/server-renderer'
 
 import { PauseSwitch } from '../../../theme/controls/pause-switch.tsx'
 import { stubMedia }   from '../../common/media.ts'
 import { test }        from '../../common/mount.ts'
 
-test('reads as a switch, unchecked while the drawings run', ({ mount }) => {
+const HELD    = { checked: 'false', title: 'Play the moving drawings' }
+const PLAYING = { checked: 'true', title: 'Pause the moving drawings' }
+
+/**
+ * Reads the state the switch shows, its `aria-checked` and the hint its title
+ * gives.
+ */
+function shown(control: HTMLElement): { checked: string | null, title: string | null } {
+  return { checked: control.getAttribute('aria-checked'), title: control.getAttribute('title') }
+}
+
+test('reads as a switch named for the drawings, on while they play', ({ mount }) => {
   stubMedia(() => false)
 
-  const control = getByRole(mount(PauseSwitch), 'switch', { name: 'Pause drawings' })
+  const control = getByRole(mount(PauseSwitch), 'switch', { name: 'Moving drawings' })
 
   expect(control.localName).toBe('button')
-  expect(control.getAttribute('aria-checked')).toBe('false')
+  expect(shown(control)).toEqual(PLAYING)
 })
 
-test('starts checked for a reader who prefers reduced motion', ({ mount }) => {
+test('turns off once mounted for a reader who prefers reduced motion', async ({ mount }) => {
   stubMedia(() => true)
 
-  expect(getByRole(mount(PauseSwitch), 'switch').getAttribute('aria-checked')).toBe('true')
+  const control = getByRole(mount(PauseSwitch), 'switch')
+
+  await nextTick()
+  expect(shown(control)).toEqual(HELD)
 })
 
 test('flips the paused state on each press and keeps the choice', async ({ mount }) => {
@@ -29,11 +44,45 @@ test('flips the paused state on each press and keeps the choice', async ({ mount
 
   fireEvent.click(control)
   await nextTick()
-  expect(control.getAttribute('aria-checked')).toBe('true')
+  expect(shown(control)).toEqual(HELD)
   expect(localStorage.getItem('luxout-paused')).toBe('true')
 
   fireEvent.click(control)
   await nextTick()
-  expect(control.getAttribute('aria-checked')).toBe('false')
+  expect(shown(control)).toEqual(PLAYING)
   expect(localStorage.getItem('luxout-paused')).toBe('false')
+})
+
+test('labels its row in the small-screen menu with the name it carries', ({ mount }) => {
+  stubMedia(() => false)
+
+  const host = mount(PauseSwitch, { row: true })
+
+  expect(getByText(host, 'Moving drawings').localName).toBe('p')
+  expect(shown(getByRole(host, 'switch', { name: 'Moving drawings' }))).toEqual(PLAYING)
+})
+
+test('hydrates its playing server render to the stored choice', async ({ onTestFinished }) => {
+  stubMedia(() => false)
+  localStorage.setItem('luxout-paused', 'true')
+  onTestFinished(() => localStorage.clear())
+
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+  const host = document.createElement('div')
+
+  host.innerHTML = await renderToString(h(PauseSwitch))
+  expect(shown(getByRole(host, 'switch'))).toEqual(PLAYING)
+
+  document.body.append(host)
+  const app = createSSRApp(PauseSwitch)
+
+  app.mount(host)
+  onTestFinished(() => {
+    app.unmount()
+    host.remove()
+  })
+  await nextTick()
+
+  expect(warn.mock.calls.flat().filter((line) => String(line).includes('Hydration'))).toEqual([])
+  expect(shown(getByRole(host, 'switch'))).toEqual(HELD)
 })
