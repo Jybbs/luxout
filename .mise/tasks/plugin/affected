@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "affected"
+#MISE description = "Run the plugin's tests Vitest selects through `--changed` against the merge base of `HEAD` with `origin/main`, passing any further arguments to Vitest"
+
+base=$(git merge-base origin/main HEAD)
+
+mise run plugin:test -- --changed "$base" "$@"

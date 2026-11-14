@@ -1,9 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "check"
 #MISE depends     = ["plugin:lint", "plugin:typecheck", "site:lint", "site:typecheck"]
-#MISE description = "Run the plugin's and the site's type and lint checks, then the plugin and site tests Vitest selects through `--changed` against the branch's merge base with `origin/main`, the check run before each commit"
+#MISE description = "Run the plugin's and the site's type and lint checks, then `plugin:affected` and `site:affected`, the check run before each commit"
 
-base=$(git merge-base origin/main HEAD)
-
-mise run plugin:test -- --changed "$base"
-mise run site:test -- --changed "$base"
+mise run plugin:affected
+mise run site:affected

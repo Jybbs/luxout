@@ -27,6 +27,7 @@
         "oxlint": "1.87.0",
         "oxlint-tsgolint": "7.0.2003",
         "publint": "0.3.25",
+        "tinyglobby": "0.2.17",
         "toml-eslint-parser": "1.0.3",
         "typescript": "7.0.2",
         "unbash": "5.0.0",
