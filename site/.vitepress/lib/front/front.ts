@@ -47,7 +47,7 @@ interface FrontHero {
    * to the horizon.
    */
   readonly arcs    : readonly string[]
-  readonly inks    : typeof INKS        // The tokens the letters above the horizon take, by the sky behind them
+  readonly inks    : typeof INKS        // The tokens of the letters above the horizon, by the sky behind them
   readonly logs    : readonly number[]  // The clamped clear sky's base-ten logarithm, noon to the floor
   readonly reach   : number             // The minutes the arcs span either side of noon
   readonly schemes : Readonly<Record<Scheme, HeroScheme>>
