@@ -109,6 +109,19 @@ test('scans the whole site for a theme stylesheet that declares no source', asyn
   ])
 })
 
+test('compiles a theme stylesheet through each stylesheet it imports', async ({ root, write }) => {
+  await plant(root, {
+    '.vitepress/lib/dim.css'          : '@tailwind utilities;\n',
+    '.vitepress/theme/styles/dim.css' : '@import \'../../lib/dim.css\';\n',
+    'estimate/dim.md'                 : '<p class="bg-[color-mix(in_srgb,red_30%,black)]"></p>\n'
+  })
+
+  expect(await (await Bundle.read(root)).report(write)).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '.vitepress/theme/styles/dim.css: the minifier folds color-mix(in srgb,red 30%,black) into a fixed color'
+  ])
+})
+
 test('reads no stylesheet outside the theme as a source', async ({ root, write }) => {
   await plant(root, {
     '.vitepress/lib/daylight/frame.css': '.a { color: color-mix(in srgb, red 30%, black) }'

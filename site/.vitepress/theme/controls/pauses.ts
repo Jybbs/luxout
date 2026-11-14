@@ -1,4 +1,4 @@
-import { type UseTimeoutFnReturn, useTimeoutFn } from '@vueuse/core'
+import { type UseTimeoutFnReturn, noop, useTimeoutFn } from '@vueuse/core'
 
 import { PAUSES } from '../../lib/motion/timing.ts'
 
@@ -11,7 +11,7 @@ export class Pauses<Args extends unknown[]> {
   readonly dwell : UseTimeoutFnReturn<(...args: Args) => void>
   readonly leave : UseTimeoutFnReturn<() => void>
 
-  constructor(dwell: (...args: Args) => void, leave: () => void = () => undefined) {
+  constructor(dwell: (...args: Args) => void, leave = noop) {
     this.dwell = useTimeoutFn(dwell, PAUSES.dwell, { immediate: false })
     this.leave = useTimeoutFn(leave, PAUSES.leave, { immediate: false })
   }
