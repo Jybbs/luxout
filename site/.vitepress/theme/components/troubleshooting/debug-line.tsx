@@ -61,7 +61,7 @@ export const DebugLine = defineComponent({
       const chosen = fields[selected.value]!
 
       return (
-        <div class="widget">
+        <div class="widget debug-line">
           <div
             class={[
               'grid min-w-0 gap-3.5 rounded-[10px] bg-raised px-5 pt-3 pb-5 font-mono text-[0.78rem]/[1.75]',

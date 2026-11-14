@@ -232,7 +232,7 @@ export const RequestClock = defineComponent({
       const state = clock.states[journey.shown.value]!
 
       return (
-        <div class="widget grid justify-items-center gap-3.5" ref={journey.root}>
+        <div class="widget request-clock grid justify-items-center gap-3.5" ref={journey.root}>
           <div
             aria-label={clock.label}
             class="request-clock-face group relative aspect-square w-full max-w-64 @container"

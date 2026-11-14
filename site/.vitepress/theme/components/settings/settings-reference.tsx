@@ -145,9 +145,9 @@ export const SettingsReference = defineComponent({
     return () => (
       <div
         class={[
-          'widget [--columns:var(--key)_minmax(0,1fr)_4.75rem_5.5rem_12px] [--gap:14px] [--inset:12px]',
-          '[--key:11rem] @max-md:*:[--columns:minmax(0,1fr)_4.75rem_12px] @max-md:*:[--gap:10px]',
-          '@max-md:*:[--inset:10px]'
+          'widget settings-reference [--columns:var(--key)_minmax(0,1fr)_4.75rem_5.5rem_12px] [--gap:14px]',
+          '[--inset:12px] [--key:11rem] @max-md:*:[--columns:minmax(0,1fr)_4.75rem_12px]',
+          '@max-md:*:[--gap:10px] @max-md:*:[--inset:10px]'
         ]}
       >
         <div

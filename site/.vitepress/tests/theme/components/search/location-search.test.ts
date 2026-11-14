@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { fireEvent, getAllByRole, getByRole } from '@testing-library/dom'
 import { expect, vi }                         from 'vitest'
-import { createSSRApp, h, nextTick }          from 'vue'
+import { h, nextTick }                        from 'vue'
 import { renderToString }                     from 'vue/server-renderer'
 
 import { PAUSES }         from '../../../../lib/motion/timing.ts'
@@ -187,7 +187,7 @@ test('keeps the Play button enabled through the server render under reduced moti
 
   const host = document.createElement('div')
 
-  host.innerHTML = await renderToString(createSSRApp({ render: () => h(LocationSearch) }))
+  host.innerHTML = await renderToString(h(LocationSearch))
 
   expect(host.querySelector<HTMLButtonElement>('.location-search-play')!.disabled).toBe(false)
 })

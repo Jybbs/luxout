@@ -1,5 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { join }     from 'node:path'
+import { readFile }       from 'node:fs/promises'
+import { join, relative } from 'node:path'
 
 import { expect, it, vi } from 'vitest'
 
@@ -91,4 +91,9 @@ it('says how many of the recorded fields the server script reads', () => {
   expect(shown.stages[3]!.note).toBe(
     `It reads 5 of the ${fields} fields in the recorded result and rounds the coordinates to two decimals.`
   )
+})
+
+it('lists the schema and the recording as the files the loaders watch', () => {
+  expect(replay.replaySources.map((file) => relative(join(import.meta.dirname, '../../../../..'), file)))
+    .toEqual(['config.schema.json', 'site/.vitepress/lib/search/recording.json'])
 })

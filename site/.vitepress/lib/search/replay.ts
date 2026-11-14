@@ -1,3 +1,5 @@
+import { join } from 'node:path'
+
 import schema           from '../../../../config.schema.json' with { type: 'json' }
 import { Geocoder }     from '../../../../src/ui/geocoder.ts'
 import { PluginBlock }  from '../../../../src/ui/public/block.ts'
@@ -78,7 +80,13 @@ const NOTHING = {
 const OPEN_HOLD = 800  // Milliseconds the first stage holds
 const QUERY     = '02115'
 const TYPE_HOLD = 500  // Milliseconds the typing stage holds past its last character
-const result    = recording.results[0]!
+/**
+ * The path of each file the replay reads, which the settings and search loaders
+ * both watch.
+ */
+export const replaySources = ['../../../../config.schema.json', './recording.json']
+  .map((path) => join(import.meta.dirname, path))
+const result = recording.results[0]!
 
 function jsonLines(value: unknown): string[] {
   return JSON.stringify(value, null, 2).split('\n')
