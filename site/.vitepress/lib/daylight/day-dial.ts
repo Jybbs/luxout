@@ -1,5 +1,5 @@
-import { extent, minIndex, pairs, sort } from 'd3-array'
-import { scaleLog }                      from 'd3-scale'
+import { bisectRight, extent, minIndex, pairs, sort } from 'd3-array'
+import { scaleLog }                                   from 'd3-scale'
 
 import { TWILIGHT }                     from '../../../../src/daylight/clear-sky.ts'
 import { CLOUD_TUNING }                 from '../../../../src/daylight/cloud-factor.ts'
@@ -42,6 +42,11 @@ export const DEPTHS = sort(Object.values(TWILIGHT))
 const GAP           = 22  // The room between the rim and the nearest edge of a name
 const LETTER        = 11  // The width of one letter of a name
 const NAME          = 24  // The height of a name
+/**
+ * Names the stretch of the day by how many of `DEPTHS` the sun stands at or
+ * above.
+ */
+const PHASES        = ['Night', 'Astronomical twilight', 'Nautical twilight', 'Civil twilight', 'Daylight']
 const shareScale    = scaleLog([luxRange.min, luxRange.max], [0, 1]).clamp(true)
 
 function placeOf(from: number, name: string, to: number): DialStretch['place'] {
@@ -164,4 +169,12 @@ export function dayDial(day: SampleDay): DayDial {
       why     : why
     }))
   }
+}
+
+/**
+ * Names the stretch of the day the sun stands in at `altitude` degrees, from
+ * night through the three depths of twilight to daylight.
+ */
+export function phaseOf(altitude: number): string {
+  return PHASES[bisectRight(DEPTHS, altitude)]!
 }

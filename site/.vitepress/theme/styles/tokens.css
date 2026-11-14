@@ -6,6 +6,7 @@
 @source '..';
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant paused (&:where([data-paused], [data-paused] *));
 
 @theme {
   --breakpoint-*  : initial;
@@ -227,6 +228,11 @@
 @utility widget-num {
   font-family          : var(--font-mono);
   font-variant-numeric : tabular-nums;
+}
+
+@utility widget-time {
+  font                 : 600 1.35rem/1 var(--font-display);
+  font-variant-numeric : lining-nums tabular-nums;
 }
 
 @utility widget-caps {

@@ -46,17 +46,14 @@ export const Tablist = defineComponent({
       onValueChange : ({ value }: tabs.ValueChangeDetails) => select(Number(value)),
       value         : String(props.selected)
     })))
-    const api  = computed(() => tabs.connect(service, normalizeProps))
-    const rest = (event: PointerEvent, index: number) => {
-      if (event.pointerType === 'mouse') pauses.dwell.start(index)
-    }
+    const api = computed(() => tabs.connect(service, normalizeProps))
 
     return () => (
       <div {...api.value.getListProps()} class={props.classes.list}>
         {...props.tabs.map(({ label, style }, index) => (
           <button
             {...mergeProps(api.value.getTriggerProps({ value: String(index) }), {
-              onPointerenter : (event: PointerEvent) => rest(event, index),
+              onPointerenter : (event: PointerEvent) => pauses.rest(event, index),
               onPointerleave : pauses.dwell.stop
             })}
             aria-label={label}

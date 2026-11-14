@@ -2,15 +2,18 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { Glide }     from '../../../lib/motion/glide.ts'
+import { useMotion } from '../../../lib/motion/motion.ts'
 import { DURATIONS } from '../../../lib/motion/timing.ts'
+import { stubMedia } from '../../common/media.ts'
 
 function frames(): void {
   vi.advanceTimersByTime(DURATIONS.move + 32)
 }
 
 beforeEach(() => {
+  localStorage.clear()
   vi.useFakeTimers()
-  vi.stubGlobal('matchMedia', () => ({ matches: false }))
+  stubMedia(() => false)
 })
 
 afterEach(() => {
@@ -77,7 +80,7 @@ it('continues from where it stands when a new goal arrives partway', () => {
 })
 
 it('snaps to the goal under reduced motion', () => {
-  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  stubMedia(() => true)
 
   const write   = vi.fn<(value: number) => void>()
   const settled = vi.fn<() => void>()
@@ -87,6 +90,18 @@ it('snaps to the goal under reduced motion', () => {
 
   expect(write).toHaveBeenCalledExactlyOnceWith(10)
   expect(settled).toHaveBeenCalledOnce()
+})
+
+it('snaps to the goal while the site’s drawings are paused', () => {
+  localStorage.setItem('luxout-paused', 'true')
+
+  const write = vi.fn<(value: number) => void>()
+  const glide = new Glide(0, undefined, vi.fn<() => void>(), write)
+
+  glide.ease(10)
+
+  expect(write).toHaveBeenCalledExactlyOnceWith(10)
+  expect(useMotion().paused.value).toBe(true)
 })
 
 it('stops a motion under way when told to snap', () => {

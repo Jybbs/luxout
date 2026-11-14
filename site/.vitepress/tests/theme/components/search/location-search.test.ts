@@ -7,6 +7,7 @@ import { renderToString }                     from 'vue/server-renderer'
 import { PAUSES }         from '../../../../lib/motion/timing.ts'
 import { LocationSearch } from '../../../../theme/components/search/location-search.tsx'
 import { data }           from '../../../common/data/search.ts'
+import { stubMedia }      from '../../../common/media.ts'
 import { test }           from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/search/search.data.ts', () => import('../../../common/data/search.ts'))
@@ -173,7 +174,17 @@ test('leaves no frame and no timer running once unmounted', ({ mount, unmount })
 })
 
 test('turns the replay off under reduced motion', async ({ mount }) => {
-  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  stubMedia(() => true)
+
+  const host = mount(LocationSearch)
+
+  await nextTick()
+
+  expect(host.querySelector<HTMLButtonElement>('.location-search-play')!.disabled).toBe(true)
+})
+
+test('turns the replay off while the reader has paused the site’s drawings', async ({ mount }) => {
+  localStorage.setItem('luxout-paused', 'true')
 
   const host = mount(LocationSearch)
 
@@ -183,7 +194,7 @@ test('turns the replay off under reduced motion', async ({ mount }) => {
 })
 
 test('keeps the Play button enabled through the server render under reduced motion', async () => {
-  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  stubMedia(() => true)
 
   const host = document.createElement('div')
 

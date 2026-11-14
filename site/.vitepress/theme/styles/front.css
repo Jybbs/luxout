@@ -1,0 +1,240 @@
+@layer base {
+  :is(.VPHome, .front-word) {
+    --front-above : var(--front-above-light, var(--front-noon-above-light, var(--luxout-dark)));
+    --front-edge  : var(--front-edge-light, var(--front-noon-edge-light, none));
+    --front-point : var(--front-point-light, var(--vp-c-bg));
+    --front-sky   : var(--front-sky-light, var(--front-noon-sky-light, var(--luxout-ground)));
+  }
+
+  .dark :is(.VPHome, .front-word) {
+    --front-above : var(--front-above-dark, var(--front-noon-above-dark, var(--luxout-ground)));
+    --front-edge  : var(--front-edge-dark, var(--front-noon-edge-dark, none));
+    --front-point : var(--front-point-dark, var(--vp-c-bg));
+    --front-sky   : var(--front-sky-dark, var(--front-noon-sky-dark, var(--luxout-dark)));
+  }
+
+  .VPHome {
+    --front-tint: color-mix(in oklab, var(--front-point) calc(var(--front-share, 0) * 100%), var(--vp-c-bg));
+  }
+
+  .VPHome .VPHero {
+    position       : sticky;
+    top            : 0;
+    z-index        : 0;
+    isolation      : isolate;
+    container-type : inline-size;
+    overflow       : clip;
+    padding        : calc(var(--vp-nav-height) + 5rem) 1rem 2.5rem;
+  }
+
+  .VPHome .VPHero .container { display: block; }
+
+  .VPHome .VPHero .main {
+    position              : static;
+    display               : grid;
+    grid-template-columns : minmax(0, 1fr);
+    justify-items         : center;
+    gap                   : 12px 20px;
+    width                 : min-content;
+    margin-inline         : auto;
+  }
+
+  .front-word {
+    --front-span : 82cqi;
+    --front-word : calc(var(--front-span) / var(--front-ink));
+    --front-y-at : calc(var(--front-word) * var(--front-horizon));
+    position     : relative;
+    width        : var(--front-span);
+  }
+
+  .front-sky {
+    position   : absolute;
+    bottom     : calc(100% - var(--front-y-at));
+    left       : 50%;
+    z-index    : -1;
+    width      : 100vw;
+    height     : 200vh;
+    translate  : -50% 0;
+    background : var(--front-sky);
+    opacity    : var(--front-fade, 1);
+  }
+
+  .front-line {
+    position         : absolute;
+    top              : calc(var(--front-y-at) - var(--front-word) * var(--front-line) / 2);
+    width            : calc(50vw - 50%);
+    height           : calc(var(--front-word) * var(--front-line));
+    background       : color-mix(in srgb, var(--vp-c-text-1) 55%, transparent);
+    mask-image       : linear-gradient(var(--front-toward), transparent, black 40%);
+  }
+
+  .front-line-left {
+    --front-toward : to right;
+    right          : 100%;
+  }
+
+  .front-line-right {
+    --front-toward : to left;
+    left           : 100%;
+  }
+
+  .front-arc {
+    --front-rise   : 2.25rem;
+    position       : absolute;
+    bottom         : calc(100% - var(--front-y-at));
+    left           : 50%;
+    width          : 100cqi;
+    height         : calc(var(--front-y-at) + var(--front-rise));
+    translate      : -50% 0;
+    clip-path      : inset(-100vh -100vw 0 -100vw);
+    pointer-events : none;
+  }
+
+  .front-arc > svg {
+    position : absolute;
+    inset    : 0;
+    width    : 100%;
+    height   : 100%;
+    overflow : visible;
+  }
+
+  .front-dots {
+    display         : none;
+    fill            : none;
+    stroke          : var(--color-geometry);
+    stroke-width    : 2.4px;
+    stroke-linecap  : round;
+    vector-effect   : non-scaling-stroke;
+  }
+
+  .front-glow, .front-sun {
+    position  : absolute;
+    top       : calc(var(--front-y, 0) * 100%);
+    left      : calc(var(--front-x, 0.5) * 100%);
+    translate : -50% -50%;
+  }
+
+  .front-glow {
+    width         : calc(2 * max(5.5 * var(--front-sun) * var(--front-word), 13cqi));
+    aspect-ratio  : 1;
+    border-radius : 50%;
+    background    : radial-gradient(
+                      closest-side,
+                      color-mix(in srgb, var(--color-sky) 55%, transparent),
+                      color-mix(in srgb, var(--color-sky) 24%, transparent) 30%,
+                      color-mix(in srgb, var(--color-sky) 6%, transparent) 70%,
+                      transparent
+                    );
+    opacity       : var(--front-up, 1);
+  }
+
+  .front-sun {
+    width         : 9px;
+    height        : 9px;
+    border-radius : 50%;
+    background    : var(--color-sky);
+    opacity       : var(--front-up, 1);
+  }
+
+  .front-title {
+    position : relative;
+    margin   : 0;
+    color    : var(--front-above);
+  }
+
+  .front-title-art {
+    width       : calc(100% / var(--front-ink));
+    margin-left : calc(-100% * var(--front-left) / var(--front-ink));
+  }
+
+  .front-title-art svg { display: block; }
+
+  .front-title-art g[fill='currentColor'] path[fill] {
+    stroke         : var(--front-edge);
+    stroke-width   : 3px;
+    paint-order    : stroke;
+    vector-effect  : non-scaling-stroke;
+  }
+
+  .VPHome .VPHero .tagline {
+    max-width   : none;
+    margin      : 0;
+    padding-top : 0;
+    color       : var(--vp-c-text-1);
+    font        : italic 400 clamp(1.1rem, 2.5cqi, 1.4rem)/1.3 var(--font-base);
+    text-align  : center;
+    text-wrap   : balance;
+  }
+
+  .VPHome .VPHero .actions {
+    display     : grid;
+    gap         : 10px;
+    margin      : 0;
+    padding-top : 0;
+  }
+
+  .VPHome .VPHero .action { padding: 0; }
+
+  .VPHome .VPHero .action > a {
+    justify-content : center;
+    width           : 100%;
+  }
+
+  .VPHome .VPHero :is(.front-title, .tagline, .actions, .front-reading) { opacity: var(--front-shown, 1); }
+
+  .VPHome > :not(.VPHero) {
+    position   : relative;
+    z-index    : 1;
+    background : var(--front-tint);
+    box-shadow : 0 0 0 100vmax var(--front-tint);
+    clip-path  : inset(0 -100vmax);
+  }
+
+  .VPHome > .VPHero + * {
+    background : linear-gradient(
+                   color-mix(in srgb, var(--front-sky) calc(45% * var(--front-a, 0)), transparent),
+                   transparent 32px
+                 ),
+                 var(--front-tint);
+    box-shadow : 0 0 0 100vmax var(--front-tint),
+                 0 -1px 0
+                   color-mix(in srgb, var(--front-sky) calc(100% * var(--front-a, 0)), var(--vp-c-divider)),
+                 0 -26px 34px -14px
+                   color-mix(in srgb, var(--front-sky) calc(85% * var(--front-a, 0)), transparent);
+    clip-path  : inset(-60px -100vmax 0);
+  }
+
+  @container (width < 40rem) {
+    .front-dots-2 { display: inline; }
+  }
+
+  @container (40rem <= width < 60rem) {
+    .front-dots-1 { display: inline; }
+  }
+
+  @container (width >= 60rem) {
+    .front-dots-0 { display: inline; }
+  }
+
+  @media (width >= 48rem) {
+    .VPHome .VPHero { padding: calc(var(--vp-nav-height) + 4rem) 2rem 3.25rem; }
+
+    .VPHome .VPHero .main {
+      grid-template-columns : minmax(0, 1fr) auto;
+      justify-items         : stretch;
+    }
+
+    .VPHome .VPHero .front-word { grid-column: 1 / -1; }
+
+    .VPHome .VPHero .tagline { text-align: left; }
+
+    .VPHome .VPHero .actions {
+      grid-auto-flow : column;
+      align-self     : center;
+    }
+
+    .front-word { --front-span: min(35rem, 70cqi); }
+
+    .front-arc { --front-rise: 1rem; }
+  }
+}

@@ -23,6 +23,7 @@ vi.mock('../lib/daylight/daylight.data.ts', () => import('./common/data/daylight
 vi.mock('../lib/daylight/factor-day.data.ts', () => import('./common/data/factor-day.ts'))
 vi.mock('../lib/daylight/sun-year.data.ts', () => import('./common/data/sun-year.ts'))
 vi.mock('../lib/daylight/twilight-bridge.data.ts', () => import('./common/data/twilight-bridge.ts'))
+vi.mock('../lib/front/front.data.ts', () => import('./common/data/front.ts'))
 vi.mock('../lib/privacy/privacy.data.ts', () => import('./common/data/privacy.ts'))
 vi.mock('../lib/search/search.data.ts', () => import('./common/data/search.ts'))
 vi.mock('../lib/settings/settings.data.ts', () => import('./common/data/settings.ts'))
