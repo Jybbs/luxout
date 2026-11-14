@@ -37,8 +37,9 @@ async function heroOf({ filePath, title }: Page, srcDir: string): Promise<{ name
  * Builds the `transformPageData` hook, which sets the engines, the version, and
  * HomeKit's lux range on every page's frontmatter, the card into the next
  * section on each section's last page, and the home layout on the front page
- * with a hero restating its title and its opening paragraph. A page reads the
- * version as `{{ $frontmatter.package.version }}`.
+ * with a hero restating its title and its opening paragraph, beside an action
+ * into each section that declares one. A page reads the version as
+ * `{{ $frontmatter.package.version }}`.
  */
 export function transformPage(
   { engines, version } : Facts,
@@ -50,6 +51,7 @@ export function transformPage(
     `${sectionPages(root, section).at(-1)!.link.slice(1)}.md`,
     { link: `/${slug}/`, text: label }
   ]))
+  const actions = sections.flatMap(({ action, slug }) => action ? [{ link: `/${slug}/`, ...action }] : [])
 
   return async (page, { siteConfig }) => {
     const next = closing.get(page.relativePath)
@@ -58,7 +60,10 @@ export function transformPage(
       frontmatter: {
         ...page.frontmatter,
         ...next && { next },
-        ...page.relativePath === HOME && { hero: await heroOf(page, siteConfig.srcDir), layout: 'home' },
+        ...page.relativePath === HOME && {
+          hero   : { ...await heroOf(page, siteConfig.srcDir), actions },
+          layout : 'home'
+        },
         homekit : homekit,
         package : { engines, version }
       }

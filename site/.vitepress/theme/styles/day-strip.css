@@ -1,0 +1,204 @@
+@layer base {
+  .front-strip { padding: 1.5rem 24px 2.5rem; }
+
+  .front-strip > .day-strip {
+    max-width     : 1152px;
+    margin-inline : auto;
+  }
+
+  .day-strip-grid {
+    --strip-ground      : 200px;
+    --strip-deck        : calc(var(--strip-ground) * 0.48);
+    --strip-under       : calc(var(--strip-ground) * 0.72);
+    --strip-head        : 48px;
+    --strip-lift        : 6px;
+    grid-template-areas : 'stage' 'axis';
+  }
+
+  .day-strip-axis { grid-area: axis; }
+
+  .day-strip-stage {
+    --x       : calc(var(--at) * 100cqi);
+    --sun-x   : clamp(14px, var(--x), 100cqi - 14px);
+    --lean    : calc(clamp(1px, var(--x), 100cqi - 1px) - var(--sun-x));
+    --away    : max(var(--lean), -1 * var(--lean));
+    --drop    : calc(min(11px, var(--away) * 1000) + var(--away));
+    grid-area : stage;
+    height    : var(--strip-ground);
+    cursor    : ew-resize;
+  }
+
+  .day-strip-stage[data-painted] .day-strip-cloud { visibility: hidden; }
+
+  .day-strip-beam {
+    position       : absolute;
+    top            : 18px;
+    bottom         : 0;
+    left           : var(--sun-x);
+    width          : 28px;
+    translate      : -50% 0;
+    pointer-events : none;
+  }
+
+  .day-strip-beam::before, .day-strip-beam::after {
+    content          : '';
+    position         : absolute;
+    top              : 0;
+    left             : 50%;
+    width            : 2px;
+    height           : calc(hypot(var(--lean), var(--drop)) + 1px);
+    translate        : -50% 0;
+    transform-origin : 50% 0;
+    rotate           : atan2(calc(-1 * var(--lean)), var(--drop));
+    border-radius    : 0 0 1px 1px;
+  }
+
+  .day-strip-beam::before { box-shadow: 0 0 0 1px var(--vp-c-bg); }
+
+  .day-strip-beam::after { background: var(--color-ink); }
+
+  .day-strip-glow {
+    position   : absolute;
+    right      : 0;
+    left       : 0;
+    z-index    : -1;
+    background : linear-gradient(
+                   90deg,
+                   transparent,
+                   color-mix(in srgb, var(--color-sky) 95%, transparent) 50%,
+                   transparent
+                 );
+  }
+
+  .day-strip-glow-sky {
+    top    : 0;
+    height : calc(var(--strip-deck) - 18px);
+  }
+
+  .day-strip-glow-deck {
+    top    : calc(var(--strip-deck) - 18px);
+    height : calc(var(--strip-under) - var(--strip-deck));
+  }
+
+  .day-strip-glow-under {
+    top    : calc(var(--strip-under) - 18px);
+    bottom : 0;
+  }
+
+  .day-strip-needle {
+    position      : absolute;
+    top           : var(--drop);
+    bottom        : 0;
+    left          : calc(50% + var(--lean));
+    width         : 2px;
+    translate     : -50% 0;
+    border-radius : 1px 1px 0 0;
+    background    : var(--color-ink);
+    box-shadow    : 0 0 0 1px var(--vp-c-bg);
+  }
+
+  .day-strip-sun {
+    position       : absolute;
+    top            : 7px;
+    left           : var(--sun-x);
+    z-index        : 2;
+    width          : 22px;
+    height         : 22px;
+    translate      : -50% 0;
+    border-radius  : 50%;
+    background     : var(--color-sky);
+    box-shadow     : 0 0 0 1.5px var(--luxout-dark),
+                     0 0 0 3px color-mix(in srgb, var(--luxout-ground) 85%, transparent),
+                     0 0 16px 5px color-mix(in srgb, var(--color-sky) 45%, transparent);
+    pointer-events : none;
+  }
+
+  .day-strip-sun[data-down] {
+    background : color-mix(in srgb, var(--color-geometry) 35%, transparent);
+    box-shadow : 0 0 0 1.5px var(--luxout-ground),
+                 0 0 0 3px color-mix(in srgb, var(--luxout-dark) 55%, transparent);
+  }
+
+  .day-strip-card {
+    position       : relative;
+    z-index        : 3;
+    grid-area      : stage;
+    align-self     : start;
+    justify-self   : start;
+    width          : 10.5rem;
+    height         : calc(var(--strip-ground) - 2 * var(--strip-lift));
+    margin-top     : var(--strip-lift);
+    translate      : calc(100cqi - 100% - 12px) 0;
+    border-radius  : 10px;
+    background     : color-mix(in srgb, var(--color-raised) 92%, transparent);
+    box-shadow     : 0 0 0 1px var(--color-rule), 0 12px 26px -18px var(--color-shadow);
+    transition     : translate var(--timing-move) var(--timing-ease);
+    pointer-events : none;
+  }
+
+  .day-strip-card[data-end='left'] { translate: 12px 0; }
+
+  .day-strip-level {
+    position  : absolute;
+    right     : 12px;
+    left      : 12px;
+    translate : 0 -50%;
+  }
+
+  .day-strip-head { top: calc(var(--strip-head) / 2 - var(--strip-lift)); }
+
+  .day-strip-sky { top: calc((var(--strip-head) + var(--strip-deck)) / 2 - var(--strip-lift)); }
+
+  .day-strip-deck { top: calc((var(--strip-deck) + var(--strip-under)) / 2 - var(--strip-lift)); }
+
+  .day-strip-under {
+    top: calc((var(--strip-under) + var(--strip-ground) - var(--strip-lift)) / 2 - var(--strip-lift));
+  }
+
+  .day-strip-span::before {
+    content  : '';
+    position : absolute;
+    top      : 8px;
+    right    : 2px;
+    left     : 2px;
+    height   : 2px;
+  }
+
+  .day-strip-window::before { background: var(--color-forecast); }
+
+  .day-strip-assumed::before {
+    background: repeating-linear-gradient(90deg, var(--color-fallback) 0 6px, transparent 6px 10px);
+  }
+
+  @container (width < 40rem) {
+    .day-strip-grid {
+      --strip-ground      : 150px;
+      grid-template-areas : 'stage' 'axis' 'card';
+    }
+
+    .day-strip-card {
+      display               : grid;
+      grid-area             : card;
+      grid-template-columns : repeat(3, minmax(0, 1fr));
+      justify-self          : stretch;
+      gap                   : 10px 12px;
+      width                 : auto;
+      height                : auto;
+      margin                : 10px 0 0;
+      translate             : none;
+      background            : none;
+      box-shadow            : none;
+    }
+
+    .day-strip-card .day-strip-level {
+      position  : static;
+      translate : none;
+    }
+
+    .day-strip-card .day-strip-head {
+      grid-column     : 1 / -1;
+      justify-content : start;
+      gap             : 12px;
+    }
+  }
+}

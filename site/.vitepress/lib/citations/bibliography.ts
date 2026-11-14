@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+
 import { type CSL, type CSLName, Cite } from '@citation-js/core'
 import '@citation-js/plugin-bibtex'
 
@@ -20,10 +22,12 @@ const listFormat = new Intl.ListFormat('en')
 
 /**
  * Holds each work a bibliography lists, keyed by its BibTeX key, beside the
- * footnote text the template for the work's type gives it.
+ * footnote text the template for the work's type gives it and the address its
+ * DOI or URL gives.
  */
 export class Bibliography {
-  readonly #notes: ReadonlyMap<string, string>
+  readonly #addresses : ReadonlyMap<string, string>
+  readonly #notes     : ReadonlyMap<string, string>
 
   /**
    * Reads BibTeX through citation-js, failing on an entry whose type no
@@ -31,12 +35,30 @@ export class Bibliography {
    */
   static parse(bibtex: string): Bibliography {
     const works = new Cite(bibtex).data
+    const keyed = (read: (work: CSL) => string) => new Map(works.map((work) => [String(work.id), read(work)]))
 
-    return new Bibliography(new Map(works.map((work) => [String(work.id), footnote(work)] as const)))
+    return new Bibliography(keyed(footnote), keyed((work) => addressOf(work)!))
   }
 
-  constructor(notes: ReadonlyMap<string, string>) {
-    this.#notes = notes
+  /**
+   * Reads the site's `references.bib`, which sits beside `root`, the site's
+   * `.vitepress` directory.
+   */
+  static async read(root: URL): Promise<Bibliography> {
+    return Bibliography.parse(await readFile(new URL('../references.bib', root), 'utf8'))
+  }
+
+  constructor(notes: ReadonlyMap<string, string>, addresses: ReadonlyMap<string, string> = new Map()) {
+    this.#addresses = addresses
+    this.#notes     = notes
+  }
+
+  /**
+   * Reads the address of the work `key` names, its DOI's or else its URL,
+   * failing where the bibliography holds no entry for it.
+   */
+  address(key: string): string {
+    return this.#addresses.get(key) ?? fail(`The bibliography holds no entry for ${key}`)
   }
 
   /**
@@ -54,6 +76,13 @@ export class Bibliography {
   #note(key: string): string {
     return `[^${key}]: ${this.#notes.get(key) ?? fail(`The bibliography holds no entry for ${key}`)}`
   }
+}
+
+/**
+ * Reads the address `work`'s DOI gives, or else its URL.
+ */
+function addressOf(work: CSL): string | undefined {
+  return work.DOI ? `https://doi.org/${work.DOI}` : work.URL
 }
 
 /**
@@ -75,14 +104,14 @@ function fail(message: string): never {
 
 /**
  * Fills the template for `work`'s type with the work's own fields, beside its
- * authors, its year, and the address its DOI gives, or else its URL.
+ * authors, its year, and its address.
  */
 function footnote(work: CSL): string {
   const template = TEMPLATES[work.type]
                 ?? fail(`${work.id} is an entry of type ${work.type}, which no footnote template formats`)
   const fields: Record<string, unknown> = {
     ...work,
-    address : work.DOI ? `https://doi.org/${work.DOI}` : work.URL,
+    address : addressOf(work),
     authors : work.author?.every(({ family }) => family) && authors(work.author),
     year    : work.issued?.['date-parts']?.[0][0]
   }

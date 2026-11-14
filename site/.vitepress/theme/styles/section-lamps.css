@@ -1,0 +1,210 @@
+@layer base {
+  .section-lamps {
+    --lamp-x  : calc((var(--reached) + 0.5) / var(--lamps) * 100%);
+    position  : relative;
+    display   : grid;
+    gap       : 14px;
+  }
+
+  .section-lamps-row {
+    position              : relative;
+    z-index               : 1;
+    display               : grid;
+    grid-template-columns : repeat(var(--lamps), minmax(0, 1fr));
+    grid-template-rows    : repeat(3, auto);
+    margin                : 0;
+    padding               : 0;
+    list-style            : none;
+  }
+
+  .section-lamps-row::before {
+    content    : '';
+    position   : absolute;
+    top        : 0;
+    right      : 0;
+    left       : 0;
+    height     : 1px;
+    background : var(--color-rule);
+  }
+
+  .section-lamps-row::after {
+    content    : '';
+    position   : absolute;
+    top        : calc(71px * 52 / 76);
+    bottom     : -42px;
+    left       : calc(var(--lamp-x) - 64px);
+    z-index    : -1;
+    width      : 128px;
+    clip-path  : polygon(45px 0, 83px 0, 100% 100%, 0 100%);
+    background : linear-gradient(
+                   color-mix(in srgb, var(--color-sky) 50%, transparent),
+                   color-mix(in srgb, var(--color-sky) 18%, transparent) 80%,
+                   transparent
+                 );
+    transition : left var(--timing-settle) var(--timing-ease);
+  }
+
+  .section-lamps-lamp {
+    display            : grid;
+    grid-row           : span 3;
+    grid-template-rows : subgrid;
+    min-width          : 0;
+    margin             : 0;
+  }
+
+  .section-lamps-lamp > a {
+    display            : grid;
+    grid-row           : span 3;
+    grid-template-rows : subgrid;
+    justify-items      : center;
+    gap                : 3px;
+    padding            : 0 6px 2px;
+    border-radius      : 8px;
+    color              : inherit;
+    text-align         : center;
+    text-decoration    : none;
+  }
+
+  .section-lamps-lamp > a:focus-visible { outline-offset: -2px; }
+
+  .section-lamps-art {
+    display  : block;
+    width    : 60px;
+    height   : 71px;
+    overflow : visible;
+  }
+
+  .section-lamps-cord {
+    stroke       : var(--color-rule);
+    stroke-width : 1px;
+  }
+
+  .section-lamps-shade {
+    fill            : var(--color-raised);
+    stroke          : var(--color-rule);
+    stroke-width    : 1.4px;
+    stroke-linejoin : round;
+  }
+
+  .section-lamps-inner, .section-lamps-halo {
+    opacity    : 0;
+    transition : opacity var(--timing-settle) var(--timing-ease);
+  }
+
+  .section-lamps-inner { fill: var(--color-sky); }
+
+  .section-lamps-bulb {
+    fill         : var(--color-sunken);
+    stroke       : var(--color-rule);
+    stroke-width : 1.2px;
+    transition   : fill var(--timing-settle) var(--timing-ease);
+  }
+
+  .section-lamps-label {
+    margin-top : 2px;
+    text-wrap  : balance;
+    transition : color var(--timing-fade) var(--timing-ease);
+  }
+
+  .section-lamps-asks {
+    display            : -webkit-box;
+    overflow           : hidden;
+    color              : var(--color-ink);
+    font               : italic 400 0.88rem/1.35 var(--font-base);
+    -webkit-box-orient : vertical;
+    -webkit-line-clamp : 4;
+  }
+
+  [data-lit] > a > .section-lamps-label { color: var(--color-ink); }
+
+  [data-lit] .section-lamps-inner { opacity: 1; }
+
+  [data-lit] .section-lamps-halo { opacity: 0.9; }
+
+  [data-lit] .section-lamps-bulb { fill: var(--color-sky); }
+
+  .section-lamps-plate {
+    position      : relative;
+    z-index       : 1;
+    overflow      : hidden;
+    padding       : 12px 20px;
+    border-radius : 12px;
+    background    : color-mix(in srgb, var(--color-raised) 70%, transparent);
+    box-shadow    : 0 0 0 1px var(--color-rule);
+  }
+
+  .section-lamps-pool {
+    position       : absolute;
+    inset-block    : 0;
+    left           : var(--lamp-x);
+    width          : 60%;
+    translate      : -50% 0;
+    background     : radial-gradient(
+                       ellipse 50% 160% at 50% 0%,
+                       color-mix(in srgb, var(--color-sky) 34%, transparent),
+                       transparent 70%
+                     );
+    transition     : left var(--timing-settle) var(--timing-ease);
+    pointer-events : none;
+  }
+
+  .section-lamps-holds {
+    position              : relative;
+    display               : grid;
+    grid-template-columns : minmax(0, 1fr) auto;
+    align-items           : center;
+    gap                   : 6px 24px;
+  }
+
+  .section-lamps-open {
+    color           : var(--color-accent);
+    font-size       : 0.9rem;
+    font-weight     : 600;
+    text-decoration : none;
+    white-space     : nowrap;
+  }
+
+  .section-lamps-open::after {
+    content     : '→';
+    margin-left : 0.3em;
+  }
+
+  @media (width < 48rem) {
+    .section-lamps { --lamp-x: 28px; }
+
+    .section-lamps-row {
+      grid-template-columns : minmax(0, 1fr);
+      grid-template-rows    : none;
+      gap                   : 2px;
+    }
+
+    .section-lamps-row::before, .section-lamps-row::after { display: none; }
+
+    .section-lamps-lamp {
+      display  : block;
+      grid-row : auto;
+    }
+
+    .section-lamps-lamp > a {
+      grid-template-columns : 40px minmax(0, 1fr);
+      grid-template-rows    : auto auto;
+      justify-items         : start;
+      gap                   : 1px 12px;
+      padding               : 5px 8px;
+      text-align            : left;
+      transition            : background-color var(--timing-settle) var(--timing-ease);
+    }
+
+    [data-lit] > a { background-color: color-mix(in srgb, var(--color-sky) 16%, transparent); }
+
+    .section-lamps-art {
+      grid-row : 1 / 3;
+      width    : 36px;
+      height   : 43px;
+    }
+
+    .section-lamps-asks { -webkit-line-clamp: 2; }
+
+    .section-lamps-holds { grid-template-columns: minmax(0, 1fr); }
+  }
+}

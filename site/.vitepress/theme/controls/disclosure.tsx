@@ -30,6 +30,14 @@ export class Disclosure {
   }
 
   /**
+   * Reads the props a button takes to open and close the region, for a widget
+   * drawing a button of its own.
+   */
+  get trigger(): ReturnType<collapsible.Api['getTriggerProps']> {
+    return this.#api.value.getTriggerProps()
+  }
+
+  /**
    * Draws the button, a plus whose upright folds into a minus as the region
    * opens, with `fit` adding the utilities the widget around it lays the button
    * out with.
@@ -37,7 +45,7 @@ export class Disclosure {
   button(label: string, fit = ''): VNode {
     return (
       <button
-        {...this.#api.value.getTriggerProps()}
+        {...this.trigger}
         class={[
           'group inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-rule bg-raised',
           'py-1 pr-2.5 pl-2 font-mono text-[0.64rem]/[1.4] font-semibold tracking-widest whitespace-nowrap',

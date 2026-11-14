@@ -37,6 +37,15 @@ interface Lettering {
   tagline : string
 }
 
+/**
+ * The color the letters above the horizon take, the scheme's ink where it is
+ * left out, and the text every id a drawing defines opens on.
+ */
+interface Paint {
+  above?  : string
+  prefix? : string
+}
+
 export const ASSETS = ['lockup', 'mark', 'title'] as const
 
 /**
@@ -73,8 +82,39 @@ export class Logo {
     this.#word         = word
   }
 
+  /**
+   * Reads the depth of the title's horizon below its top, its height, its ink's
+   * two ends, its sun's radius, and the width of its horizon's line, each as a
+   * share of the title's width.
+   */
+  get shares(): { height: number, horizon: number, left: number, line: number, right: number, sun: number } {
+    const { ascent, descent, ink, size, sun, width } = this.#word
+
+    const margin = this.#margin
+    const across = width + 2 * margin
+
+    return {
+      height  : (ascent - descent + 2 * margin) / across,
+      horizon : (ascent + margin - sun.cy) / across,
+      left    : (ink.left + margin) / across,
+      line    : Math.round(size * this.#construction.horizon.stroke.title) / across,
+      right   : (ink.right + margin) / across,
+      sun     : sun.r / across
+    }
+  }
+
   get #margin(): number {
     return Math.round(this.#word.size * this.#construction.frame)
+  }
+
+  /**
+   * Draws the title for the front page's hero in `scheme`, its letters above
+   * the horizon in `currentColor` so the page sets them against the sky behind
+   * them, and every id it defines opening on `scheme`, so the two schemes'
+   * drawings share a page.
+   */
+  hero(scheme: Scheme): VNode {
+    return this.#title(scheme, { above: 'currentColor', prefix: `${scheme}-` })
   }
 
   /**
@@ -85,15 +125,13 @@ export class Logo {
   lockup(scheme: Scheme): VNode {
     const { glow, ink, lockup, word } = this.#construction
     const { faces, tagline }          = this.#lettering
-    const { ascent, sun, width }      = this.#word
+    const shares                      = this.shares
 
-    const margin   = this.#margin
-    const scale    = lockup.width / (width + 2 * margin)
-    const left     = (this.#word.ink.left + margin) * scale
-    const right    = (this.#word.ink.right + margin) * scale
-    const horizon  = (ascent + margin - sun.cy) * scale
-    const baseline = horizon + sun.r * lockup.below * scale
-    const top      = Math.floor(horizon - sun.r * glow.radius * scale)
+    const left     = shares.left * lockup.width
+    const right    = shares.right * lockup.width
+    const horizon  = shares.horizon * lockup.width
+    const baseline = horizon + shares.sun * lockup.below * lockup.width
+    const top      = Math.floor(horizon - shares.sun * glow.radius * lockup.width)
     const height   = Math.ceil(baseline + lockup.size / 2) - top
     const capitals = tagline.toUpperCase().replace(/\.$/, '')
     const plain    = faces.set(MONO, lockup.size, capitals).ink
@@ -129,7 +167,8 @@ export class Logo {
     return this.#draw(
       { bottom: cy - half, horizon, left: cx - half, right: cx + half, top: cy + half },
       this.#word.glyphs.filter(({ sun }) => sun),
-      scheme
+      scheme,
+      {}
     )
   }
 
@@ -138,16 +177,7 @@ export class Logo {
    * its last letter's right edge, framed past its width, ascent, and descent.
    */
   title(scheme: Scheme): VNode {
-    const { ascent, descent, glyphs, ink, width } = this.#word
-
-    const margin  = this.#margin
-    const horizon = { from: ink.left, stroke: this.#construction.horizon.stroke.title, to: ink.right }
-
-    return this.#draw(
-      { bottom: descent - margin, horizon, left: -margin, right: width + margin, top: ascent + margin },
-      glyphs,
-      scheme
-    )
+    return this.#title(scheme)
   }
 
   /**
@@ -155,28 +185,28 @@ export class Logo {
    * `right` and its horizon on `y`, all in that drawing's units.
    */
   titleAcross(left: number, right: number, scheme: Scheme, y: number): VNode {
-    const { ascent, descent, ink, sun, width } = this.#word
-
-    const margin = this.#margin
-    const scale  = (right - left) / (ink.right - ink.left)
+    const shares = this.shares
+    const across = (right - left) / (shares.right - shares.left)
 
     return cloneVNode(this.title(scheme), {
-      height : tenth((ascent - descent + 2 * margin) * scale),
-      width  : tenth((width + 2 * margin) * scale),
-      x      : tenth(left - (ink.left + margin) * scale),
-      y      : tenth(y - (ascent + margin - sun.cy) * scale)
+      height : tenth(shares.height * across),
+      width  : tenth(across),
+      x      : tenth(left - shares.left * across),
+      y      : tenth(y - shares.horizon * across)
     })
   }
 
   #draw(
     { bottom, horizon, left, right, top } : Frame,
     glyphs                                : readonly wordmark.Glyph[],
-    scheme                                : Scheme
+    scheme                                : Scheme,
+    { above, prefix = '' }                : Paint
   ): VNode {
     const { below, glow, ink, sun } = this.#construction
     const { cx, cy, r }             = this.#word.sun
 
     const colors  = { ink: this.#tokens.resolve(ink[scheme], scheme), sun: this.#tokens.resolve(sun, scheme) }
+    const url     = (id: string) => `url(#${prefix}${id})`
     const radius  = Math.round(r * glow.radius)
     const opening = Math.round(r * this.#construction.horizon.gap)
     const stroke  = Math.round(this.#word.size * horizon.stroke)
@@ -190,28 +220,44 @@ export class Logo {
 
     return h('svg', { viewBox: `${left} ${-top} ${across} ${top - bottom}`, xmlns: SVG_NAMESPACE }, [
       h('defs', [
-        h('clipPath', { id: 'sky' }, [h('rect', { height: top - cy, width: across, x: left, y: cy })]),
-        h('clipPath', { id: 'land' }, [
+        h('clipPath', { id: `${prefix}sky` }, [
+          h('rect', { height: top - cy, width: across, x: left, y: cy })
+        ]),
+        h('clipPath', { id: `${prefix}land` }, [
           h('rect', { height: cy - bottom, width: across, x: left, y: bottom })
         ]),
         h(
           'radialGradient',
-          { cx, cy, gradientUnits: 'userSpaceOnUse', id: 'glow', r: radius },
+          { cx, cy, gradientUnits: 'userSpaceOnUse', id: `${prefix}glow`, r: radius },
           glow.stops.map(({ offset, opacity }) =>
             h('stop', { offset, 'stop-color': colors.sun, 'stop-opacity': opacity })
           )
         )
       ]),
       h('g', { transform: 'scale(1 -1)' }, [
-        h('circle', { 'clip-path': 'url(#sky)', cx, cy, fill: 'url(#glow)', r: radius }),
-        h('g', { 'clip-path': 'url(#sky)', 'fill': colors.ink }, sunlit),
-        h('g', { 'clip-path': 'url(#land)', 'fill': colors.ink, 'fill-opacity': below[scheme] }, dimmed),
+        h('circle', { 'clip-path': url('sky'), cx, cy, fill: url('glow'), r: radius }),
+        h('g', { 'clip-path': url('sky'), 'fill': above ?? colors.ink }, sunlit),
+        h('g', { 'clip-path': url('land'), 'fill': colors.ink, 'fill-opacity': below[scheme] }, dimmed),
         h('g', { 'fill': colors.ink, 'fill-opacity': this.#construction.horizon.opacity }, [
           h('rect', { height: stroke, width: cx - opening - horizon.from, x: horizon.from, y: edge }),
           h('rect', { height: stroke, width: horizon.to - cx - opening, x: cx + opening, y: edge })
         ])
       ])
     ])
+  }
+
+  #title(scheme: Scheme, paint: Paint = {}): VNode {
+    const { ascent, descent, glyphs, ink, width } = this.#word
+
+    const margin  = this.#margin
+    const horizon = { from: ink.left, stroke: this.#construction.horizon.stroke.title, to: ink.right }
+
+    return this.#draw(
+      { bottom: descent - margin, horizon, left: -margin, right: width + margin, top: ascent + margin },
+      glyphs,
+      scheme,
+      paint
+    )
   }
 }
 

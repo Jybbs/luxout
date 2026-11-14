@@ -1,12 +1,13 @@
-import { usePreferredReducedMotion, whenever } from '@vueuse/core'
-import * as toggle                             from '@zag-js/toggle'
-import { normalizeProps, useMachine }          from '@zag-js/vue'
+import { whenever }                   from '@vueuse/core'
+import * as toggle                    from '@zag-js/toggle'
+import { normalizeProps, useMachine } from '@zag-js/vue'
 import { type ComputedRef, type VNode, computed, defineComponent, onMounted, shallowRef, useId } from 'vue'
 
 import { HOUR_MARKS, hourWord } from '../../../lib/daylight/clock.ts'
 import { data }                 from '../../../lib/daylight/factor-day.data.ts'
 import { FrameClock }           from '../../../lib/motion/frame-clock.ts'
 import { Glide }                from '../../../lib/motion/glide.ts'
+import { useMotion }            from '../../../lib/motion/motion.ts'
 import { Speech }               from '../../../lib/motion/speech.ts'
 import { layers }               from '../../controls/layers.tsx'
 import { plotMarks }            from '../../controls/plot-marks.tsx'
@@ -97,7 +98,7 @@ const TRACK = {
  */
 class FactorClock {
   readonly id       = useId()
-  readonly motion   = usePreferredReducedMotion()
+  readonly paused   = useMotion().paused
   readonly play     : ComputedRef<toggle.Api>
   readonly playing  = shallowRef(false)
   readonly root     = shallowRef<HTMLElement>()
@@ -112,7 +113,7 @@ class FactorClock {
 
   constructor() {
     const play = useMachine(toggle.machine, computed(() => ({
-      disabled        : this.motion.value === 'reduce',
+      disabled        : this.paused.value,
       id              : this.id,
       onPressedChange : () => this.toggle(),
       pressed         : this.playing.value
@@ -134,7 +135,7 @@ class FactorClock {
     })
 
     onMounted(() => this.#mount())
-    whenever(() => this.motion.value === 'reduce', () => this.pause())
+    whenever(this.paused, () => this.pause())
   }
 
   pause(): void {
@@ -157,7 +158,7 @@ class FactorClock {
     if (goal < PLAY.from || goal >= PLAY.to) this.#glide.snap(PLAY.from)
 
     this.playing.value = true
-    this.#started      = performance.now() - (this.#glide.goal - PLAY.from) / PLAY.pace
+    this.#started      = this.#player.now() - (this.#glide.goal - PLAY.from) / PLAY.pace
     this.#player.start()
   }
 

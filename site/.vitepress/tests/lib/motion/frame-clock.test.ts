@@ -3,12 +3,16 @@ import { type Mock, afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { effectScope, nextTick }                            from 'vue'
 
 import { FrameClock } from '../../../lib/motion/frame-clock.ts'
+import { useMotion }  from '../../../lib/motion/motion.ts'
+import { stubMedia }  from '../../common/media.ts'
 
 let disconnect : Mock<() => void>
 let report     : (isIntersecting: boolean) => void
 
 beforeEach(() => {
   disconnect = vi.fn<() => void>()
+  localStorage.clear()
+  stubMedia(() => false)
   vi.useFakeTimers()
   vi.stubGlobal('IntersectionObserver', class {
     disconnect = disconnect
@@ -91,4 +95,41 @@ it('cancels the frame it requested when stopped', () => {
   vi.advanceTimersToNextFrame()
 
   expect(tick).not.toHaveBeenCalled()
+})
+
+it('requests no frame while the drawings are paused, and resumes once they run', async () => {
+  const tick  = vi.fn<() => boolean>(() => true)
+  const clock = new FrameClock(undefined, tick)
+
+  useMotion().set(true)
+  await nextTick()
+  clock.start()
+  vi.advanceTimersToNextFrame()
+  expect(tick).not.toHaveBeenCalled()
+
+  useMotion().set(false)
+  await nextTick()
+  vi.advanceTimersToNextFrame()
+  expect(tick).toHaveBeenCalledOnce()
+})
+
+it('leaves out of its time every span the drawings spent paused', async () => {
+  const times: number[] = []
+  const clock           = new FrameClock(undefined, (now) => times.push(now) > 0)
+
+  clock.start()
+  vi.advanceTimersToNextFrame()
+  useMotion().set(true)
+  await nextTick()
+
+  const held = clock.now()
+
+  vi.advanceTimersByTime(5000)
+  expect(clock.now()).toBe(held)
+
+  useMotion().set(false)
+  await nextTick()
+  vi.advanceTimersToNextFrame()
+
+  expect(times[1]! - times[0]!).toBeLessThan(100)
 })
