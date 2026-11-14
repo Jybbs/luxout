@@ -238,27 +238,23 @@ test('sends the repository’s own rulesets and settings, each to its endpoint',
     }
   })
 
-  expect({ commands: calls.map(({ args }) => args.join(' ')), status }).toMatchInlineSnapshot(`
-    {
-      "commands": [
-        "api --paginate repos/{owner}/{repo}/rulesets",
-        "api --input .github/rulesets/main.json --method PUT --silent repos/{owner}/{repo}/rulesets/1",
-        "api --input .github/rulesets/tags.json --method PUT --silent repos/{owner}/{repo}/rulesets/2",
-        "api --input - --method PATCH --silent repos/{owner}/{repo}",
-        "api --input - --method PUT --silent repos/{owner}/{repo}/topics",
-        "api --input - --method PUT --silent repos/{owner}/{repo}/actions/permissions",
-        "api --input - --method PUT --silent repos/{owner}/{repo}/actions/permissions/fork-pr-contributor-approval",
-        "api --input - --method PUT --silent repos/{owner}/{repo}/actions/permissions/workflow",
-        "api --method DELETE --silent repos/{owner}/{repo}/automated-security-fixes",
-        "api --method PUT --silent repos/{owner}/{repo}/immutable-releases",
-        "api --method PUT --silent repos/{owner}/{repo}/private-vulnerability-reporting",
-        "api --method PUT --silent repos/{owner}/{repo}/vulnerability-alerts",
-        "api --jq .node_id repos/{owner}/{repo}",
-        "api --input - --method POST --silent graphql",
-        "api --jq .[].name --paginate repos/{owner}/{repo}/rulesets",
-      ],
-      "status": 0,
-    }
+  expect(status).toBe(0)
+  expect(calls.map(({ args }) => args.join(' ')).join('\n')).toMatchInlineSnapshot(`
+    "api --paginate repos/{owner}/{repo}/rulesets
+    api --input .github/rulesets/main.json --method PUT --silent repos/{owner}/{repo}/rulesets/1
+    api --input .github/rulesets/tags.json --method PUT --silent repos/{owner}/{repo}/rulesets/2
+    api --input - --method PATCH --silent repos/{owner}/{repo}
+    api --input - --method PUT --silent repos/{owner}/{repo}/topics
+    api --input - --method PUT --silent repos/{owner}/{repo}/actions/permissions
+    api --input - --method PUT --silent repos/{owner}/{repo}/actions/permissions/fork-pr-contributor-approval
+    api --input - --method PUT --silent repos/{owner}/{repo}/actions/permissions/workflow
+    api --method DELETE --silent repos/{owner}/{repo}/automated-security-fixes
+    api --method PUT --silent repos/{owner}/{repo}/immutable-releases
+    api --method PUT --silent repos/{owner}/{repo}/private-vulnerability-reporting
+    api --method PUT --silent repos/{owner}/{repo}/vulnerability-alerts
+    api --jq .node_id repos/{owner}/{repo}
+    api --input - --method POST --silent graphql
+    api --jq .[].name --paginate repos/{owner}/{repo}/rulesets"
   `)
 })
 

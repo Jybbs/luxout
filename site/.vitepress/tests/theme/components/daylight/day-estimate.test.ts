@@ -273,7 +273,7 @@ test('keeps a peek open for a pointer returning within the leave pause', async (
   expect(tab.classList.contains('peeked')).toBe(true)
 })
 
-test('keeps the peek on its stretch for a pointer returning ahead of a dwell on another', async ({ mount }) => {
+test('keeps the peek for a pointer returning before a dwell on another stretch', async ({ mount }) => {
   const host = mount(DayEstimate)
   const plot = overDial(host)
   const tab  = getAllByRole(host, 'tab')[DAY]!

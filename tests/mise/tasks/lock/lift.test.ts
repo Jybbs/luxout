@@ -286,10 +286,9 @@ function row(stdout: string, pin: string): string[] {
 test('prints every pin behind its newest release as one Markdown table', async ({ scratch }) => {
   const { status, steps, stdout } = await lift(scratch)
 
-  expect({ status, steps, stdout }).toMatchInlineSnapshot(`
-    {
-      "status": 0,
-      "stdout": "| **Pin**          | **Current** | **Newest** | **Major** | **Age** | **Clears**          | **Held** |
+  expect({ status, steps }).toEqual({ status: 0, steps: [] })
+  expect(stdout).toMatchInlineSnapshot(`
+    "| **Pin**          | **Current** | **Newest** | **Major** | **Age** | **Clears**          | **Held** |
     | ---------------- | ----------- | ---------- | --------- | ------- | ------------------- | -------- |
     | @types/node      | 22.20.5     | 26.6.5     | yes       | 8 days  |                     | yes      |
     | actions/checkout | v5.1.0      | v6.0.0     | yes       | 3 days  |                     |          |
@@ -300,9 +299,7 @@ test('prints every pin behind its newest release as one Markdown table', async (
     | unbash           | 5.0.0       | 6.0.0      | yes       | 1 day   |                     |          |
     | vitest           | 5.0.3       | 5.0.5      | no        | 2 days  | GHSA-aaaa-bbbb-cccc |          |
     | zizmor           | 1.30.1      | 1.31.1     | no        |         |                     |          |
-    ",
-      "steps": [],
-    }
+    "
   `)
 })
 

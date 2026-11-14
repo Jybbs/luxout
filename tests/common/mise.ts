@@ -2,5 +2,8 @@ import { vi } from 'vitest'
 
 import type { Run } from '../../.mise/audit/audit.ts'
 
-export const mise = (listed: object[], issues: object[] = []): Run =>
-  vi.fn<Run>((_, [, verb]) => ({ stderr: '', stdout: JSON.stringify(verb === 'ls' ? listed : { issues }) }))
+export const mise = (listed: object[], issues: object[] = [], tracked = ''): Run =>
+  vi.fn<Run>((command, [, verb]) => ({
+    stderr : '',
+    stdout : command === 'git' ? tracked : JSON.stringify(verb === 'ls' ? listed : { issues })
+  }))
