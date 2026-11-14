@@ -1,4 +1,3 @@
-import { useTimeoutFn }               from '@vueuse/core'
 import * as tabs                      from '@zag-js/tabs'
 import { normalizeProps, useMachine } from '@zag-js/vue'
 import { range }                      from 'd3-array'
@@ -9,8 +8,9 @@ import { data }                  from '../../../lib/daylight/day-dial.data.ts'
 import * as dialLens             from '../../../lib/daylight/dial-lens.ts'
 import { Glide }                 from '../../../lib/motion/glide.ts'
 import { Speech }                from '../../../lib/motion/speech.ts'
-import { DURATIONS, PAUSES }     from '../../../lib/motion/timing.ts'
+import { DURATIONS }             from '../../../lib/motion/timing.ts'
 import { layers }                from '../../controls/layers.tsx'
+import { Pauses }                from '../../controls/pauses.ts'
 import { tabPanel, tabsContext } from '../../controls/tablist.tsx'
 import { dialDrawing }           from './dial-drawing.tsx'
 
@@ -99,8 +99,6 @@ class StretchPicker {
     this.#hover(under, event)
   }
 
-  readonly #away   = useTimeoutFn(() => this.#commit(-1), PAUSES.leave, { immediate: false })
-  readonly #dwell  = useTimeoutFn((index: number) => this.#commit(index), PAUSES.dwell, { immediate: false })
   #elements        : readonly (readonly Element[])[] = []
   #from            = { x: 0, y: 0 }
   readonly #glides : readonly Glide[]
@@ -108,6 +106,7 @@ class StretchPicker {
   #levels          : readonly (readonly (readonly string[])[])[] | undefined
   #next            = -1
   #over            = -1
+  readonly #pauses = new Pauses((index: number) => this.#commit(index), () => this.#commit(-1))
   readonly #shown  : number[] = opened.map((open) => open * dialLens.OPENING_STEPS)
 
   constructor() {
@@ -150,7 +149,7 @@ class StretchPicker {
   }
 
   #commit(index: number): void {
-    this.#away.stop()
+    this.#pauses.leave.stop()
     this.#over = index
     this.#peekAt(index >= 0 ? index : this.#held)
   }
@@ -162,8 +161,7 @@ class StretchPicker {
    */
   #hover(index: number, { clientX: x, clientY: y }: PointerEvent): void {
     if (index === this.#over) {
-      this.#dwell.stop()
-      this.#away.stop()
+      this.#pauses.stop()
       this.#next = index
 
       return
@@ -172,12 +170,12 @@ class StretchPicker {
     if (index !== this.#next || Math.hypot(x - this.#from.x, y - this.#from.y) > STILL) {
       this.#next = index
       this.#from = { x, y }
-      this.#dwell.stop()
 
-      if (index >= 0) this.#dwell.start(index)
+      if (index >= 0) this.#pauses.dwell.start(index)
+      else this.#pauses.dwell.stop()
     }
 
-    if (this.#over >= 0 && !this.#away.isPending.value) this.#away.start()
+    if (this.#over >= 0 && !this.#pauses.leave.isPending.value) this.#pauses.leave.start()
   }
 
   #mount(): void {
@@ -264,7 +262,7 @@ export const DayEstimate = defineComponent({
       const peek     = picker.peek.value
 
       return (
-        <div class="widget" ref={picker.root}>
+        <div class="widget day-estimate" ref={picker.root}>
           <div class="grid gap-3.5 @md:grid-cols-[384px_minmax(0,1fr)] @md:items-center @md:gap-6">
             <div
               class={MARKS}

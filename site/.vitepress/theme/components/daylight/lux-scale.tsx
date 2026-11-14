@@ -55,7 +55,7 @@ export const LuxScale = defineComponent({
     const chooser = new Chooser()
 
     return () => (
-      <div class="widget grid gap-3">
+      <div class="widget lux-scale grid gap-3">
         <div
           class={[
             'lux-scale-words [&_p]:m-0 [&_p]:text-lg/[1.5] [&_p]:text-pretty',

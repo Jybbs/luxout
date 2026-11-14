@@ -103,6 +103,32 @@ test('brings a row’s mark forward once a mouse rests on it past the dwell paus
   expect(shown(host)).toBeUndefined()
 })
 
+test('brings no mark forward where a mouse leaves a row ahead of the dwell pause', async ({ mount }) => {
+  const host   = mount(RoundedPlace)
+  const [cell] = getAllByRole(host, 'button').slice(-1)
+
+  fireEvent.pointerEnter(cell!)
+  await wait(PAUSES.dwell - 1)
+  fireEvent.pointerLeave(cell!)
+  await wait(PAUSES.dwell + PAUSES.leave)
+
+  expect(shown(host)).toBeUndefined()
+})
+
+test('keeps a mark forward for a mouse returning to its row within the leave pause', async ({ mount }) => {
+  const host   = mount(RoundedPlace)
+  const [cell] = getAllByRole(host, 'button').slice(-1)
+
+  fireEvent.pointerEnter(cell!)
+  await wait(PAUSES.dwell)
+  fireEvent.pointerLeave(cell!)
+  await wait(PAUSES.leave - 1)
+  fireEvent.pointerEnter(cell!)
+  await wait(PAUSES.dwell)
+
+  expect(shown(host)).toBe('cell')
+})
+
 test('names the mark a mouse rests on over the drawing, in the drawing’s units', async ({ mount }) => {
   const host = mount(RoundedPlace)
   const plot = plotOf(host)

@@ -1,9 +1,8 @@
-import { useTimeoutFn }                           from '@vueuse/core'
 import * as slider                                from '@zag-js/slider'
 import { mergeProps, normalizeProps, useMachine } from '@zag-js/vue'
 import { type PropType, type VNode, computed, defineComponent, useId } from 'vue'
 
-import { PAUSES } from '../../lib/motion/timing.ts'
+import { Pauses } from './pauses.ts'
 
 /**
  * The utilities the control and its thumb take, beside where a thumb drawn on
@@ -69,48 +68,42 @@ export const OVERLAY: Look = { control: 'widget-slider', thumb: 'widget-cover' }
 export class PlotSlider {
   readonly #api = computed(() => slider.connect(this.#service, normalizeProps))
 
-  readonly #away = useTimeoutFn(
-    () => {
-      if (!this.#api.value.focused && !this.#api.value.dragging) this.#options.rest?.()
-    },
-    PAUSES.leave,
-    { immediate: false }
-  )
-
   readonly #control = {
-    onPointerdown: () => this.#dwell.stop(),
+    onPointerdown: () => this.#pauses.dwell.stop(),
 
     onPointerleave: () => {
-      this.#dwell.stop()
+      this.#pauses.dwell.stop()
       this.#hovering = false
-      this.#away.start()
+      this.#pauses.leave.start()
     },
 
     onPointermove: (event: PointerEvent) => {
-      this.#away.stop()
+      this.#pauses.leave.stop()
 
       if (this.#api.value.dragging) return
 
       if (this.#hovering) {
         this.#follow(event.currentTarget as Element, event.clientX)
       } else if (event.pointerType === 'mouse') {
-        this.#dwell.start(event.currentTarget as Element, event.clientX)
+        this.#pauses.dwell.start(event.currentTarget as Element, event.clientX)
       }
     }
   }
 
-  readonly #dwell = useTimeoutFn(
+  #holding          = false
+  #hovering         = false
+  readonly #options : Options
+
+  readonly #pauses = new Pauses(
     (control: Element, clientX: number) => {
       this.#hovering = true
       this.#follow(control, clientX)
     },
-    PAUSES.dwell,
-    { immediate: false }
+    () => {
+      if (!this.#api.value.focused && !this.#api.value.dragging) this.#options.rest?.()
+    }
   )
 
-  #holding          = false
-  #hovering         = false
-  readonly #options : Options
   #pointing         = false
   readonly #service : slider.Service
 
