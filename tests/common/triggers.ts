@@ -16,7 +16,7 @@ const SCRIPT  = /\.[cm]?[jt]sx?$/
  * which the `tsconfigFilePaths` of `resolveTsconfig` leaves out, reading each
  * as rolldown does, where comments, trailing commas, a byte order mark, and an
  * empty file all parse. A file under `node_modules` stands as the `bun.lock`
- * that installs it.
+ * that installs it, and so does a real path under one.
  */
 function chain(file: string, extender: Experimental.ResolverFactory): string[] {
   const lock = lockfile(file)
@@ -29,8 +29,9 @@ function chain(file: string, extender: Experimental.ResolverFactory): string[] {
   const text                    = stripJsonComments(readFileSync(file, 'utf8'), { trailingCommas: true })
   const { extends: bases = [] } = JSON.parse(text.trim() || '{}') as { extends?: string | string[] }
   const paths                   = [bases].flat().map((base) => extended(base, dir, extender))
+  const real                    = realpathSync(file)
 
-  return [file, realpathSync(file), ...paths.flatMap((path) => chain(path, extender))]
+  return [file, lockfile(real) ?? real, ...paths.flatMap((path) => chain(path, extender))]
 }
 
 /**
@@ -61,11 +62,12 @@ function extended(base: string, dir: string, extender: Experimental.ResolverFact
 }
 
 /**
- * Names the `bun.lock` beside the `node_modules` holding `path`, where one
- * holds it.
+ * Names the `bun.lock` beside the outermost `node_modules` holding `path`,
+ * where one holds it, so a path into a Bun isolated store names the lockfile
+ * of the project that installs it.
  */
 function lockfile(path: string): string | undefined {
-  const owner = path.lastIndexOf(MODULES)
+  const owner = path.indexOf(MODULES)
 
   return owner >= 0 ? join(path.slice(0, owner), 'bun.lock') : undefined
 }

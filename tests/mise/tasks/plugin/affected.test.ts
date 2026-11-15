@@ -13,6 +13,7 @@ const ARGS   = ['--bail', '1']
 const BASE   = '5cb3ee2'
 const MERGE  = ['git', 'merge-base', 'origin/main', 'HEAD']
 const STORE  = '.mise/vet/node_modules/.bun/@luxout+base@1.0.0/node_modules/@luxout/base'
+const VENDOR = '.mise/vet/vendor/node_modules/.bun/@luxout+vendored@1.0.0/node_modules/@luxout/vendored'
 const root   = join(import.meta.dirname, '..', '..', '..', '..')
 const PLUGIN = ['mise', 'run', 'plugin:test', '--', '--changed', BASE, ...ARGS]
 
@@ -38,9 +39,10 @@ function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
  * Vitest runs one plugin test under the suite's own configuration. The test
  * imports `src/a.ts`, which re-exports a module under `src/ui/public/`, and
  * imports `.mise/vet/index.ts` dynamically, whose tsconfig chain reaches a
- * package linked from a Bun isolated store, a linked directory, an absolute
- * path naming a directory beside a `.json` file of the same name, and, through
- * `..`, a directory whose `package.json` names a `main`.
+ * package linked from a Bun isolated store, a linked directory, a link to a
+ * package another `bun.lock` installs, an absolute path naming a directory
+ * beside a `.json` file of the same name, and, through `..`, a directory whose
+ * `package.json` names a `main`.
  */
 async function selected(
   changed : string,
@@ -61,12 +63,13 @@ async function selected(
     '.mise/vet/shared.json'            : '{}\n',
     '.mise/vet/shared/tsconfig.json'   : '{}\n',
     '.mise/vet/tsconfig.base.json'     : `{ "extends": ["./tsconfig.root", "@luxout/base", "./linked", `
-                                       + `"${repo}/.mise/vet/shared"] }\n`,
+                                       + `"${repo}/.mise/vet/shared", "./vendored"] }\n`,
     '.mise/vet/tsconfig.empty.json'    : '',
     '.mise/vet/tsconfig.json'          : '{\n  // The vet suite\n  "extends": "./tsconfig.base.json"\n}\n',
     '.mise/vet/tsconfig.notes.json'    : '// The vet suite takes no option of its own\n',
     '.mise/vet/tsconfig.root.json'     : '\ufeff{ "extends": ["./tsconfig.empty.json", '
                                        + '"./tsconfig.notes.json", ".."], }\n',
+    '.mise/vet/vendor/bun.lock'        : '{}\n',
     'bun.lock'                         : '{}\n',
     'bunfig.toml'                      : '{}\n',
     'package.json'                     : '{ "type": "module" }\n',
@@ -95,14 +98,18 @@ async function selected(
     '.mise/node_modules/@luxout/plain/package.json'  : '{}\n',
     '.mise/node_modules/@luxout/plain/tsconfig.json' : '{}\n',
     [`${STORE}/package.json`]                        : '{ "exports": { "import": "./tsconfig.json" } }\n',
-    [`${STORE}/tsconfig.json`]                       : '{}\n'
+    [`${STORE}/tsconfig.json`]                       : '{}\n',
+    [`${VENDOR}/tsconfig.json`]                      : '{}\n'
   })
   await mkdir(join(repo, '.mise', 'vet', 'node_modules', '@luxout'))
+  await mkdir(join(repo, '.mise', 'vet', 'vendor', 'node_modules', '@luxout'))
   await Promise.all([
     ...['.mise/lib/lock.sh', 'tests/common/triggers.ts', 'tests/coverage.json', 'tests/vitest.config.ts']
       .map((file) => cp(join(root, file), join(repo, file))),
     cp(join(import.meta.dirname, '..', '..', 'fixtures', 'mise.sh'), join(scratch, 'bin', 'mise')),
     symlink('real', join(repo, '.mise', 'vet', 'linked')),
+    symlink('vendor/node_modules/@luxout/vendored', join(repo, '.mise', 'vet', 'vendored')),
+    symlink(join(repo, VENDOR), join(repo, '.mise', 'vet', 'vendor', 'node_modules', '@luxout', 'vendored')),
     symlink(join(repo, STORE), join(repo, '.mise', 'vet', 'node_modules', '@luxout', 'base')),
     symlink(join(root, 'node_modules'), join(repo, 'node_modules'))
   ])
@@ -156,6 +163,7 @@ test.for([
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.notes.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.root.json', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/vet/vendor/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'bunfig.toml', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },

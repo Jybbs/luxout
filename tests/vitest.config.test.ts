@@ -1,5 +1,5 @@
 import { existsSync }              from 'node:fs'
-import { glob, readFile }          from 'node:fs/promises'
+import { glob, readFile, symlink } from 'node:fs/promises'
 import { dirname, join, relative } from 'node:path'
 
 import { expect, it, vi } from 'vitest'
@@ -88,6 +88,25 @@ test(
     })
 
     expect(() => triggers(scratch, [])).toThrow('nested')
+  }
+)
+
+test(
+  'lists a tsconfig an extends chain reaches through a linked file beside the file the link names',
+  async ({ scratch }) => {
+    await plant(scratch, {
+      'a.ts'          : 'export const a = 1\n',
+      'base.json'     : '{}\n',
+      'tsconfig.json' : '{ "extends": "./link.json" }\n'
+    })
+    await Promise.all([
+      symlink('base.json', join(scratch, 'link.json')),
+      symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+    ])
+
+    expect(triggers(scratch, ['a.ts'])).toEqual(expect.arrayContaining([
+      join(scratch, 'base.json'), join(scratch, 'link.json')
+    ]))
   }
 )
 
