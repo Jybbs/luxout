@@ -228,19 +228,19 @@ async function lift(
 
   const before = git('status', '--porcelain')
 
-  const { invoked, status, stderr, stdout } = await sync(scratch, 'lock:lift', {
+  const { commands, invoked, status, stderr, stdout } = await sync(scratch, 'lock:lift', {
     args   : args,
     canned : { ...CANNED, ...canned },
     live   : live
   })
 
   return {
-    invoked : invoked,
-    moved   : before !== git('status', '--porcelain'),
-    status  : status,
-    stderr  : stderr,
-    stdout  : stdout,
-    steps   : invoked
+    commands : commands,
+    moved    : before !== git('status', '--porcelain'),
+    status   : status,
+    stderr   : stderr,
+    stdout   : stdout,
+    steps    : invoked
       .filter(({ args: [program, verb] }) => program === 'mise' && verb === 'run')
       .map(({ args, cwd }) => [cwd === scratch ? 'checkout' : 'clone', ...args])
   }
@@ -304,9 +304,9 @@ test('prints every pin behind its newest release as one Markdown table', async (
 })
 
 test('decides every version comparison the run makes in one Bun process', async ({ scratch }) => {
-  const { invoked } = await lift(scratch, { args: ['--try'] })
+  const { commands } = await lift(scratch, { args: ['--try'] })
 
-  expect(invoked.filter(({ args }) => args.some((arg) => arg.includes('Bun.semver')))).toHaveLength(1)
+  expect(commands.filter((args) => args.some((arg) => arg.includes('Bun.semver')))).toHaveLength(1)
 })
 
 test.for([{ args: [] }, { args: ['--try', '--write'] }])(
@@ -362,9 +362,9 @@ test.for([
             + 'which are `--hold <pin>`, `--try`, and `--write`\n'
   }
 ])('exits 2 on the arguments $args before reading any pin', async ({ args, message }, { scratch }) => {
-  const { invoked, status, stderr } = await lift(scratch, { args })
+  const { commands, status, stderr } = await lift(scratch, { args })
 
-  expect({ invoked, status, stderr }).toEqual({ invoked: [], status: 2, stderr: message })
+  expect({ commands, status, stderr }).toEqual({ commands: [], status: 2, stderr: message })
 })
 
 test('exits 2 on a --hold naming no pin the table lists, before any trial or write', async ({ scratch }) => {
@@ -523,11 +523,11 @@ test('stops before printing a table where bun audit fails without a report', asy
 })
 
 test('lists no min_version row where mise reports no newest release', async ({ scratch }) => {
-  const { invoked, stdout } = await lift(scratch, {
+  const { commands, stdout } = await lift(scratch, {
     canned: { 'mise version --json': json({ version: '2026.10.12 macos-arm64 (2026-10-16)' }) }
   })
 
-  const dated = invoked.some(({ args }) => args.includes('aqua:jdx/mise'))
+  const dated = commands.some((args) => args.includes('aqua:jdx/mise'))
 
   expect({ dated, row: row(stdout, 'min_version') }).toEqual({ dated: false, row: [] })
 })
@@ -581,7 +581,7 @@ test('moves the pinned Homebridge with the devDependency, leaving the floor out 
 }) => {
   const floor    = JSON.stringify({ dependencies: { homebridge: '1.8.5' } }, null, 2) + '\n'
   const manifest = JSON.stringify({ devDependencies: { homebridge: '2.4.0' } }, null, 2) + '\n'
-  const { invoked, status, stdout } = await lift(scratch, {
+  const { commands, status, stdout } = await lift(scratch, {
     args   : ['--write'],
     files  : { 'package.json': manifest, 'tests/vet/floor/package.json': floor },
     live   : SETTLED,
@@ -602,7 +602,7 @@ test('moves the pinned Homebridge with the devDependency, leaving the floor out 
     root   : pins('package.json').devDependencies,
     row    : row(stdout, 'homebridge').slice(0, 3),
     status : status,
-    walked : invoked.some(({ args }) => args.includes('tests/vet/floor'))
+    walked : commands.some((args) => args.includes('tests/vet/floor'))
   }).toEqual({
     floor  : floor,
     pinned : { homebridge: '2.5.0' },
