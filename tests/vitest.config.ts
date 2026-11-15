@@ -7,7 +7,8 @@ import thresholds from './coverage.json' with { type: 'json' }
 
 const root     = dirname(import.meta.dirname)
 const triggers = `${convertPathToPattern(root)}/`
-               + '{bunfig.toml,site/bun.lock,{,!(site)/**/}{bun.lock,package.json,tsconfig.json}}'
+               + '{bunfig.toml,site/.vitepress/vitest.config.ts,site/bun.lock,'
+               + '{,!(site)/**/}{bun.lock,package.json,tsconfig.json}}'
 
 export default defineConfig({
   cacheDir : '.cache/vite',

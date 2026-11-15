@@ -43,27 +43,28 @@ async function selected(
   const repo = join(scratch, folder)
 
   await plant(repo, {
-    '.gitignore'                    : '.cache\n.vitest\nnode_modules\n',
-    '.mise/vet/tsconfig.json'       : '{}\n',
-    'bun.lock'                      : '{}\n',
-    'bunfig.toml'                   : '{}\n',
-    'package.json'                  : '{ "type": "module" }\n',
-    'site/.vitepress/tsconfig.json' : '{}\n',
-    'site/bun.lock'                 : '{}\n',
-    'site/index.md'                 : '# Luxout\n',
-    'site/package.json'             : '{}\n',
-    'src/a.ts'                      : 'export const a = 1\n',
-    'src/b.ts'                      : 'export const b = 2\n',
-    'src/package.json'              : '{}\n',
-    'src/tsconfig.json'             : '{}\n',
-    'src/ui/public/tsconfig.json'   : '{}\n',
-    'tests/a.test.ts'               : "import { expect, test } from 'vitest'\n\n"
-                                    + "import { a } from '../src/a.ts'\n\n"
-                                    + "test('reads a', () => {\n  expect(a).toBe(1)\n})\n",
-    'tests/homebridge/bun.lock'     : '{}\n',
-    'tests/homebridge/bunfig.toml'  : '{}\n',
-    'tests/tsconfig.json'           : '{}\n',
-    'tests/vet/floor/bun.lock'      : '{}\n'
+    '.gitignore'                       : '.cache\n.vitest\nnode_modules\n',
+    '.mise/vet/tsconfig.json'          : '{}\n',
+    'bun.lock'                         : '{}\n',
+    'bunfig.toml'                      : '{}\n',
+    'package.json'                     : '{ "type": "module" }\n',
+    'site/.vitepress/tsconfig.json'    : '{}\n',
+    'site/.vitepress/vitest.config.ts' : '{}\n',
+    'site/bun.lock'                    : '{}\n',
+    'site/index.md'                    : '# Luxout\n',
+    'site/package.json'                : '{}\n',
+    'src/a.ts'                         : 'export const a = 1\n',
+    'src/b.ts'                         : 'export const b = 2\n',
+    'src/package.json'                 : '{}\n',
+    'src/tsconfig.json'                : '{}\n',
+    'src/ui/public/tsconfig.json'      : '{}\n',
+    'tests/a.test.ts'                  : "import { expect, test } from 'vitest'\n\n"
+                                       + "import { a } from '../src/a.ts'\n\n"
+                                       + "test('reads a', () => {\n  expect(a).toBe(1)\n})\n",
+    'tests/homebridge/bun.lock'        : '{}\n',
+    'tests/homebridge/bunfig.toml'     : '{}\n',
+    'tests/tsconfig.json'              : '{}\n',
+    'tests/vet/floor/bun.lock'         : '{}\n'
   })
   await Promise.all([
     cp(join(root, 'tests', 'coverage.json'), join(repo, 'tests', 'coverage.json')),
@@ -114,6 +115,7 @@ test.for([
   { changed: 'bunfig.toml', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },
   { changed: 'src/package.json', name: 'runs every plugin test', ran: true },
+  { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every plugin test', ran: true },
   { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'src/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
