@@ -56,8 +56,8 @@ test(
 )
 
 test.for([
-  { name: 'a link as its Markdown', opening: '[Alpha](./a.md) line.', read: '[Alpha](./a.md) line.' },
-  { name: 'only the first line',    opening: 'An Alpha\nline.',        read: 'An Alpha' }
+  { name: 'a link as its text',              opening: '[Alpha](./a.md) line.', read: 'Alpha line.' },
+  { name: 'a paragraph of two lines as one', opening: 'An Alpha\nline.',        read: 'An Alpha line.' }
 ])('reads $name from the paragraph beneath a page’s first heading', async ({ opening, read }, { root }) => {
   const page = join(root, 'guide', 'alpha.md')
 
