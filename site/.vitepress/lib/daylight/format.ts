@@ -1,12 +1,17 @@
 import type { Place } from '../../../../src/config/place.ts'
 import * as clock     from './clock.ts'
 
-const FACTOR_DIGITS = 3     // The decimals a cloud factor other than exactly 1 takes
-const SMALLEST      = 1e-4  // The lux below which a value takes scientific notation
-const SUPERSCRIPTS  = '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'
-const clockFormat   = clock.clockFormatIn('UTC')
-const dayFormat     = clock.dateFormatIn('UTC')
-const degreeFormat  = new Intl.NumberFormat('en-US', {
+const FACTOR_DIGITS = 3  // The decimals a cloud factor other than exactly 1 takes
+/**
+ * The unit of sunlight at the ground, whose case holds inside capitals, since
+ * `M` is the prefix for mega.
+ */
+export const IRRADIANCE = 'W/m²'
+const SMALLEST          = 1e-4  // The lux below which a value takes scientific notation
+const SUPERSCRIPTS      = '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'
+const clockFormat       = clock.clockFormatIn('UTC')
+const dayFormat         = clock.dateFormatIn('UTC')
+const degreeFormat      = new Intl.NumberFormat('en-US', {
   maximumFractionDigits : 1,
   minimumFractionDigits : 1,
   signDisplay           : 'negative',
@@ -18,6 +23,13 @@ export const listFormat = new Intl.ListFormat('en-US')
 const preciseFormat     = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 3 })
 const tinyFormat        = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1, notation: 'scientific' })
 const wholeFormat       = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+
+/**
+ * Writes `text` in capitals, each `IRRADIANCE` in it keeping its own case.
+ */
+export function capitals(text: string): string {
+  return text.split(IRRADIANCE).map((part) => part.toUpperCase()).join(IRRADIANCE)
+}
 
 /**
  * Writes `value` beside the full name of `unit`, as in `5 minutes`.

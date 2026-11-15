@@ -46,6 +46,18 @@ it('lists each color property a rule sets to a bare number, leaving a color and 
   expect(sheet.uncolored).toEqual(['.a { color: 0 }', '.b { border-top-color: -1.5 }', '.b { fill: 2 }'])
 })
 
+it('lists each animated selector whose paused form sets no paused play state, at any specificity', () => {
+  const sheet = new Sheet('a.css', [
+    '.a:hover .b, .c { animation: swell 1s infinite }',
+    '.d { animation-name: turn }',
+    '.e { animation-play-state: paused }',
+    '[data-paused] .a:hover .b, [data-paused] .d { animation-play-state: paused }',
+    '[data-paused] .c { animation-play-state: running }'
+  ].join('\n'))
+
+  expect(sheet.unpaused).toEqual(['.c'])
+})
+
 it('lists each property a rule sets outside every layer once, at any depth beneath other at-rules', () => {
   const sheet = new Sheet('a.css', [
     ':root { --a: red; --b: blue }',

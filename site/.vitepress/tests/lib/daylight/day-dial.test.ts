@@ -1,10 +1,10 @@
 import { pairs, transpose } from 'd3-array'
 import { expect, it }       from 'vitest'
 
-import { CLOUD_TUNING } from '../../../../../src/daylight/cloud-factor.ts'
-import { DEPTHS }       from '../../../lib/daylight/day-dial.ts'
-import { SampleDay }    from '../../../lib/daylight/sample-day.ts'
-import { data }         from '../../common/data/day-dial.ts'
+import { CLOUD_TUNING }    from '../../../../../src/daylight/cloud-factor.ts'
+import { DEPTHS, phaseOf } from '../../../lib/daylight/day-dial.ts'
+import { SampleDay }       from '../../../lib/daylight/sample-day.ts'
+import { data }            from '../../common/data/day-dial.ts'
 
 const { marks, opens, stretches } = data
 
@@ -91,3 +91,20 @@ it('names the plugin’s own floor and count in the window’s reason', () => {
 it('gives the window’s figure as the least and most a lit step takes', () => {
   expect(stretches[named('Window')]!.figure).toMatch(/^0\.\d{3}–(?:0\.\d{3}|1)$/)
 })
+
+it.each([
+  [-90, 'Night'],
+  [DEPTHS[0]!, 'Astronomical twilight'],
+  [DEPTHS[1]!, 'Nautical twilight'],
+  [DEPTHS[2]!, 'Civil twilight'],
+  [DEPTHS[3]!, 'Daylight']
+])('names the stretch the sun stands in at %d degrees %s', (altitude, name) => {
+  expect(phaseOf(altitude)).toBe(name)
+})
+
+it.each(DEPTHS.map((depth, index) => [depth, index]))(
+  'holds the darker stretch just below %d degrees',
+  (depth, index) => {
+    expect(phaseOf(depth - 0.01)).toBe(phaseOf(DEPTHS[index - 1] ?? -90))
+  }
+)

@@ -1,9 +1,10 @@
 import postcss, { AtRule, type Node, type Root, list } from 'postcss'
 
-const COLOR  = /(?:^|-)color$|^(?:fill|stroke)$/
-const IMAGE  = /\[[^\]]*\.(?:avif|gif|jpe?g|png|svg|webp)\b[^\]]*\]/gi
-const NUMBER = /^-?[\d.]+$/
-const WIDTH  = /(?<=width\D*)[\d.]+[a-z]+/g
+const ANIMATION = /^animation(?:-name)?$/
+const COLOR     = /(?:^|-)color$|^(?:fill|stroke)$/
+const IMAGE     = /\[[^\]]*\.(?:avif|gif|jpe?g|png|svg|webp)\b[^\]]*\]/gi
+const NUMBER    = /^-?[\d.]+$/
+const WIDTH     = /(?<=width\D*)[\d.]+[a-z]+/g
 
 /**
  * Holds one stylesheet, the site's source or the build's output.
@@ -77,6 +78,28 @@ export class Sheet {
     })
 
     return found
+  }
+
+  /**
+   * Lists each selector of a rule that sets `animation` or `animation-name`
+   * where no rule sets `animation-play-state: paused` on the same selector
+   * under `[data-paused]`, which leaves that animation running while the site's
+   * drawings are paused.
+   */
+  get unpaused(): string[] {
+    const paused = new Set<string>()
+    const found  = new Set<string>()
+
+    this.#root.walkDecls('animation-play-state', ({ parent, value }) => {
+      if (parent?.type === 'rule' && value === 'paused') for (const one of parent.selectors) paused.add(one)
+    })
+    this.#root.walkDecls(ANIMATION, ({ parent }) => {
+      if (parent?.type !== 'rule') return
+
+      for (const one of parent.selectors) if (!paused.has(`[data-paused] ${one}`)) found.add(one)
+    })
+
+    return [...found]
   }
 
   /**

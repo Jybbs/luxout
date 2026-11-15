@@ -198,7 +198,7 @@ export function settingsPage({ activity, input, match }: SearchPage, typed?: num
         <span
           class={[
             'size-7 rounded-full border-[2.5px] border-ink border-r-transparent',
-            { 'motion-safe:animate-turn': activity === 'spinning' }
+            { 'motion-safe:animate-turn paused:[animation-play-state:paused]': activity === 'spinning' }
           ]}
         />
       </span>

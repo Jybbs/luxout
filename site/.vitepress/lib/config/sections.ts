@@ -8,6 +8,10 @@ export interface Section {
   label : string
   slug  : string
   /**
+   * The button the front page's hero opens the section's overview through.
+   */
+  action?: { text: string, theme: 'alt' | 'brand' }
+  /**
    * Whether the sidebar keeps the overview's order rather than the alphabet's.
    */
   curated?: boolean
@@ -15,6 +19,7 @@ export interface Section {
 
 export const SECTIONS: readonly Section[] = [
   {
+    action  : { text: 'Set It Up', theme: 'brand' },
     asks    : 'How do I install Luxout and point it at my place?',
     curated : true,
     holds   : 'This section takes you from installing the plugin through the Homebridge UI to the Outside '
@@ -37,12 +42,13 @@ export const SECTIONS: readonly Section[] = [
     slug  : 'settings'
   },
   {
-    asks  : 'Where does the reading come from, and where does it stop?',
-    holds : 'This section covers the altitude of the sun, the clear-sky curve, the cloud factor, the '
-          + 'forecast window, what the reading uses while fetches fail, the limits of an estimate, and the '
-          + 'bibliography that credits its sources.',
-    label : 'Estimate',
-    slug  : 'estimate'
+    action : { text: 'How the Estimate Works', theme: 'alt' },
+    asks   : 'Where does the reading come from, and where does it stop?',
+    holds  : 'This section covers the altitude of the sun, the clear-sky curve, the cloud factor, the '
+           + 'forecast window, what the reading uses while fetches fail, the limits of an estimate, and the '
+           + 'bibliography that credits its sources.',
+    label  : 'Estimate',
+    slug   : 'estimate'
   },
   {
     asks  : 'What does Luxout send, and what does it keep?',

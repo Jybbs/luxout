@@ -27,12 +27,12 @@ async function labels(
 ): Promise<{ calls: string[][], status: number | null, stdout: string }> {
   await plant(scratch, { '.github/labels.toml': registry })
 
-  const { calls, status, stdout } = await sync(scratch, 'repo:sync:labels', {
+  const { requests, status, stdout } = await sync(scratch, 'repo:sync:labels', {
     fail : fail,
     live : { [ENDPOINT]: [live.map((name) => ({ name }))] }
   })
 
-  return { calls: calls.map(({ args }) => args), status, stdout }
+  return { calls: requests, status, stdout }
 }
 
 test('creates or updates each declared label with every value as written', async ({ scratch }) => {

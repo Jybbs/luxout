@@ -3,6 +3,7 @@ import { type VNode, defineComponent, shallowRef, useId } from 'vue'
 
 import { tenth }                                from '../../../lib/daylight/tenth.ts'
 import { FrameClock }                           from '../../../lib/motion/frame-clock.ts'
+import { useMotion }                            from '../../../lib/motion/motion.ts'
 import { Speech }                               from '../../../lib/motion/speech.ts'
 import { DURATIONS, motionReduced, smoothstep } from '../../../lib/motion/timing.ts'
 import { data }                                 from '../../../lib/privacy/privacy.data.ts'
@@ -60,6 +61,7 @@ class Journey {
   readonly #back    = shallowRef<SVGCircleElement>()
   readonly #frames  : FrameClock
   readonly #out     = shallowRef<SVGCircleElement>()
+  readonly #paused  = useMotion().paused
   #goal             : number | undefined
   #landed           = false
   #start            : number | undefined
@@ -119,10 +121,10 @@ class Journey {
 
   /**
    * Starts the journey that brings the chosen state to the face, or lands it
-   * at once under reduced motion.
+   * at once under reduced motion or while the site's drawings are paused.
    */
   send(): void {
-    if (motionReduced()) {
+    if (motionReduced() || this.#paused.value) {
       this.#land(this.selected.value)
 
       return

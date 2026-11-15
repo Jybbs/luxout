@@ -124,12 +124,12 @@ describe('the rulesets', () => {
   })
 
   test('sends no setting once a ruleset fails to apply', async ({ scratch }) => {
-    const { calls, status } = await rulesets(files, scratch, {
+    const { requests, status } = await rulesets(files, scratch, {
       fail : 'PUT',
       live : { [RULESETS]: [[{ id: 7, name: 'main' }]] }
     })
 
-    expect({ endpoints: calls.map(({ args }) => args.at(-1)), failed: status !== 0 })
+    expect({ endpoints: requests.map((args) => args.at(-1)), failed: status !== 0 })
       .toEqual({ endpoints: [RULESETS, `${RULESETS}/7`], failed: true })
   })
 })
@@ -209,11 +209,11 @@ describe('the settings', () => {
   })
 
   test('sends no further setting once one fails to send', async ({ scratch }) => {
-    const { calls, status } = await rulesets({ ...ruleset, '.github/settings.toml': SETTINGS }, scratch, {
+    const { requests, status } = await rulesets({ ...ruleset, '.github/settings.toml': SETTINGS }, scratch, {
       fail: 'PATCH'
     })
 
-    expect({ endpoints: calls.map(({ args }) => args.at(-1)), failed: status !== 0 })
+    expect({ endpoints: requests.map((args) => args.at(-1)), failed: status !== 0 })
       .toEqual({ endpoints: [RULESETS, RULESETS, 'repos/{owner}/{repo}'], failed: true })
   })
 
@@ -231,7 +231,7 @@ test('sends the repository’s own rulesets and settings, each to its endpoint',
   const root  = join(import.meta.dirname, '..', '..', '..', '..', '..')
   const files = await Promise.all(OWN.map(async (file) => [file, await readFile(join(root, file), 'utf8')]))
 
-  const { calls, status } = await rulesets(Object.fromEntries(files), scratch, {
+  const { requests, status } = await rulesets(Object.fromEntries(files), scratch, {
     live: {
       'repos/{owner}/{repo}' : { node_id: 'R_1' },
       [RULESETS]             : [[{ id: 1, name: 'main' }, { id: 2, name: 'tags' }]]
@@ -239,7 +239,7 @@ test('sends the repository’s own rulesets and settings, each to its endpoint',
   })
 
   expect(status).toBe(0)
-  expect(calls.map(({ args }) => args.join(' ')).join('\n')).toMatchInlineSnapshot(`
+  expect(requests.map((args) => args.join(' ')).join('\n')).toMatchInlineSnapshot(`
     "api --paginate repos/{owner}/{repo}/rulesets
     api --input .github/rulesets/main.json --method PUT --silent repos/{owner}/{repo}/rulesets/1
     api --input .github/rulesets/tags.json --method PUT --silent repos/{owner}/{repo}/rulesets/2

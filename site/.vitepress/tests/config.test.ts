@@ -11,6 +11,7 @@ import { buildNavigation } from '../lib/config/navigation.ts'
 import { transformPage }   from '../lib/config/page-data.ts'
 import { SECTIONS }        from '../lib/config/sections.ts'
 import { luxRange }        from '../lib/daylight/homekit.ts'
+import { Logo }            from '../lib/logo/logo.ts'
 import { test }            from './common/scratch.ts'
 
 const front: PageData = {
@@ -55,14 +56,22 @@ it('sets the facts package.json declares on every page', async () => {
   const context = { siteConfig: config }
 
   expect(await config.transformPageData?.(front, context))
-    .toEqual(await transformPage(manifest, luxRange, site, SECTIONS)(front, context))
+    .toEqual(transformPage(manifest, luxRange, site, SECTIONS)(front, context))
 })
 
 it('sets the front page hero to the title and the tagline the page opens on', async () => {
   const data = await config.transformPageData?.(front, { siteConfig: config })
 
   expect(data?.frontmatter.hero)
-    .toEqual({ name: 'Luxout', tagline: 'An outdoor light sensor for Apple Home.' })
+    .toMatchObject({ name: 'Luxout', tagline: 'An outdoor light sensor for Apple Home.' })
+})
+
+it('sets one tagline on the hero and beneath the title in the logo lockup', async () => {
+  const data = await config.transformPageData?.(front, { siteConfig: config })
+  const logo = await Logo.read(new URL('../', import.meta.url))
+
+  expect(logo.lockup('light').props?.['aria-label'])
+    .toBe(`Luxout. ${data?.frontmatter.hero.tagline}`)
 })
 
 it('renders the value transformPageData sets wherever a page interpolates a fact', () => {

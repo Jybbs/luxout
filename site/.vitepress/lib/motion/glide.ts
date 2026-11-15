@@ -1,6 +1,7 @@
 import type { MaybeComputedElementRef } from '@vueuse/core'
 
 import { FrameClock } from './frame-clock.ts'
+import { useMotion }  from './motion.ts'
 import * as timing    from './timing.ts'
 
 /**
@@ -13,6 +14,7 @@ export class Glide {
   readonly #clock    : FrameClock
   readonly #duration : number
   #from              : number
+  readonly #paused   = useMotion().paused
   readonly #settled  : () => void
   #start             : number
   #value             : number
@@ -36,10 +38,11 @@ export class Glide {
   }
 
   /**
-   * Eases toward `goal`, or snaps to it under `prefers-reduced-motion`.
+   * Eases toward `goal`, or snaps to it under `prefers-reduced-motion` or while
+   * the site's drawings are paused.
    */
   ease(goal: number): void {
-    if (timing.motionReduced()) {
+    if (timing.motionReduced() || this.#paused.value) {
       this.snap(goal)
 
       return
@@ -47,7 +50,7 @@ export class Glide {
 
     this.goal   = goal
     this.#from  = this.#value
-    this.#start = performance.now()
+    this.#start = this.#clock.now()
     this.#clock.start()
   }
 

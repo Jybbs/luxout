@@ -182,6 +182,17 @@ it('fails naming a key the bibliography holds no entry for', () => {
   expect(() => notes.cite('One[^third].\n')).toThrow('The bibliography holds no entry for third')
 })
 
+it.each([
+  { address: 'https://archive.org/details/DTIC_ADA182110', key: 'janiczek1987', name: 'its URL' },
+  { address: 'https://doi.org/10.2172/1039404', key: 'reno2012', name: 'its DOI' }
+])('reads the address of a work holding $name', ({ address, key }) => {
+  expect(bibliography.address(key)).toBe(address)
+})
+
+it('fails naming a key whose address the bibliography holds no entry for', () => {
+  expect(() => bibliography.address('third')).toThrow('The bibliography holds no entry for third')
+})
+
 it('fails naming an entry whose type no footnote template formats', () => {
   expect(() => Bibliography.parse('@thesis{kept, author = {Kept, Al}, title = {T}, year = {2020}}'))
     .toThrow('kept is an entry of type thesis, which no footnote template formats')

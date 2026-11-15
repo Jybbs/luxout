@@ -6,6 +6,7 @@ import { nextTick }                           from 'vue'
 import { DURATIONS, PAUSES }               from '../../../../lib/motion/timing.ts'
 import { ThreeFactors }                    from '../../../../theme/components/daylight/three-factors.tsx'
 import { data }                            from '../../../common/data/factor-day.ts'
+import { stubMedia }                       from '../../../common/media.ts'
 import { keyOn, pointed, pressable, test } from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/daylight/factor-day.data.ts', () => import('../../../common/data/factor-day.ts'))
@@ -24,12 +25,7 @@ async function press(host: HTMLElement, key: string): Promise<void> {
 }
 
 function reducedMotion(): void {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    addEventListener    : vi.fn<() => void>(),
-    matches             : query.includes('reduce'),
-    media               : query,
-    removeEventListener : vi.fn<() => void>()
-  }))
+  stubMedia((query) => query.includes('reduce'))
 }
 
 test('opens on the resting minute’s three figures, a tab apiece', ({ mount }) => {
@@ -277,6 +273,14 @@ test('stops the morning once the viewer’s motion setting turns to reduce', asy
 
 test('disables the play button under reduced motion', ({ mount }) => {
   reducedMotion()
+
+  const button = getByRole<HTMLButtonElement>(mount(ThreeFactors), 'button', { name: 'Play the morning' })
+
+  expect(button.disabled).toBe(true)
+})
+
+test('disables the play button while the reader has paused the site’s drawings', ({ mount }) => {
+  localStorage.setItem('luxout-paused', 'true')
 
   const button = getByRole<HTMLButtonElement>(mount(ThreeFactors), 'button', { name: 'Play the morning' })
 

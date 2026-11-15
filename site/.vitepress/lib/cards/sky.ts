@@ -8,9 +8,9 @@ import { skyShade } from '../daylight/sky-ramp.ts'
 type Channels = readonly [red: number, green: number, blue: number]
 
 const STEPS  = 255
+const fills  = range(STEPS + 1).map((step) => skyShade(step / STEPS).fill)
 const scale  = scaleLog([luxRange.min, luxRange.max], [0, STEPS]).clamp(true)
-const shades = range(STEPS + 1).map((step) => skyShade(step / STEPS))
-const parsed = shades.map(({ fill }) => channelsOf(fill))
+const parsed = fills.map(channelsOf)
 
 function stepOf(lux: number): number {
   return Math.round(scale(lux))
@@ -37,7 +37,7 @@ export function channelsOf(color: string): Channels {
  * the logarithmic scale of HomeKit's range.
  */
 export function colorAt(lux: number): string {
-  return shadeAt(lux).fill
+  return fills[stepOf(lux)]!
 }
 
 /**
@@ -55,11 +55,4 @@ export function holding(ground: string, hue: string, ratio: number, toward: stri
  */
 export function mix(from: string, to: string, share: number): string {
   return formatHex(interpolate([from, to], 'rgb')(share))
-}
-
-/**
- * Reads the sky's color at `lux` beside the ink that reads best on it.
- */
-export function shadeAt(lux: number): ReturnType<typeof skyShade> {
-  return shades[stepOf(lux)]!
 }

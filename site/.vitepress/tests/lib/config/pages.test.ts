@@ -55,6 +55,19 @@ test(
   }
 )
 
+test.for([
+  { name: 'each link as its text',       opening: '[An](\\(a) [Alpha]((\\()) line.', read: 'An Alpha line.' },
+  { name: 'a link split at a backslash', opening: '[An](a\\\n) Alpha line.',         read: 'An Alpha line.' },
+  { name: 'three lines as one',          opening: 'An\nAlpha\nline.',                read: 'An Alpha line.' },
+  { name: 'no line past one of spaces',  opening: 'An Alpha line.\n  \nMore.',       read: 'An Alpha line.' }
+])('reads $name from the paragraph beneath a page’s first heading', async ({ opening, read }, { root }) => {
+  const page = join(root, 'guide', 'alpha.md')
+
+  await writeFile(page, `# Alpha\n\n${opening}\n`)
+
+  expect(pageOpening(page)).toBe(read)
+})
+
 test('fails on a page with no paragraph beneath its first heading', ({ root }) => {
   expect(() => pageOpening(join(root, 'guide', 'zeta.md')))
     .toThrow('zeta.md opens on no paragraph beneath its first heading')

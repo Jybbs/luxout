@@ -10,13 +10,14 @@ import { tenth }                      from './tenth.ts'
 /**
  * One 15-minute step of the forecast, with the words and the bars it opens.
  */
-interface CloudStep {
+export interface CloudStep {
   readonly bars     : { readonly clear: number, readonly forecast: number }
   readonly borrowed : boolean
   readonly clear    : string
   readonly clock    : string
   readonly drawn    : string
   readonly forecast : string
+  readonly held     : boolean
   readonly how      : string
   readonly lead     : string
   readonly share    : string
@@ -76,8 +77,8 @@ function borrowedWords(clock: string, day: SampleDay, factor: number, sun: strin
 
 function heldWords(clear: string, clock: string, forecast: string, ratio: number, sun: string): StepWords {
   return {
-    how  : `Open-Meteo’s sunlight over the Haurwitz clear sky at ${sun}, each in W/m², held at 1 so a `
-         + 'cloud’s bright edge never reads above a clear sky.',
+    how  : `Open-Meteo’s sunlight over the Haurwitz clear sky at ${sun}, each in ${format.IRRADIANCE}, `
+         + 'held at 1 so a cloud’s bright edge never reads above a clear sky.',
     lead : ` at ${clock}, where the forecast runs slightly past a clear sky and the share holds at 1.`,
     sum  : `${forecast} ÷ ${clear} = ${format.formatFactor(ratio)}, held at 1`
   }
@@ -85,7 +86,8 @@ function heldWords(clear: string, clock: string, forecast: string, ratio: number
 
 function plainWords(clear: string, clock: string, factor: number, forecast: string, sun: string): StepWords {
   return {
-    how  : `Open-Meteo’s sunlight at the ground over the Haurwitz clear sky at ${sun}, each in W/m².`,
+    how  : `Open-Meteo’s sunlight at the ground over the Haurwitz clear sky at ${sun}, `
+         + `each in ${format.IRRADIANCE}.`,
     lead : ` of a clear sky’s sunlight gets through the clouds at ${clock}.`,
     sum  : `${forecast} ÷ ${clear} = ${format.formatFactor(factor)}`
   }
@@ -133,11 +135,12 @@ export function cloudSteps(day: SampleDay): CloudSteps {
         ...words,
         bars     : { clear: tenth(clear / scale * 100), forecast: tenth(forecast / scale * 100) },
         borrowed : borrowed,
-        clear    : `${figures.clear} W/m²`,
+        clear    : `${figures.clear} ${format.IRRADIANCE}`,
         clock    : clock,
-        drawn    : `At ${clock}, a clear sky’s ${figures.clear} W/m² against the forecast’s `
-                 + `${figures.forecast} W/m²`,
-        forecast : `${figures.forecast} W/m²`,
+        drawn    : `At ${clock}, a clear sky’s ${figures.clear} ${format.IRRADIANCE} against the `
+                 + `forecast’s ${figures.forecast} ${format.IRRADIANCE}`,
+        forecast : `${figures.forecast} ${format.IRRADIANCE}`,
+        held     : held,
         share    : share,
         text     : `${clock}, ${share} of a clear sky’s sunlight${borrowed ? ', borrowed' : ''}`,
         top      : tenth(top(factor))

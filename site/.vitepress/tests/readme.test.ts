@@ -131,6 +131,10 @@ describe('the README', () => {
     expect(readme).not.toContain('img.shields.io/node/')
   })
 
+  it('describes the preview in its alternative text as the preview draws it', () => {
+    expect(readme).toContain(`alt="${preview.alt}"`)
+  })
+
   it.for(SCHEMES)('shows the %s preview from luxout.fyi', (scheme) => {
     expect(readme).toContain(`${manifest.homepage}${previewAddress(scheme)}`)
   })
