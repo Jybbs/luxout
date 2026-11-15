@@ -1,7 +1,7 @@
 import { execFileSync }                   from 'node:child_process'
 import { globSync, readFileSync }         from 'node:fs'
 import { createRequire, findPackageJSON } from 'node:module'
-import { dirname, join, resolve, sep }    from 'node:path'
+import { dirname, join, sep }             from 'node:path'
 import { pathToFileURL }                  from 'node:url'
 
 import type * as Experimental from 'rolldown/experimental'
@@ -13,9 +13,10 @@ const SCRIPT  = /\.[cm]?[jt]sx?$/
 
 /**
  * Lists `file` beside each file its `extends` chain names, which the
- * `tsconfigFilePaths` of `resolveTsconfig` leaves out, reading each as JSON
- * with comments and trailing commas, as rolldown does. A file under
- * `node_modules` stands as the `bun.lock` that installs it.
+ * `tsconfigFilePaths` of `resolveTsconfig` leaves out, reading each as rolldown
+ * does, where comments, trailing commas, a byte order mark, and an empty file
+ * all parse. A file under `node_modules` stands as the `bun.lock` that installs
+ * it.
  */
 function chain(file: string, extender: Experimental.ResolverFactory): string[] {
   const lock = lockfile(file)
@@ -26,20 +27,17 @@ function chain(file: string, extender: Experimental.ResolverFactory): string[] {
 
   const dir                     = dirname(file)
   const text                    = stripJsonComments(readFileSync(file, 'utf8'), { trailingCommas: true })
-  const { extends: bases = [] } = JSON.parse(text) as { extends?: string | string[] }
+  const { extends: bases = [] } = JSON.parse(text.trim() || '{}') as { extends?: string | string[] }
 
   return [file, ...[bases].flat().flatMap((base) => chain(extended(base, dir, extender), extender))]
 }
 
 /**
- * Resolves the `extends` entry `base` of a tsconfig in `dir`, joining a path
- * that opens on `.` or `/` and resolving any other through `extender`.
+ * Resolves the `extends` entry `base` of a tsconfig in `dir` through
+ * `extender`, which adds `.json` to a path naming no file and `tsconfig.json`
+ * to one naming a directory.
  */
 function extended(base: string, dir: string, extender: Experimental.ResolverFactory): string {
-  if (/^[./]/.test(base)) {
-    return resolve(dir, base)
-  }
-
   const { error, path } = extender.sync(dir, base)
 
   if (path === undefined) {
@@ -114,7 +112,8 @@ export function triggers(root: string, include: string[]): string[] {
   const extender = resolver.cloneWithOptions({
     conditionNames : ['node', 'import'],
     extensions     : ['.json'],
-    mainFiles      : ['tsconfig']
+    mainFiles      : ['tsconfig'],
+    symlinks       : false
   })
 
   for (const file of modules) {
