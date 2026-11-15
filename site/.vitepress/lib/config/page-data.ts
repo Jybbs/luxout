@@ -1,37 +1,22 @@
-import { readFile } from 'node:fs/promises'
-import { join }     from 'node:path'
+import { join } from 'node:path'
 
-import { pairs }                                                  from 'd3-array'
-import { type PageData, type SiteConfig, createMarkdownRenderer } from 'vitepress'
+import { pairs }                     from 'd3-array'
+import type { PageData, SiteConfig } from 'vitepress'
 
-import type { luxRange } from '../daylight/homekit.ts'
-import { sectionPages }  from './pages.ts'
-import type { Section }  from './sections.ts'
+import type { luxRange }             from '../daylight/homekit.ts'
+import { pageOpening, sectionPages } from './pages.ts'
+import type { Section }              from './sections.ts'
 
 interface Facts {
   engines : { homebridge: string, node: string }
   version : string
 }
 
-type Hook = (page: Page, context: { siteConfig: Site }) => Promise<Pick<Page, 'frontmatter'>>
+type Hook = (page: Page, context: { siteConfig: Site }) => Pick<Page, 'frontmatter'>
 type Page = Pick<PageData, 'filePath' | 'frontmatter' | 'relativePath' | 'title'>
 type Site = Pick<SiteConfig, 'srcDir'>
 
 const HOME = 'index.md'
-
-/**
- * Reads the front page's hero from the page itself, as its title and the text
- * of the paragraph that opens it, through the one Markdown renderer VitePress
- * holds, which it has already built from the site's `markdown` options.
- */
-async function heroOf({ filePath, title }: Page, srcDir: string): Promise<{ name: string, tagline: string }> {
-  const md      = await createMarkdownRenderer(srcDir)
-  const tokens  = md.parse(await readFile(join(srcDir, filePath), 'utf8'), {})
-  const opening = tokens.findIndex(({ type }) => type === 'paragraph_open')
-  const words   = tokens[opening + 1]?.children?.filter(({ type }) => type === 'text') ?? []
-
-  return { name: title, tagline: words.map(({ content }) => content).join('') }
-}
 
 /**
  * Builds the `transformPageData` hook, which sets the engines, the version, and
@@ -53,7 +38,7 @@ export function transformPage(
   ]))
   const actions = sections.flatMap(({ action, slug }) => action ? [{ link: `/${slug}/`, ...action }] : [])
 
-  return async (page, { siteConfig }) => {
+  return (page, { siteConfig }) => {
     const next = closing.get(page.relativePath)
 
     return {
@@ -61,8 +46,12 @@ export function transformPage(
         ...page.frontmatter,
         ...next && { next },
         ...page.relativePath === HOME && {
-          hero   : { ...await heroOf(page, siteConfig.srcDir), actions },
-          layout : 'home'
+          layout : 'home',
+          hero   : {
+            actions : actions,
+            name    : page.title,
+            tagline : pageOpening(join(siteConfig.srcDir, page.filePath))
+          }
         },
         homekit : homekit,
         package : { engines, version }
