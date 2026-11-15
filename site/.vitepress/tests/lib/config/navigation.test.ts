@@ -1,4 +1,5 @@
-import { join } from 'node:path'
+import { access } from 'node:fs/promises'
+import { join }   from 'node:path'
 
 import { expect, it } from 'vitest'
 
@@ -29,4 +30,11 @@ it('keeps the Install sidebar in document order', () => {
   const links = ['/install/', '/install/installing', '/install/place', '/install/home']
 
   expect(navigation.sidebar).toMatchObject({ '/install/': links.map((link) => ({ link })) })
+})
+
+it('links the identity page, which no section holds, from the footer', async () => {
+  const href = /href="\/([\w-]+)"/.exec(navigation.footer!.message!)![1]!
+
+  expect(SECTIONS.map(({ slug }) => slug)).not.toContain(href)
+  await expect(access(join(site, `${href}.md`))).resolves.toBeUndefined()
 })

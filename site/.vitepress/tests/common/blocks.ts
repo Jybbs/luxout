@@ -1,3 +1,5 @@
+import { capitalize } from 'vue'
+
 import { BRIDGE_SPAN, type ClearSky, TWILIGHT } from '../../../../src/daylight/clear-sky.ts'
 import type { CLOUD_TUNING }                    from '../../../../src/daylight/cloud-factor.ts'
 import type { REQUEST_TUNING }                  from '../../../../src/weather/client.ts'
@@ -14,13 +16,21 @@ import type { DecadeScale }                     from '../../lib/daylight/lux-sca
 import type { SampleDay }                       from '../../lib/daylight/sample-day.ts'
 import * as curve                               from '../../lib/daylight/sun-curve.ts'
 import type { SunYear }                         from '../../lib/daylight/sun-year.ts'
+import type { Identity }                        from '../../lib/identity/identity.ts'
+import { groundedAddressOf }                    from '../../lib/logo/logo.ts'
 import { type RequestClock, retryOffsets }      from '../../lib/privacy/request-clock.ts'
 import type { RoundedPlace }                    from '../../lib/privacy/rounded-place.ts'
 import type { SearchReplay }                    from '../../lib/search/replay.ts'
 import type { SettingRow }                      from '../../lib/settings/rows.ts'
+import type { Scheme }                          from '../../lib/theme/tokens.ts'
 import type { DebugLine }                       from '../../lib/troubleshooting/debug-line.ts'
 
 type Cell = number | string
+
+/**
+ * The schemes in the order the identity page sets their grounds out.
+ */
+const SHOWN = ['light', 'dark'] as const satisfies readonly Scheme[]
 
 const BRIDGE_ALTITUDES = [BRIDGE_SPAN[0], -5, -4, -3, -2, -1, TWILIGHT.sunset, 0, 5, 10]  // Degrees
 const LEVELS           = [
@@ -123,6 +133,21 @@ export function dialTable({ stretches }: DayDial): string {
   return markdownTable(
     ['Stretch', 'Minutes', 'The Reading', 'What It Does There'],
     stretches.map(({ caption, figure, name, span, why }) => [name, span, `${figure} ${caption}`, why])
+  )
+}
+
+/**
+ * Writes the table of the faces in their roles, each with the span of each axis
+ * the theme loads.
+ */
+export function facesTable({ faces }: Identity): string {
+  const span = (axis?: { max: number, min: number }) => axis ? `${axis.min} to ${axis.max}` : 'None'
+
+  return markdownTable(
+    ['Role', 'Face', 'Weight', 'Optical Size', 'Italic'],
+    faces.map(({ axes, family, italic, role }) => [
+      `\`--font-${role}\``, family, span(axes.wght), span(axes.opsz), italic ? 'Yes' : 'No'
+    ])
   )
 }
 
@@ -257,6 +282,55 @@ export function levelsTable(sky: ClearSky): string {
 }
 
 /**
+ * Writes the table of the title and the mark in the form the site serves for
+ * each scheme's ground.
+ */
+export function logoForms(identity: Identity): string {
+  const { word } = identity.logo.construction
+  const forms    = [
+    { asset: 'title', name: `${word.toLowerCase()}, the title` },
+    { asset: 'mark',  name: 'The mark' }
+  ] as const
+
+  return markdownTable(
+    ['Form', ...SHOWN.map((scheme) => `On ${identity.grounds[scheme].name}`)],
+    forms.map(({ asset, name }) => [
+      capitalize(asset),
+      ...SHOWN.map((scheme) =>
+        `![${name} on ${identity.grounds[scheme].name}](./public${groundedAddressOf(asset, scheme)})`
+      )
+    ])
+  )
+}
+
+/**
+ * Writes the table of the parts the logo's construction places.
+ */
+export function logoTable({ logo: { construction: { below, glow, horizon } } }: Identity): string {
+  const percent = (share: number) => `${Math.round(share * 100)}%`
+
+  return markdownTable(
+    ['Part', 'Construction'],
+    [
+      [
+        'Horizon',
+        `The ink at ${percent(horizon.opacity)} opacity, across the title from its first letter to its last`
+      ],
+      ['Break', `The horizon stops ${horizon.gap} times the sun's radius either side of its center`],
+      [
+        'Glow',
+        `The sun's color fading out ${glow.radius} times its radius from its center, above the horizon alone`
+      ],
+      [
+        'Below',
+        `The letters under the horizon at ${percent(below.light)} of the ink on the light ground and `
+      + `${percent(below.dark)} on the dark`
+      ]
+    ]
+  )
+}
+
+/**
  * Writes the decades as the Markdown table a page keeps for GitHub.
  */
 export function luxTable({ date, decades }: DecadeScale): string {
@@ -282,6 +356,20 @@ export function nightWords({ decades }: DecadeScale): string {
        + '(https://en.wikipedia.org/wiki/Lux#Illuminance), while the reading reaches '
        + "[HomeKit's floor](https://developers.homebridge.io/#/characteristic/CurrentAmbientLightLevel) "
        + `of ${floor} lux before astronomical twilight ends.`
+}
+
+/**
+ * Writes the table of the palette, each color with its name, its meaning, and
+ * the use its contrast admits on each ground.
+ */
+export function paletteTable(identity: Identity): string {
+  return markdownTable(
+    ['Color', 'Hex', 'Token', 'Meaning', ...SHOWN.map((scheme) => `On ${identity.grounds[scheme].name}`)],
+    identity.colors.map(({ contrast, hex, meaning, name, token, use }) => [
+      name, `\`${hex}\``, `\`${token}\``, meaning,
+      ...SHOWN.map((scheme) => `${capitalize(use[scheme])} at ${contrast[scheme].toFixed(2)}:1`)
+    ])
+  )
 }
 
 /**
@@ -403,4 +491,16 @@ export function windowWords(day: SampleDay): string {
        + `${day.clock(from)} to ${day.clock(to)} on ${day.date}, fetched for the zip code `
        + '[Finding Your Place](../install/place.md) searches for. Its minutes outside that span read the '
        + 'clear sky alone.'
+}
+
+/**
+ * Writes the table of the tagline and the byline, each with the face the site
+ * sets it in, or None for a line only the metadata carries, and where it
+ * appears.
+ */
+export function wordsTable({ lines }: Identity): string {
+  return markdownTable(
+    ['Line', 'Text', 'Face', 'Where'],
+    lines.map(({ face = 'None', name, text, where }) => [name, text, face, capitalize(where)])
+  )
 }
