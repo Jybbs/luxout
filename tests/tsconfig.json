@@ -5,5 +5,6 @@
     "lib": ["es2024", "es2025.collection", "es2025.iterator", "esnext.array", "dom"],
     "noEmit": true,
     "rootDir": ".."
-  }
+  },
+  "exclude": []
 }
