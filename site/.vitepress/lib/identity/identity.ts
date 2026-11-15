@@ -33,8 +33,8 @@ export interface Identity {
 }
 
 /**
- * A line of the site's words, the face it is set in where the site shows it,
- * and where it appears.
+ * A line of the site's words, the face it is set in, left out for a line only
+ * the metadata carries, and where it appears.
  */
 interface Line {
   face? : string

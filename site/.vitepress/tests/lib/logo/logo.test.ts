@@ -29,15 +29,18 @@ describe('the tracked logo files', () => {
   )
 })
 
-it.for(grounded)('fills the $scheme $form’s whole box with its ground', ({ form, scheme }) => {
-  const drawing                 = logo.grounded(form, scheme)
-  const [ground]                = drawing.children as VNode[]
-  const { x, y, width, height } = ground!.props!
+it.for(grounded)(
+  'fills the $scheme $form’s whole box with its ground, leaving the plain form bare',
+  ({ form, scheme }) => {
+    const drawing                 = logo.grounded(form, scheme)
+    const [ground]                = drawing.children as VNode[]
+    const { x, y, width, height } = ground!.props!
 
-  expect([ground!.type, ground!.props!.fill]).toEqual(['rect', tokens.color('--color-ground', scheme)])
-  expect(`${x} ${y} ${width} ${height}`).toBe(drawing.props!.viewBox)
-  expect((logo[form](scheme).children as VNode[])[0]!.type).toBe('defs')
-})
+    expect([ground!.type, ground!.props!.fill]).toEqual(['rect', tokens.color('--color-ground', scheme)])
+    expect(`${x} ${y} ${width} ${height}`).toBe(drawing.props!.viewBox)
+    expect((logo[form](scheme).children as VNode[])[0]!.type).toBe('defs')
+  }
+)
 
 it('places the title in a larger drawing, its height following the span its ink covers', () => {
   const narrow = logo.titleAcross(60, 360, 'dark', 164).props!

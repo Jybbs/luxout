@@ -63,7 +63,7 @@ The title and the mark each take one form per ground, drawn from a construction 
 
 ## Tagline and Byline
 
-The tagline opens the front page, whereas the byline is metadata only, describing the package and every page in its meta description and og:description tags, so no face sets it.
+The tagline opens the front page, whereas the byline is metadata only, describing the package and every page in its meta description and `og:description` tags, so it takes no face of its own, and the specimen below sets it as body text.
 
 <!-- identity-words -->
 
