@@ -135,7 +135,7 @@ describe('the logo, the tagline, and the byline', () => {
   it('reads the tagline opening the front page and the description the package declares', () => {
     expect(identity.lines.map(({ face, text }) => [text, face])).toEqual([
       ['An outdoor light sensor for Apple Home.', 'Source Serif 4 italic'],
-      [manifest.description, 'Source Serif 4']
+      [manifest.description, undefined]
     ])
   })
 })

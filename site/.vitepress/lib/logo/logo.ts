@@ -15,6 +15,8 @@ import * as wordmark                       from './wordmark.ts'
 
 export type Asset = (typeof ASSETS)[number]
 
+export type Form = (typeof FORMS)[number]
+
 /**
  * The box a drawing fills and the stretch its horizon runs, in whole font units
  * with y running up from the baseline, the horizon `stroke` thick as a share of
@@ -39,14 +41,21 @@ interface Lettering {
 
 /**
  * The color the letters above the horizon take, the scheme's ink where it is
- * left out, and the text every id a drawing defines opens on.
+ * left out, the color filling the drawing's box beneath it, the box left bare
+ * where it is left out, and the text every id a drawing defines opens on.
  */
 interface Paint {
   above?  : string
+  ground? : string
   prefix? : string
 }
 
 export const ASSETS = ['lockup', 'mark', 'title'] as const
+
+/**
+ * The assets the site also serves drawn on their scheme's ground.
+ */
+export const FORMS = ['mark', 'title'] as const
 
 /**
  * Draws the logo's lockup, title, and mark in either scheme from the
@@ -108,6 +117,16 @@ export class Logo {
   }
 
   /**
+   * Draws `form` in `scheme` over a box filled with the color the scheme's
+   * `--color-ground` holds, so the drawing reads the same on any page behind it.
+   */
+  grounded(form: Form, scheme: Scheme): VNode {
+    const paint = { ground: this.#tokens.color('--color-ground', scheme) }
+
+    return form === 'mark' ? this.#mark(scheme, paint) : this.#title(scheme, paint)
+  }
+
+  /**
    * Draws the title for the front page's hero in `scheme`, its letters above
    * the horizon in `currentColor` so the page sets them against the sky behind
    * them, and every id it defines opening on `scheme`, so the two schemes'
@@ -160,16 +179,7 @@ export class Logo {
    * edge.
    */
   mark(scheme: Scheme): VNode {
-    const { cx, cy, r } = this.#word.sun
-    const half          = Math.round(r * this.#construction.mark / 2)
-    const horizon       = { from: cx - half, stroke: this.#construction.horizon.stroke.mark, to: cx + half }
-
-    return this.#draw(
-      { bottom: cy - half, horizon, left: cx - half, right: cx + half, top: cy + half },
-      this.#word.glyphs.filter(({ sun }) => sun),
-      scheme,
-      {}
-    )
+    return this.#mark(scheme)
   }
 
   /**
@@ -196,11 +206,24 @@ export class Logo {
     })
   }
 
+  #mark(scheme: Scheme, paint: Paint = {}): VNode {
+    const { cx, cy, r } = this.#word.sun
+    const half          = Math.round(r * this.#construction.mark / 2)
+    const horizon       = { from: cx - half, stroke: this.#construction.horizon.stroke.mark, to: cx + half }
+
+    return this.#draw(
+      { bottom: cy - half, horizon, left: cx - half, right: cx + half, top: cy + half },
+      this.#word.glyphs.filter(({ sun }) => sun),
+      scheme,
+      paint
+    )
+  }
+
   #draw(
     { bottom, horizon, left, right, top } : Frame,
     glyphs                                : readonly wordmark.Glyph[],
     scheme                                : Scheme,
-    { above, prefix = '' }                : Paint
+    { above, ground, prefix = '' }        : Paint
   ): VNode {
     const { below, glow, ink, sun } = this.#construction
     const { cx, cy, r }             = this.#word.sun
@@ -219,6 +242,7 @@ export class Logo {
     const dimmed = letters(noop)
 
     return h('svg', { viewBox: `${left} ${-top} ${across} ${top - bottom}`, xmlns: SVG_NAMESPACE }, [
+      ...(ground ? [h('rect', { fill: ground, height: top - bottom, width: across, x: left, y: -top })] : []),
       h('defs', [
         h('clipPath', { id: `${prefix}sky` }, [
           h('rect', { height: top - cy, width: across, x: left, y: cy })
@@ -267,6 +291,14 @@ export class Logo {
  */
 export function addressOf(asset: Asset, scheme: Scheme): string {
   return `/logo/${asset}-${scheme}.svg`
+}
+
+/**
+ * Names the address the site serves `form` at in `scheme` drawn on the
+ * scheme's ground, beneath its public directory.
+ */
+export function groundedAddressOf(form: Form, scheme: Scheme): string {
+  return `/logo/${form}-${scheme}-ground.svg`
 }
 
 /**

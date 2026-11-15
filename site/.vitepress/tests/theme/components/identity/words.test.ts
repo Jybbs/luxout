@@ -18,11 +18,13 @@ function dimmed(host: HTMLElement): boolean[] {
   return lines(host).map(({ classList }) => classList.contains('opacity-55'))
 }
 
-test('sets the tagline over the byline, each captioned with its face and where it appears', ({ mount }) => {
-  const host = mount(WordsCaptioned)
+test('captions each line with where it appears, and the tagline alone with its face', ({ mount }) => {
+  const [tagline, byline] = data.lines
 
-  expect(lines(host).map(({ textContent }) => textContent))
-    .toEqual(data.lines.map(({ face, name, text, where }) => `${text}${name} · ${face} · ${where}`))
+  expect(lines(mount(WordsCaptioned)).map(({ textContent }) => textContent)).toEqual([
+    `${tagline!.text}Tagline · ${tagline!.face} · ${tagline!.where}`,
+    `${byline!.text}Byline · ${byline!.where}`
+  ])
 })
 
 test('dims the other line while the focus rests on one, lighting both once it leaves', async ({ mount }) => {

@@ -17,6 +17,7 @@ import type { SampleDay }                       from '../../lib/daylight/sample-
 import * as curve                               from '../../lib/daylight/sun-curve.ts'
 import type { SunYear }                         from '../../lib/daylight/sun-year.ts'
 import type { Identity }                        from '../../lib/identity/identity.ts'
+import { groundedAddressOf }                    from '../../lib/logo/logo.ts'
 import { type RequestClock, retryOffsets }      from '../../lib/privacy/request-clock.ts'
 import type { RoundedPlace }                    from '../../lib/privacy/rounded-place.ts'
 import type { SearchReplay }                    from '../../lib/search/replay.ts'
@@ -289,14 +290,14 @@ export function logoForms(identity: Identity): string {
   const forms    = [
     { asset: 'title', name: `${word.toLowerCase()}, the title` },
     { asset: 'mark',  name: 'The mark' }
-  ]
+  ] as const
 
   return markdownTable(
     ['Form', ...SHOWN.map((scheme) => `On ${identity.grounds[scheme].name}`)],
     forms.map(({ asset, name }) => [
       capitalize(asset),
       ...SHOWN.map((scheme) =>
-        `![${name} on ${identity.grounds[scheme].name}](./public/logo/${asset}-${scheme}.svg)`
+        `![${name} on ${identity.grounds[scheme].name}](./public${groundedAddressOf(asset, scheme)})`
       )
     ])
   )
@@ -494,11 +495,12 @@ export function windowWords(day: SampleDay): string {
 
 /**
  * Writes the table of the tagline and the byline, each with the face the site
- * sets it in and where it appears.
+ * sets it in, or None for a line only the metadata carries, and where it
+ * appears.
  */
 export function wordsTable({ lines }: Identity): string {
   return markdownTable(
     ['Line', 'Text', 'Face', 'Where'],
-    lines.map(({ face, name, text, where }) => [name, text, face, capitalize(where)])
+    lines.map(({ face = 'None', name, text, where }) => [name, text, face, capitalize(where)])
   )
 }

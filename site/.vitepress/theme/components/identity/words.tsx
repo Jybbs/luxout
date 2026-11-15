@@ -42,7 +42,7 @@ export const WordsCaptioned = defineComponent({
             tabindex={0}
           >
             <p class={['m-0', LOOKS[name]]}>{text}</p>
-            <span class="widget-caps">{name} · {face} · {where}</span>
+            <span class="widget-caps">{[name, face, where].filter(Boolean).join(' · ')}</span>
           </div>
         ))}
       </div>

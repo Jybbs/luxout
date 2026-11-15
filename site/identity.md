@@ -45,8 +45,8 @@ The title and the mark each take one form per ground, drawn from a construction 
 
 | **Form** | **On Cararra** | **On Near Black** |
 |---|---|---|
-| Title | ![luxout, the title on Cararra](./public/logo/title-light.svg) | ![luxout, the title on Near Black](./public/logo/title-dark.svg) |
-| Mark | ![The mark on Cararra](./public/logo/mark-light.svg) | ![The mark on Near Black](./public/logo/mark-dark.svg) |
+| Title | ![luxout, the title on Cararra](./public/logo/title-light-ground.svg) | ![luxout, the title on Near Black](./public/logo/title-dark-ground.svg) |
+| Mark | ![The mark on Cararra](./public/logo/mark-light-ground.svg) | ![The mark on Near Black](./public/logo/mark-dark-ground.svg) |
 
 <!-- /identity-forms -->
 
@@ -63,13 +63,13 @@ The title and the mark each take one form per ground, drawn from a construction 
 
 ## Tagline and Byline
 
-The tagline opens the front page, and the byline describes the package and every page.
+The tagline opens the front page, whereas the byline is metadata only, describing the package and every page in its meta description and og:description tags, so no face sets it.
 
 <!-- identity-words -->
 
 | **Line** | **Text** | **Face** | **Where** |
 |---|---|---|---|
 | Tagline | An outdoor light sensor for Apple Home. | Source Serif 4 italic | The front page’s opening line |
-| Byline | A Homebridge light sensor that tells Apple Home how bright it is outside, from the sun's position and Open-Meteo's forecast of sunlight. | Source Serif 4 | The package’s description and each page’s meta description |
+| Byline | A Homebridge light sensor that tells Apple Home how bright it is outside, from the sun's position and Open-Meteo's forecast of sunlight. | None | The package’s description and each page’s meta description and og:description tags |
 
 <!-- /identity-words -->

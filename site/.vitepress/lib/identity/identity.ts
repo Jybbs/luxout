@@ -33,10 +33,11 @@ export interface Identity {
 }
 
 /**
- * A line of the site's words, the face it is set in, and where it appears.
+ * A line of the site's words, the face it is set in where the site shows it,
+ * and where it appears.
  */
 interface Line {
-  face  : string
+  face? : string
   name  : string
   text  : string
   where : string
@@ -197,7 +198,8 @@ export function facesOf(
  * - The palette color each scheme's `--color-ground` holds
  * - The logo's construction and the forms of it the site serves
  * - The tagline opening the front page, in the base face's italic, and the
- *   byline, the package's own description, in its upright
+ *   byline, the package's own description, in no face, since only the
+ *   metadata carries it
  */
 export async function readIdentity(root: URL): Promise<Identity> {
   const [tokens, theme] = await Promise.all([
@@ -228,10 +230,9 @@ export async function readIdentity(root: URL): Promise<Identity> {
     lines   : [
       { face: `${base} italic`, name: 'Tagline', text: tagline, where: 'the front page’s opening line' },
       {
-        face  : base,
         name  : 'Byline',
         text  : manifest.description,
-        where : 'the package’s description and each page’s meta description'
+        where : 'the package’s description and each page’s meta description and og:description tags'
       }
     ],
     logo    : { construction: CONSTRUCTION, svgs },
