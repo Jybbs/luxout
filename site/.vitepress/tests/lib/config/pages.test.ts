@@ -55,6 +55,17 @@ test(
   }
 )
 
+test.for([
+  { name: 'a link as its Markdown', opening: '[Alpha](./a.md) line.', read: '[Alpha](./a.md) line.' },
+  { name: 'only the first line',    opening: 'An Alpha\nline.',        read: 'An Alpha' }
+])('reads $name from the paragraph beneath a page’s first heading', async ({ opening, read }, { root }) => {
+  const page = join(root, 'guide', 'alpha.md')
+
+  await writeFile(page, `# Alpha\n\n${opening}\n`)
+
+  expect(pageOpening(page)).toBe(read)
+})
+
 test('fails on a page with no paragraph beneath its first heading', ({ root }) => {
   expect(() => pageOpening(join(root, 'guide', 'zeta.md')))
     .toThrow('zeta.md opens on no paragraph beneath its first heading')
