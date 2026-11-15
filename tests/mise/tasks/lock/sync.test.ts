@@ -1,8 +1,8 @@
 /** @module-tag spawns */
 import { expect } from 'vitest'
 
-import { plant, test } from '../../../common/scratch.js'
-import { sync }        from '../../../common/sync.js'
+import { plant, test }        from '../../../common/scratch.js'
+import { type SyncRun, sync } from '../../../common/sync.js'
 
 const BAKE = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
   .map((dir) => ['bun', 'install', '--cwd', dir, '--lockfile-only'])
@@ -15,17 +15,17 @@ const VET  = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package
  * mise has not installed.
  *
  * Returns:
- *   Each call the stand-ins received, in order, beside the exit status.
+ *   The run, whose `commands` hold each call the stand-ins received, in order.
  */
 async function relock(
   missing : string[],
   scratch : string
-): Promise<{ calls: string[][], status: number | null }> {
+): Promise<SyncRun> {
   const lacking = Object.fromEntries(missing.map((tool) => [tool, []]))
 
   await plant(scratch, { ...VET, '.mise/mise.lock': '[[tools.bun]]\nversion = "1.4.2"\n' })
 
-  const { invoked, status } = await sync(scratch, 'lock:sync', {
+  return sync(scratch, 'lock:sync', {
     canned: {
       ...Object.fromEntries(BAKE.map((call) => [call.join(' '), {}])),
       [['mise install', ...missing].join(' ')] : {},
@@ -33,19 +33,17 @@ async function relock(
       'mise ls --json --local --missing'       : { stdout: JSON.stringify(lacking) }
     }
   })
-
-  return { calls: invoked.map(({ args }) => args), status }
 }
 
 test('locks mise first and installs each missing tool before any Bun package relocks', async ({
   scratch
 }) => {
-  expect(await relock(['bun', 'zizmor'], scratch)).toEqual({
-    calls  : [...LOCK, ['mise', 'install', 'bun', 'zizmor'], ...BAKE],
-    status : 0
+  expect(await relock(['bun', 'zizmor'], scratch)).toMatchObject({
+    commands : [...LOCK, ['mise', 'install', 'bun', 'zizmor'], ...BAKE],
+    status   : 0
   })
 })
 
 test('installs nothing where no tool the local mise config pins is missing', async ({ scratch }) => {
-  expect(await relock([], scratch)).toEqual({ calls: [...LOCK, ...BAKE], status: 0 })
+  expect(await relock([], scratch)).toMatchObject({ commands: [...LOCK, ...BAKE], status: 0 })
 })
