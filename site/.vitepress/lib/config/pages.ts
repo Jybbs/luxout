@@ -15,18 +15,20 @@ interface SectionPage {
 
 const HEADING = /(?<=^# ).+$/m
 const LINK    = /(?<=\]\(\.\/)[\w-]+(?=\.md\))/g
-const OPENING = /(?<=^# .+\n\n).+$/m
+const LINKED  = /\[([^\]]*)\]\((?:\\.|[^()\\]|\((?:\\.|[^()\\])*\))*\)/gs
+const OPENING = /(?<=^# .+\n\n).+(?:\n.*\S.*)*/m
 
 /**
  * Reads the text `pattern` matches in the page at `path` without its emphasis
- * marks, failing with `missing` where the pattern matches nothing.
+ * marks or link targets, its lines joined by a space, failing with `missing`
+ * where the pattern matches nothing.
  */
 function plainMatch(path: string, pattern: RegExp, missing: string): string {
   const match = pattern.exec(readFileSync(path, 'utf8'))
 
   if (!match) throw new Error(`${path} ${missing}`)
 
-  return match[0].replaceAll('*', '')
+  return match[0].replaceAll('*', '').replaceAll(LINKED, '$1').replaceAll('\n', ' ')
 }
 
 /**
