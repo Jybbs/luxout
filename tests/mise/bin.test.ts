@@ -8,6 +8,8 @@ import { fc, test }                        from '@fast-check/vitest'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { parse }                           from 'yaml'
 
+import { lockfiles } from '../common/triggers.js'
+
 interface Lockfile {
   packages: Record<string, [string, string, { bin?: Record<string, string> | string }?]>
 }
@@ -17,12 +19,8 @@ const root      = join(import.meta.dirname, '..', '..')
 const scratch   = await realpath(await mkdtemp(join(tmpdir(), 'luxout-bin-')))
 const bin       = join(root, '.mise', 'bin')
 const copies    = join(scratch, '.mise', 'bin')
-const lockfiles = execFileSync('bash', ['-c', 'source .mise/lib/lock.sh && bun_packages'], {
-  cwd      : root,
-  encoding : 'utf8'
-}).split('\n').slice(0, -1).map((dir) => join(dir, 'bun.lock'))
 const site      = join(scratch, 'site')
-const installed = (await Promise.all(lockfiles.map(async (file) => {
+const installed = (await Promise.all(lockfiles(root).map(async (file) => {
   const { packages }: Lockfile = parse(await readFile(join(root, file), 'utf8'))
 
   return Object.values(packages)

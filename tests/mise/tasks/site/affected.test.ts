@@ -1,4 +1,5 @@
 /** @module-tag spawns */
+import { existsSync }  from 'node:fs'
 import { cp, symlink } from 'node:fs/promises'
 import { join }        from 'node:path'
 
@@ -30,14 +31,17 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
 
 /**
  * Runs the task from the site of a repository at `folder` under `scratch`
- * whose branch changes only `changed` since it left `origin/main`, where a
+ * whose branch changes only `changed`, or deletes it where `deleted` is set,
+ * since it left `origin/main`, where a
  * stand-in `mise` runs each task file it names and Vitest runs one site test,
- * which imports `.vitepress/lib/a.ts`, under the site suite's own
- * configuration.
+ * which imports `.vitepress/lib/a.ts` and a module beside each `tsconfig.json`
+ * under `src/`, one of them importing a package from the root `node_modules`,
+ * under the site suite's own configuration.
  */
 async function selected(
   changed : string,
   scratch : string,
+  deleted = false,
   folder  = 'repo'
 ): Promise<{ ran: boolean, status: number | null }> {
   const repo = join(scratch, folder)
@@ -45,23 +49,36 @@ async function selected(
 
   await plant(repo, {
     '.gitignore'                      : '.cache\nnode_modules\n',
+    'bun.lock'                        : '{}\n',
     'package.json'                    : '{ "type": "module" }\n',
     'site/.vitepress/lib/a.ts'        : 'export const a = 1\n',
     'site/.vitepress/lib/b.ts'        : 'export const b = 2\n',
     'site/.vitepress/tests/a.test.ts' : "import { expect, test } from 'vitest'\n\n"
+                                      + "import { b } from '../../../src/b.ts'\n"
+                                      + "import { page } from '../../../src/ui/public/index.ts'\n"
                                       + "import { a } from '../lib/a.ts'\n\n"
-                                      + "test('reads a', () => {\n  expect(a).toBe(1)\n})\n",
+                                      + "test('reads a', () => {\n"
+                                      + "  expect([a, b, page]).toEqual([1, 'Sun', 4])\n})\n",
+    'site/.vitepress/tsconfig.json'   : '{}\n',
+    'site/bun.lock'                   : '{}\n',
     'site/package.json'               : '{ "type": "module" }\n',
-    'src/a.ts'                        : 'export const a = 1\n'
+    'src/a.ts'                        : 'export const a = 1\n',
+    'src/b.ts'                        : "import { Body } from 'astronomy-engine'\n\n"
+                                      + 'export const b = Body.Sun\n',
+    'src/tsconfig.json'               : '{}\n',
+    'src/ui/public/index.ts'          : 'export const page = 4\n',
+    'src/ui/public/tsconfig.json'     : '{}\n',
+    'tests/tsconfig.json'             : '{}\n'
   })
   await Promise.all([
-    cp(join(root, 'site', '.vitepress', 'vitest.config.ts'), join(site, '.vitepress', 'vitest.config.ts')),
-    cp(join(root, 'tests', 'coverage.json'), join(repo, 'tests', 'coverage.json')),
+    ...['site/.vitepress/vitest.config.ts', 'tests/common/triggers.ts', 'tests/coverage.json']
+      .map((file) => cp(join(root, file), join(repo, file))),
     cp(join(import.meta.dirname, '..', '..', 'fixtures', 'mise.sh'), join(scratch, 'bin', 'mise')),
+    symlink(join(root, 'node_modules'), join(repo, 'node_modules')),
     symlink(join(root, 'site', 'node_modules'), join(site, 'node_modules'))
   ])
 
-  await branch(changed, repo)
+  await branch(changed, repo, deleted)
 
   const { status, stdout } = await sync(scratch, 'site:affected', { cwd: site, env: { NO_COLOR: '1' } })
 
@@ -83,12 +100,18 @@ test.for([
 })
 
 test.for([
-  { changed: 'package.json', name: 'runs no site test', ran: false },
   { changed: 'site/.vitepress/lib/b.ts', name: 'runs no site test', ran: false },
   { changed: 'src/a.ts', name: 'runs no site test', ran: false },
+  { changed: 'tests/tsconfig.json', name: 'runs no site test', ran: false },
   { changed: 'site/.vitepress/lib/a.ts', name: 'runs the site test', ran: true },
+  { changed: 'bun.lock', name: 'runs every site test', ran: true },
+  { changed: 'package.json', name: 'runs every site test', ran: true },
+  { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
   { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every site test', ran: true },
-  { changed: 'site/package.json', name: 'runs every site test', ran: true }
+  { changed: 'site/bun.lock', name: 'runs every site test', ran: true },
+  { changed: 'site/package.json', name: 'runs every site test', ran: true },
+  { changed: 'src/tsconfig.json', name: 'runs every site test', ran: true },
+  { changed: 'src/ui/public/tsconfig.json', name: 'runs every site test', ran: true }
 ])(
   '$name where a branch changes only $changed',
   async ({ changed, ran }, { scratch }) => {
@@ -97,12 +120,30 @@ test.for([
 )
 
 test.for([
-  { changed: 'package.json', name: 'runs no site test', ran: false },
+  { deleted: 'tests/tsconfig.json', name: 'runs no site test', ran: false },
+  { deleted: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
+  { deleted: 'site/package.json', name: 'runs every site test', ran: true },
+  { deleted: 'src/ui/public/tsconfig.json', name: 'runs every site test', ran: true }
+])(
+  '$name where a branch deletes only $deleted',
+  async ({ deleted, ran }, { scratch }) => {
+    expect(await selected(deleted, scratch, true)).toEqual({ ran: ran, status: 0 })
+    expect(existsSync(join(scratch, 'repo', deleted))).toBe(false)
+  }
+)
+
+test.for([
+  { changed: 'bun.lock', name: 'runs every site test', ran: true },
+  { changed: 'package.json', name: 'runs every site test', ran: true },
+  { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
+  { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every site test', ran: true },
+  { changed: 'site/bun.lock', name: 'runs every site test', ran: true },
   { changed: 'site/package.json', name: 'runs every site test', ran: true },
-  { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every site test', ran: true }
+  { changed: 'src/tsconfig.json', name: 'runs every site test', ran: true },
+  { changed: 'src/ui/public/tsconfig.json', name: 'runs every site test', ran: true }
 ])(
   '$name where a branch changes only $changed in a checkout under luxout (old)',
   async ({ changed, ran }, { scratch }) => {
-    expect(await selected(changed, scratch, 'luxout (old)')).toEqual({ ran: ran, status: 0 })
+    expect(await selected(changed, scratch, false, 'luxout (old)')).toEqual({ ran: ran, status: 0 })
   }
 )

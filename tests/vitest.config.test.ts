@@ -1,11 +1,14 @@
-import { glob, readFile } from 'node:fs/promises'
-import { dirname, join }  from 'node:path'
+import { existsSync }              from 'node:fs'
+import { glob, readFile, symlink } from 'node:fs/promises'
+import { dirname, join, relative } from 'node:path'
 
 import { expect, it, vi } from 'vitest'
 import { defaultExclude } from 'vitest/config'
 
-import thresholds from './coverage.json' with { type: 'json' }
-import config     from './vitest.config.js'
+import { plant, test }    from './common/scratch.js'
+import { triggers, vite } from './common/triggers.js'
+import thresholds         from './coverage.json' with { type: 'json' }
+import config             from './vitest.config.js'
 
 const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const root    = dirname(import.meta.dirname)
@@ -37,6 +40,75 @@ it('measures coverage over .mise/**/*.ts and src/**/*.ts and reports it under .c
 it('keeps the Vite and Vitest caches under .cache/vite', () => {
   expect(config.cacheDir).toBe('.cache/vite')
 })
+
+it('reruns every test after a change to a file the suite reads beside the modules its tests import', () => {
+  const triggers = config.test?.forceRerunTriggers?.filter(existsSync).map((file) => relative(root, file))
+
+  expect(new Set(triggers)).toEqual(new Set([
+    '.mise/audit/tsconfig.json', '.mise/vet/tsconfig.json', 'bun.lock', 'bunfig.toml', 'package.json',
+    'site/.vitepress/vitest.config.ts', 'site/bun.lock', 'src/tsconfig.json', 'src/ui/public/tsconfig.json',
+    'tests/common/triggers.ts', 'tests/homebridge/bun.lock', 'tests/tsconfig.json',
+    'tests/vet/floor/bun.lock', 'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
+  ]))
+})
+
+it.each(['.', 'site'])(
+  'reads each tsconfig of the suite under %s through the rolldown its own Vite loads',
+  (dir) => {
+    expect(vite(join(root, dir)).resolve('rolldown/package.json'))
+      .toBe(join(root, dir, 'node_modules', 'rolldown', 'package.json'))
+  }
+)
+
+test(
+  'resolves rolldown beside the Vite that Vitest loads, ahead of each copy nearer the root',
+  async ({ scratch }) => {
+    const nested = 'node_modules/vitest/node_modules/vite/node_modules/rolldown/package.json'
+
+    await plant(scratch, Object.fromEntries([
+      'node_modules/rolldown/package.json', 'node_modules/vite/index.js',
+      'node_modules/vite/node_modules/rolldown/package.json', 'node_modules/vitest/index.js',
+      'node_modules/vitest/node_modules/vite/index.js', nested
+    ].map((file) => [file, '{}\n'])))
+
+    expect(vite(scratch).resolve('rolldown/package.json')).toBe(join(scratch, nested))
+  }
+)
+
+test(
+  'reads each tsconfig through the rolldown beside the Vite that Vitest loads',
+  async ({ scratch }) => {
+    const rolldown = 'node_modules/vitest/node_modules/vite/node_modules/rolldown'
+
+    await plant(scratch, {
+      'node_modules/vitest/index.js'                   : '',
+      'node_modules/vitest/node_modules/vite/index.js' : '',
+      [`${rolldown}/experimental.js`]                  : "throw new Error('nested')\n",
+      [`${rolldown}/package.json`]                     : '{}\n'
+    })
+
+    expect(() => triggers(scratch, [])).toThrow('nested')
+  }
+)
+
+test(
+  'lists a tsconfig an extends chain reaches through a linked file beside the file the link names',
+  async ({ scratch }) => {
+    await plant(scratch, {
+      'a.ts'          : 'export const a = 1\n',
+      'base.json'     : '{}\n',
+      'tsconfig.json' : '{ "extends": "./link.json" }\n'
+    })
+    await Promise.all([
+      symlink('base.json', join(scratch, 'link.json')),
+      symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+    ])
+
+    expect(triggers(scratch, ['a.ts'])).toEqual(expect.arrayContaining([
+      join(scratch, 'base.json'), join(scratch, 'link.json')
+    ]))
+  }
+)
 
 it('reads the coverage floor from tests/coverage.json', () => {
   expect(config.test?.coverage?.thresholds).toBe(thresholds)
