@@ -5,10 +5,10 @@ import { dirname, join, relative } from 'node:path'
 import { expect, it, vi } from 'vitest'
 import { defaultExclude } from 'vitest/config'
 
-import { plant, test } from './common/scratch.js'
-import { vite }        from './common/triggers.js'
-import thresholds      from './coverage.json' with { type: 'json' }
-import config          from './vitest.config.js'
+import { plant, test }    from './common/scratch.js'
+import { triggers, vite } from './common/triggers.js'
+import thresholds         from './coverage.json' with { type: 'json' }
+import config             from './vitest.config.js'
 
 const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const root    = dirname(import.meta.dirname)
@@ -72,6 +72,22 @@ test(
     ].map((file) => [file, '{}\n'])))
 
     expect(vite(scratch).resolve('rolldown/package.json')).toBe(join(scratch, nested))
+  }
+)
+
+test(
+  'reads each tsconfig through the rolldown beside the Vite that Vitest loads',
+  async ({ scratch }) => {
+    const rolldown = 'node_modules/vitest/node_modules/vite/node_modules/rolldown'
+
+    await plant(scratch, {
+      'node_modules/vitest/index.js'                   : '',
+      'node_modules/vitest/node_modules/vite/index.js' : '',
+      [`${rolldown}/experimental.js`]                  : "throw new Error('nested')\n",
+      [`${rolldown}/package.json`]                     : '{}\n'
+    })
+
+    expect(() => triggers(scratch, [])).toThrow('nested')
   }
 )
 

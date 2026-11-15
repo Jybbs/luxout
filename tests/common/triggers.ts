@@ -1,23 +1,62 @@
 import { execFileSync }                   from 'node:child_process'
 import { globSync, readFileSync }         from 'node:fs'
 import { createRequire, findPackageJSON } from 'node:module'
-import { dirname, join, sep }             from 'node:path'
+import { dirname, join, resolve, sep }    from 'node:path'
 import { pathToFileURL }                  from 'node:url'
 
 import type * as Experimental from 'rolldown/experimental'
 import type * as Utils        from 'rolldown/utils'
+import stripJsonComments      from 'strip-json-comments'
 
 const MODULES = `${sep}node_modules${sep}`
 const SCRIPT  = /\.[cm]?[jt]sx?$/
 
 /**
  * Lists `file` beside each file its `extends` chain names, which the
- * `tsconfigFilePaths` of `resolveTsconfig` leaves out.
+ * `tsconfigFilePaths` of `resolveTsconfig` leaves out, reading each as JSON
+ * with comments and trailing commas, as rolldown does. A file under
+ * `node_modules` stands as the `bun.lock` that installs it.
  */
-function chain(file: string): string[] {
-  const { extends: bases = [] } = JSON.parse(readFileSync(file, 'utf8')) as { extends?: string | string[] }
+function chain(file: string, extender: Experimental.ResolverFactory): string[] {
+  const lock = lockfile(file)
 
-  return [file, ...[bases].flat().flatMap((base) => chain(join(dirname(file), base)))]
+  if (lock) {
+    return [lock]
+  }
+
+  const dir                     = dirname(file)
+  const text                    = stripJsonComments(readFileSync(file, 'utf8'), { trailingCommas: true })
+  const { extends: bases = [] } = JSON.parse(text) as { extends?: string | string[] }
+
+  return [file, ...[bases].flat().flatMap((base) => chain(extended(base, dir, extender), extender))]
+}
+
+/**
+ * Resolves the `extends` entry `base` of a tsconfig in `dir`, joining a path
+ * that opens on `.` or `/` and resolving any other through `extender`.
+ */
+function extended(base: string, dir: string, extender: Experimental.ResolverFactory): string {
+  if (/^[./]/.test(base)) {
+    return resolve(dir, base)
+  }
+
+  const { error, path } = extender.sync(dir, base)
+
+  if (path === undefined) {
+    throw new Error(`${base} in ${dir}: ${error}`)
+  }
+
+  return path
+}
+
+/**
+ * Names the `bun.lock` beside the `node_modules` holding `path`, where one
+ * holds it.
+ */
+function lockfile(path: string): string | undefined {
+  const owner = path.lastIndexOf(MODULES)
+
+  return owner >= 0 ? join(path.slice(0, owner), 'bun.lock') : undefined
 }
 
 /**
@@ -72,6 +111,11 @@ export function triggers(root: string, include: string[]): string[] {
     extensionAlias : { '.js': ['.ts', '.js'] },
     symlinks       : false
   })
+  const extender = resolver.cloneWithOptions({
+    conditionNames : ['node', 'import'],
+    extensions     : ['.json'],
+    mainFiles      : ['tsconfig']
+  })
 
   for (const file of modules) {
     const text       = readFileSync(file, 'utf8')
@@ -93,7 +137,7 @@ export function triggers(root: string, include: string[]): string[] {
       .map((request) => resolver.sync(dirname(file), request).path)
       .filter((path) => path !== undefined)
     const settings  = [
-      ...tsconfigs.flatMap(chain),
+      ...tsconfigs.flatMap((tsconfig) => chain(tsconfig, extender)),
       ...lookups(dirname(file), 'package.json', findPackageJSON(pathToFileURL(file))),
       ...lookups(dirname(file), 'tsconfig.json', tsconfigs[0])
     ]
@@ -101,10 +145,10 @@ export function triggers(root: string, include: string[]): string[] {
     settings.forEach((path) => reads.add(path))
 
     for (const path of paths) {
-      const owner = path.lastIndexOf(MODULES)
+      const lock = lockfile(path)
 
-      if (owner >= 0) {
-        reads.add(join(path.slice(0, owner), 'bun.lock'))
+      if (lock) {
+        reads.add(lock)
       } else if (SCRIPT.test(path)) {
         modules.add(path)
       }

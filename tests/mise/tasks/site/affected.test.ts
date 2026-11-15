@@ -1,4 +1,5 @@
 /** @module-tag spawns */
+import { existsSync }  from 'node:fs'
 import { cp, symlink } from 'node:fs/promises'
 import { join }        from 'node:path'
 
@@ -127,6 +128,7 @@ test.for([
   '$name where a branch deletes only $deleted',
   async ({ deleted, ran }, { scratch }) => {
     expect(await selected(deleted, scratch, true)).toEqual({ ran: ran, status: 0 })
+    expect(existsSync(join(scratch, 'repo', deleted))).toBe(false)
   }
 )
 

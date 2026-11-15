@@ -1,5 +1,6 @@
 /** @module-tag spawns */
 import { execFileSync } from 'node:child_process'
+import { existsSync }   from 'node:fs'
 import { cp, symlink }  from 'node:fs/promises'
 import { join }         from 'node:path'
 
@@ -47,9 +48,11 @@ async function selected(
 
   await plant(repo, {
     '.gitignore'                       : '.cache\n.vitest\nnode_modules\n',
+    '.mise/vet/bun.lock'               : '{}\n',
     '.mise/vet/index.ts'               : 'export const vet = 3\n',
-    '.mise/vet/tsconfig.base.json'     : '{}\n',
-    '.mise/vet/tsconfig.json'          : '{ "extends": "./tsconfig.base.json" }\n',
+    '.mise/vet/tsconfig.base.json'     : '{ "extends": ["./tsconfig.root.json", "@luxout/tsconfig"] }\n',
+    '.mise/vet/tsconfig.json'          : '{\n  // The vet suite\n  "extends": "./tsconfig.base.json"\n}\n',
+    '.mise/vet/tsconfig.root.json'     : '{ "compilerOptions": { "strict": true, }, }\n',
     'bun.lock'                         : '{}\n',
     'bunfig.toml'                      : '{}\n',
     'package.json'                     : '{ "type": "module" }\n',
@@ -72,7 +75,11 @@ async function selected(
     'tests/homebridge/bun.lock'        : '{}\n',
     'tests/homebridge/bunfig.toml'     : '{}\n',
     'tests/tsconfig.json'              : '{}\n',
-    'tests/vet/floor/bun.lock'         : '{}\n'
+    'tests/vet/floor/bun.lock'         : '{}\n',
+    'tsconfig.json'                    : '{}\n',
+
+    '.mise/vet/node_modules/@luxout/tsconfig/package.json'  : '{ "name": "@luxout/tsconfig" }\n',
+    '.mise/vet/node_modules/@luxout/tsconfig/tsconfig.json' : '{}\n'
   })
   await Promise.all([
     ...['.mise/lib/lock.sh', 'tests/common/triggers.ts', 'tests/coverage.json', 'tests/vitest.config.ts']
@@ -117,9 +124,12 @@ test.for([
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
   { changed: 'src/b.ts', name: 'runs no plugin test', ran: false },
   { changed: 'tests/homebridge/bunfig.toml', name: 'runs no plugin test', ran: false },
+  { changed: 'tsconfig.json', name: 'runs no plugin test', ran: false },
   { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
+  { changed: '.mise/vet/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.base.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/vet/tsconfig.root.json', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'bunfig.toml', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },
@@ -150,6 +160,7 @@ test.for([
   '$name where a branch deletes only $deleted',
   async ({ deleted, ran }, { scratch }) => {
     expect(await selected(deleted, scratch, true)).toEqual({ ran: ran, status: 0 })
+    expect(existsSync(join(scratch, 'repo', deleted))).toBe(false)
   }
 )
 

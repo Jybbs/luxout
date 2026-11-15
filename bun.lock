@@ -28,6 +28,7 @@
         "oxlint-tsgolint": "7.0.2003",
         "publint": "0.3.25",
         "rolldown": "1.2.12",
+        "strip-json-comments": "5.0.3",
         "toml-eslint-parser": "1.0.3",
         "typescript": "7.0.2",
         "unbash": "5.0.0",
