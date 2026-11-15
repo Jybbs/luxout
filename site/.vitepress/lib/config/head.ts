@@ -35,7 +35,7 @@ const PRELOADS = ['bodoni-moda-latin-opsz-normal', 'source-serif-4-latin-opsz-no
  * Lists the pages that preview as the site rather than as an article, each
  * sharing the front page's card.
  */
-const SITE = new Set(['404.md', 'index.md'])
+export const SITE_PAGES = new Set(['404.md', 'identity.md', 'index.md'])
 
 /**
  * Builds the `transformHead` hook, which writes the preview a shared link shows
@@ -49,7 +49,7 @@ export function transformHead(home: string): (context: Context) => HeadConfig[] 
 
     const page    = relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '')
     const address = new URL(page, home).href
-    const whole   = SITE.has(relativePath)
+    const whole   = SITE_PAGES.has(relativePath)
     const image   = new URL(card.cardPath(whole ? 'index.md' : relativePath), home).href
     const alt     = whole ? ALT.site(host) : ALT.section(title)
     const site    = { description: siteData.description, name: siteData.title, url: href }

@@ -1,0 +1,56 @@
+/** @vitest-environment happy-dom */
+import { fireEvent } from '@testing-library/dom'
+import { expect, vi } from 'vitest'
+import { nextTick }   from 'vue'
+
+import { PAUSES }         from '../../../../lib/motion/timing.ts'
+import { WordsCaptioned } from '../../../../theme/components/identity/words.tsx'
+import { data }           from '../../../common/data/identity.ts'
+import { test }           from '../../../common/mount.ts'
+
+vi.mock('../../../../lib/identity/identity.data.ts', () => import('../../../common/data/identity.ts'))
+
+function lines(host: HTMLElement): HTMLElement[] {
+  return [...host.querySelector('.words-captioned')!.children] as HTMLElement[]
+}
+
+function dimmed(host: HTMLElement): boolean[] {
+  return lines(host).map(({ classList }) => classList.contains('opacity-55'))
+}
+
+test('sets the tagline over the byline, each captioned with its face and where it appears', ({ mount }) => {
+  const host = mount(WordsCaptioned)
+
+  expect(lines(host).map(({ textContent }) => textContent))
+    .toEqual(data.lines.map(({ face, name, text, where }) => `${text}${name} · ${face} · ${where}`))
+})
+
+test('dims the other line while the focus rests on one, lighting both once it leaves', async ({ mount }) => {
+  const host = mount(WordsCaptioned)
+
+  fireEvent.focus(lines(host)[1]!)
+  await nextTick()
+  expect(dimmed(host)).toEqual([true, false])
+
+  fireEvent.blur(lines(host)[1]!)
+  await nextTick()
+  expect(dimmed(host)).toEqual([false, false])
+})
+
+test('lights a line once a mouse dwells on it, and both once it leaves', async ({ mount }) => {
+  const host = mount(WordsCaptioned)
+
+  fireEvent.pointerEnter(lines(host)[0]!, { pointerType: 'mouse' })
+  vi.advanceTimersByTime(PAUSES.dwell - 1)
+  await nextTick()
+  expect(dimmed(host)).toEqual([false, false])
+
+  vi.advanceTimersByTime(1)
+  await nextTick()
+  expect(dimmed(host)).toEqual([false, true])
+
+  fireEvent.pointerLeave(host.querySelector('.words-captioned')!)
+  vi.advanceTimersByTime(PAUSES.leave)
+  await nextTick()
+  expect(dimmed(host)).toEqual([false, false])
+})

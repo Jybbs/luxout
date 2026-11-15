@@ -21,10 +21,10 @@ const HOME = 'index.md'
 /**
  * Builds the `transformPageData` hook, which sets the engines, the version, and
  * HomeKit's lux range on every page's frontmatter, the card into the next
- * section on each section's last page, and the home layout on the front page
- * with a hero restating its title and its opening paragraph, beside an action
- * into each section that declares one. A page reads the version as
- * `{{ $frontmatter.package.version }}`.
+ * section on each section's last page, the footer on the front page alone, and
+ * the home layout on the front page with a hero restating its title and its
+ * opening paragraph, beside an action into each section that declares one. A
+ * page reads the version as `{{ $frontmatter.package.version }}`.
  */
 export function transformPage(
   { engines, version } : Facts,
@@ -45,14 +45,14 @@ export function transformPage(
       frontmatter: {
         ...page.frontmatter,
         ...next && { next },
-        ...page.relativePath === HOME && {
+        ...page.relativePath === HOME ? {
           layout : 'home',
           hero   : {
             actions : actions,
             name    : page.title,
             tagline : pageOpening(join(siteConfig.srcDir, page.filePath))
           }
-        },
+        } : { footer: false },
         homekit : homekit,
         package : { engines, version }
       }

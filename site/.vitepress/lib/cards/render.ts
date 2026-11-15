@@ -3,6 +3,7 @@ import { dirname, join }    from 'node:path'
 
 import type { SiteConfig } from 'vitepress'
 
+import { SITE_PAGES }   from '../config/head.ts'
 import { pageTitle }    from '../config/pages.ts'
 import type { Section } from '../config/sections.ts'
 import { SampleDay }    from '../daylight/sample-day.ts'
@@ -16,7 +17,7 @@ import { sectionCard }  from './section.ts'
 /**
  * Builds the `buildEnd` hook, which writes the site's card to `cards/index.png`
  * and each page of a section to `cards/<page>.png` beneath the build's output,
- * failing on a page in no section.
+ * failing on a page in no section that does not share the site's card.
  *
  * Args:
  *   root     : The site's `.vitepress` directory.
@@ -38,7 +39,7 @@ export function renderCards(
 
     await write('index.md', await hillCard(day, faces, logo, palette).png())
 
-    for (const page of pages.filter((each) => each !== 'index.md')) {
+    for (const page of pages.filter((each) => !SITE_PAGES.has(each))) {
       const index = sections.findIndex(({ slug }) => page.startsWith(`${slug}/`))
 
       if (index < 0) throw new Error(`${page} belongs to no section, so it has no card to render`)

@@ -43,10 +43,22 @@ const ROWS = [
     widget  : 'DebugLine'
   },
   {
+    fold    : 'Each face as a table',
+    heading : 'Faces',
+    page    : 'identity.md',
+    widget  : 'FacesBar'
+  },
+  {
     fold    : 'Each stage as a table',
     heading : 'Searching for a Zip Code',
     page    : 'install/place.md',
     widget  : 'LocationSearch'
+  },
+  {
+    fold    : 'Each part as a table',
+    heading : 'Logo',
+    page    : 'identity.md',
+    widget  : 'LogoWipe'
   },
   {
     fold    : 'Each decade as a table',
@@ -54,6 +66,12 @@ const ROWS = [
     page    : 'sensors/outside.md',
     widget  : 'LuxScale',
     words   : true
+  },
+  {
+    fold    : 'Each color as a table',
+    heading : 'Palette',
+    page    : 'identity.md',
+    widget  : 'PaletteBands'
   },
   {
     fold    : 'Each state as a table',
@@ -119,6 +137,12 @@ const ROWS = [
     heading : 'The Twilight Bridge',
     page    : 'estimate/clear-sky.md',
     widget  : 'TwilightBridge'
+  },
+  {
+    fold    : 'Both lines as a table',
+    heading : 'Tagline and Byline',
+    page    : 'identity.md',
+    widget  : 'WordsCaptioned'
   }
 ] as const satisfies readonly Placement[]
 export const PLACEMENTS: readonly Placement[] = ROWS

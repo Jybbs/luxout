@@ -16,6 +16,19 @@ const load     = createRequire(root)
 const tokens   = await Tokens.read(root)
 
 describe('the palette', () => {
+  it.for([
+    { name: 'Cararra', scheme: 'light' },
+    { name: 'Near Black', scheme: 'dark' }
+  ] as const)(
+    'names $name as the $scheme ground the contrast is read against',
+    ({ name, scheme }, { expect }) => {
+      const ground = identity.grounds[scheme]
+
+      expect([ground.name, tokens.color(ground.token, 'light')])
+        .toEqual([name, tokens.color('--color-ground', scheme)])
+    }
+  )
+
   it('lists every color colors.json names, in its order', () => {
     expect(identity.colors.map(({ name }) => name)).toEqual(Object.values(COLORS).map(({ name }) => name))
   })
@@ -120,7 +133,9 @@ describe('the logo, the tagline, and the byline', () => {
   })
 
   it('reads the tagline opening the front page and the description the package declares', () => {
-    expect([identity.tagline, identity.byline])
-      .toEqual(['An outdoor light sensor for Apple Home.', manifest.description])
+    expect(identity.lines.map(({ face, text }) => [text, face])).toEqual([
+      ['An outdoor light sensor for Apple Home.', 'Source Serif 4 italic'],
+      [manifest.description, 'Source Serif 4']
+    ])
   })
 })

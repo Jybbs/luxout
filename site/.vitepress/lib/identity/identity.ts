@@ -24,11 +24,22 @@ interface Axis {
  * Everything the identity page draws, read from the file declaring each part.
  */
 export interface Identity {
-  byline  : string
   colors  : Swatch[]
   faces   : LoadedFace[]
+  grounds : Record<Scheme, Pick<Swatch, 'name' | 'token'>>
+  lines   : Line[]
   logo    : { construction: Construction, svgs: Record<logo.Asset, Record<Scheme, string>> }
   tagline : string
+}
+
+/**
+ * A line of the site's words, the face it is set in, and where it appears.
+ */
+interface Line {
+  face  : string
+  name  : string
+  text  : string
+  where : string
 }
 
 /**
@@ -183,9 +194,10 @@ export function facesOf(
  * Reads the identity from the site whose `.vitepress` directory is `root`:
  *
  * - The palette and the faces, from the theme's tokens and theme module
+ * - The palette color each scheme's `--color-ground` holds
  * - The logo's construction and the forms of it the site serves
- * - The tagline opening the front page
- * - The byline, the package's own description
+ * - The tagline opening the front page, in the base face's italic, and the
+ *   byline, the package's own description, in its upright
  */
 export async function readIdentity(root: URL): Promise<Identity> {
   const [tokens, theme] = await Promise.all([
@@ -200,11 +212,29 @@ export async function readIdentity(root: URL): Promise<Identity> {
     ])))
   ]))) as Identity['logo']['svgs']
 
+  const colors  = colorsOf(tokens)
+  const faces   = facesOf(createRequire(root), theme, tokens)
+  const base    = faces.find(({ role }) => role === 'base')!.family
+  const tagline = logo.readTagline(root)
+
   return {
-    byline  : manifest.description,
-    colors  : colorsOf(tokens),
-    faces   : facesOf(createRequire(root), theme, tokens),
+    colors  : colors,
+    faces   : faces,
+    grounds : Object.fromEntries(SCHEMES.map((scheme) => {
+      const { name, token } = colors.find(({ hex }) => hex === tokens.color('--color-ground', scheme))!
+
+      return [scheme, { name, token }]
+    })) as Identity['grounds'],
+    lines   : [
+      { face: `${base} italic`, name: 'Tagline', text: tagline, where: 'the front page’s opening line' },
+      {
+        face  : base,
+        name  : 'Byline',
+        text  : manifest.description,
+        where : 'the package’s description and each page’s meta description'
+      }
+    ],
     logo    : { construction: CONSTRUCTION, svgs },
-    tagline : logo.readTagline(root)
+    tagline : tagline
   }
 }

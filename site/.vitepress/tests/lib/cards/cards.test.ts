@@ -1,5 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { join }     from 'node:path'
+import { readdir, readFile } from 'node:fs/promises'
+import { join }              from 'node:path'
 
 import { wcagContrast } from 'culori'
 import { range }        from 'd3-array'
@@ -130,6 +130,12 @@ test('writes the site’s card and each page’s card as PNGs in the output dire
     (await readFile(join(scratch, 'cards', path))).subarray(1, 4).toString()
 
   expect([await signature('index.png'), await signature('install/home.png')]).toEqual(['PNG', 'PNG'])
+})
+
+test('writes no card of its own for a page sharing the site’s card', async ({ scratch }) => {
+  await renderCards(root, SECTIONS)({ outDir: scratch, pages: ['identity.md'], srcDir: site })
+
+  await expect(readdir(join(scratch, 'cards'))).resolves.toEqual(['index.png'])
 })
 
 test('fails on a page in no section', async ({ scratch }) => {

@@ -27,6 +27,7 @@ const transform = transformPage(manifest, luxRange, site, SECTIONS)
 it('sets the engines, the version, and the lux range on a page, beside its own keys', () => {
   expect(transform(setup, context)).toEqual({
     frontmatter: {
+      footer  : false,
       homekit : luxRange,
       package : { engines: manifest.engines, version: manifest.version },
       title   : 'Setup'
@@ -107,4 +108,10 @@ it('leaves the layout and the hero of every other page to the page', () => {
 
   expect(frontmatter).not.toHaveProperty('hero')
   expect(frontmatter).not.toHaveProperty('layout')
+})
+
+it('sets the footer on the front page alone', () => {
+  const pages = [front, setup, { ...setup, relativePath: 'identity.md' }].map((page) => transform(page, context))
+
+  expect(pages.map(({ frontmatter }) => frontmatter.footer)).toEqual([undefined, false, false])
 })

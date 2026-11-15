@@ -51,6 +51,18 @@ const WIDGETS = {
     (await import('./components/troubleshooting/debug-line.tsx')).DebugLine
   ),
 
+  FacesBar: defineAsyncComponent(async () =>
+    (await import('./components/identity/faces.tsx')).FacesBar
+  ),
+
+  LogoWipe: defineAsyncComponent(async () =>
+    (await import('./components/identity/logo.tsx')).LogoWipe
+  ),
+
+  PaletteBands: defineAsyncComponent(async () =>
+    (await import('./components/identity/palette.tsx')).PaletteBands
+  ),
+
   RequestClock: defineAsyncComponent(async () =>
     (await import('./components/privacy/request-clock.tsx')).RequestClock
   ),
@@ -73,6 +85,10 @@ const WIDGETS = {
 
   TwilightBridge: defineAsyncComponent(async () =>
     (await import('./components/daylight/twilight-bridge.tsx')).TwilightBridge
+  ),
+
+  WordsCaptioned: defineAsyncComponent(async () =>
+    (await import('./components/identity/words.tsx')).WordsCaptioned
   )
 } satisfies Record<WidgetName, Component>
 
