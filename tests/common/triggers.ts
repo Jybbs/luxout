@@ -1,8 +1,8 @@
-import { execFileSync }                   from 'node:child_process'
-import { globSync, readFileSync }         from 'node:fs'
-import { createRequire, findPackageJSON } from 'node:module'
-import { dirname, join, sep }             from 'node:path'
-import { pathToFileURL }                  from 'node:url'
+import { execFileSync }                     from 'node:child_process'
+import { globSync, readFileSync, statSync } from 'node:fs'
+import { createRequire, findPackageJSON }   from 'node:module'
+import { dirname, join, resolve, sep }      from 'node:path'
+import { pathToFileURL }                    from 'node:url'
 
 import type * as Experimental from 'rolldown/experimental'
 import type * as Utils        from 'rolldown/utils'
@@ -33,11 +33,23 @@ function chain(file: string, extender: Experimental.ResolverFactory): string[] {
 }
 
 /**
- * Resolves the `extends` entry `base` of a tsconfig in `dir` through
- * `extender`, which adds `.json` to a path naming no file and `tsconfig.json`
- * to one naming a directory.
+ * Resolves the `extends` entry `base` of a tsconfig in `dir` as rolldown does,
+ * taking a path that opens on `.` or `/` as the file it names, the
+ * `tsconfig.json` inside the directory it names, or that path with `.json`
+ * added, and resolving any other entry through `extender`.
  */
 function extended(base: string, dir: string, extender: Experimental.ResolverFactory): string {
+  if (/^[./]/.test(base)) {
+    const path = resolve(dir, base)
+    const stat = statSync(path, { throwIfNoEntry: false })
+
+    if (stat?.isDirectory()) {
+      return join(path, 'tsconfig.json')
+    }
+
+    return stat?.isFile() ? path : `${path}.json`
+  }
+
   const { error, path } = extender.sync(dir, base)
 
   if (path === undefined) {

@@ -38,7 +38,8 @@ function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
  * Vitest runs one plugin test under the suite's own configuration. The test
  * imports `src/a.ts`, which re-exports a module under `src/ui/public/`, and
  * imports `.mise/vet/index.ts` dynamically, whose tsconfig chain reaches a
- * package linked from a Bun isolated store.
+ * package linked from a Bun isolated store and, through `..`, a directory
+ * whose `package.json` names a `main`.
  */
 async function selected(
   changed : string,
@@ -50,6 +51,9 @@ async function selected(
 
   await plant(repo, {
     '.gitignore'                       : '.cache\n.vitest\nnode_modules\n',
+    '.mise/bun.lock'                   : '{}\n',
+    '.mise/package.json'               : '{ "main": "vet/index.ts", "type": "module" }\n',
+    '.mise/tsconfig.json'              : '{ "extends": "@luxout/plain" }\n',
     '.mise/vet/bun.lock'               : '{}\n',
     '.mise/vet/index.ts'               : 'export const vet = 3\n',
     '.mise/vet/tsconfig.base.json'     : '{ "extends": ["./tsconfig.root", "@luxout/base"] }\n',
@@ -57,7 +61,7 @@ async function selected(
     '.mise/vet/tsconfig.json'          : '{\n  // The vet suite\n  "extends": "./tsconfig.base.json"\n}\n',
     '.mise/vet/tsconfig.notes.json'    : '// The vet suite takes no option of its own\n',
     '.mise/vet/tsconfig.root.json'     : '\ufeff{ "extends": ["./tsconfig.empty.json", '
-                                       + '"./tsconfig.notes.json"], }\n',
+                                       + '"./tsconfig.notes.json", ".."], }\n',
     'bun.lock'                         : '{}\n',
     'bunfig.toml'                      : '{}\n',
     'package.json'                     : '{ "type": "module" }\n',
@@ -83,8 +87,10 @@ async function selected(
     'tests/vet/floor/bun.lock'         : '{}\n',
     'tsconfig.json'                    : '{}\n',
 
-    [`${STORE}/package.json`]  : '{ "exports": { "import": "./tsconfig.json" } }\n',
-    [`${STORE}/tsconfig.json`] : '{}\n'
+    '.mise/node_modules/@luxout/plain/package.json'  : '{}\n',
+    '.mise/node_modules/@luxout/plain/tsconfig.json' : '{}\n',
+    [`${STORE}/package.json`]                        : '{ "exports": { "import": "./tsconfig.json" } }\n',
+    [`${STORE}/tsconfig.json`]                       : '{}\n'
   })
   await mkdir(join(repo, '.mise', 'vet', 'node_modules', '@luxout'))
   await Promise.all([
@@ -133,6 +139,8 @@ test.for([
   { changed: 'tests/homebridge/bunfig.toml', name: 'runs no plugin test', ran: false },
   { changed: 'tsconfig.json', name: 'runs no plugin test', ran: false },
   { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
+  { changed: '.mise/bun.lock', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.base.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.empty.json', name: 'runs every plugin test', ran: true },
