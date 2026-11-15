@@ -15,10 +15,10 @@ export const test = base.extend('scratch', async ({ onTestFinished }) => {
 
 /**
  * Commits every file under `repo` to a new repository there, records that
- * commit as `origin/main`, then commits a newline appended to `changed`, so the
- * branch changes that file alone.
+ * commit as `origin/main`, then commits a newline appended to `changed`, or
+ * its deletion where `deleted` is set, so the branch changes that file alone.
  */
-export async function branch(changed: string, repo: string): Promise<void> {
+export async function branch(changed: string, repo: string, deleted = false): Promise<void> {
   const git = (...args: string[]): Buffer => execFileSync('git', [
     '-c', 'commit.gpgsign=false', '-c', 'user.email=luxout@example.com', '-c', 'user.name=Luxout', ...args
   ], { cwd: repo })
@@ -27,7 +27,7 @@ export async function branch(changed: string, repo: string): Promise<void> {
   git('add', '--all')
   git('commit', '--message', 'Start', '--quiet')
   git('update-ref', 'refs/remotes/origin/main', 'HEAD')
-  await appendFile(join(repo, changed), '\n')
+  await (deleted ? rm(join(repo, changed)) : appendFile(join(repo, changed), '\n'))
   git('commit', '--all', '--message', 'Change', '--quiet')
 }
 

@@ -30,7 +30,8 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
 
 /**
  * Runs the task from the site of a repository at `folder` under `scratch`
- * whose branch changes only `changed` since it left `origin/main`, where a
+ * whose branch changes only `changed`, or deletes it where `deleted` is set,
+ * since it left `origin/main`, where a
  * stand-in `mise` runs each task file it names and Vitest runs one site test,
  * which imports `.vitepress/lib/a.ts` and a module beside each `tsconfig.json`
  * under `src/`, one of them importing a package from the root `node_modules`,
@@ -39,6 +40,7 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
 async function selected(
   changed : string,
   scratch : string,
+  deleted = false,
   folder  = 'repo'
 ): Promise<{ ran: boolean, status: number | null }> {
   const repo = join(scratch, folder)
@@ -75,7 +77,7 @@ async function selected(
     symlink(join(root, 'site', 'node_modules'), join(site, 'node_modules'))
   ])
 
-  await branch(changed, repo)
+  await branch(changed, repo, deleted)
 
   const { status, stdout } = await sync(scratch, 'site:affected', { cwd: site, env: { NO_COLOR: '1' } })
 
@@ -117,6 +119,18 @@ test.for([
 )
 
 test.for([
+  { deleted: 'tests/tsconfig.json', name: 'runs no site test', ran: false },
+  { deleted: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
+  { deleted: 'site/package.json', name: 'runs every site test', ran: true },
+  { deleted: 'src/ui/public/tsconfig.json', name: 'runs every site test', ran: true }
+])(
+  '$name where a branch deletes only $deleted',
+  async ({ deleted, ran }, { scratch }) => {
+    expect(await selected(deleted, scratch, true)).toEqual({ ran: ran, status: 0 })
+  }
+)
+
+test.for([
   { changed: 'bun.lock', name: 'runs every site test', ran: true },
   { changed: 'package.json', name: 'runs every site test', ran: true },
   { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
@@ -128,6 +142,6 @@ test.for([
 ])(
   '$name where a branch changes only $changed in a checkout under luxout (old)',
   async ({ changed, ran }, { scratch }) => {
-    expect(await selected(changed, scratch, 'luxout (old)')).toEqual({ ran: ran, status: 0 })
+    expect(await selected(changed, scratch, false, 'luxout (old)')).toEqual({ ran: ran, status: 0 })
   }
 )

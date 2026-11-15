@@ -1,3 +1,4 @@
+import { existsSync }     from 'node:fs'
 import { join, relative } from 'node:path'
 
 import type { Plugin, UserConfig } from 'vite'
@@ -20,7 +21,7 @@ it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to 
 
 it('reruns every test after a change to a file the suite reads beside the modules its tests import', () => {
   const root     = join(import.meta.dirname, '..', '..', '..')
-  const triggers = config.test?.forceRerunTriggers?.map((file) => relative(root, file))
+  const triggers = config.test?.forceRerunTriggers?.filter(existsSync).map((file) => relative(root, file))
 
   expect(new Set(triggers)).toEqual(new Set([
     'bun.lock', 'package.json', 'site/.vitepress/tsconfig.json', 'site/.vitepress/vitest.config.ts',

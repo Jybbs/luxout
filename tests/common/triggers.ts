@@ -1,14 +1,35 @@
-import { execFileSync }           from 'node:child_process'
-import { globSync, readFileSync } from 'node:fs'
-import { findPackageJSON }        from 'node:module'
-import { dirname, join, sep }     from 'node:path'
-import { pathToFileURL }          from 'node:url'
+import { execFileSync }                   from 'node:child_process'
+import { globSync, readFileSync }         from 'node:fs'
+import { createRequire, findPackageJSON } from 'node:module'
+import { dirname, join, sep }             from 'node:path'
+import { pathToFileURL }                  from 'node:url'
 
-import { ResolverFactory, resolveTsconfig } from 'rolldown/experimental'
-import { TsconfigCache, parseSync }         from 'rolldown/utils'
+import type * as Experimental from 'rolldown/experimental'
+import type * as Utils        from 'rolldown/utils'
 
 const MODULES = `${sep}node_modules${sep}`
 const SCRIPT  = /\.[cm]?[jt]sx?$/
+
+/**
+ * Lists `file` beside each file its `extends` chain names, which the
+ * `tsconfigFilePaths` of `resolveTsconfig` leaves out.
+ */
+function chain(file: string): string[] {
+  const { extends: bases = [] } = JSON.parse(readFileSync(file, 'utf8')) as { extends?: string | string[] }
+
+  return [file, ...[bases].flat().flatMap((base) => chain(join(dirname(file), base)))]
+}
+
+/**
+ * Lists the path a file called `name` takes in `dir` and in each directory
+ * above it, up to the path `found` or, where `found` is unset, up to the
+ * filesystem root.
+ */
+function lookups(dir: string, name: string, found?: string): string[] {
+  const path = join(dir, name)
+
+  return path === found || dir === dirname(dir) ? [path] : [path, ...lookups(dirname(dir), name, found)]
+}
 
 /**
  * Lists the `bun.lock` of each package `bun_packages` in `.mise/lib/lock.sh`
@@ -31,12 +52,18 @@ export function lockfiles(root: string): string[] {
  *   root    : The suite's root directory.
  *
  * Returns:
- *   The absolute path of each module's `tsconfig.json` and the files its
- *   `extends` chain names, as Vite's transform resolves them, the
- *   `package.json` nearest each module, the `bun.lock` beside each
+ *   The absolute path of each module's nearest `tsconfig.json` and the files
+ *   its `extends` chain names, as Vite's transform resolves them, the path
+ *   a `tsconfig.json` or `package.json` takes in each directory from the
+ *   module's own up to the nearest one, the `bun.lock` beside each
  *   `node_modules` an import resolves through, and this file.
  */
 export function triggers(root: string, include: string[]): string[] {
+  const require = vite(root)
+
+  const { ResolverFactory, resolveTsconfig } = require('rolldown/experimental') as typeof Experimental
+  const { TsconfigCache, parseSync }         = require('rolldown/utils') as typeof Utils
+
   const cache    = new TsconfigCache()
   const modules  = new Set(globSync(include, { cwd: root }).map((file) => join(root, file)))
   const reads    = new Set([import.meta.filename])
@@ -61,16 +88,17 @@ export function triggers(root: string, include: string[]): string[] {
         .map(({ moduleRequest: { end, start } }) => text.slice(start + 1, end - 1))
     ])
 
-    const scope = findPackageJSON(pathToFileURL(file))
-    const paths = [...requests]
+    const tsconfigs = resolveTsconfig(file, cache)?.tsconfigFilePaths ?? []
+    const paths     = [...requests]
       .map((request) => resolver.sync(dirname(file), request).path)
       .filter((path) => path !== undefined)
+    const settings  = [
+      ...tsconfigs.flatMap(chain),
+      ...lookups(dirname(file), 'package.json', findPackageJSON(pathToFileURL(file))),
+      ...lookups(dirname(file), 'tsconfig.json', tsconfigs[0])
+    ]
 
-    resolveTsconfig(file, cache)?.tsconfigFilePaths.forEach((path) => reads.add(path))
-
-    if (scope) {
-      reads.add(scope)
-    }
+    settings.forEach((path) => reads.add(path))
 
     for (const path of paths) {
       const owner = path.lastIndexOf(MODULES)
@@ -84,4 +112,14 @@ export function triggers(root: string, include: string[]): string[] {
   }
 
   return [...reads]
+}
+
+/**
+ * Creates a `require` resolving from the Vite that Vitest loads under `root`,
+ * whose `rolldown` reads each tsconfig its transform applies.
+ */
+export function vite(root: string): NodeJS.Require {
+  const base = createRequire(join(root, 'package.json'))
+
+  return ['vitest', 'vite'].reduce((from, id) => createRequire(from.resolve(id)), base)
 }

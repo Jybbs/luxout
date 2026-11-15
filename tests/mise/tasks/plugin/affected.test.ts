@@ -31,14 +31,16 @@ function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
 
 /**
  * Runs the task from a repository at `folder` under `scratch` whose branch
- * changes only `changed` since it left `origin/main`, where a stand-in `mise`
- * runs each task file it names and Vitest runs one plugin test, which imports
- * `src/a.ts` and a module beside each further `tsconfig.json`, under the
- * suite's own configuration.
+ * changes only `changed`, or deletes it where `deleted` is set, since it left
+ * `origin/main`, where a stand-in `mise` runs each task file it names and
+ * Vitest runs one plugin test under the suite's own configuration. The test
+ * imports `src/a.ts`, which re-exports a module under `src/ui/public/`, and
+ * imports `.mise/vet/index.ts` dynamically.
  */
 async function selected(
   changed : string,
   scratch : string,
+  deleted = false,
   folder  = 'repo'
 ): Promise<{ ran: boolean, status: number | null }> {
   const repo = join(scratch, folder)
@@ -46,7 +48,8 @@ async function selected(
   await plant(repo, {
     '.gitignore'                       : '.cache\n.vitest\nnode_modules\n',
     '.mise/vet/index.ts'               : 'export const vet = 3\n',
-    '.mise/vet/tsconfig.json'          : '{}\n',
+    '.mise/vet/tsconfig.base.json'     : '{}\n',
+    '.mise/vet/tsconfig.json'          : '{ "extends": "./tsconfig.base.json" }\n',
     'bun.lock'                         : '{}\n',
     'bunfig.toml'                      : '{}\n',
     'package.json'                     : '{ "type": "module" }\n',
@@ -55,17 +58,16 @@ async function selected(
     'site/bun.lock'                    : '{}\n',
     'site/index.md'                    : '# Luxout\n',
     'site/package.json'                : '{}\n',
-    'src/a.ts'                         : 'export const a = 1\n',
+    'src/a.ts'                         : "export const a = 1\nexport { page } from './ui/public/index.ts'\n",
     'src/b.ts'                         : 'export const b = 2\n',
     'src/package.json'                 : '{}\n',
     'src/tsconfig.json'                : '{}\n',
     'src/ui/public/index.ts'           : 'export const page = 4\n',
     'src/ui/public/tsconfig.json'      : '{}\n',
     'tests/a.test.ts'                  : "import { expect, test } from 'vitest'\n\n"
-                                       + "import { vet } from '../.mise/vet/index.ts'\n"
-                                       + "import { a } from '../src/a.ts'\n"
-                                       + "import { page } from '../src/ui/public/index.ts'\n\n"
-                                       + "test('reads a', () => {\n"
+                                       + "import { a, page } from '../src/a.ts'\n\n"
+                                       + "test('reads a', async () => {\n"
+                                       + "  const { vet } = await import('../.mise/vet/index.ts')\n\n"
                                        + '  expect([a, vet, page]).toEqual([1, 3, 4])\n})\n',
     'tests/homebridge/bun.lock'        : '{}\n',
     'tests/homebridge/bunfig.toml'     : '{}\n',
@@ -79,7 +81,7 @@ async function selected(
     symlink(join(root, 'node_modules'), join(repo, 'node_modules'))
   ])
 
-  await branch(changed, repo)
+  await branch(changed, repo, deleted)
 
   const { status, stdout } = await sync(scratch, 'plugin:affected', { cwd: repo, env: { NO_COLOR: '1' } })
 
@@ -116,6 +118,7 @@ test.for([
   { changed: 'src/b.ts', name: 'runs no plugin test', ran: false },
   { changed: 'tests/homebridge/bunfig.toml', name: 'runs no plugin test', ran: false },
   { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
+  { changed: '.mise/vet/tsconfig.base.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'bunfig.toml', name: 'runs every plugin test', ran: true },
@@ -137,6 +140,20 @@ test.for([
 )
 
 test.for([
+  { deleted: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
+  { deleted: 'site/package.json', name: 'runs no plugin test', ran: false },
+  { deleted: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
+  { deleted: 'src/package.json', name: 'runs every plugin test', ran: true },
+  { deleted: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
+  { deleted: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true }
+])(
+  '$name where a branch deletes only $deleted',
+  async ({ deleted, ran }, { scratch }) => {
+    expect(await selected(deleted, scratch, true)).toEqual({ ran: ran, status: 0 })
+  }
+)
+
+test.for([
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
@@ -146,6 +163,6 @@ test.for([
 ])(
   '$name where a branch changes only $changed in a checkout under luxout (old)',
   async ({ changed, ran }, { scratch }) => {
-    expect(await selected(changed, scratch, 'luxout (old)')).toEqual({ ran: ran, status: 0 })
+    expect(await selected(changed, scratch, false, 'luxout (old)')).toEqual({ ran: ran, status: 0 })
   }
 )
