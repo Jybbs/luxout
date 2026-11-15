@@ -1,8 +1,8 @@
-import { execFileSync }                     from 'node:child_process'
-import { globSync, readFileSync, statSync } from 'node:fs'
-import { createRequire, findPackageJSON }   from 'node:module'
-import { dirname, join, resolve, sep }      from 'node:path'
-import { pathToFileURL }                    from 'node:url'
+import { execFileSync }                                   from 'node:child_process'
+import { globSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { createRequire, findPackageJSON }                 from 'node:module'
+import { dirname, join, resolve, sep }                    from 'node:path'
+import { pathToFileURL }                                  from 'node:url'
 
 import type * as Experimental from 'rolldown/experimental'
 import type * as Utils        from 'rolldown/utils'
@@ -12,11 +12,11 @@ const MODULES = `${sep}node_modules${sep}`
 const SCRIPT  = /\.[cm]?[jt]sx?$/
 
 /**
- * Lists `file` beside each file its `extends` chain names, which the
- * `tsconfigFilePaths` of `resolveTsconfig` leaves out, reading each as rolldown
- * does, where comments, trailing commas, a byte order mark, and an empty file
- * all parse. A file under `node_modules` stands as the `bun.lock` that installs
- * it.
+ * Lists `file` and its real path beside each file its `extends` chain names,
+ * which the `tsconfigFilePaths` of `resolveTsconfig` leaves out, reading each
+ * as rolldown does, where comments, trailing commas, a byte order mark, and an
+ * empty file all parse. A file under `node_modules` stands as the `bun.lock`
+ * that installs it.
  */
 function chain(file: string, extender: Experimental.ResolverFactory): string[] {
   const lock = lockfile(file)
@@ -28,8 +28,9 @@ function chain(file: string, extender: Experimental.ResolverFactory): string[] {
   const dir                     = dirname(file)
   const text                    = stripJsonComments(readFileSync(file, 'utf8'), { trailingCommas: true })
   const { extends: bases = [] } = JSON.parse(text.trim() || '{}') as { extends?: string | string[] }
+  const paths                   = [bases].flat().map((base) => extended(base, dir, extender))
 
-  return [file, ...[bases].flat().flatMap((base) => chain(extended(base, dir, extender), extender))]
+  return [file, realpathSync(file), ...paths.flatMap((path) => chain(path, extender))]
 }
 
 /**

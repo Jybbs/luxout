@@ -38,8 +38,9 @@ function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
  * Vitest runs one plugin test under the suite's own configuration. The test
  * imports `src/a.ts`, which re-exports a module under `src/ui/public/`, and
  * imports `.mise/vet/index.ts` dynamically, whose tsconfig chain reaches a
- * package linked from a Bun isolated store and, through `..`, a directory
- * whose `package.json` names a `main`.
+ * package linked from a Bun isolated store, a linked directory, an absolute
+ * path naming a directory beside a `.json` file of the same name, and, through
+ * `..`, a directory whose `package.json` names a `main`.
  */
 async function selected(
   changed : string,
@@ -56,7 +57,11 @@ async function selected(
     '.mise/tsconfig.json'              : '{ "extends": "@luxout/plain" }\n',
     '.mise/vet/bun.lock'               : '{}\n',
     '.mise/vet/index.ts'               : 'export const vet = 3\n',
-    '.mise/vet/tsconfig.base.json'     : '{ "extends": ["./tsconfig.root", "@luxout/base"] }\n',
+    '.mise/vet/real/tsconfig.json'     : '{}\n',
+    '.mise/vet/shared.json'            : '{}\n',
+    '.mise/vet/shared/tsconfig.json'   : '{}\n',
+    '.mise/vet/tsconfig.base.json'     : `{ "extends": ["./tsconfig.root", "@luxout/base", "./linked", `
+                                       + `"${repo}/.mise/vet/shared"] }\n`,
     '.mise/vet/tsconfig.empty.json'    : '',
     '.mise/vet/tsconfig.json'          : '{\n  // The vet suite\n  "extends": "./tsconfig.base.json"\n}\n',
     '.mise/vet/tsconfig.notes.json'    : '// The vet suite takes no option of its own\n',
@@ -97,6 +102,7 @@ async function selected(
     ...['.mise/lib/lock.sh', 'tests/common/triggers.ts', 'tests/coverage.json', 'tests/vitest.config.ts']
       .map((file) => cp(join(root, file), join(repo, file))),
     cp(join(import.meta.dirname, '..', '..', 'fixtures', 'mise.sh'), join(scratch, 'bin', 'mise')),
+    symlink('real', join(repo, '.mise', 'vet', 'linked')),
     symlink(join(repo, STORE), join(repo, '.mise', 'vet', 'node_modules', '@luxout', 'base')),
     symlink(join(root, 'node_modules'), join(repo, 'node_modules'))
   ])
@@ -132,6 +138,7 @@ test.for([
 })
 
 test.for([
+  { changed: '.mise/vet/shared.json', name: 'runs no plugin test', ran: false },
   { changed: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
   { changed: 'site/index.md', name: 'runs no plugin test', ran: false },
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
@@ -142,6 +149,8 @@ test.for([
   { changed: '.mise/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: '.mise/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/bun.lock', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/vet/real/tsconfig.json', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/vet/shared/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.base.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.empty.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
