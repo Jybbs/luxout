@@ -1,11 +1,13 @@
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 
 import vueJsx           from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitest/config'
 
 import thresholds from '../../tests/coverage.json' with { type: 'json' }
 
-const root = dirname(import.meta.dirname)
+const root     = dirname(import.meta.dirname)
+const triggers = ['../src/tsconfig.json', '.vitepress/tsconfig.json', 'bun.lock', 'package.json']
+  .map((file) => join(root, file))
 
 export default defineConfig({
   cacheDir : '../.cache/site/vite',
@@ -13,7 +15,7 @@ export default defineConfig({
   root     : root,
   test     : {
     expect              : { requireAssertions: true },
-    forceRerunTriggers  : [import.meta.filename, `${root}/package.json`],
+    forceRerunTriggers  : [import.meta.filename, ...triggers],
     include             : ['.vitepress/tests/**/*.test.ts'],
     pool                : 'threads',
     resolveSnapshotPath : (testPath, extension) => testPath + extension,

@@ -5,7 +5,8 @@ import { defineConfig }         from 'vitest/config'
 
 import thresholds from './coverage.json' with { type: 'json' }
 
-const root = dirname(import.meta.dirname)
+const root     = dirname(import.meta.dirname)
+const triggers = `${convertPathToPattern(root)}/{,!(site)/**/}{bun.lock,package.json,tsconfig.json}`
 
 export default defineConfig({
   cacheDir : '.cache/vite',
@@ -13,7 +14,7 @@ export default defineConfig({
   test     : {
     environmentOptions  : { happyDOM: { settings: { handleDisabledFileLoadingAsSuccess: true } } },
     expect              : { requireAssertions: true },
-    forceRerunTriggers  : [import.meta.filename, `${convertPathToPattern(root)}/{,!(site)/**/}package.json`],
+    forceRerunTriggers  : [import.meta.filename, triggers],
     include             : ['tests/**/*.test.ts'],
     resolveSnapshotPath : (testPath, extension) => testPath + extension,
     restoreMocks        : true,

@@ -45,14 +45,19 @@ async function selected(
 
   await plant(repo, {
     '.gitignore'                      : '.cache\nnode_modules\n',
+    'bun.lock'                        : '{}\n',
     'package.json'                    : '{ "type": "module" }\n',
     'site/.vitepress/lib/a.ts'        : 'export const a = 1\n',
     'site/.vitepress/lib/b.ts'        : 'export const b = 2\n',
     'site/.vitepress/tests/a.test.ts' : "import { expect, test } from 'vitest'\n\n"
                                       + "import { a } from '../lib/a.ts'\n\n"
                                       + "test('reads a', () => {\n  expect(a).toBe(1)\n})\n",
+    'site/.vitepress/tsconfig.json'   : '{}\n',
+    'site/bun.lock'                   : '{}\n',
     'site/package.json'               : '{ "type": "module" }\n',
-    'src/a.ts'                        : 'export const a = 1\n'
+    'src/a.ts'                        : 'export const a = 1\n',
+    'src/tsconfig.json'               : '{}\n',
+    'tests/tsconfig.json'             : '{}\n'
   })
   await Promise.all([
     cp(join(root, 'site', '.vitepress', 'vitest.config.ts'), join(site, '.vitepress', 'vitest.config.ts')),
@@ -83,12 +88,17 @@ test.for([
 })
 
 test.for([
+  { changed: 'bun.lock', name: 'runs no site test', ran: false },
   { changed: 'package.json', name: 'runs no site test', ran: false },
   { changed: 'site/.vitepress/lib/b.ts', name: 'runs no site test', ran: false },
   { changed: 'src/a.ts', name: 'runs no site test', ran: false },
+  { changed: 'tests/tsconfig.json', name: 'runs no site test', ran: false },
   { changed: 'site/.vitepress/lib/a.ts', name: 'runs the site test', ran: true },
+  { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
   { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every site test', ran: true },
-  { changed: 'site/package.json', name: 'runs every site test', ran: true }
+  { changed: 'site/bun.lock', name: 'runs every site test', ran: true },
+  { changed: 'site/package.json', name: 'runs every site test', ran: true },
+  { changed: 'src/tsconfig.json', name: 'runs every site test', ran: true }
 ])(
   '$name where a branch changes only $changed',
   async ({ changed, ran }, { scratch }) => {
@@ -97,9 +107,13 @@ test.for([
 )
 
 test.for([
+  { changed: 'bun.lock', name: 'runs no site test', ran: false },
   { changed: 'package.json', name: 'runs no site test', ran: false },
+  { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
+  { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every site test', ran: true },
+  { changed: 'site/bun.lock', name: 'runs every site test', ran: true },
   { changed: 'site/package.json', name: 'runs every site test', ran: true },
-  { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every site test', ran: true }
+  { changed: 'src/tsconfig.json', name: 'runs every site test', ran: true }
 ])(
   '$name where a branch changes only $changed in a checkout under luxout (old)',
   async ({ changed, ran }, { scratch }) => {
