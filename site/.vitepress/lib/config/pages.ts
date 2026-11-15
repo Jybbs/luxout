@@ -15,8 +15,8 @@ interface SectionPage {
 
 const HEADING = /(?<=^# ).+$/m
 const LINK    = /(?<=\]\(\.\/)[\w-]+(?=\.md\))/g
-const LINKED  = /\[([^\]]*)\]\([^)]*\)/g
-const OPENING = /(?<=^# .+\n\n).+(?:\n.+)*/m
+const LINKED  = /\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)/g
+const OPENING = /(?<=^# .+\n\n).+(?:\n.*\S.*)*/m
 
 /**
  * Reads the text `pattern` matches in the page at `path` without its emphasis

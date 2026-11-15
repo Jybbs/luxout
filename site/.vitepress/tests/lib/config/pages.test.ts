@@ -56,8 +56,9 @@ test(
 )
 
 test.for([
-  { name: 'a link as its text',              opening: '[Alpha](./a.md) line.', read: 'Alpha line.' },
-  { name: 'a paragraph of two lines as one', opening: 'An Alpha\nline.',        read: 'An Alpha line.' }
+  { name: 'each link as its text',      opening: '[An](./a) [Alpha](./(a)) line.', read: 'An Alpha line.' },
+  { name: 'three lines as one',         opening: 'An\nAlpha\nline.',               read: 'An Alpha line.' },
+  { name: 'no line past one of spaces', opening: 'An Alpha line.\n  \nMore.',      read: 'An Alpha line.' }
 ])('reads $name from the paragraph beneath a page’s first heading', async ({ opening, read }, { root }) => {
   const page = join(root, 'guide', 'alpha.md')
 
