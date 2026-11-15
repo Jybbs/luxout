@@ -1,14 +1,14 @@
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 
-import { convertPathToPattern } from 'tinyglobby'
-import { defineConfig }         from 'vitest/config'
+import { defineConfig } from 'vitest/config'
 
-import thresholds from './coverage.json' with { type: 'json' }
+import { lockfiles, triggers } from './common/triggers.js'
+import thresholds              from './coverage.json' with { type: 'json' }
 
-const root     = dirname(import.meta.dirname)
-const triggers = `${convertPathToPattern(root)}/`
-               + '{bunfig.toml,site/.vitepress/vitest.config.ts,site/bun.lock,'
-               + '{,!(site)/**/}{bun.lock,package.json,tsconfig.json}}'
+const INCLUDE = ['tests/**/*.test.ts']
+const PATHS   = ['bunfig.toml', 'site/.vitepress/vitest.config.ts']
+const root    = dirname(import.meta.dirname)
+const read    = [...PATHS, ...lockfiles(root)].map((file) => join(root, file))
 
 export default defineConfig({
   cacheDir : '.cache/vite',
@@ -16,8 +16,8 @@ export default defineConfig({
   test     : {
     environmentOptions  : { happyDOM: { settings: { handleDisabledFileLoadingAsSuccess: true } } },
     expect              : { requireAssertions: true },
-    forceRerunTriggers  : [import.meta.filename, triggers],
-    include             : ['tests/**/*.test.ts'],
+    forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE), ...read],
+    include             : INCLUDE,
     resolveSnapshotPath : (testPath, extension) => testPath + extension,
     restoreMocks        : true,
     sequence            : { shuffle: true },

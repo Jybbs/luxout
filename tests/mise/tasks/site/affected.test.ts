@@ -32,8 +32,9 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
  * Runs the task from the site of a repository at `folder` under `scratch`
  * whose branch changes only `changed` since it left `origin/main`, where a
  * stand-in `mise` runs each task file it names and Vitest runs one site test,
- * which imports `.vitepress/lib/a.ts`, under the site suite's own
- * configuration.
+ * which imports `.vitepress/lib/a.ts` and a module beside each `tsconfig.json`
+ * under `src/`, one of them importing a package from the root `node_modules`,
+ * under the site suite's own configuration.
  */
 async function selected(
   changed : string,
@@ -50,20 +51,27 @@ async function selected(
     'site/.vitepress/lib/a.ts'        : 'export const a = 1\n',
     'site/.vitepress/lib/b.ts'        : 'export const b = 2\n',
     'site/.vitepress/tests/a.test.ts' : "import { expect, test } from 'vitest'\n\n"
+                                      + "import { b } from '../../../src/b.ts'\n"
+                                      + "import { page } from '../../../src/ui/public/index.ts'\n"
                                       + "import { a } from '../lib/a.ts'\n\n"
-                                      + "test('reads a', () => {\n  expect(a).toBe(1)\n})\n",
+                                      + "test('reads a', () => {\n"
+                                      + "  expect([a, b, page]).toEqual([1, 'Sun', 4])\n})\n",
     'site/.vitepress/tsconfig.json'   : '{}\n',
     'site/bun.lock'                   : '{}\n',
     'site/package.json'               : '{ "type": "module" }\n',
     'src/a.ts'                        : 'export const a = 1\n',
+    'src/b.ts'                        : "import { Body } from 'astronomy-engine'\n\n"
+                                      + 'export const b = Body.Sun\n',
     'src/tsconfig.json'               : '{}\n',
+    'src/ui/public/index.ts'          : 'export const page = 4\n',
     'src/ui/public/tsconfig.json'     : '{}\n',
     'tests/tsconfig.json'             : '{}\n'
   })
   await Promise.all([
-    cp(join(root, 'site', '.vitepress', 'vitest.config.ts'), join(site, '.vitepress', 'vitest.config.ts')),
-    cp(join(root, 'tests', 'coverage.json'), join(repo, 'tests', 'coverage.json')),
+    ...['site/.vitepress/vitest.config.ts', 'tests/common/triggers.ts', 'tests/coverage.json']
+      .map((file) => cp(join(root, file), join(repo, file))),
     cp(join(import.meta.dirname, '..', '..', 'fixtures', 'mise.sh'), join(scratch, 'bin', 'mise')),
+    symlink(join(root, 'node_modules'), join(repo, 'node_modules')),
     symlink(join(root, 'site', 'node_modules'), join(site, 'node_modules'))
   ])
 

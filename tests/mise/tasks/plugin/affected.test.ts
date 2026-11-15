@@ -33,7 +33,8 @@ function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
  * Runs the task from a repository at `folder` under `scratch` whose branch
  * changes only `changed` since it left `origin/main`, where a stand-in `mise`
  * runs each task file it names and Vitest runs one plugin test, which imports
- * `src/a.ts`, under the suite's own configuration.
+ * `src/a.ts` and a module beside each further `tsconfig.json`, under the
+ * suite's own configuration.
  */
 async function selected(
   changed : string,
@@ -44,6 +45,7 @@ async function selected(
 
   await plant(repo, {
     '.gitignore'                       : '.cache\n.vitest\nnode_modules\n',
+    '.mise/vet/index.ts'               : 'export const vet = 3\n',
     '.mise/vet/tsconfig.json'          : '{}\n',
     'bun.lock'                         : '{}\n',
     'bunfig.toml'                      : '{}\n',
@@ -57,18 +59,22 @@ async function selected(
     'src/b.ts'                         : 'export const b = 2\n',
     'src/package.json'                 : '{}\n',
     'src/tsconfig.json'                : '{}\n',
+    'src/ui/public/index.ts'           : 'export const page = 4\n',
     'src/ui/public/tsconfig.json'      : '{}\n',
     'tests/a.test.ts'                  : "import { expect, test } from 'vitest'\n\n"
-                                       + "import { a } from '../src/a.ts'\n\n"
-                                       + "test('reads a', () => {\n  expect(a).toBe(1)\n})\n",
+                                       + "import { vet } from '../.mise/vet/index.ts'\n"
+                                       + "import { a } from '../src/a.ts'\n"
+                                       + "import { page } from '../src/ui/public/index.ts'\n\n"
+                                       + "test('reads a', () => {\n"
+                                       + '  expect([a, vet, page]).toEqual([1, 3, 4])\n})\n',
     'tests/homebridge/bun.lock'        : '{}\n',
     'tests/homebridge/bunfig.toml'     : '{}\n',
     'tests/tsconfig.json'              : '{}\n',
     'tests/vet/floor/bun.lock'         : '{}\n'
   })
   await Promise.all([
-    cp(join(root, 'tests', 'coverage.json'), join(repo, 'tests', 'coverage.json')),
-    cp(join(root, 'tests', 'vitest.config.ts'), join(repo, 'tests', 'vitest.config.ts')),
+    ...['.mise/lib/lock.sh', 'tests/common/triggers.ts', 'tests/coverage.json', 'tests/vitest.config.ts']
+      .map((file) => cp(join(root, file), join(repo, file))),
     cp(join(import.meta.dirname, '..', '..', 'fixtures', 'mise.sh'), join(scratch, 'bin', 'mise')),
     symlink(join(root, 'node_modules'), join(repo, 'node_modules'))
   ])

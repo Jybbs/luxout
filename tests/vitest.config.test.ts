@@ -1,5 +1,5 @@
-import { glob, readFile } from 'node:fs/promises'
-import { dirname, join }  from 'node:path'
+import { glob, readFile }          from 'node:fs/promises'
+import { dirname, join, relative } from 'node:path'
 
 import { expect, it, vi } from 'vitest'
 import { defaultExclude } from 'vitest/config'
@@ -36,6 +36,17 @@ it('measures coverage over .mise/**/*.ts and src/**/*.ts and reports it under .c
 
 it('keeps the Vite and Vitest caches under .cache/vite', () => {
   expect(config.cacheDir).toBe('.cache/vite')
+})
+
+it('reruns every test after a change to a file the suite reads beside the modules its tests import', () => {
+  const triggers = config.test?.forceRerunTriggers?.map((file) => relative(root, file))
+
+  expect(new Set(triggers)).toEqual(new Set([
+    '.mise/audit/tsconfig.json', '.mise/vet/tsconfig.json', 'bun.lock', 'bunfig.toml', 'package.json',
+    'site/.vitepress/vitest.config.ts', 'site/bun.lock', 'src/tsconfig.json', 'src/ui/public/tsconfig.json',
+    'tests/common/triggers.ts', 'tests/homebridge/bun.lock', 'tests/tsconfig.json',
+    'tests/vet/floor/bun.lock', 'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
+  ]))
 })
 
 it('reads the coverage floor from tests/coverage.json', () => {
