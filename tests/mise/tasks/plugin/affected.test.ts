@@ -1,12 +1,12 @@
 /** @module-tag spawns */
-import { execFileSync }            from 'node:child_process'
-import { appendFile, cp, symlink } from 'node:fs/promises'
-import { join }                    from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { cp, symlink }  from 'node:fs/promises'
+import { join }         from 'node:path'
 
 import { expect } from 'vitest'
 
-import { plant, test } from '../../../common/scratch.js'
-import { sync }        from '../../../common/sync.js'
+import { branch, plant, test } from '../../../common/scratch.js'
+import { type SyncRun, sync }  from '../../../common/sync.js'
 
 const ARGS   = ['--bail', '1']
 const BASE   = '5cb3ee2'
@@ -18,11 +18,8 @@ const PLUGIN = ['mise', 'run', 'plugin:test', '--', '--changed', BASE, ...ARGS]
  * Runs the task in `scratch` beside stand-ins for `git` and `mise`, where the
  * merge base is `BASE` and the call `failing` names exits 1.
  */
-async function canned(
-  scratch  : string,
-  failing? : string[]
-): Promise<{ calls: string[][], status: number | null }> {
-  const { invoked, status } = await sync(scratch, 'plugin:affected', {
+function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
+  return sync(scratch, 'plugin:affected', {
     args   : ARGS,
     canned : {
       [MERGE.join(' ')]  : { stdout: `${BASE}\n` },
@@ -30,8 +27,6 @@ async function canned(
       ...failing && { [failing.join(' ')]: { status: 1 } }
     }
   })
-
-  return { calls: invoked.map((call) => call.args), status }
 }
 
 /**
@@ -46,9 +41,6 @@ async function selected(
   folder  = 'repo'
 ): Promise<{ ran: boolean, status: number | null }> {
   const repo = join(scratch, folder)
-  const git  = (...args: string[]): Buffer => execFileSync('git', [
-    '-c', 'commit.gpgsign=false', '-c', 'user.email=luxout@example.com', '-c', 'user.name=Luxout', ...args
-  ], { cwd: repo })
 
   await plant(repo, {
     '.gitignore'        : '.cache\n.vitest\nnode_modules\n',
@@ -68,12 +60,7 @@ async function selected(
     symlink(join(root, 'node_modules'), join(repo, 'node_modules'))
   ])
 
-  git('init', '--quiet')
-  git('add', '--all')
-  git('commit', '--message', 'Start', '--quiet')
-  git('update-ref', 'refs/remotes/origin/main', 'HEAD')
-  await appendFile(join(repo, changed), '\n')
-  git('commit', '--all', '--message', 'Change', '--quiet')
+  await branch(changed, repo)
 
   const { status, stdout } = await sync(scratch, 'plugin:affected', { cwd: repo, env: { NO_COLOR: '1' } })
 
@@ -92,15 +79,15 @@ test('takes the alias affected', () => {
 test(
   'runs plugin:test against the merge base, passing every further argument to Vitest',
   async ({ scratch }) => {
-    expect(await canned(scratch)).toEqual({ calls: [MERGE, PLUGIN], status: 0 })
+    expect(await canned(scratch)).toMatchObject({ commands: [MERGE, PLUGIN], status: 0 })
   }
 )
 
 test.for([
-  { calls: [MERGE], failing: MERGE, name: '`git merge-base`' },
-  { calls: [MERGE, PLUGIN], failing: PLUGIN, name: '`plugin:test`' }
-])('fails once $name fails', async ({ calls, failing }, { scratch }) => {
-  expect(await canned(scratch, failing)).toEqual({ calls: calls, status: 1 })
+  { commands: [MERGE], failing: MERGE, name: '`git merge-base`' },
+  { commands: [MERGE, PLUGIN], failing: PLUGIN, name: '`plugin:test`' }
+])('fails once $name fails', async ({ commands, failing }, { scratch }) => {
+  expect(await canned(scratch, failing)).toMatchObject({ commands: commands, status: 1 })
 })
 
 test.for([

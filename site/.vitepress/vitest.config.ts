@@ -5,12 +5,15 @@ import { defineConfig } from 'vitest/config'
 
 import thresholds from '../../tests/coverage.json' with { type: 'json' }
 
+const root = dirname(import.meta.dirname)
+
 export default defineConfig({
   cacheDir : '../.cache/site/vite',
   plugins  : [vueJsx({ tsTransform: 'built-in' })],
-  root     : dirname(import.meta.dirname),
+  root     : root,
   test     : {
     expect              : { requireAssertions: true },
+    forceRerunTriggers  : [import.meta.filename, `${root}/package.json`],
     include             : ['.vitepress/tests/**/*.test.ts'],
     pool                : 'threads',
     resolveSnapshotPath : (testPath, extension) => testPath + extension,

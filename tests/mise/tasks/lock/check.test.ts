@@ -17,9 +17,7 @@ test('checks the Bun lockfile of every package .mise/lib/lock.sh lists before th
 }) => {
   await plant(scratch, { ...VET, '.mise/mise.lock': 'locked\n' })
 
-  const { invoked, status } = await sync(scratch, 'lock:check', {
+  expect(await sync(scratch, 'lock:check', {
     canned: Object.fromEntries(CALLS.map((call) => [call.join(' '), {}]))
-  })
-
-  expect({ calls: invoked.map((call) => call.args), status }).toEqual({ calls: CALLS, status: 0 })
+  })).toMatchObject({ commands: CALLS, status: 0 })
 })
