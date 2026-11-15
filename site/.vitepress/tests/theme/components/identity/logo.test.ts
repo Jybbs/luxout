@@ -69,3 +69,12 @@ test('marks the break and the glow at the multiples of the sun’s radius the co
     expect.closeTo(data.logo.construction.glow.radius, 2)
   ])
 })
+
+test('lays the horizon and the sun on the rule the title draws', ({ mount }) => {
+  const title   = new DOMParser().parseFromString(data.logo.svgs.title.light, 'image/svg+xml')
+  const rule    = [...title.querySelectorAll('rect')].at(-1)!
+  const [y, h]  = ['y', 'height'].map((name) => Number(rule.getAttribute(name)))
+  const overlay = mount(LogoWipe).querySelector('.relative > svg')!
+
+  expect(Number(overlay.querySelector('circle')!.getAttribute('cy'))).toBe(-(y! + h! / 2))
+})

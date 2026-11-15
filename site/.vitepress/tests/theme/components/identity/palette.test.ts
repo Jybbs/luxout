@@ -87,5 +87,5 @@ test('fills each band with its color, the picked band naming it beside its hex',
   const tabs = getAllByRole(mount(PaletteBands), 'tab')
 
   expect(tabs.map(({ style }) => style.background)).toEqual(colors.map(({ token }) => `var(${token})`))
-  expect(tabs[0]!.textContent).toBe(`${colors[0]!.name}${colors[0]!.hex}`)
+  expect(tabs.map(({ textContent }) => textContent)).toEqual(colors.map(({ hex, name }) => `${name}${hex}`))
 })
