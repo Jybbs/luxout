@@ -65,14 +65,14 @@ async function cut(
     git('commit', '--allow-empty', '--message', version, '--quiet')
   }
 
-  const { calls, status, stderr, stdout } = await sync(scratch, 'gha:cut', {
+  const { requests, status, stderr, stdout } = await sync(scratch, 'gha:cut', {
     env  : env,
     fail : fail,
     live : { [ENDPOINT]: pages }
   })
   const outputs = parseEnv(await readFile(join(scratch, 'output'), 'utf8'))
 
-  return { calls: calls.map(({ args }) => args), outputs, status, stderr, stdout }
+  return { calls: requests, outputs, status, stderr, stdout }
 }
 
 const release = (draft: boolean, tag: string) => ({
