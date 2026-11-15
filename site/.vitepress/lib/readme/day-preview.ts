@@ -337,8 +337,8 @@ export class DayPreview {
   }
 
   /**
-   * Sets `text` where `place` puts it, in capitals wherever its face is the
-   * mono face, each unit of an established case kept as written.
+   * Sets `text` where `place` puts it, through `format.capitals` wherever its
+   * face is the mono face.
    */
   #say(text: string, fill: string, { anchor, size, voice, x, y }: Place): VNode {
     const words = voice.face === 'mono' ? format.capitals(text) : text
