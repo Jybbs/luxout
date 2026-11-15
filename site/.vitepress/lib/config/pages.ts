@@ -15,7 +15,7 @@ interface SectionPage {
 
 const HEADING = /(?<=^# ).+$/m
 const LINK    = /(?<=\]\(\.\/)[\w-]+(?=\.md\))/g
-const LINKED  = /\[([^\]]*)\]\((?:\\.|[^()\\]|\([^()]*\))*\)/g
+const LINKED  = /\[([^\]]*)\]\((?:\\.|[^()\\]|\((?:\\.|[^()\\])*\))*\)/gs
 const OPENING = /(?<=^# .+\n\n).+(?:\n.*\S.*)*/m
 
 /**
