@@ -100,7 +100,6 @@ test.for([
 
 test.for([
   { changed: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
-  { changed: 'site/bun.lock', name: 'runs no plugin test', ran: false },
   { changed: 'site/index.md', name: 'runs no plugin test', ran: false },
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
   { changed: 'src/b.ts', name: 'runs no plugin test', ran: false },
@@ -109,6 +108,7 @@ test.for([
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },
   { changed: 'src/package.json', name: 'runs every plugin test', ran: true },
+  { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'src/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'tests/homebridge/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true },
@@ -121,11 +121,11 @@ test.for([
 )
 
 test.for([
-  { changed: 'site/bun.lock', name: 'runs no plugin test', ran: false },
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },
+  { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'src/package.json', name: 'runs every plugin test', ran: true }
 ])(
   '$name where a branch changes only $changed in a checkout under luxout (old)',

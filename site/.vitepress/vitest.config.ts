@@ -6,8 +6,10 @@ import { defineConfig } from 'vitest/config'
 import thresholds from '../../tests/coverage.json' with { type: 'json' }
 
 const root     = dirname(import.meta.dirname)
-const triggers = ['../src/tsconfig.json', '.vitepress/tsconfig.json', 'bun.lock', 'package.json']
-  .map((file) => join(root, file))
+const triggers = [
+  '../bun.lock', '../package.json', '../src/tsconfig.json', '../src/ui/public/tsconfig.json',
+  '.vitepress/tsconfig.json', 'bun.lock', 'package.json'
+].map((file) => join(root, file))
 
 export default defineConfig({
   cacheDir : '../.cache/site/vite',
