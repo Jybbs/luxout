@@ -30,9 +30,17 @@ interface Invocation {
   cwd  : string
 }
 
+/**
+ * The run of a task under stand-ins, beside the calls the stand-ins received:
+ *
+ * - `calls`, each call the stand-in `gh` received
+ * - `commands`, the arguments of each call a canned stand-in received
+ * - `invoked`, each of those calls beside the directory it ran in
+ */
 export interface SyncRun extends Pick<SpawnSyncReturns<string>, 'status' | 'stderr' | 'stdout'> {
-  calls   : Call[]
-  invoked : Invocation[]
+  calls    : Call[]
+  commands : string[][]
+  invoked  : Invocation[]
 }
 
 interface SyncSetup {
@@ -126,11 +134,14 @@ export async function sync(
   const lines = async (log: string): Promise<string[]> =>
     (await readFile(join(scratch, log), 'utf8')).split('\n').slice(0, -1)
 
+  const invoked = (await lines('canned.log')).map((line): Invocation => JSON.parse(line))
+
   return {
-    calls   : (await lines('gh.log')).map((line): Call => JSON.parse(line)),
-    invoked : (await lines('canned.log')).map((line): Invocation => JSON.parse(line)),
-    status  : status,
-    stderr  : stderr,
-    stdout  : stdout
+    calls    : (await lines('gh.log')).map((line): Call => JSON.parse(line)),
+    commands : invoked.map(({ args }) => args),
+    invoked  : invoked,
+    status   : status,
+    stderr   : stderr,
+    stdout   : stdout
   }
 }

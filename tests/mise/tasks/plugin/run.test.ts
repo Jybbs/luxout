@@ -4,13 +4,8 @@ import { basename, join }              from 'node:path'
 
 import { expect } from 'vitest'
 
-import { plant, test } from '../../../common/scratch.js'
-import { sync }        from '../../../common/sync.js'
-
-interface Run {
-  calls  : string[][]
-  status : number | null
-}
+import { plant, test }        from '../../../common/scratch.js'
+import { type SyncRun, sync } from '../../../common/sync.js'
 
 interface Setup {
   args?    : string[]
@@ -50,9 +45,9 @@ test('installs the UI, then runs hb-service with the links, the storage, and eve
   const plugins = join(cache, 'plugins')
   const storage = join(cache, 'storage')
 
-  expect(await run(scratch, { args: ['-T', 'holds a space'] })).toEqual({
-    status : 0,
-    calls  : [
+  expect(await run(scratch, { args: ['-T', 'holds a space'] })).toMatchObject({
+    status   : 0,
+    commands : [
       ['bun', 'install', '--cwd', cache, '--frozen-lockfile'],
       [
         'hb-service', 'run', '--plugin-path', plugins, '--stdout', '--strict-plugin-resolution',
@@ -108,11 +103,11 @@ test('passes a checkout path holding a space whole to bun, hb-service, and the p
   const result   = await run(checkout)
   const luxout   = await readlink(join(plugins, 'homebridge-luxout'))
 
-  expect({ luxout, result }).toEqual({
+  expect({ luxout, result }).toMatchObject({
     luxout : checkout,
     result : {
-      status : 0,
-      calls  : [
+      status   : 0,
+      commands : [
         ['bun', 'install', '--cwd', cache, '--frozen-lockfile'],
         [
           'hb-service', 'run', '--plugin-path', plugins, '--stdout', '--strict-plugin-resolution',
@@ -124,9 +119,9 @@ test('passes a checkout path holding a space whole to bun, hb-service, and the p
 })
 
 test('starts no Homebridge where the UI fails to install', async ({ scratch }) => {
-  const { calls, status } = await run(scratch, { failing: true })
+  const { commands, status } = await run(scratch, { failing: true })
 
-  expect({ programs: calls.map(([program]) => program), status }).toEqual({ programs: ['bun'], status: 1 })
+  expect({ programs: commands.map(([program]) => program), status }).toEqual({ programs: ['bun'], status: 1 })
 })
 
 async function read(directory: string, ...files: string[]): Promise<string[]> {
@@ -139,10 +134,13 @@ async function read(directory: string, ...files: string[]): Promise<string[]> {
  * and `hb-service`, where `bun` fails instead where `failing` is set.
  *
  * Returns:
- *   Each program the task ran with its arguments, in order, beside the exit
- *   status.
+ *   The run, whose `commands` hold each program the task ran with its
+ *   arguments, in order.
  */
-async function run(scratch: string, { args = [], failing = false, planted = {} }: Setup = {}): Promise<Run> {
+async function run(
+  scratch                                      : string,
+  { args = [], failing = false, planted = {} } : Setup = {}
+): Promise<SyncRun> {
   const cache = join(scratch, CACHE)
   const start = [
     'hb-service', 'run', '--plugin-path', join(cache, 'plugins'), '--stdout', '--strict-plugin-resolution',
@@ -151,13 +149,11 @@ async function run(scratch: string, { args = [], failing = false, planted = {} }
 
   await plant(scratch, { ...SEED, ...planted })
 
-  const { invoked, status } = await sync(scratch, 'plugin:run', {
+  return sync(scratch, 'plugin:run', {
     args   : args,
     canned : {
       [`bun install --cwd ${cache} --frozen-lockfile`] : failing ? { status: 1 } : {},
       [start.join(' ')]                                : {}
     }
   })
-
-  return { calls: invoked.map((call) => call.args), status }
 }
