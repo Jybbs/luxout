@@ -286,7 +286,10 @@ export function levelsTable(sky: ClearSky): string {
  */
 export function logoForms(identity: Identity): string {
   const { word } = identity.logo.construction
-  const forms    = [{ asset: 'title', name: `${word.toLowerCase()}, the title` }, { asset: 'mark', name: 'The mark' }]
+  const forms    = [
+    { asset: 'title', name: `${word.toLowerCase()}, the title` },
+    { asset: 'mark',  name: 'The mark' }
+  ]
 
   return markdownTable(
     ['Form', ...SHOWN.map((scheme) => `On ${identity.grounds[scheme].name}`)],

@@ -111,7 +111,8 @@ it('leaves the layout and the hero of every other page to the page', () => {
 })
 
 it('sets the footer on the front page alone', () => {
-  const pages = [front, setup, { ...setup, relativePath: 'identity.md' }].map((page) => transform(page, context))
+  const pages = [front, setup, { ...setup, relativePath: 'identity.md' }]
+    .map((page) => transform(page, context))
 
   expect(pages.map(({ frontmatter }) => frontmatter.footer)).toEqual([undefined, false, false])
 })

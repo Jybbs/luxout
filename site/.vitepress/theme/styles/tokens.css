@@ -15,11 +15,12 @@
   --breakpoint-lg : 60rem;
 
   --container-*   : initial;
-  --container-2xs : 5.875rem;
-  --container-xs  : 9.375rem;
-  --container-sm  : 30rem;
-  --container-md  : 38rem;
-  --container-lg  : 40rem;
+  --container-2xs  : 5.875rem;
+  --container-xs   : 9.375rem;
+  --container-band : 20rem;
+  --container-sm   : 30rem;
+  --container-md   : 38rem;
+  --container-lg   : 40rem;
 
   --font-*       : initial;
   --font-base    : var(--vp-font-family-base);

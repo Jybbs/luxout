@@ -56,19 +56,22 @@ test('draws each ground’s own form of the title and the mark', ({ mount }) => 
   ]))
 })
 
-test('marks the break and the glow at the multiples of the sun’s radius the construction sets', ({ mount }) => {
-  const overlay      = mount(LogoWipe).querySelector('.relative > svg')!
-  const sun          = overlay.querySelector('circle')!
-  const [cx, r]      = ['cx', 'r'].map((name) => Number(sun.getAttribute(name)))
-  const [, ...marks] = [...overlay.querySelectorAll('path')].map((path) => path.getAttribute('d')!)
-  const reach        = (d: string) => Math.abs(Number(/^M(-?[\d.]+)/.exec(d)![1]) - cx!) / r!
+test(
+  'marks the break and the glow at the multiples of the sun’s radius the construction sets',
+  ({ mount }) => {
+    const overlay      = mount(LogoWipe).querySelector('.relative > svg')!
+    const sun          = overlay.querySelector('circle')!
+    const [cx, r]      = ['cx', 'r'].map((name) => Number(sun.getAttribute(name)))
+    const [, ...marks] = [...overlay.querySelectorAll('path')].map((path) => path.getAttribute('d')!)
+    const reach        = (d: string) => Math.abs(Number(/^M(-?[\d.]+)/.exec(d)![1]) - cx!) / r!
 
-  expect(marks.map(reach)).toEqual([
-    expect.closeTo(data.logo.construction.horizon.gap, 2),
-    expect.closeTo(data.logo.construction.horizon.gap, 2),
-    expect.closeTo(data.logo.construction.glow.radius, 2)
-  ])
-})
+    expect(marks.map(reach)).toEqual([
+      expect.closeTo(data.logo.construction.horizon.gap, 2),
+      expect.closeTo(data.logo.construction.horizon.gap, 2),
+      expect.closeTo(data.logo.construction.glow.radius, 2)
+    ])
+  }
+)
 
 test('lays the horizon and the sun on the rule the title draws', ({ mount }) => {
   const title   = new DOMParser().parseFromString(data.logo.svgs.title.light, 'image/svg+xml')

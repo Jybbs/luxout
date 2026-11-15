@@ -60,7 +60,7 @@ export const PaletteBands = defineComponent({
                 <b
                   class={[
                     'font-display text-[0.92rem]/[1.1] font-semibold whitespace-nowrap',
-                    '@max-[20rem]:whitespace-normal @sm:text-[1.05rem]/[1.1]'
+                    '@max-band:whitespace-normal @sm:text-[1.05rem]/[1.1]'
                   ]}
                 >
                   {COLORS[index]!.name}
@@ -94,7 +94,10 @@ export const PaletteBands = defineComponent({
 function cell(swatch: Swatch, scheme: Scheme): VNode {
   return (
     <div
-      class={['grid grid-cols-[48px_minmax(0,1fr)] items-center gap-x-2.5 rounded-md px-2.5 py-2', 'ring-1 ring-rule']}
+      class={[
+        'grid grid-cols-[48px_minmax(0,1fr)] items-center gap-x-2.5 rounded-md px-2.5 py-2',
+        'ring-1 ring-rule'
+      ]}
       style={onGround(scheme)}
     >
       <span class="row-span-2 grid place-items-center">{glyphOf(swatch, scheme)}</span>
