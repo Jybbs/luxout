@@ -60,6 +60,10 @@ it.for([['light', '#bcbbb9'], ['dark', '#f2f1ee']] as const)(
   }
 )
 
+it('lists each property the theme block and the root rule declare once, in the order first declared', () => {
+  expect(tokens.properties('light')).toEqual(['--edge', '--ground', '--wash', '--ink', '--link', '--text'])
+})
+
 it('computes a value that is no var() as written', () => {
   expect(tokens.computed('1px solid', 'light')).toBe('1px solid')
 })

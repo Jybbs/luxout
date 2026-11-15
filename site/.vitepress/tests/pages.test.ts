@@ -21,6 +21,7 @@ import * as blocks                   from './common/blocks.ts'
 import { data }                      from './common/data/daylight.ts'
 import { data as line }              from './common/data/debug-line.ts'
 import { data as front }             from './common/data/front.ts'
+import { data as identity }          from './common/data/identity.ts'
 import { data as privacy }           from './common/data/privacy.ts'
 
 const day               = SampleDay.record()
@@ -63,6 +64,14 @@ const pageBlocks: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     'dial-lede'    : blocks.dialLede(dial),
     'dial-table'   : blocks.dialTable(dial),
     'factor-table' : blocks.factorTable(factorDay(day))
+  },
+
+  'identity.md': {
+    'identity-faces'   : blocks.facesTable(identity),
+    'identity-forms'   : blocks.logoForms(identity),
+    'identity-logo'    : blocks.logoTable(identity),
+    'identity-palette' : blocks.paletteTable(identity),
+    'identity-words'   : blocks.wordsTable(identity)
   },
 
   'index.md': {

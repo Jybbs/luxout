@@ -112,6 +112,13 @@ export class Tokens {
   }
 
   /**
+   * Lists the custom properties whose declarations reach `scheme`.
+   */
+  properties(scheme: Scheme): string[] {
+    return [...this.#schemes[scheme].keys()]
+  }
+
+  /**
    * Reads `property` as `scheme` computes it, following each `var()` that names
    * another property to the value it holds.
    */

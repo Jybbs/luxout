@@ -137,6 +137,17 @@ it('describes the not-found page as the site, with the site card', () => {
   `)
 })
 
+it('describes the identity page as the site, with the site card', () => {
+  const { alt, tags } = preview(page('identity.md', 'Identity', SITE))
+
+  expect(alt).toEqual([ALT.site, ALT.site])
+  expect(tags).toMatchObject({
+    'og:image' : 'https://luxout.fyi/cards/index.png',
+    'og:type'  : 'website',
+    'og:url'   : 'https://luxout.fyi/identity'
+  })
+})
+
 it('addresses a page outside a section index by its path with no extension', () => {
   expect(page('estimate/clouds.md', 'Clouds'))
     .toContainEqual(['link', { href: 'https://luxout.fyi/estimate/clouds', rel: 'canonical' }])
