@@ -52,6 +52,7 @@ test.for([
     const glyph = host.querySelector('.layer.shown .row-span-2')!.firstElementChild!
 
     expect(`${glyph.tagName} ${glyph.textContent}`).toBe(drawn)
+    expect(glyph.outerHTML).toContain(`var(${colors[index]!.token})`)
   }
 )
 
@@ -80,4 +81,11 @@ test('sets each cell on its own ground and ink, edging a fill in that ink', asyn
     [`var(${data.grounds.dark.token})`, `var(${ink.dark})`]
   ])
   expect(cells[0]!.querySelector<HTMLElement>('.border')!.style.borderColor).toBe(`var(${ink.light})`)
+})
+
+test('fills each band with its color, the picked band naming it beside its hex', ({ mount }) => {
+  const tabs = getAllByRole(mount(PaletteBands), 'tab')
+
+  expect(tabs.map(({ style }) => style.background)).toEqual(colors.map(({ token }) => `var(${token})`))
+  expect(tabs[0]!.textContent).toBe(`${colors[0]!.name}${colors[0]!.hex}`)
 })

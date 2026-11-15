@@ -55,7 +55,7 @@ const ROWS = [
     widget  : 'LocationSearch'
   },
   {
-    fold    : 'Each part as a table',
+    fold    : 'Each form as a table',
     heading : 'Logo',
     page    : 'identity.md',
     widget  : 'LogoWipe'

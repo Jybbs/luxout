@@ -3,8 +3,9 @@ import { fireEvent, getAllByRole, getByRole } from '@testing-library/dom'
 import { expect, vi }                        from 'vitest'
 import { nextTick }                          from 'vue'
 
-import { LogoWipe }      from '../../../../theme/components/identity/logo.tsx'
-import { keyOn, test }   from '../../../common/mount.ts'
+import { LogoWipe }    from '../../../../theme/components/identity/logo.tsx'
+import { data }        from '../../../common/data/identity.ts'
+import { keyOn, test } from '../../../common/mount.ts'
 
 vi.mock('../../../../lib/identity/identity.data.ts', () => import('../../../common/data/identity.ts'))
 
@@ -43,4 +44,28 @@ test.for([
   await nextTick()
 
   expect(host.querySelector<HTMLElement>('[style*="clip-path"]')!.style.clipPath).toBe(`inset(${inset})`)
+})
+
+test('draws each ground’s own form of the title and the mark', ({ mount }) => {
+  const { svgs } = data.logo
+  const drawn    = getAllByRole(mount(LogoWipe), 'img')
+    .map((img) => decodeURIComponent(img.getAttribute('src')!.replace('data:image/svg+xml,', '')))
+
+  expect(drawn).toEqual((['light', 'dark'] as const).flatMap((scheme) => [
+    svgs.title[scheme], ...Array(3).fill(svgs.mark[scheme])
+  ]))
+})
+
+test('marks the break and the glow at the multiples of the sun’s radius the construction sets', ({ mount }) => {
+  const overlay      = mount(LogoWipe).querySelector('.relative > svg')!
+  const sun          = overlay.querySelector('circle')!
+  const [cx, r]      = ['cx', 'r'].map((name) => Number(sun.getAttribute(name)))
+  const [, ...marks] = [...overlay.querySelectorAll('path')].map((path) => path.getAttribute('d')!)
+  const reach        = (d: string) => Math.abs(Number(/^M(-?[\d.]+)/.exec(d)![1]) - cx!) / r!
+
+  expect(marks.map(reach)).toEqual([
+    expect.closeTo(data.logo.construction.horizon.gap, 2),
+    expect.closeTo(data.logo.construction.horizon.gap, 2),
+    expect.closeTo(data.logo.construction.glow.radius, 2)
+  ])
 })

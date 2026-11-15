@@ -54,3 +54,9 @@ test('lights a line once a mouse dwells on it, and both once it leaves', async (
   await nextTick()
   expect(dimmed(host)).toEqual([false, false])
 })
+
+test('sets both lines in the base face, the tagline alone in its italic', ({ mount }) => {
+  expect(lines(mount(WordsCaptioned)).map((line) =>
+    [line.classList.contains('font-base'), line.querySelector('p')!.classList.contains('italic')]
+  )).toEqual([[true, true], [true, false]])
+})

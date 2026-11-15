@@ -57,7 +57,7 @@ export const PaletteBands = defineComponent({
                   'duration-(--timing-fade) group-data-selected/band:opacity-100'
                 ]}
               >
-                <b class={['font-display text-[0.92rem]/[1.1] font-semibold whitespace-nowrap', '@sm:text-[1.05rem]/[1.1]']}>
+                <b class="font-display text-[0.92rem]/[1.1] font-semibold @sm:text-[1.05rem]/[1.1]">
                   {COLORS[index]!.name}
                 </b>
                 <span class="widget-num text-[0.66rem]/none tracking-[0.06em] uppercase">

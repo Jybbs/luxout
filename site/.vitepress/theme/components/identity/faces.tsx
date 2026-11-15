@@ -157,7 +157,7 @@ export const FacesBar = defineComponent({
         <div class="widget faces-bar grid gap-2.5">
           <Tablist
             classes={{
-              list : 'grid auto-cols-fr grid-flow-col gap-0.5 rounded-full p-0.5 ring-1 ring-rule',
+              list : 'grid auto-cols-[1fr] grid-flow-col gap-0.5 rounded-full p-0.5 ring-1 ring-rule',
               tab  : [
                 'cursor-pointer rounded-full border-0 bg-transparent px-1 py-1.5 text-[0.7rem]/[1.2]',
                 'whitespace-nowrap text-ink @sm:px-2 @sm:text-[0.8rem]/[1.2]',

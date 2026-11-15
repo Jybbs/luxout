@@ -36,10 +36,25 @@ test('opens on the base face at its default setting, setting the tagline', ({ mo
   expect(getByRole(host, 'tabpanel').textContent).toContain(data.tagline)
 })
 
+test('sets the tagline in the picked face at the puck’s setting, under its readout', ({ mount }) => {
+  const panel                = getByRole(mount(FacesBar), 'tabpanel')
+  const proof                = panel.querySelector<HTMLElement>('span[style]')!
+  const { opsz: size, wght } = base!.axes
+
+  expect([proof.style.fontFamily, proof.style.fontVariationSettings]).toEqual([
+    expect.stringContaining(`${base!.family} Variable`),
+    `'wght' ${wght!.default}, 'opsz' ${size!.default}`
+  ])
+  expect(panel.textContent).toContain(`Weight ${wght!.default} · Opsz ${size!.default}`)
+})
+
 test.for([
   { key: 'End', want: `Weight ${base!.axes.wght!.max}` },
   { key: 'Home', want: `Weight ${base!.axes.wght!.min}` },
-  { key: 'PageUp', want: `optical size ${Math.round(opsz.default + (opsz.max - opsz.min) * 0.1)}` }
+  { key: 'PageUp', want: `optical size ${Math.round(opsz.default + (opsz.max - opsz.min) * 0.1)}` },
+  { key: 'PageDown', want: `optical size ${Math.round(opsz.default - (opsz.max - opsz.min) * 0.1)}` },
+  { key: 'ArrowUp', want: `optical size ${Math.round(opsz.default + (opsz.max - opsz.min) * 0.02)}` },
+  { key: 'ArrowDown', want: `optical size ${Math.round(opsz.default - (opsz.max - opsz.min) * 0.02)}` }
 ])('moves the puck on $key', async ({ key, want }, { mount }) => {
   expect(await press(mount(FacesBar), key)).toContain(want)
 })
