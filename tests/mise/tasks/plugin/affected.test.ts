@@ -46,6 +46,7 @@ async function selected(
     '.gitignore'                    : '.cache\n.vitest\nnode_modules\n',
     '.mise/vet/tsconfig.json'       : '{}\n',
     'bun.lock'                      : '{}\n',
+    'bunfig.toml'                   : '{}\n',
     'package.json'                  : '{ "type": "module" }\n',
     'site/.vitepress/tsconfig.json' : '{}\n',
     'site/bun.lock'                 : '{}\n',
@@ -55,11 +56,14 @@ async function selected(
     'src/b.ts'                      : 'export const b = 2\n',
     'src/package.json'              : '{}\n',
     'src/tsconfig.json'             : '{}\n',
+    'src/ui/public/tsconfig.json'   : '{}\n',
     'tests/a.test.ts'               : "import { expect, test } from 'vitest'\n\n"
                                     + "import { a } from '../src/a.ts'\n\n"
                                     + "test('reads a', () => {\n  expect(a).toBe(1)\n})\n",
     'tests/homebridge/bun.lock'     : '{}\n',
-    'tests/tsconfig.json'           : '{}\n'
+    'tests/homebridge/bunfig.toml'  : '{}\n',
+    'tests/tsconfig.json'           : '{}\n',
+    'tests/vet/floor/bun.lock'      : '{}\n'
   })
   await Promise.all([
     cp(join(root, 'tests', 'coverage.json'), join(repo, 'tests', 'coverage.json')),
@@ -103,15 +107,19 @@ test.for([
   { changed: 'site/index.md', name: 'runs no plugin test', ran: false },
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
   { changed: 'src/b.ts', name: 'runs no plugin test', ran: false },
+  { changed: 'tests/homebridge/bunfig.toml', name: 'runs no plugin test', ran: false },
   { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
+  { changed: 'bunfig.toml', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },
   { changed: 'src/package.json', name: 'runs every plugin test', ran: true },
   { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'src/tsconfig.json', name: 'runs every plugin test', ran: true },
+  { changed: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'tests/homebridge/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true },
+  { changed: 'tests/vet/floor/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'tests/vitest.config.ts', name: 'runs every plugin test', ran: true }
 ])(
   '$name where a branch changes only $changed',
