@@ -24,12 +24,14 @@ const root     = join(import.meta.dirname, '..', '..')
 
 /**
  * Runs `task` from `cwd`, which defaults to `repo`, under a stand-in `mise`
- * that runs each task file it names. The repository at `repo` holds the
- * `planted` files, each `copied` file of this checkout at its own path beside
- * `tests/common/triggers.ts` and `tests/coverage.json`, and a link at each
- * `linked` path to its target beside one to this checkout's `node_modules`.
- * Its branch changes only `changed`, or deletes it where `deleted` is set,
- * since it left `origin/main`.
+ * that runs each task file it names, once the branch at `repo` changes only
+ * `changed`, or deletes it where `deleted` is set, since it left `origin/main`.
+ *
+ * The repository at `repo` holds the `planted` files and a copy of each
+ * `copied` file, `tests/common/triggers.ts`, and `tests/coverage.json`, taken
+ * from the repository the suite runs in at the same path. A link at each
+ * `linked` path names its target, beside a link to the `node_modules` of the
+ * repository the suite runs in.
  *
  * Returns:
  *   Whether Vitest reported one test passing, beside the task's exit status.
