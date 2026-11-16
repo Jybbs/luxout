@@ -204,6 +204,8 @@ test.for([
 
 test.for([
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
+  { changed: '.mise/config.toml', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/mise.lock', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },
