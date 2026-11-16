@@ -1,13 +1,13 @@
 /** @module-tag spawns */
-import { execFileSync }       from 'node:child_process'
-import { existsSync }         from 'node:fs'
-import { cp, mkdir, symlink } from 'node:fs/promises'
-import { join }               from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { existsSync }   from 'node:fs'
+import { join }         from 'node:path'
 
 import { expect } from 'vitest'
 
-import { branch, plant, test } from '../../../common/scratch.js'
-import { type SyncRun, sync }  from '../../../common/sync.js'
+import { affected }           from '../../../common/affected.js'
+import { test }               from '../../../common/scratch.js'
+import { type SyncRun, sync } from '../../../common/sync.js'
 
 const ARGS   = ['--bail', '1']
 const BASE   = '5cb3ee2'
@@ -44,15 +44,29 @@ function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
  * beside a `.json` file of the same name, and, through `..`, a directory whose
  * `package.json` names a `main`.
  */
-async function selected(
+function selected(
   changed : string,
   scratch : string,
   deleted = false,
   folder  = 'repo'
-): Promise<{ ran: boolean, status: number | null }> {
-  const repo = join(scratch, folder)
+): ReturnType<typeof affected> {
+  const repo     = join(scratch, folder)
+  const checkout = {
+    changed : changed,
+    copied  : ['.mise/lib/lock.sh', 'tests/vitest.config.ts'],
+    deleted : deleted,
+    repo    : repo,
+    scratch : scratch,
+    task    : 'plugin:affected',
+    linked  : {
+      '.mise/vet/linked'                               : 'real',
+      '.mise/vet/node_modules/@luxout/base'            : join(repo, STORE),
+      '.mise/vet/vendor/node_modules/@luxout/vendored' : join(repo, VENDOR),
+      '.mise/vet/vendored'                             : 'vendor/node_modules/@luxout/vendored'
+    }
+  }
 
-  await plant(repo, {
+  return affected(checkout, {
     '.gitignore'                       : '.cache\n.vitest\nnode_modules\n',
     '.mise/bun.lock'                   : '{}\n',
     '.mise/config.toml'                : '[tools]\n',
@@ -103,24 +117,6 @@ async function selected(
     [`${STORE}/tsconfig.json`]                       : '{}\n',
     [`${VENDOR}/tsconfig.json`]                      : '{}\n'
   })
-  await mkdir(join(repo, '.mise', 'vet', 'node_modules', '@luxout'))
-  await mkdir(join(repo, '.mise', 'vet', 'vendor', 'node_modules', '@luxout'))
-  await Promise.all([
-    ...['.mise/lib/lock.sh', 'tests/common/triggers.ts', 'tests/coverage.json', 'tests/vitest.config.ts']
-      .map((file) => cp(join(root, file), join(repo, file))),
-    cp(join(import.meta.dirname, '..', '..', 'fixtures', 'mise.sh'), join(scratch, 'bin', 'mise')),
-    symlink('real', join(repo, '.mise', 'vet', 'linked')),
-    symlink('vendor/node_modules/@luxout/vendored', join(repo, '.mise', 'vet', 'vendored')),
-    symlink(join(repo, VENDOR), join(repo, '.mise', 'vet', 'vendor', 'node_modules', '@luxout', 'vendored')),
-    symlink(join(repo, STORE), join(repo, '.mise', 'vet', 'node_modules', '@luxout', 'base')),
-    symlink(join(root, 'node_modules'), join(repo, 'node_modules'))
-  ])
-
-  await branch(changed, repo, deleted)
-
-  const { status, stdout } = await sync(scratch, 'plugin:affected', { cwd: repo, env: { NO_COLOR: '1' } })
-
-  return { ran: /Tests +1 passed/.test(stdout), status }
 }
 
 test('takes the alias affected', () => {
