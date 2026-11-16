@@ -69,6 +69,8 @@ function selected(
   return affected(checkout, {
     '.gitignore'                       : '.cache\n.vitest\nnode_modules\n',
     '.mise/bun.lock'                   : '{}\n',
+    '.mise/config.toml'                : '[tools]\n',
+    '.mise/mise.lock'                  : '[tools]\n',
     '.mise/package.json'               : '{ "main": "vet/index.ts", "type": "module" }\n',
     '.mise/tsconfig.json'              : '{ "extends": "@luxout/plain" }\n',
     '.mise/vet/bun.lock'               : '{}\n',
@@ -150,6 +152,8 @@ test.for([
   { changed: 'tsconfig.json', name: 'runs no plugin test', ran: false },
   { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
   { changed: '.mise/bun.lock', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/config.toml', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/mise.lock', name: 'runs every plugin test', ran: true },
   { changed: '.mise/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/real/tsconfig.json', name: 'runs every plugin test', ran: true },
@@ -196,6 +200,8 @@ test.for([
 
 test.for([
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
+  { changed: '.mise/config.toml', name: 'runs every plugin test', ran: true },
+  { changed: '.mise/mise.lock', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },

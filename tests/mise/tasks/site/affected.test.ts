@@ -58,6 +58,8 @@ function selected(
 
   return affected(checkout, {
     '.gitignore'                      : '.cache\nnode_modules\n',
+    '.mise/config.toml'               : '[tools]\n',
+    '.mise/mise.lock'                 : '[tools]\n',
     'bun.lock'                        : '{}\n',
     'package.json'                    : '{ "type": "module" }\n',
     'site/.vitepress/lib/a.ts'        : 'export const a = 1\n',
@@ -100,6 +102,8 @@ test.for([
   { changed: 'src/a.ts', name: 'runs no site test', ran: false },
   { changed: 'tests/tsconfig.json', name: 'runs no site test', ran: false },
   { changed: 'site/.vitepress/lib/a.ts', name: 'runs the site test', ran: true },
+  { changed: '.mise/config.toml', name: 'runs every site test', ran: true },
+  { changed: '.mise/mise.lock', name: 'runs every site test', ran: true },
   { changed: 'bun.lock', name: 'runs every site test', ran: true },
   { changed: 'package.json', name: 'runs every site test', ran: true },
   { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
@@ -129,6 +133,8 @@ test.for([
 )
 
 test.for([
+  { changed: '.mise/config.toml', name: 'runs every site test', ran: true },
+  { changed: '.mise/mise.lock', name: 'runs every site test', ran: true },
   { changed: 'bun.lock', name: 'runs every site test', ran: true },
   { changed: 'package.json', name: 'runs every site test', ran: true },
   { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },

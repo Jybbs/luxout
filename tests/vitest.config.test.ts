@@ -42,14 +42,15 @@ it('keeps the Vite and Vitest caches under .cache/vite', () => {
   expect(config.cacheDir).toBe('.cache/vite')
 })
 
-it('reruns every test after a change to a file the suite reads beside the modules its tests import', () => {
+it('reruns every test after a change to the runtime pins or a file read beside the imported modules', () => {
   const triggers = config.test?.forceRerunTriggers?.filter(existsSync).map((file) => relative(root, file))
 
   expect(new Set(triggers)).toEqual(new Set([
-    '.mise/audit/tsconfig.json', '.mise/vet/tsconfig.json', 'bun.lock', 'bunfig.toml', 'package.json',
-    'site/.vitepress/vitest.config.ts', 'site/bun.lock', 'src/tsconfig.json', 'src/ui/public/tsconfig.json',
-    'tests/common/triggers.ts', 'tests/homebridge/bun.lock', 'tests/tsconfig.json',
-    'tests/vet/floor/bun.lock', 'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
+    '.mise/audit/tsconfig.json', '.mise/config.toml', '.mise/mise.lock', '.mise/vet/tsconfig.json',
+    'bun.lock', 'bunfig.toml', 'package.json', 'site/.vitepress/vitest.config.ts', 'site/bun.lock',
+    'src/tsconfig.json', 'src/ui/public/tsconfig.json', 'tests/common/triggers.ts',
+    'tests/homebridge/bun.lock', 'tests/tsconfig.json', 'tests/vet/floor/bun.lock',
+    'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
   ]))
 })
 
