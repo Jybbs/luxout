@@ -110,10 +110,22 @@ test(
   }
 )
 
-test(
-  'lists each tsconfig the transform tests for a module, up to the reference that claims it',
-  async ({ scratch }) => {
-    await plant(scratch, {
+test.for<{ files: Record<string, string>, module: string, name: string, tsconfigs: string[] }>([
+  {
+    module    : 'a/x.ts',
+    name      : 'lists each reference the transform tests before the tsconfig.json that claims a module',
+    tsconfigs : ['a/other.json', 'a/tsconfig.json'],
+    files     : {
+      'a/other.json'    : '{ "include": ["c"] }\n',
+      'a/tsconfig.json' : '{ "references": [{ "path": "./other.json" }] }\n',
+      'a/x.ts'          : 'export const x = 1\n'
+    }
+  },
+  {
+    module : 'a/b/x.ts',
+    name   : 'lists each tsconfig the transform tests for a module, up to the reference that claims it',
+
+    files: {
       'a/after.json'       : '{}\n',
       'a/b/base.json'      : '{ "files": [], "references": [{ "path": "./inherited.json" }] }\n',
       'a/b/deep.json'      : '{}\n',
@@ -127,19 +139,23 @@ test(
       'a/tsconfig.json'    : '{ "extends": "./own.json", '
                            + '"references": [{ "path": "ref.json" }, { "path": "./after.json" }] }\n',
       'tsconfig.json'      : '{}\n'
-    })
-    await symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+    },
 
-    const tsconfigs = triggers(scratch, ['a/b/x.ts'])
-      .map((file) => relative(scratch, file))
-      .filter((file) => !file.startsWith('..') && !file.endsWith('package.json'))
-
-    expect(new Set(tsconfigs)).toEqual(new Set([
+    tsconfigs: [
       'a/b/base.json', 'a/b/include.json', 'a/b/other.json', 'a/b/tsconfig.json', 'a/ref.json',
       'a/tsconfig.json'
-    ]))
+    ]
   }
-)
+])('$name', async ({ files, module, tsconfigs }, { scratch }) => {
+  await plant(scratch, files)
+  await symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+
+  const tested = triggers(scratch, [module])
+    .map((file) => relative(scratch, file))
+    .filter((file) => !file.startsWith('..') && !file.endsWith('package.json'))
+
+  expect(new Set(tested)).toEqual(new Set(tsconfigs))
+})
 
 test(
   'lists the path a tsconfig.json takes up to the filesystem root where no config claims a module',
