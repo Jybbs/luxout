@@ -1,12 +1,12 @@
 /** @module-tag spawns */
-import { existsSync }  from 'node:fs'
-import { cp, symlink } from 'node:fs/promises'
-import { join }        from 'node:path'
+import { existsSync } from 'node:fs'
+import { join }       from 'node:path'
 
 import { expect } from 'vitest'
 
-import { branch, plant, test } from '../../../common/scratch.js'
-import { type SyncRun, sync }  from '../../../common/sync.js'
+import { affected }           from '../../../common/affected.js'
+import { test }               from '../../../common/scratch.js'
+import { type SyncRun, sync } from '../../../common/sync.js'
 
 const ARGS  = ['--bail', '1']
 const BASE  = '5cb3ee2'
@@ -38,16 +38,25 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
  * under `src/`, one of them importing a package from the root `node_modules`,
  * under the site suite's own configuration.
  */
-async function selected(
+function selected(
   changed : string,
   scratch : string,
   deleted = false,
   folder  = 'repo'
-): Promise<{ ran: boolean, status: number | null }> {
-  const repo = join(scratch, folder)
-  const site = join(repo, 'site')
+): ReturnType<typeof affected> {
+  const repo     = join(scratch, folder)
+  const checkout = {
+    changed : changed,
+    copied  : ['site/.vitepress/vitest.config.ts'],
+    cwd     : join(repo, 'site'),
+    deleted : deleted,
+    linked  : { 'site/node_modules': join(root, 'site', 'node_modules') },
+    repo    : repo,
+    scratch : scratch,
+    task    : 'site:affected'
+  }
 
-  await plant(repo, {
+  return affected(checkout, {
     '.gitignore'                      : '.cache\nnode_modules\n',
     'bun.lock'                        : '{}\n',
     'package.json'                    : '{ "type": "module" }\n',
@@ -70,19 +79,6 @@ async function selected(
     'src/ui/public/tsconfig.json'     : '{}\n',
     'tests/tsconfig.json'             : '{}\n'
   })
-  await Promise.all([
-    ...['site/.vitepress/vitest.config.ts', 'tests/common/triggers.ts', 'tests/coverage.json']
-      .map((file) => cp(join(root, file), join(repo, file))),
-    cp(join(import.meta.dirname, '..', '..', 'fixtures', 'mise.sh'), join(scratch, 'bin', 'mise')),
-    symlink(join(root, 'node_modules'), join(repo, 'node_modules')),
-    symlink(join(root, 'site', 'node_modules'), join(site, 'node_modules'))
-  ])
-
-  await branch(changed, repo, deleted)
-
-  const { status, stdout } = await sync(scratch, 'site:affected', { cwd: site, env: { NO_COLOR: '1' } })
-
-  return { ran: /Tests +1 passed/.test(stdout), status }
 }
 
 test(
