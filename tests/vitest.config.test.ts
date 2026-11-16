@@ -1,6 +1,6 @@
-import { existsSync }              from 'node:fs'
-import { glob, readFile, symlink } from 'node:fs/promises'
-import { dirname, join, relative } from 'node:path'
+import { existsSync }                     from 'node:fs'
+import { glob, readFile, symlink }        from 'node:fs/promises'
+import { dirname, join, parse, relative } from 'node:path'
 
 import { expect, it, vi } from 'vitest'
 import { defaultExclude } from 'vitest/config'
@@ -106,6 +106,50 @@ test(
 
     expect(triggers(scratch, ['a.ts'])).toEqual(expect.arrayContaining([
       join(scratch, 'base.json'), join(scratch, 'link.json')
+    ]))
+  }
+)
+
+test(
+  'lists each tsconfig the transform tests for a module, up to the reference that claims it',
+  async ({ scratch }) => {
+    await plant(scratch, {
+      'a/after.json'       : '{}\n',
+      'a/b/base.json'      : '{ "files": [], "references": [{ "path": "./inherited.json" }] }\n',
+      'a/b/deep.json'      : '{}\n',
+      'a/b/include.json'   : '{ "include": ["c"] }\n',
+      'a/b/inherited.json' : '{}\n',
+      'a/b/other.json'     : '{ "extends": "./include.json", "references": [{ "path": "./deep.json" }] }\n',
+      'a/b/tsconfig.json'  : '{ "extends": "./base.json", "references": [{ "path": "./other" }] }\n',
+      'a/b/x.ts'           : 'export const x = 1\n',
+      'a/own.json'         : '{}\n',
+      'a/ref.json'         : '{}\n',
+      'a/tsconfig.json'    : '{ "extends": "./own.json", '
+                           + '"references": [{ "path": "ref.json" }, { "path": "./after.json" }] }\n',
+      'tsconfig.json'      : '{}\n'
+    })
+    await symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+
+    const tsconfigs = triggers(scratch, ['a/b/x.ts'])
+      .map((file) => relative(scratch, file))
+      .filter((file) => !file.startsWith('..') && !file.endsWith('package.json'))
+
+    expect(new Set(tsconfigs)).toEqual(new Set([
+      'a/b/base.json', 'a/b/include.json', 'a/b/other.json', 'a/b/tsconfig.json', 'a/ref.json',
+      'a/tsconfig.json'
+    ]))
+  }
+)
+
+test(
+  'lists the path a tsconfig.json takes up to the filesystem root where no config claims a module',
+  async ({ scratch }) => {
+    await plant(scratch, { 'a/tsconfig.json': '{ "include": ["c"] }\n', 'a/x.ts': 'export const x = 1\n' })
+    await symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+
+    expect(triggers(scratch, ['a/x.ts'])).toEqual(expect.arrayContaining([
+      join(scratch, 'a', 'tsconfig.json'), join(scratch, 'tsconfig.json'),
+      join(parse(scratch).root, 'tsconfig.json')
     ]))
   }
 )

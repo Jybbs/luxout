@@ -37,6 +37,9 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
  * which imports `.vitepress/lib/a.ts` and a module beside each `tsconfig.json`
  * under `src/`, one of them importing a package from the root `node_modules`,
  * under the site suite's own configuration.
+ * The `tsconfig.json` beside the module under `src/ui/public/` claims it
+ * neither through the empty `files` its `extends` entry sets nor through its
+ * one reference, so the transform applies `src/tsconfig.json`.
  */
 async function selected(
   changed : string,
@@ -66,8 +69,11 @@ async function selected(
     'src/b.ts'                        : "import { Body } from 'astronomy-engine'\n\n"
                                       + 'export const b = Body.Sun\n',
     'src/tsconfig.json'               : '{}\n',
+    'src/ui/public/files.json'        : '{ "files": [] }\n',
     'src/ui/public/index.ts'          : 'export const page = 4\n',
-    'src/ui/public/tsconfig.json'     : '{}\n',
+    'src/ui/public/page.json'         : '{ "include": ["page"] }\n',
+    'src/ui/public/tsconfig.json'     : '{ "extends": "./files.json", '
+                                      + '"references": [{ "path": "./page" }] }\n',
     'tests/tsconfig.json'             : '{}\n'
   })
   await Promise.all([
@@ -111,6 +117,8 @@ test.for([
   { changed: 'site/bun.lock', name: 'runs every site test', ran: true },
   { changed: 'site/package.json', name: 'runs every site test', ran: true },
   { changed: 'src/tsconfig.json', name: 'runs every site test', ran: true },
+  { changed: 'src/ui/public/files.json', name: 'runs every site test', ran: true },
+  { changed: 'src/ui/public/page.json', name: 'runs every site test', ran: true },
   { changed: 'src/ui/public/tsconfig.json', name: 'runs every site test', ran: true }
 ])(
   '$name where a branch changes only $changed',
