@@ -19,14 +19,14 @@ it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to 
   expect(hook.call({ meta: { rolldownVersion: '' } }, {}).oxc).toEqual({ exclude: /\.jsx?$/ })
 })
 
-it('reruns every test after a change to a file the suite reads beside the modules its tests import', () => {
+it('reruns every test after a change to the runtime pins or a file read beside the imported modules', () => {
   const root     = join(import.meta.dirname, '..', '..', '..')
   const triggers = config.test?.forceRerunTriggers?.filter(existsSync).map((file) => relative(root, file))
 
   expect(new Set(triggers)).toEqual(new Set([
-    'bun.lock', 'package.json', 'site/.vitepress/tsconfig.json', 'site/.vitepress/vitest.config.ts',
-    'site/bun.lock', 'site/package.json', 'src/tsconfig.json', 'src/ui/public/tsconfig.json',
-    'tests/common/triggers.ts', 'tests/tsconfig.json'
+    '.mise/config.toml', '.mise/mise.lock', 'bun.lock', 'package.json', 'site/.vitepress/tsconfig.json',
+    'site/.vitepress/vitest.config.ts', 'site/bun.lock', 'site/package.json', 'src/tsconfig.json',
+    'src/ui/public/tsconfig.json', 'tests/common/triggers.ts', 'tests/tsconfig.json'
   ]))
 })
 

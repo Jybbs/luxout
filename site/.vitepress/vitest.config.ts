@@ -1,4 +1,4 @@
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 
 import vueJsx           from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitest/config'
@@ -7,7 +7,9 @@ import { triggers } from '../../tests/common/triggers.ts'
 import thresholds   from '../../tests/coverage.json' with { type: 'json' }
 
 const INCLUDE = ['.vitepress/tests/**/*.test.ts']
+const PATHS   = ['.mise/config.toml', '.mise/mise.lock']
 const root    = dirname(import.meta.dirname)
+const read    = PATHS.map((file) => join(dirname(root), file))
 
 export default defineConfig({
   cacheDir : '../.cache/site/vite',
@@ -15,7 +17,7 @@ export default defineConfig({
   root     : root,
   test     : {
     expect              : { requireAssertions: true },
-    forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE)],
+    forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE), ...read],
     include             : INCLUDE,
     pool                : 'threads',
     resolveSnapshotPath : (testPath, extension) => testPath + extension,
