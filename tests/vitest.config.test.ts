@@ -2,8 +2,9 @@ import { existsSync }              from 'node:fs'
 import { glob, readFile, symlink } from 'node:fs/promises'
 import { dirname, join, relative } from 'node:path'
 
-import { expect, it, vi } from 'vitest'
-import { defaultExclude } from 'vitest/config'
+import type * as Experimental from 'rolldown/experimental'
+import { expect, it, vi }     from 'vitest'
+import { defaultExclude }     from 'vitest/config'
 
 import { plant, test }    from './common/scratch.js'
 import { triggers, vite } from './common/triggers.js'
@@ -59,6 +60,17 @@ it.each(['.', 'site'])(
       .toBe(join(root, dir, 'node_modules', 'rolldown', 'package.json'))
   }
 )
+
+it('compiles every test file under tests/tsconfig.json in the transform Vite applies', () => {
+  const { resolveTsconfig } = vite(root)('rolldown/experimental') as typeof Experimental
+
+  const tsconfig = join(root, 'tests', 'tsconfig.json')
+  const stray    = sources.filter(({ file }) =>
+    resolveTsconfig(join(root, file))?.tsconfigFilePaths[0] !== tsconfig
+  )
+
+  expect(stray.map(({ file }) => file)).toEqual([])
+})
 
 test(
   'resolves rolldown beside the Vite that Vitest loads, ahead of each copy nearer the root',
