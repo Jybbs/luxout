@@ -8,15 +8,22 @@ import type * as Experimental from 'rolldown/experimental'
 import type * as Utils        from 'rolldown/utils'
 import stripJsonComments      from 'strip-json-comments'
 
+/**
+ * The fields of a tsconfig that name other tsconfig files.
+ */
+interface Tsconfig {
+  extends?    : string | string[]
+  references? : { path: string }[]
+}
+
 const MODULES = `${sep}node_modules${sep}`
 const SCRIPT  = /\.[cm]?[jt]sx?$/
 
 /**
  * Lists `file` and its real path beside each file its `extends` chain names,
- * which the `tsconfigFilePaths` of `resolveTsconfig` leaves out, reading each
- * as rolldown does, where comments, trailing commas, a byte order mark, and an
- * empty file all parse. A file under `node_modules` stands as the `bun.lock`
- * that installs it, and so does a real path under one.
+ * which the `tsconfigFilePaths` of `resolveTsconfig` leaves out. A file under
+ * `node_modules` stands as the `bun.lock` that installs it, and so does a real
+ * path under one.
  */
 function chain(file: string, extender: Experimental.ResolverFactory): string[] {
   const lock = lockfile(file)
@@ -25,31 +32,21 @@ function chain(file: string, extender: Experimental.ResolverFactory): string[] {
     return [lock]
   }
 
-  const dir                     = dirname(file)
-  const text                    = stripJsonComments(readFileSync(file, 'utf8'), { trailingCommas: true })
-  const { extends: bases = [] } = JSON.parse(text.trim() || '{}') as { extends?: string | string[] }
-  const paths                   = [bases].flat().map((base) => extended(base, dir, extender))
-  const real                    = realpathSync(file)
+  const dir   = dirname(file)
+  const paths = [parsed(file).extends ?? []].flat().map((base) => extended(base, dir, extender))
+  const real  = realpathSync(file)
 
   return [file, lockfile(real) ?? real, ...paths.flatMap((path) => chain(path, extender))]
 }
 
 /**
  * Resolves the `extends` entry `base` of a tsconfig in `dir` as rolldown does,
- * taking a path that opens on `.` or `/` as the file it names, the
- * `tsconfig.json` inside the directory it names, or that path with `.json`
- * added, and resolving any other entry through `extender`.
+ * taking a path that opens on `.` or `/` as `named` takes it, and resolving
+ * any other entry through `extender`.
  */
 function extended(base: string, dir: string, extender: Experimental.ResolverFactory): string {
   if (/^[./]/.test(base)) {
-    const path = resolve(dir, base)
-    const stat = statSync(path, { throwIfNoEntry: false })
-
-    if (stat?.isDirectory()) {
-      return join(path, 'tsconfig.json')
-    }
-
-    return stat?.isFile() ? path : `${path}.json`
+    return named(resolve(dir, base))
   }
 
   const { error, path } = extender.sync(dir, base)
@@ -73,14 +70,58 @@ function lockfile(path: string): string | undefined {
 }
 
 /**
- * Lists the path a file called `name` takes in `dir` and in each directory
- * above it, up to the path `found` or, where `found` is unset, up to the
- * filesystem root.
+ * Lists the path a `package.json` takes in `dir` and in each directory above
+ * it, up to the path `found` or, where `found` is unset, up to the filesystem
+ * root.
  */
-function lookups(dir: string, name: string, found?: string): string[] {
-  const path = join(dir, name)
+function lookups(dir: string, found?: string): string[] {
+  const path = join(dir, 'package.json')
 
-  return path === found || dir === dirname(dir) ? [path] : [path, ...lookups(dirname(dir), name, found)]
+  return path === found || dir === dirname(dir) ? [path] : [path, ...lookups(dirname(dir), found)]
+}
+
+/**
+ * Resolves a tsconfig path as rolldown does, to the `tsconfig.json` inside a
+ * directory, to the file itself, or else to the path with `.json` added.
+ */
+function named(path: string): string {
+  const stat = statSync(path, { throwIfNoEntry: false })
+
+  if (stat?.isDirectory()) {
+    return join(path, 'tsconfig.json')
+  }
+
+  return stat?.isFile() ? path : `${path}.json`
+}
+
+/**
+ * Reads the tsconfig `file` as rolldown does, where comments, trailing commas,
+ * a byte order mark, and an empty file all parse.
+ */
+function parsed(file: string): Tsconfig {
+  const text = stripJsonComments(readFileSync(file, 'utf8'), { trailingCommas: true })
+
+  return JSON.parse(text.trim() || '{}') as Tsconfig
+}
+
+/**
+ * Lists the path a `tsconfig.json` takes in `dir` and each directory above it,
+ * beside each config the transform tests there and its `extends` chain. The
+ * transform tests the configs its `references` names, in order, then the
+ * `tsconfig.json` itself, and stops at the first config in `applied`.
+ */
+function tested(applied: string[], dir: string, extender: Experimental.ResolverFactory): string[] {
+  const path    = join(dir, 'tsconfig.json')
+  const configs = statSync(path, { throwIfNoEntry: false })?.isFile()
+    ? [...(parsed(path).references ?? []).map((reference) => named(resolve(dir, reference.path))), path]
+    : []
+  const claimed = configs.findIndex((config) => applied.includes(config))
+  const tests   = claimed >= 0 ? configs.slice(0, claimed + 1) : configs
+  const reads   = [path, ...tests.flatMap((config) => chain(config, extender))]
+
+  return claimed >= 0 || dir === dirname(dir)
+    ? reads
+    : [...reads, ...tested(applied, dirname(dir), extender)]
 }
 
 /**
@@ -104,11 +145,12 @@ export function lockfiles(root: string): string[] {
  *   root    : The suite's root directory.
  *
  * Returns:
- *   The absolute path of each module's nearest `tsconfig.json` and the files
- *   its `extends` chain names, as Vite's transform resolves them, the path
- *   a `tsconfig.json` or `package.json` takes in each directory from the
- *   module's own up to the nearest one, the `bun.lock` beside each
- *   `node_modules` an import resolves through, and this file.
+ *   The absolute path of each tsconfig Vite's transform tests for a module
+ *   and the files its `extends` chain names, the path a `tsconfig.json`
+ *   takes in each directory the transform walks, the path a `package.json`
+ *   takes in each directory from the module's own up to the nearest one, the
+ *   `bun.lock` beside each `node_modules` an import resolves through, and
+ *   this file.
  */
 export function triggers(root: string, include: string[]): string[] {
   const require = vite(root)
@@ -151,9 +193,8 @@ export function triggers(root: string, include: string[]): string[] {
       .map((request) => resolver.sync(dirname(file), request).path)
       .filter((path) => path !== undefined)
     const settings  = [
-      ...tsconfigs.flatMap((tsconfig) => chain(tsconfig, extender)),
-      ...lookups(dirname(file), 'package.json', findPackageJSON(pathToFileURL(file))),
-      ...lookups(dirname(file), 'tsconfig.json', tsconfigs[0])
+      ...tested(tsconfigs, dirname(file), extender),
+      ...lookups(dirname(file), findPackageJSON(pathToFileURL(file)))
     ]
 
     settings.forEach((path) => reads.add(path))
