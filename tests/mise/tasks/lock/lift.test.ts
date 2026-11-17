@@ -758,12 +758,16 @@ test('stops before any audit where gh cannot read an AUDIT_IGNORE entry', async 
 })
 
 test('lists no advisory AUDIT_IGNORE sets aside in the row it would clear', async ({ scratch }) => {
-  const id         = 'GHSA-aaaa-bbbb-cccc'
+  const ids        = ['GHSA-dddd-eeee-ffff', 'GHSA-aaaa-bbbb-cccc']
   const calls      = Object.keys(CANNED).filter((call) => call.startsWith('bun audit '))
-  const ignoring   = (call: string): string => call.replace(/ --json$/, ` --ignore=${id} --json`)
+  const suffix     = ids.map((id) => ` --ignore=${id}`).join('')
+  const ignoring   = (call: string): string => call.replace(/ --json$/, `${suffix} --json`)
   const { stdout } = await lift(scratch, {
-    env    : { AUDIT_IGNORE: id },
-    live   : { ...LIVE, [`advisories/${id}`]: { vulnerabilities: [] } },
+    env    : { AUDIT_IGNORE: ` ${ids.join('   ')} ` },
+    live   : {
+      ...LIVE,
+      ...Object.fromEntries(ids.map((id) => [`advisories/${id}`, { vulnerabilities: [] }]))
+    },
     canned : {
       ...Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
       [ignoring('bun audit --cwd site --json')]: json(ADVISORIES, 1)
