@@ -13,6 +13,7 @@ interface Setup {
   canned? : Record<string, Answer>
   edits?  : Record<string, string>
   env?    : NodeJS.ProcessEnv
+  fail?   : string
   files?  : Record<string, string>
   live?   : Record<string, unknown>
   staged? : boolean
@@ -203,8 +204,8 @@ function json(value: unknown, status = 0): Answer {
  *   ran in the checkout or in a clone, and whether `git status` changed.
  */
 async function lift(
-  scratch                                                                                  : string,
-  { args = [], canned = {}, edits = {}, env = {}, files = {}, live = LIVE, staged = false } : Setup = {}
+  scratch                                                                                        : string,
+  { args = [], canned = {}, edits = {}, env = {}, fail, files = {}, live = LIVE, staged = false } : Setup = {}
 ) {
   const git = (...words: string[]): string => execFileSync('git', words, {
     cwd      : scratch,
@@ -234,6 +235,7 @@ async function lift(
     args   : args,
     canned : { ...CANNED, ...canned },
     env    : env,
+    fail   : fail,
     live   : live
   })
 
@@ -714,7 +716,10 @@ test.for<{ audits: boolean, ignore: string, message: string, patched: string | n
     const calls    = Object.keys(CANNED).filter((call) => call.startsWith('bun audit ')).toSorted()
     const ignoring = (call: string): string => call.replace(/ --json$/, `${suffix} --json`)
     const advisory = (fixed: string | null): unknown => ({
-      vulnerabilities: [{ first_patched_version: fixed, package: { name: 'picomatch' } }]
+      vulnerabilities: [
+        { first_patched_version: null, package: { name: 'micromatch' } },
+        { first_patched_version: fixed, package: { name: 'picomatch' } }
+      ]
     })
     const { commands, requests, status, stderr } = await lift(scratch, {
       canned : Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
@@ -739,3 +744,31 @@ test.for<{ audits: boolean, ignore: string, message: string, patched: string | n
     })
   }
 )
+
+test('stops before any audit where gh cannot read an AUDIT_IGNORE entry', async ({ scratch }) => {
+  const { commands, status } = await lift(scratch, {
+    env  : { AUDIT_IGNORE: IGNORED.join(' ') },
+    fail : `advisories/${IGNORED[1]}`
+  })
+
+  expect({
+    audited : commands.filter(([program, verb]) => program === 'bun' && verb === 'audit'),
+    status  : status
+  }).toEqual({ audited: [], status: 1 })
+})
+
+test('lists no advisory AUDIT_IGNORE sets aside in the row it would clear', async ({ scratch }) => {
+  const id         = 'GHSA-aaaa-bbbb-cccc'
+  const calls      = Object.keys(CANNED).filter((call) => call.startsWith('bun audit '))
+  const ignoring   = (call: string): string => call.replace(/ --json$/, ` --ignore=${id} --json`)
+  const { stdout } = await lift(scratch, {
+    env    : { AUDIT_IGNORE: id },
+    live   : { ...LIVE, [`advisories/${id}`]: { vulnerabilities: [] } },
+    canned : {
+      ...Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
+      [ignoring('bun audit --cwd site --json')]: json(ADVISORIES, 1)
+    }
+  })
+
+  expect(row(stdout, 'vitest')[5]).toBe('')
+})

@@ -211,6 +211,12 @@ packages() {
     )
     audit=$(bun audit --cwd "$dir" $ignores --json) ||
       jq --exit-status 'type == "object"' <<<"$audit" >/dev/null
+    audit=$(
+      jq --arg ignores "$ignores" --compact-output '
+        [$ignores | scan("--ignore=(\\S+)")[0]] as $ids
+        | map_values(map(select(.url | split("/")[-1] | IN($ids[]) | not)))
+      ' <<<"$audit"
+    )
 
     bun outdated --cwd "$dir" | jq \
       --arg manifest "${manifest#./}" \
