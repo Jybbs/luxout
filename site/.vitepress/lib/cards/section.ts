@@ -2,14 +2,14 @@ import { lerp, unlerp, wcagContrast }    from 'culori'
 import { greatest, least, pairs, range } from 'd3-array'
 import { h }                             from 'vue'
 
-import { formatLux, signed } from '../daylight/format.ts'
-import type { SampleDay }    from '../daylight/sample-day.ts'
-import { tenth }             from '../daylight/tenth.ts'
-import * as card             from './card.ts'
-import * as faces            from './faces.ts'
-import type { Palette }      from './palette.ts'
-import { Room, travelOf }    from './room.ts'
-import * as sky              from './sky.ts'
+import { capitals, formatLux, signed } from '../daylight/format.ts'
+import type { SampleDay }              from '../daylight/sample-day.ts'
+import { tenth }                       from '../daylight/tenth.ts'
+import * as card                       from './card.ts'
+import * as faces                      from './faces.ts'
+import type { Palette }                from './palette.ts'
+import { Room, travelOf }              from './room.ts'
+import * as sky                        from './sky.ts'
 
 /**
  * The page a section's card names, and its section's position among the site's.
@@ -86,7 +86,7 @@ export function sectionCard(
   const direct  = sun > DIRECT
   const cast    = room.cast(pane, direct ? travelOf(sun, day.azimuth(minute)) : room.under(pane))
   const painted = room.shell(0.024, 0.05)
-  const place   = `${label} · ${index + 1} of ${count}`.toUpperCase()
+  const place   = capitals(`${label} · ${index + 1} of ${count}`)
   const lines   = sky.mix(ground, ink, 0.34)
   const flat    = room.flatPane(index)
   const spread  = (step: number) => RING * (2 ** (step / 2) - 1)
@@ -176,7 +176,12 @@ export function sectionCard(
   const { left, right } = fonts.set(FIGURE, 148, figure).ink
 
   drawing.say(figure, FIGURE, { fill: ink, size: 148, x: LEFT, y: BASE })
-  drawing.say('lux', faces.MONO, { fill: ink, size: 46, x: LEFT + right - left + WORD_GAP, y: BASE })
+  drawing.say(capitals('lux'), faces.MONO, {
+    fill : ink,
+    size : 46,
+    x    : LEFT + right - left + WORD_GAP,
+    y    : BASE
+  })
 
   const { from, to, top } = STRIP
   const stripAt           = (at: number) => unlerp(from, to, at) * card.WIDTH
