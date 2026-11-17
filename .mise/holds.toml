@@ -5,6 +5,16 @@ reason  = "Moves to the release `homebridge` names, since a second copy fails `t
 ["@types/node"]
 reason = "Stays on the oldest Node line `engines` admits, so `tsc` rejects a newer API"
 
+["homebridge"]
+reason = "Release 2.5.0 names HAP-NodeJS 2.3.0, which accepts a one-character name the threshold schema rejects"
+
+["rolldown"]
+follows = "vite"
+reason  = "Moves to the release `vite` names, since a second copy fails the suite reading each `tsconfig.json`"
+
 ["strip-json-comments"]
 follows = "knip"
 reason  = "Moves to the release `knip` names, so `bun.lock` keeps one copy"
+
+["unbash"]
+reason = "Release 6 adds an `unexpected token` error on an unclosed `case`, changing what the shell audit reports"
