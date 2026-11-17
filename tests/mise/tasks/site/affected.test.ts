@@ -1,12 +1,12 @@
 /** @module-tag spawns */
-import { existsSync }  from 'node:fs'
-import { cp, symlink } from 'node:fs/promises'
-import { join }        from 'node:path'
+import { existsSync } from 'node:fs'
+import { join }       from 'node:path'
 
 import { expect } from 'vitest'
 
-import { branch, plant, test } from '../../../common/scratch.js'
-import { type SyncRun, sync }  from '../../../common/sync.js'
+import { affected }           from '../../../common/affected.js'
+import { test }               from '../../../common/scratch.js'
+import { type SyncRun, sync } from '../../../common/sync.js'
 
 const ARGS  = ['--bail', '1']
 const BASE  = '5cb3ee2'
@@ -41,17 +41,28 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
  * neither through the empty `files` its `extends` entry sets nor through its
  * one reference, so the transform applies `src/tsconfig.json`.
  */
-async function selected(
+function selected(
   changed : string,
   scratch : string,
   deleted = false,
   folder  = 'repo'
-): Promise<{ ran: boolean, status: number | null }> {
-  const repo = join(scratch, folder)
-  const site = join(repo, 'site')
+): ReturnType<typeof affected> {
+  const repo     = join(scratch, folder)
+  const checkout = {
+    changed : changed,
+    copied  : ['site/.vitepress/vitest.config.ts'],
+    cwd     : join(repo, 'site'),
+    deleted : deleted,
+    linked  : { 'site/node_modules': join(root, 'site', 'node_modules') },
+    repo    : repo,
+    scratch : scratch,
+    task    : 'site:affected'
+  }
 
-  await plant(repo, {
+  return affected(checkout, {
     '.gitignore'                      : '.cache\nnode_modules\n',
+    '.mise/config.toml'               : '[tools]\n',
+    '.mise/mise.lock'                 : '[tools]\n',
     'bun.lock'                        : '{}\n',
     'package.json'                    : '{ "type": "module" }\n',
     'site/.vitepress/lib/a.ts'        : 'export const a = 1\n',
@@ -76,19 +87,6 @@ async function selected(
                                       + '"references": [{ "path": "./page" }] }\n',
     'tests/tsconfig.json'             : '{}\n'
   })
-  await Promise.all([
-    ...['site/.vitepress/vitest.config.ts', 'tests/common/triggers.ts', 'tests/coverage.json']
-      .map((file) => cp(join(root, file), join(repo, file))),
-    cp(join(import.meta.dirname, '..', '..', 'fixtures', 'mise.sh'), join(scratch, 'bin', 'mise')),
-    symlink(join(root, 'node_modules'), join(repo, 'node_modules')),
-    symlink(join(root, 'site', 'node_modules'), join(site, 'node_modules'))
-  ])
-
-  await branch(changed, repo, deleted)
-
-  const { status, stdout } = await sync(scratch, 'site:affected', { cwd: site, env: { NO_COLOR: '1' } })
-
-  return { ran: /Tests +1 passed/.test(stdout), status }
 }
 
 test(
@@ -110,6 +108,8 @@ test.for([
   { changed: 'src/a.ts', name: 'runs no site test', ran: false },
   { changed: 'tests/tsconfig.json', name: 'runs no site test', ran: false },
   { changed: 'site/.vitepress/lib/a.ts', name: 'runs the site test', ran: true },
+  { changed: '.mise/config.toml', name: 'runs every site test', ran: true },
+  { changed: '.mise/mise.lock', name: 'runs every site test', ran: true },
   { changed: 'bun.lock', name: 'runs every site test', ran: true },
   { changed: 'package.json', name: 'runs every site test', ran: true },
   { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
@@ -141,6 +141,8 @@ test.for([
 )
 
 test.for([
+  { changed: '.mise/config.toml', name: 'runs every site test', ran: true },
+  { changed: '.mise/mise.lock', name: 'runs every site test', ran: true },
   { changed: 'bun.lock', name: 'runs every site test', ran: true },
   { changed: 'package.json', name: 'runs every site test', ran: true },
   { changed: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },

@@ -6,7 +6,7 @@ import { lockfiles, triggers } from './common/triggers.js'
 import thresholds              from './coverage.json' with { type: 'json' }
 
 const INCLUDE = ['tests/**/*.test.ts']
-const PATHS   = ['bunfig.toml', 'site/.vitepress/vitest.config.ts']
+const PATHS   = ['.mise/config.toml', '.mise/mise.lock', 'bunfig.toml', 'site/.vitepress/vitest.config.ts']
 const root    = dirname(import.meta.dirname)
 const read    = [...PATHS, ...lockfiles(root)].map((file) => join(root, file))
 

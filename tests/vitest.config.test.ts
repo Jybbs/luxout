@@ -2,8 +2,9 @@ import { existsSync }                     from 'node:fs'
 import { glob, readFile, symlink }        from 'node:fs/promises'
 import { dirname, join, parse, relative } from 'node:path'
 
-import { expect, it, vi } from 'vitest'
-import { defaultExclude } from 'vitest/config'
+import type * as Experimental from 'rolldown/experimental'
+import { expect, it, vi }     from 'vitest'
+import { defaultExclude }     from 'vitest/config'
 
 import { plant, test }    from './common/scratch.js'
 import { triggers, vite } from './common/triggers.js'
@@ -41,14 +42,15 @@ it('keeps the Vite and Vitest caches under .cache/vite', () => {
   expect(config.cacheDir).toBe('.cache/vite')
 })
 
-it('reruns every test after a change to a file the suite reads beside the modules its tests import', () => {
+it('reruns every test after a change to the runtime pins or a file read beside the imported modules', () => {
   const triggers = config.test?.forceRerunTriggers?.filter(existsSync).map((file) => relative(root, file))
 
   expect(new Set(triggers)).toEqual(new Set([
-    '.mise/audit/tsconfig.json', '.mise/vet/tsconfig.json', 'bun.lock', 'bunfig.toml', 'package.json',
-    'site/.vitepress/vitest.config.ts', 'site/bun.lock', 'src/tsconfig.json', 'src/ui/public/tsconfig.json',
-    'tests/common/triggers.ts', 'tests/homebridge/bun.lock', 'tests/tsconfig.json',
-    'tests/vet/floor/bun.lock', 'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
+    '.mise/audit/tsconfig.json', '.mise/config.toml', '.mise/mise.lock', '.mise/vet/tsconfig.json',
+    'bun.lock', 'bunfig.toml', 'package.json', 'site/.vitepress/vitest.config.ts', 'site/bun.lock',
+    'src/tsconfig.json', 'src/ui/public/tsconfig.json', 'tests/common/triggers.ts',
+    'tests/homebridge/bun.lock', 'tests/tsconfig.json', 'tests/vet/floor/bun.lock',
+    'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
   ]))
 })
 
@@ -59,6 +61,17 @@ it.each(['.', 'site'])(
       .toBe(join(root, dir, 'node_modules', 'rolldown', 'package.json'))
   }
 )
+
+it('compiles every test file under tests/tsconfig.json in the transform Vite applies', () => {
+  const { resolveTsconfig } = vite(root)('rolldown/experimental') as typeof Experimental
+
+  const tsconfig = join(root, 'tests', 'tsconfig.json')
+  const stray    = sources.filter(({ file }) =>
+    resolveTsconfig(join(root, file))?.tsconfigFilePaths[0] !== tsconfig
+  )
+
+  expect(stray.map(({ file }) => file)).toEqual([])
+})
 
 test(
   'resolves rolldown beside the Vite that Vitest loads, ahead of each copy nearer the root',
