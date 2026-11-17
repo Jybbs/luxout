@@ -73,11 +73,11 @@ jobs:
 
           - name  : 🕯️ Node 22
             task  : plugin:test:22
-            tools : bun jq node@22.23.3
+            tools : bun jq node@22.23.5
 
           - name  : 💡 Node 24
             task  : plugin:test:24
-            tools : bun jq node@24.21.0
+            tools : bun jq node@24.22.3
 
           - name  : 🚩 Types
             task  : plugin:typecheck
