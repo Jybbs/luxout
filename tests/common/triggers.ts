@@ -1,15 +1,32 @@
-import { execFileSync }                                   from 'node:child_process'
-import { globSync, readFileSync, realpathSync, statSync } from 'node:fs'
-import { createRequire, findPackageJSON }                 from 'node:module'
-import { dirname, join, resolve, sep }                    from 'node:path'
-import { pathToFileURL }                                  from 'node:url'
+import { execFileSync }                                               from 'node:child_process'
+import { existsSync, globSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { createRequire, findPackageJSON }                             from 'node:module'
+import { basename, dirname, join, matchesGlob, resolve, sep }         from 'node:path'
+import { pathToFileURL }                                              from 'node:url'
 
 import type * as Experimental from 'rolldown/experimental'
 import type * as Utils        from 'rolldown/utils'
 import stripJsonComments      from 'strip-json-comments'
+import type { Vitest }        from 'vitest/node'
 
-const MODULES = `${sep}node_modules${sep}`
-const SCRIPT  = /\.[cm]?[jt]sx?$/
+/**
+ * The modules a module imports, beside the paths its strings spell.
+ */
+interface Scan {
+  imports   : string[]
+  spellings : string[]
+}
+
+const BREAKS    = /[\s"'`=;|&<>(){}]+/
+const GLOB      = /[*?[{]/
+const MODULES   = `${sep}node_modules${sep}`
+const RESOLVING = {
+  conditionNames : ['node', 'import'],
+  extensionAlias : { '.js': ['.ts', '.js'] },
+  symlinks       : false
+}
+const SCRIPT = /\.[cm]?[jt]sx?$/
+const TASK   = /^[\w-]+(?::[\w-]+)+$/
 
 /**
  * Lists `file` and its real path beside each file its `extends` chain names,
@@ -62,6 +79,40 @@ function extended(base: string, dir: string, extender: Experimental.ResolverFact
 }
 
 /**
+ * Runs Git with `args` in `cwd`, returning what it prints.
+ */
+function git(cwd: string, ...args: string[]): string {
+  return execFileSync('git', args, { cwd: cwd, encoding: 'utf8' })
+}
+
+/**
+ * Resolves each import in `module` that carries a value, and each dynamic
+ * import naming a string, through `resolver` from the directory of `file`.
+ */
+function imports(
+  file     : string,
+  module   : Utils.ParseResult['module'],
+  resolver : Experimental.ResolverFactory,
+  text     : string
+): string[] {
+  const requests = new Set([
+    ...module.staticImports
+      .filter(({ entries }) => !entries.length || entries.some(({ isType }) => !isType))
+      .map(({ moduleRequest }) => moduleRequest.value),
+    ...module.staticExports.flatMap(({ entries }) => entries.flatMap(({ isType, moduleRequest }) =>
+      moduleRequest && !isType ? [moduleRequest.value] : []
+    )),
+    ...module.dynamicImports
+      .filter(({ moduleRequest: { start } }) => /['"]/.test(text.charAt(start)))
+      .map(({ moduleRequest: { end, start } }) => text.slice(start + 1, end - 1))
+  ])
+
+  return [...requests]
+    .map((request) => resolver.sync(dirname(file), request).path)
+    .filter((path) => path !== undefined)
+}
+
+/**
  * Names the `bun.lock` beside the outermost `node_modules` holding `path`,
  * where one holds it, so a path into a Bun isolated store names the lockfile
  * of the project that installs it.
@@ -81,6 +132,197 @@ function lookups(dir: string, name: string, found?: string): string[] {
   const path = join(dir, name)
 
   return path === found || dir === dirname(dir) ? [path] : [path, ...lookups(dirname(dir), name, found)]
+}
+
+/**
+ * Reports whether the path `spelling` ends `file` or names a directory
+ * holding it. A glob `spelling` counts where it matches the end of `file` from
+ * any directory down.
+ */
+function names(file: string, spelling: string): boolean {
+  if (GLOB.test(spelling)) {
+    const parts = file.split('/')
+
+    return parts.some((_, start) => matchesGlob(parts.slice(start).join('/'), spelling))
+  }
+
+  return spelling.includes('/')
+    ? file.endsWith(`/${spelling}`) || file.includes(`/${spelling}/`)
+    : basename(file) === spelling
+}
+
+/**
+ * Maps each program Git tracks under `top` to the paths its text spells, where
+ * a program is a file Git records as executable or a `.sh` file.
+ */
+function programs(top: string): Map<string, string[]> {
+  const files = git(top, 'ls-files', '--stage', '-z')
+    .split('\0')
+    .flatMap((entry) => {
+      const [stage = '', file = ''] = entry.split('\t')
+
+      return stage.startsWith('100755') || file.endsWith('.sh') ? [join(top, file)] : []
+    })
+
+  return new Map(files.filter((file) => existsSync(file)).map((file) => [
+    file,
+    readFileSync(file, 'utf8')
+      .split(BREAKS)
+      .flatMap(spelled)
+  ]))
+}
+
+/**
+ * Lists each test file `include` matches under `root` that reads one of
+ * `changed` by path. A test reads a file where its own source, or a module it
+ * imports outside `node_modules`, holds a string naming the file or a program
+ * that names it in turn.
+ *
+ * Args:
+ *   changed : The absolute path of each file the branch changes.
+ *   include : The suite's test file globs, relative to `root`.
+ *   root    : The suite's root directory.
+ *   top     : The root of the Git checkout holding `root`.
+ */
+function readers(changed: string[], include: string[], root: string, top: string): string[] {
+  const require = vite(root)
+
+  const { ResolverFactory }    = require('rolldown/experimental') as typeof Experimental
+  const { Visitor, parseSync } = require('rolldown/utils') as typeof Utils
+
+  const resolver = new ResolverFactory(RESOLVING)
+  const scans    = new Map<string, Scan>()
+  const targets  = new Set(changed)
+  const tokens   = programs(top)
+
+  for (const target of targets) {
+    tokens.forEach((spellings, program) => {
+      if (spellings.some((spelling) => names(target, spelling))) {
+        targets.add(program)
+      }
+    })
+  }
+
+  const scan = (file: string): Scan => {
+    const text                = readFileSync(file, 'utf8')
+    const { module, program } = parseSync(file, text)
+    const found               = {
+      spellings : strings(program, Visitor).flatMap(spelled),
+      imports   : imports(file, module, resolver, text)
+        .filter((path) => !lockfile(path) && SCRIPT.test(path))
+    }
+
+    scans.set(file, found)
+
+    return found
+  }
+
+  return globSync(include, { cwd: root })
+    .map((file) => join(root, file))
+    .filter((test) => {
+      const modules = new Set([test])
+
+      for (const module of modules) {
+        const { imports, spellings } = scans.get(module) ?? scan(module)
+
+        if (spellings.some((spelling) => targets.values().some((target) => names(target, spelling)))) {
+          return true
+        }
+
+        imports.forEach((path) => modules.add(path))
+      }
+
+      return false
+    })
+}
+
+/**
+ * Lists the one path `text` spells, `text` being a string a module holds or a
+ * token a program holds, and lists none where it holds white space:
+ *
+ * - A task name `group:name` spells its task file under `.mise/tasks/`
+ * - Each leading `.`, `..`, or segment holding a `$` drops off, and a later
+ *   segment holding a `$` leaves no path
+ * - A path of one segment counts only where a `.` follows its first
+ *   character, so `src` and `.mise` spell nothing
+ */
+function spelled(text: string): string[] {
+  if (/\s/.test(text)) {
+    return []
+  }
+
+  const parts    = TASK.test(text) ? ['.mise', 'tasks', ...text.split(':')] : text.split('/')
+  const start    = parts.findIndex((part) => !/^\.{0,2}$|\$/.test(part))
+  const segments = start < 0 ? [] : parts.slice(start).filter(Boolean)
+  const [first]  = segments
+
+  if (!first || segments.some((part) => part.includes('$'))) {
+    return []
+  }
+
+  return segments.length > 1 || /^.+\./.test(first) ? [segments.join('/')] : []
+}
+
+/**
+ * Lists the strings `program` holds, meaning each string literal, each part
+ * of a template literal, and the run of string arguments ending each `join` or
+ * `resolve` call, joined by `/`.
+ */
+function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): string[] {
+  const found: string[] = []
+
+  new Visitor({
+    CallExpression: ({ arguments: args, callee }) => {
+      const name   = callee.type === 'MemberExpression' && !callee.computed ? callee.property : callee
+      const values = args.map((arg) =>
+        arg.type === 'Literal' && typeof arg.value === 'string' ? arg.value : undefined
+      )
+      const parts  = values.slice(values.lastIndexOf(undefined) + 1)
+
+      if (name.type === 'Identifier' && ['join', 'resolve'].includes(name.name) && parts.length) {
+        found.push(parts.join('/'))
+      }
+    },
+    Literal: ({ value }) => {
+      if (typeof value === 'string') {
+        found.push(value)
+      }
+    },
+    TemplateElement: ({ value: { cooked } }) => {
+      if (cooked) {
+        found.push(cooked)
+      }
+    }
+  }).visit(program)
+
+  return found
+}
+
+/**
+ * Creates the provider of the files a `--changed` run starts from. It lists
+ * each file Git reports changed, through the commands Vitest's own provider
+ * runs, beside each test file `include` matches that reads one of them by
+ * path, per `readers`.
+ */
+export function changedFiles(include: string[]): Vitest['vcs'] {
+  return {
+    findChangedFiles: async ({ changedSince, root }) => {
+      const top   = resolve(root, git(root, 'rev-parse', '--show-cdup').trim())
+      const since = typeof changedSince === 'string'
+                  ? [['diff', '--name-only', `${changedSince}...HEAD`]]
+                  : []
+      const changed = [
+        ...since,
+        ['diff', '--cached', '--name-only'],
+        ['ls-files', '--other', '--modified', '--exclude-standard']
+      ]
+        .flatMap((args) => git(top, ...args).split('\n'))
+        .filter(Boolean)
+        .map((file) => join(top, file))
+
+      return [...changed, ...readers(changed, include, root, top)]
+    }
+  }
 }
 
 /**
@@ -119,11 +361,7 @@ export function triggers(root: string, include: string[]): string[] {
   const cache    = new TsconfigCache()
   const modules  = new Set(globSync(include, { cwd: root }).map((file) => join(root, file)))
   const reads    = new Set([import.meta.filename])
-  const resolver = new ResolverFactory({
-    conditionNames : ['node', 'import'],
-    extensionAlias : { '.js': ['.ts', '.js'] },
-    symlinks       : false
-  })
+  const resolver = new ResolverFactory(RESOLVING)
   const extender = resolver.cloneWithOptions({
     conditionNames : ['node', 'import'],
     extensions     : ['.json'],
@@ -134,23 +372,9 @@ export function triggers(root: string, include: string[]): string[] {
   for (const file of modules) {
     const text       = readFileSync(file, 'utf8')
     const { module } = parseSync(file, text)
-    const requests   = new Set([
-      ...module.staticImports
-        .filter(({ entries }) => !entries.length || entries.some(({ isType }) => !isType))
-        .map(({ moduleRequest }) => moduleRequest.value),
-      ...module.staticExports.flatMap(({ entries }) => entries.flatMap(({ isType, moduleRequest }) =>
-        moduleRequest && !isType ? [moduleRequest.value] : []
-      )),
-      ...module.dynamicImports
-        .filter(({ moduleRequest: { start } }) => /['"]/.test(text.charAt(start)))
-        .map(({ moduleRequest: { end, start } }) => text.slice(start + 1, end - 1))
-    ])
-
-    const tsconfigs = resolveTsconfig(file, cache)?.tsconfigFilePaths ?? []
-    const paths     = [...requests]
-      .map((request) => resolver.sync(dirname(file), request).path)
-      .filter((path) => path !== undefined)
-    const settings  = [
+    const tsconfigs  = resolveTsconfig(file, cache)?.tsconfigFilePaths ?? []
+    const paths      = imports(file, module, resolver, text)
+    const settings   = [
       ...tsconfigs.flatMap((tsconfig) => chain(tsconfig, extender)),
       ...lookups(dirname(file), 'package.json', findPackageJSON(pathToFileURL(file))),
       ...lookups(dirname(file), 'tsconfig.json', tsconfigs[0])

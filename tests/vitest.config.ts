@@ -2,8 +2,8 @@ import { dirname, join } from 'node:path'
 
 import { defineConfig } from 'vitest/config'
 
-import { lockfiles, triggers } from './common/triggers.js'
-import thresholds              from './coverage.json' with { type: 'json' }
+import { changedFiles, lockfiles, triggers } from './common/triggers.js'
+import thresholds                            from './coverage.json' with { type: 'json' }
 
 const INCLUDE = ['tests/**/*.test.ts']
 const PATHS   = ['.mise/config.toml', '.mise/mise.lock', 'bunfig.toml', 'site/.vitepress/vitest.config.ts']
@@ -16,6 +16,7 @@ export default defineConfig({
   test     : {
     environmentOptions  : { happyDOM: { settings: { handleDisabledFileLoadingAsSuccess: true } } },
     expect              : { requireAssertions: true },
+    experimental        : { vcsProvider: changedFiles(INCLUDE) },
     forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE), ...read],
     include             : INCLUDE,
     resolveSnapshotPath : (testPath, extension) => testPath + extension,

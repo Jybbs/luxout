@@ -57,3 +57,12 @@ export async function affected(
 
   return { ran: /Tests +1 passed/.test(stdout), status }
 }
+
+/**
+ * Returns the source of a test that reads the file `expression` names.
+ */
+export function reader(expression: string): string {
+  return "import { globSync, readFileSync } from 'node:fs'\nimport { join } from 'node:path'\n\n"
+       + "import { expect, test } from 'vitest'\n\n"
+       + `test('reads a file', () => {\n  expect(readFileSync(${expression}, 'utf8')).not.toBe('')\n})\n`
+}

@@ -1,15 +1,15 @@
-import { existsSync }              from 'node:fs'
-import { glob, readFile, symlink } from 'node:fs/promises'
+import { existsSync }                                     from 'node:fs'
+import { appendFile, chmod, glob, readFile, symlink } from 'node:fs/promises'
 import { dirname, join, relative } from 'node:path'
 
 import type * as Experimental from 'rolldown/experimental'
 import { expect, it, vi }     from 'vitest'
 import { defaultExclude }     from 'vitest/config'
 
-import { plant, test }    from './common/scratch.js'
-import { triggers, vite } from './common/triggers.js'
-import thresholds         from './coverage.json' with { type: 'json' }
-import config             from './vitest.config.js'
+import { branch, plant, test }          from './common/scratch.js'
+import { changedFiles, triggers, vite } from './common/triggers.js'
+import thresholds                       from './coverage.json' with { type: 'json' }
+import config                           from './vitest.config.js'
 
 const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const root    = dirname(import.meta.dirname)
@@ -20,6 +20,43 @@ const sources = await Array.fromAsync(files, async (file) => ({
   text : await readFile(join(root, file), 'utf8')
 }))
 const spawning = sources.filter(({ text }) => spawns.test(text))
+
+/**
+ * Plants a repository at `scratch` whose branch changes only `changed` since
+ * `origin/main`. Each test file in it spells one path, `bin/tool` is a program
+ * that sources `lib/a.sh`, and `lib/a.sh` sources `lib/b.sh`.
+ */
+async function checkout(changed: string, scratch: string): Promise<void> {
+  await plant(scratch, {
+    '.gitignore'      : 'node_modules\n',
+    'bin/tool'        : '#!/bin/sh\n. lib/a.sh\n',
+    'dir.test.ts'     : "export const dir = join('docs', 'guide')\n",
+    'docs/guide/a.md' : '# A\n',
+    'lib/a.sh'        : '. lib/b.sh\n',
+    'lib/b.sh'        : ':\n',
+    'notes/a.md'      : '# A\n',
+    'space.test.ts'   : "export const note = 'see docs/guide/a.md'\n",
+    'tasks/labels'    : ':\n',
+    'tool.test.ts'    : "export const tool = 'bin/tool'\n",
+    'var.test.ts'     : "export const note = '$ROOT/notes/a.md'\n",
+    'word.test.ts'    : "export const word = 'labels'\n"
+  })
+  await Promise.all([
+    chmod(join(scratch, 'bin', 'tool'), 0o755),
+    symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+  ])
+  await branch(changed, scratch)
+}
+
+/**
+ * Lists, relative to `scratch`, the files `changedFiles` gives a run there
+ * that reads each change since `changedSince`.
+ */
+async function provided(scratch: string, changedSince?: string): Promise<string[]> {
+  const files = await changedFiles(['*.test.ts']).findChangedFiles({ changedSince, root: scratch })
+
+  return files.map((file) => relative(scratch, file))
+}
 
 it('fails a case with no assertion, shuffles the order, and undoes every spy and stub', () => {
   expect(config.test).toMatchObject({
@@ -120,6 +157,30 @@ test(
     expect(triggers(scratch, ['a.ts'])).toEqual(expect.arrayContaining([
       join(scratch, 'base.json'), join(scratch, 'link.json')
     ]))
+  }
+)
+
+test.for([
+  { changed: 'docs/guide/a.md', name: 'a test spelling a directory holding it', selected: ['dir.test.ts'] },
+  { changed: 'lib/b.sh', name: 'a test spelling a program sourcing it in turn', selected: ['tool.test.ts'] },
+  { changed: 'notes/a.md', name: 'a test spelling it behind a leading $ segment', selected: ['var.test.ts'] },
+  { changed: 'tasks/labels', name: 'no test for a string of one segment holding no dot', selected: [] }
+])(
+  'selects $name where a branch changes only $changed',
+  async ({ changed, selected }, { scratch }) => {
+    await checkout(changed, scratch)
+
+    expect(await provided(scratch, 'origin/main')).toEqual([changed, ...selected])
+  }
+)
+
+test(
+  'selects the test reading an uncommitted change alone where the run names no commit to start from',
+  async ({ scratch }) => {
+    await checkout('notes/a.md', scratch)
+    await appendFile(join(scratch, 'docs', 'guide', 'a.md'), '\n')
+
+    expect(await provided(scratch)).toEqual(['docs/guide/a.md', 'dir.test.ts'])
   }
 )
 
