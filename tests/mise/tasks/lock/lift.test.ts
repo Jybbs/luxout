@@ -26,12 +26,12 @@ const ADVISORIES = {
 }
 const CHECKOUT                        = '1'.repeat(40)
 const CURRENT: Record<string, Answer> = {
-  'bun audit --cwd . --json'            : json({}),
-  'bun outdated --cwd .'                : outdated(),
-  'bun outdated --cwd site'             : outdated(),
-  'mise latest node@24'                 : { stdout: '24.21.0\n' },
-  'mise latest node@26'                 : { stdout: '26.10.0\n' },
-  'mise outdated --bump --json --local' : json({}),
+  'bun audit --cwd . --json'                : json({}),
+  'bun outdated --cwd .'                    : outdated(),
+  'bun outdated --cwd site'                 : outdated(),
+  'mise latest node@24'                     : { stdout: '24.21.0\n' },
+  'mise latest node@26'                     : { stdout: '26.10.0\n' },
+  'mise outdated --bump --json --no-global' : json({}),
   'mise version --json': json({ latest: '2026.9.18', version: '2026.10.12 macos-arm64 (2026-10-16)' })
 }
 const LIFTED                         = '2'.repeat(40)
@@ -70,7 +70,7 @@ const CANNED: Record<string, Answer> = {
     ['vitest (dev)', '5.0.3', '5.0.5']
   ),
 
-  'mise outdated --bump --json --local': json({
+  'mise outdated --bump --json --no-global': json({
     bun: {
       latest    : '1.4.3',
       name      : 'bun',
@@ -93,7 +93,7 @@ const CANNED: Record<string, Answer> = {
     }
   }),
 
-  'mise tasks ls --hidden --json --local': json([
+  'mise tasks ls --hidden --json --no-global': json([
     { name: 'plugin:test', source: `${root}/.mise/tasks/plugin/test`, tools: {} },
     { name: 'plugin:test:22', source: `${root}/.mise/tasks/plugin/lines.toml`, tools: { node: '22.23.3' } },
     { name: 'plugin:test:24', source: `${root}/.mise/tasks/plugin/lines.toml`, tools: { node: '24.21.0' } }

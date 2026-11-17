@@ -231,7 +231,7 @@ test('lists every task the checkout declares through mise, hidden ones included'
 
   expect(vi.mocked(run).mock.calls.map(([, args]) => args)).toEqual([
     ['tasks', 'validate', '--json'],
-    ['tasks', 'ls', '--hidden', '--json', '--local']
+    ['tasks', 'ls', '--hidden', '--json', '--no-global']
   ])
 })
 

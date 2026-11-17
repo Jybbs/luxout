@@ -114,7 +114,7 @@ nodes() {
   node=$(mise config get --file .mise/config.toml tools.node)
   pins=$(
     printf 'node\t.mise/config.toml\t%s\n' "$node"
-    mise tasks ls --hidden --json --local \
+    mise tasks ls --hidden --json --no-global \
       | jq --arg root "$MISE_PROJECT_ROOT/" --raw-output '
           .[]
           | select(.tools.node)
@@ -323,7 +323,7 @@ table() {
 }
 
 tools() {
-  mise outdated --bump --json --local \
+  mise outdated --bump --json --no-global \
     | jq --arg root "$MISE_PROJECT_ROOT/" --raw-output '
         .[]
         | select(.name != "node")
