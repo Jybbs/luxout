@@ -79,6 +79,33 @@ holding() {
   } | jq --compact-output --null-input --raw-input '[inputs]'
 }
 
+ignored() {
+  local id patched
+
+  for id in ${AUDIT_IGNORE:-}; do
+    patched=$(
+      gh api \
+        --jq '
+          [
+            .vulnerabilities[]
+            | select(.first_patched_version)
+            | "`\(.package.name)` \(.first_patched_version)"
+          ]
+          | join(", ")
+        ' \
+        "advisories/$id"
+    ) || return
+
+    if [[ -n "$patched" ]]; then
+      echo "\`$id\` has a patched release, so delete it from \`AUDIT_IGNORE\`" \
+           "in .mise/config.toml and lift to $patched" >&2
+      return 1
+    fi
+
+    echo "--ignore=$id"
+  done
+}
+
 minimum() {
   local current newest released
 
@@ -182,7 +209,7 @@ packages() {
         --slurpfile pins "$manifest" \
         '. + { ($manifest): $pins[0] }' <<<"$manifests"
     )
-    audit=$(bun audit --cwd "$dir" --json) ||
+    audit=$(bun audit --cwd "$dir" $ignores --json) ||
       jq --exit-status 'type == "object"' <<<"$audit" >/dev/null
 
     bun outdated --cwd "$dir" | jq \
@@ -449,6 +476,7 @@ while (( $# > 0 )); do
   shift
 done
 
+ignores=$(ignored)
 holds=$(bun --print 'JSON.stringify(require("./.mise/holds.toml"))')
 scratch=$(mktemp -d)
 version=$(mise version --json)

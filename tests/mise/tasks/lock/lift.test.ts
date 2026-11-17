@@ -12,6 +12,7 @@ interface Setup {
   args?   : string[]
   canned? : Record<string, Answer>
   edits?  : Record<string, string>
+  env?    : NodeJS.ProcessEnv
   files?  : Record<string, string>
   live?   : Record<string, unknown>
   staged? : boolean
@@ -34,6 +35,7 @@ const CURRENT: Record<string, Answer> = {
   'mise outdated --bump --json --local' : json({}),
   'mise version --json': json({ latest: '2026.9.18', version: '2026.10.12 macos-arm64 (2026-10-16)' })
 }
+const IGNORED                        = ['GHSA-fc5q-39xc-vjpf', 'GHSA-jjjj-kkkk-llll']
 const LIFTED                         = '2'.repeat(40)
 const PINNED                         = '3'.repeat(40)
 const RELOCK                         = ['mise', 'run', 'lock:sync']
@@ -201,8 +203,8 @@ function json(value: unknown, status = 0): Answer {
  *   ran in the checkout or in a clone, and whether `git status` changed.
  */
 async function lift(
-  scratch                                                                        : string,
-  { args = [], canned = {}, edits = {}, files = {}, live = LIVE, staged = false } : Setup = {}
+  scratch                                                                                  : string,
+  { args = [], canned = {}, edits = {}, env = {}, files = {}, live = LIVE, staged = false } : Setup = {}
 ) {
   const git = (...words: string[]): string => execFileSync('git', words, {
     cwd      : scratch,
@@ -228,15 +230,17 @@ async function lift(
 
   const before = git('status', '--porcelain')
 
-  const { commands, invoked, status, stderr, stdout } = await sync(scratch, 'lock:lift', {
+  const { commands, invoked, requests, status, stderr, stdout } = await sync(scratch, 'lock:lift', {
     args   : args,
     canned : { ...CANNED, ...canned },
+    env    : env,
     live   : live
   })
 
   return {
     commands : commands,
     moved    : before !== git('status', '--porcelain'),
+    requests : requests,
     status   : status,
     stderr   : stderr,
     stdout   : stdout,
@@ -683,6 +687,55 @@ test.for<{
     expect({ hap: row(stdout, '@homebridge/hap-nodejs'), pins: manifest.devDependencies }).toEqual({
       hap  : [],
       pins : { '@homebridge/hap-nodejs': hap, homebridge }
+    })
+  }
+)
+
+test.for<{ audits: boolean, ignore: string, message: string, patched: string | null, suffix: string }>([
+  { audits: true, ignore: '', message: '', patched: null, suffix: '' },
+  {
+    audits  : true,
+    ignore  : IGNORED.join(' '),
+    message : '',
+    patched : null,
+    suffix  : IGNORED.map((id) => ` --ignore=${id}`).join('')
+  },
+  {
+    audits  : false,
+    ignore  : IGNORED.join(' '),
+    message : `\`${IGNORED[1]}\` has a patched release, so delete it from \`AUDIT_IGNORE\` `
+            + 'in .mise/config.toml and lift to `picomatch` 4.0.8\n',
+    patched : '4.0.8',
+    suffix  : ''
+  }
+])(
+  'passes each AUDIT_IGNORE entry to bun audit until a release patches it, given "$ignore" and $patched',
+  async ({ audits, ignore, message, patched, suffix }, { scratch }) => {
+    const calls    = Object.keys(CANNED).filter((call) => call.startsWith('bun audit ')).toSorted()
+    const ignoring = (call: string): string => call.replace(/ --json$/, `${suffix} --json`)
+    const advisory = (fixed: string | null): unknown => ({
+      vulnerabilities: [{ first_patched_version: fixed, package: { name: 'picomatch' } }]
+    })
+    const { commands, requests, status, stderr } = await lift(scratch, {
+      canned : Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
+      env    : { AUDIT_IGNORE: ignore },
+      live   : {
+        ...LIVE,
+        [`advisories/${IGNORED[0]}`] : advisory(null),
+        [`advisories/${IGNORED[1]}`] : advisory(patched)
+      }
+    })
+
+    expect({
+      audited : commands.filter(([program, verb]) => program === 'bun' && verb === 'audit'),
+      looked  : requests.map((args) => args.at(-1)).filter((endpoint) => endpoint?.startsWith('advisories/')),
+      status  : status,
+      stderr  : stderr
+    }).toEqual({
+      audited : audits ? calls.map((call) => ignoring(call).split(' ')) : [],
+      looked  : ignore.split(' ').filter(Boolean).map((id) => `advisories/${id}`),
+      status  : audits ? 0 : 1,
+      stderr  : message
     })
   }
 )

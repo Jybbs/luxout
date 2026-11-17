@@ -17,4 +17,4 @@ follows = "knip"
 reason  = "Moves to the release `knip` names, so `bun.lock` keeps one copy"
 
 ["unbash"]
-reason = "Release 6 adds an `unexpected token` error on an unclosed `case`, changing what the shell audit reports"
+reason = "Release 5.1.0 adds an `unexpected token` error on an unclosed `case`, changing what the shell audit reports"

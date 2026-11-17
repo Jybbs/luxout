@@ -1,7 +1,8 @@
 min_version = "2026.11.9"
 
 [env]
-_.path = ".mise/bin"
+AUDIT_IGNORE = "GHSA-fc5q-39xc-vjpf" # ReDoS in `picomatch`, reached only by dev tooling, with no release fixing it
+_.path       = ".mise/bin"
 
 [settings]
 auto_install = false
