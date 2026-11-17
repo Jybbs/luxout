@@ -5,11 +5,11 @@ import { bounded, keysAtFault } from './fields.js'
 
 /**
  * Matches a name that passes the check HAP-NodeJS runs on every accessory and
- * service name, which takes two or more characters starting and ending on a
- * letter or a number, with only letters, numbers, spaces, apostrophes, and the
- * marks `&!._:;()/,-` between them.
+ * service name, which takes a lone letter or number, or a run starting and
+ * ending on one with only letters, numbers, spaces, apostrophes, and the marks
+ * `&!._:;()/,-` between them.
  */
-const HOMEKIT_NAME = /^[\p{L}\p{N}][\p{L}\p{N}\p{Zs}\u2019'&!._:;()/,-]*[\p{L}\p{N}]$/u
+const HOMEKIT_NAME = /^[\p{L}\p{N}](?:[\p{L}\p{N}\p{Zs}\u2019'&!._:;()/,-]*[\p{L}\p{N}])?$/u
 const fields       = schema.schema.properties.thresholds.items.properties
 const named        = v.string()
   .assert((name) => name.length <= fields.name.maxLength && HOMEKIT_NAME.test(name))

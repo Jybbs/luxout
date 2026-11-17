@@ -45,7 +45,7 @@
   "devDependencies": {
     "@fast-check/vitest": "0.5.0",
     "@homebridge/hap-client": "5.4.0",
-    "@homebridge/hap-nodejs": "2.2.2",
+    "@homebridge/hap-nodejs": "2.3.0",
     "@testing-library/dom": "10.4.2",
     "@testing-library/user-event": "14.6.12",
     "@types/node": "22.20.5",
@@ -54,7 +54,7 @@
     "@zag-js/vanilla": "1.48.0",
     "get-port": "7.2.0",
     "happy-dom": "21.0.4",
-    "homebridge": "2.4.0",
+    "homebridge": "2.5.0",
     "knip": "6.45.1",
     "oxlint": "1.94.0",
     "oxlint-tsgolint": "7.0.2007",
