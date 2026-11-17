@@ -12,7 +12,7 @@ until cmp -s "$previous" .mise/mise.lock; do
   mise lock
 done
 
-missing=$(mise ls --json --local --missing | jq --raw-output 'keys | join(" ")')
+missing=$(mise ls --json --missing --no-global | jq --raw-output 'keys | join(" ")')
 
 [[ -z "$missing" ]] || mise install $missing
 
