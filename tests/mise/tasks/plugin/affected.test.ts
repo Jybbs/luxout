@@ -1,36 +1,16 @@
 /** @module-tag spawns */
-import { execFileSync } from 'node:child_process'
-import { existsSync }   from 'node:fs'
-import { join }         from 'node:path'
+import { existsSync } from 'node:fs'
+import { join }       from 'node:path'
 
-import { expect } from 'vitest'
+import { describe, expect } from 'vitest'
 
-import { affected }           from '../../../common/affected.js'
-import { test }               from '../../../common/scratch.js'
-import { type SyncRun, sync } from '../../../common/sync.js'
+import { ARGS, BASE, MERGE, affected, canned } from '../../../common/affected.js'
+import { test }                                from '../../../common/scratch.js'
+import { info }                                from '../../../common/sync.js'
 
-const ARGS   = ['--bail', '1']
-const BASE   = '5cb3ee2'
-const MERGE  = ['git', 'merge-base', 'origin/main', 'HEAD']
+const PLUGIN = ['mise', 'run', 'plugin:test', '--', '--changed', BASE, ...ARGS]
 const STORE  = '.mise/vet/node_modules/.bun/@luxout+base@1.0.0/node_modules/@luxout/base'
 const VENDOR = '.mise/vet/vendor/node_modules/.bun/@luxout+vendored@1.0.0/node_modules/@luxout/vendored'
-const root   = join(import.meta.dirname, '..', '..', '..', '..')
-const PLUGIN = ['mise', 'run', 'plugin:test', '--', '--changed', BASE, ...ARGS]
-
-/**
- * Runs the task in `scratch` beside stand-ins for `git` and `mise`, where the
- * merge base is `BASE` and the call `failing` names exits 1.
- */
-function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
-  return sync(scratch, 'plugin:affected', {
-    args   : ARGS,
-    canned : {
-      [MERGE.join(' ')]  : { stdout: `${BASE}\n` },
-      [PLUGIN.join(' ')] : {},
-      ...failing && { [failing.join(' ')]: { status: 1 } }
-    }
-  })
-}
 
 /**
  * Runs the task from a repository at `folder` under `scratch` whose branch
@@ -119,97 +99,88 @@ function selected(
   })
 }
 
-test('takes the alias affected', () => {
-  const info = execFileSync('mise', ['tasks', 'info', '--json', 'plugin:affected'], {
-    cwd      : root,
-    encoding : 'utf8'
+describe.concurrent('plugin:affected', () => {
+  test('takes the alias affected', async () => {
+    expect(await info('plugin:affected')).toMatchObject({ aliases: ['affected'] })
   })
 
-  expect(JSON.parse(info)).toMatchObject({ aliases: ['affected'] })
-})
+  test('runs plugin:test against the merge base, passing every further argument to Vitest', async ({
+    scratch
+  }) => {
+    expect(await canned(scratch, PLUGIN, 'plugin:affected'))
+      .toMatchObject({ commands: [MERGE, PLUGIN], status: 0 })
+  })
 
-test(
-  'runs plugin:test against the merge base, passing every further argument to Vitest',
-  async ({ scratch }) => {
-    expect(await canned(scratch)).toMatchObject({ commands: [MERGE, PLUGIN], status: 0 })
-  }
-)
+  test.for([
+    { commands: [MERGE], failing: MERGE, name: '`git merge-base`' },
+    { commands: [MERGE, PLUGIN], failing: PLUGIN, name: '`plugin:test`' }
+  ])('fails once $name fails', async ({ commands, failing }, { scratch }) => {
+    expect(await canned(scratch, PLUGIN, 'plugin:affected', failing)).toMatchObject({ commands, status: 1 })
+  })
 
-test.for([
-  { commands: [MERGE], failing: MERGE, name: '`git merge-base`' },
-  { commands: [MERGE, PLUGIN], failing: PLUGIN, name: '`plugin:test`' }
-])('fails once $name fails', async ({ commands, failing }, { scratch }) => {
-  expect(await canned(scratch, failing)).toMatchObject({ commands: commands, status: 1 })
-})
+  test.for([
+    { changed: '.mise/vet/shared.json', name: 'runs no plugin test', ran: false },
+    { changed: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
+    { changed: 'site/index.md', name: 'runs no plugin test', ran: false },
+    { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
+    { changed: 'src/b.ts', name: 'runs no plugin test', ran: false },
+    { changed: 'tests/homebridge/bunfig.toml', name: 'runs no plugin test', ran: false },
+    { changed: 'tsconfig.json', name: 'runs no plugin test', ran: false },
+    { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
+    { changed: '.mise/bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/config.toml', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/mise.lock', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/real/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/shared/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/tsconfig.base.json', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/tsconfig.empty.json', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/tsconfig.notes.json', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/tsconfig.root.json', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/vendor/bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: 'bunfig.toml', name: 'runs every plugin test', ran: true },
+    { changed: 'package.json', name: 'runs every plugin test', ran: true },
+    { changed: 'src/package.json', name: 'runs every plugin test', ran: true },
+    { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every plugin test', ran: true },
+    { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: 'src/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { changed: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { changed: 'tests/homebridge/bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { changed: 'tests/vet/floor/bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: 'tests/vitest.config.ts', name: 'runs every plugin test', ran: true }
+  ])('$name where a branch changes only $changed', async ({ changed, ran }, { scratch }) => {
+    expect(await selected(changed, scratch)).toEqual({ ran, status: 0 })
+  })
 
-test.for([
-  { changed: '.mise/vet/shared.json', name: 'runs no plugin test', ran: false },
-  { changed: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
-  { changed: 'site/index.md', name: 'runs no plugin test', ran: false },
-  { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
-  { changed: 'src/b.ts', name: 'runs no plugin test', ran: false },
-  { changed: 'tests/homebridge/bunfig.toml', name: 'runs no plugin test', ran: false },
-  { changed: 'tsconfig.json', name: 'runs no plugin test', ran: false },
-  { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
-  { changed: '.mise/bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/config.toml', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/mise.lock', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/real/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/shared/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/tsconfig.base.json', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/tsconfig.empty.json', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/tsconfig.notes.json', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/tsconfig.root.json', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/vendor/bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: 'bunfig.toml', name: 'runs every plugin test', ran: true },
-  { changed: 'package.json', name: 'runs every plugin test', ran: true },
-  { changed: 'src/package.json', name: 'runs every plugin test', ran: true },
-  { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every plugin test', ran: true },
-  { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: 'src/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { changed: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { changed: 'tests/homebridge/bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { changed: 'tests/vet/floor/bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: 'tests/vitest.config.ts', name: 'runs every plugin test', ran: true }
-])(
-  '$name where a branch changes only $changed',
-  async ({ changed, ran }, { scratch }) => {
-    expect(await selected(changed, scratch)).toEqual({ ran: ran, status: 0 })
-  }
-)
-
-test.for([
-  { deleted: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
-  { deleted: 'site/package.json', name: 'runs no plugin test', ran: false },
-  { deleted: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { deleted: 'src/package.json', name: 'runs every plugin test', ran: true },
-  { deleted: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { deleted: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true }
-])(
-  '$name where a branch deletes only $deleted',
-  async ({ deleted, ran }, { scratch }) => {
-    expect(await selected(deleted, scratch, true)).toEqual({ ran: ran, status: 0 })
+  test.for([
+    { deleted: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
+    { deleted: 'site/package.json', name: 'runs no plugin test', ran: false },
+    { deleted: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { deleted: 'src/package.json', name: 'runs every plugin test', ran: true },
+    { deleted: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { deleted: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true }
+  ])('$name where a branch deletes only $deleted', async ({ deleted, ran }, { scratch }) => {
+    expect(await selected(deleted, scratch, true)).toEqual({ ran, status: 0 })
     expect(existsSync(join(scratch, 'repo', deleted))).toBe(false)
-  }
-)
+  })
 
-test.for([
-  { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
-  { changed: '.mise/config.toml', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/mise.lock', name: 'runs every plugin test', ran: true },
-  { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
-  { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: 'package.json', name: 'runs every plugin test', ran: true },
-  { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: 'src/package.json', name: 'runs every plugin test', ran: true }
-])(
-  '$name where a branch changes only $changed in a checkout under luxout (old)',
-  async ({ changed, ran }, { scratch }) => {
-    expect(await selected(changed, scratch, false, 'luxout (old)')).toEqual({ ran: ran, status: 0 })
-  }
-)
+  test.for([
+    { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
+    { changed: '.mise/config.toml', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/mise.lock', name: 'runs every plugin test', ran: true },
+    { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
+    { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: 'package.json', name: 'runs every plugin test', ran: true },
+    { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
+    { changed: 'src/package.json', name: 'runs every plugin test', ran: true }
+  ])(
+    '$name where a branch changes only $changed in a checkout under luxout (old)',
+    async ({ changed, ran }, { scratch }) => {
+      expect(await selected(changed, scratch, false, 'luxout (old)')).toEqual({ ran, status: 0 })
+    }
+  )
+})

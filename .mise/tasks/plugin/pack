@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "pack"
 #MISE depends     = ["plugin:build"]
-#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, or the settings page, its stylesheet, its script, or its server script under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait for the ready message of the server script it forks"
+#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, or the settings page, its stylesheet, its script, or its server script under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait up to `PACK_READY_SECONDS` seconds, 10 by default, for the ready message of the server script it forks"
 
 packed() {
   grep --fixed-strings --line-regexp --quiet "$1" <<<"$files" && return
@@ -40,13 +40,15 @@ node --eval '
   import { fork } from "node:child_process"
   import { once } from "node:events"
 
-  const server    = fork(process.argv[1], { execArgv: [], signal: AbortSignal.timeout(10_000) })
+  const seconds   = Number(process.argv[2])
+  const signal    = AbortSignal.timeout(seconds * 1000)
+  const server    = fork(process.argv[1], { execArgv: [], signal })
   const [message] = await Promise.race([once(server, "message"), once(server, "exit")]).catch(() => [])
 
   server.kill()
 
   if (message?.action !== "ready") {
-    console.error("The server script sent no ready message within 10 seconds")
+    console.error(`The server script sent no ready message within ${seconds} seconds`)
     process.exitCode = 1
   }
-' --input-type=module "node_modules/$name/$ui/server.js"
+' --input-type=module "node_modules/$name/$ui/server.js" "${PACK_READY_SECONDS:-10}"

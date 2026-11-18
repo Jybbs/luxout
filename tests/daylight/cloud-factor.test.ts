@@ -38,8 +38,12 @@ it('computes the Haurwitz irradiance of equation 18 for a sun straight overhead'
   expect(haurwitz(90)).toBeCloseTo(1098 * Math.exp(-0.057), 9)
 })
 
-it('takes the four nearest daylight steps from 12 hours behind to 4 hours ahead, above 5 degrees', () => {
-  expect(CLOUD_TUNING).toEqual({ ahead: 4 * HOUR, behind: 12 * HOUR, floor: 5, nearest: 4 })
+it('gives a dawn step the four daylight steps from the first whose refracted sun reaches 5°', () => {
+  const sun   = new Sun(delhi)
+  const first = morning.times.findIndex((time) => sky.refracted(sun.altitude(new Date(time))) >= 5)
+  const steps = derive(morning).nearest(morning.times[0]!).map(({ time }) => time)
+
+  expect(steps).toEqual(morning.times.slice(first, first + 4))
 })
 
 it('holds one factor per step of the window, in the window’s order', () => {

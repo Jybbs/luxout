@@ -27,7 +27,7 @@ it('rests on a minute inside the gap, after the sensor with a gap turns on', () 
 })
 
 it('gives each sensor one cell per minute of the span', () => {
-  expect(gap.minutes.every(({ cells }) => cells.length === gap.sensors.length)).toBe(true)
+  expect(gap.minutes.filter(({ cells }) => cells.length !== gap.sensors.length)).toStrictEqual([])
   expect(gap.minutes).toHaveLength(106)
 })
 

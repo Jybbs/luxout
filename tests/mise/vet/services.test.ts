@@ -10,6 +10,7 @@ import { Characteristics, Services as Types } from '@homebridge/hap-client/hap-t
 import * as hap                               from '@homebridge/hap-nodejs'
 import { expect, it, vi }                     from 'vitest'
 
+import type { Tuning }                            from '../../../.mise/vet/scenario.ts'
 import * as services                              from '../../../.mise/vet/services.ts'
 import { Settings }                               from '../../../src/config/settings.js'
 import { OUTSIDE }                                from '../../../src/sensor/outside.js'
@@ -230,7 +231,7 @@ test('reads the manifest, the Outside accessory, and the parser off the plugin b
   })
 })
 
-test.concurrent.for<{ acts: Acts, bridge: string, failures: string[] }>([
+test.concurrent.for<{ acts: Acts, bridge: string, failures: string[], tuning?: Partial<Tuning> }>([
   {
     acts     : { accessories: [outside(38609), sensor(3, 'Dark Outside', 0)] },
     bridge   : 'exposes every accessory the platform registers',
@@ -244,25 +245,27 @@ test.concurrent.for<{ acts: Acts, bridge: string, failures: string[] }>([
   {
     acts     : { exits: true },
     bridge   : 'exits once it listens',
-    failures : ['never exposes its accessories over HAP']
+    failures : ['never exposes its accessories over HAP'],
+    tuning   : { observe: 4_000 }
   },
   {
     acts     : { mute: true },
     bridge   : 'never listens',
-    failures : ['never exposes its accessories over HAP']
+    failures : ['never exposes its accessories over HAP'],
+    tuning   : { start: 2_000 }
   },
   {
     acts     : { accessories: [outside(38609), sensor(3, 'Dark Outside', 0)], logs: 'TypeError: x' },
     bridge   : 'logs a TypeError',
     failures : ['logs TypeError']
   }
-])('reads a bridge it starts insecure and offline, which $bridge', async ({ acts, failures }, {
+])('reads a bridge it starts insecure and offline, which $bridge', async ({ acts, failures, tuning }, {
   expect,
   scratch
 }) => {
   const check      = new services.Services(BLOCK, PLUGIN)
   const homebridge = await install(join(scratch, 'release'))
-  const verdict    = await check.run(homebridge, await stage(scratch, acts), TUNING)
+  const verdict    = await check.run(homebridge, await stage(scratch, acts), { ...TUNING, ...tuning })
 
   expect({
     failures : verdict.failures,
@@ -290,7 +293,7 @@ test.concurrent('refuses a read of a bridge started without -I', async ({ expect
   const launch     = await stage(scratch, { accessories: [outside(38609)] })
   const run        = await homebridge.start({ ...launch, block: BLOCK, offline: true })
 
-  await run.started(TUNING.observe)
+  await run.started(TUNING.start)
 
   const read = await services.Exposure.read(launch.port).then(() => 'reads', ({ message }: Error) => message)
 

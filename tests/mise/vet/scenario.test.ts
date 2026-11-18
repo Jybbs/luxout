@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { expect, it, vi } from 'vitest'
 
 import type { Block }                              from '../../../.mise/vet/homebridge.ts'
-import { Scenario, Shutdown, checks }              from '../../../.mise/vet/scenario.ts'
+import { Scenario, Shutdown, type Tuning, checks } from '../../../.mise/vet/scenario.ts'
 import schema                                      from '../../../config.schema.json' with { type: 'json' }
 import { type Acts, TUNING, install, stage, test } from '../../common/vet.js'
 
@@ -14,10 +14,10 @@ const BLOCK = { platform: 'Luxout' }
  * Runs `check` against the stand-in Homebridge installed under `scratch`,
  * acting as `acts` asks.
  */
-async function verdict(check: Scenario | Shutdown, scratch: string, acts?: Acts, tuning = TUNING) {
+async function verdict(check: Scenario | Shutdown, scratch: string, acts?: Acts, tuning?: Partial<Tuning>) {
   const homebridge = await install(join(scratch, 'release'))
 
-  return check.run(homebridge, await stage(scratch, acts), tuning)
+  return check.run(homebridge, await stage(scratch, acts), { ...TUNING, ...tuning })
 }
 
 it('builds each run the checks start from the schema, running a repeated block once', () => {
@@ -63,14 +63,21 @@ test.concurrent('passes no block while the platform never initializes', async ({
   expect((await verdict(new Scenario('Luxout', 'no config'), scratch)).failures).toEqual([])
 })
 
-test.concurrent.for<{ acts: Acts, block?: Block, failure: string }>([
-  { acts: { mute: true }, block: BLOCK, failure: 'never reports its bridge listening' },
-  { acts: { exits: true }, block: BLOCK, failure: 'exits before it is stopped' },
+test.concurrent.for<{ acts: Acts, block?: Block, failure: string, tuning?: Partial<Tuning> }>([
+  {
+    acts    : { mute: true },
+    block   : BLOCK,
+    failure : 'never reports its bridge listening',
+    tuning  : { start: 2_000 }
+  },
+  { acts: { exits: true }, block: BLOCK, failure: 'exits before it is stopped', tuning: { observe: 4_000 } },
   { acts: { silent: true }, block: BLOCK, failure: 'never initializes the Luxout platform' },
   { acts: { initializes: true }, failure: 'initializes the Luxout platform with no block' },
   { acts: { logs: 'ReferenceError: x is not defined' }, block: BLOCK, failure: 'logs ReferenceError' }
-])('fails a run that $failure', async ({ acts, block, failure }, { expect, scratch }) => {
-  expect((await verdict(new Scenario('Luxout', 'run', block), scratch, acts)).failures).toEqual([failure])
+])('fails a run that $failure', async ({ acts, block, failure, tuning }, { expect, scratch }) => {
+  const { failures } = await verdict(new Scenario('Luxout', 'run', block), scratch, acts, tuning)
+
+  expect(failures).toEqual([failure])
 })
 
 test.concurrent('fails a run that writes outside its storage', async ({ expect, outside, scratch }) => {
@@ -82,7 +89,6 @@ test.concurrent('fails a run that writes outside its storage', async ({ expect, 
 
 test.concurrent('fails a run that outlasts the grace after SIGTERM', async ({ expect, scratch }) => {
   const { failures } = await verdict(new Scenario('Luxout', 'run', BLOCK), scratch, { lingers: true }, {
-    ...TUNING,
     grace: 500
   })
 
@@ -115,7 +121,7 @@ test.concurrent('fails a second start that meets EADDRINUSE once it listens', as
   const homebridge = await install(join(scratch, 'release'))
   const launch     = await stage(scratch, { conflictsLate: true })
 
-  expect((await new Shutdown(BLOCK).run(homebridge, launch, { ...TUNING, settle: 1_000 })).failures)
+  expect((await new Shutdown(BLOCK).run(homebridge, launch, { ...TUNING, settle: 300 })).failures)
     .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
 })
 
@@ -124,7 +130,7 @@ test('stops at a first start that never listens', async ({ scratch }) => {
   const start        = vi.spyOn(homebridge, 'start')
   const { failures } = await new Shutdown(BLOCK).run(homebridge, await stage(scratch, { mute: true }), {
     ...TUNING,
-    observe: 300
+    start: 300
   })
 
   expect({ failures, starts: start.mock.calls.length }).toEqual({

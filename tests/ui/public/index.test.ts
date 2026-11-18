@@ -1,5 +1,6 @@
 /** @vitest-environment happy-dom */
-import { once } from 'node:events'
+import { once }         from 'node:events'
+import { setImmediate } from 'node:timers/promises'
 
 import { MockHomebridgePluginUi } from '@homebridge/plugin-ui-utils/ui.mock'
 import { expect, it, vi }         from 'vitest'
@@ -21,7 +22,6 @@ it('opens the page once the Homebridge UI is ready, logging a page that fails to
   homebridge.dispatchEvent(new Event('ready'))
 
   expect(open).toHaveBeenCalledExactlyOnceWith(document, homebridge)
-  await vi.waitFor(() => {
-    expect(log).toHaveBeenCalledExactlyOnceWith(failure)
-  })
+  await setImmediate()
+  expect(log).toHaveBeenCalledExactlyOnceWith(failure)
 })

@@ -1,5 +1,5 @@
 /** @module-tag spawns */
-import { expect } from 'vitest'
+import { describe, expect } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
@@ -12,12 +12,14 @@ const CALLS = [
 ]
 const VET = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }
 
-test('checks the Bun lockfile of every package .mise/lib/lock.sh lists before the mise lockfile', async ({
-  scratch
-}) => {
-  await plant(scratch, { ...VET, '.mise/mise.lock': 'locked\n' })
+describe.concurrent('lock:check', () => {
+  test('checks the Bun lockfile of every package .mise/lib/lock.sh lists before the mise lockfile', async ({
+    scratch
+  }) => {
+    await plant(scratch, { ...VET, '.mise/mise.lock': 'locked\n' })
 
-  expect(await sync(scratch, 'lock:check', {
-    canned: Object.fromEntries(CALLS.map((call) => [call.join(' '), {}]))
-  })).toMatchObject({ commands: CALLS, status: 0 })
+    expect(await sync(scratch, 'lock:check', {
+      canned: Object.fromEntries(CALLS.map((call) => [call.join(' '), {}]))
+    })).toMatchObject({ commands: CALLS, status: 0 })
+  })
 })

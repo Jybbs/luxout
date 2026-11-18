@@ -2,7 +2,7 @@
 import { readFile } from 'node:fs/promises'
 import { join }     from 'node:path'
 
-import { expect } from 'vitest'
+import { describe, expect } from 'vitest'
 
 import { test } from '../../../common/scratch.js'
 import { sync } from '../../../common/sync.js'
@@ -24,26 +24,28 @@ async function brief(needs: Record<string, Need>, scratch: string) {
 
 const need = (result: string, outputs: Record<string, string> = {}) => ({ outputs, result })
 
-test('writes a row naming each job and its result, and passes where none failed', async ({ scratch }) => {
-  expect(await brief({ check: need('success'), press: need('skipped') }, scratch)).toEqual({
-    status  : 0,
-    summary : '| **Job** | **Result** |\n|---|---|\n| `check` | success |\n| `press` | skipped |\n'
+describe.concurrent('gha:brief', () => {
+  test('writes a row naming each job and its result, and passes where none failed', async ({ scratch }) => {
+    expect(await brief({ check: need('success'), press: need('skipped') }, scratch)).toEqual({
+      status  : 0,
+      summary : '| **Job** | **Result** |\n|---|---|\n| `check` | success |\n| `press` | skipped |\n'
+    })
   })
-})
 
-test('lists each output beneath the results, leaving out an empty one', async ({ scratch }) => {
-  const draft = { state: 'created', url: 'https://github.com/Jybbs/luxout/releases', version: '' }
-  const pack  = { tarball: 'homebridge-luxout-0.2.0.tgz' }
+  test('lists each output beneath the results, leaving out an empty one', async ({ scratch }) => {
+    const draft = { state: 'created', url: 'https://github.com/Jybbs/luxout/releases', version: '' }
+    const pack  = { tarball: 'homebridge-luxout-0.2.0.tgz' }
 
-  expect(await brief({ draft: need('success', draft), pack: need('success', pack) }, scratch)).toEqual({
-    status  : 0,
-    summary : '| **Job** | **Result** |\n|---|---|\n| `draft` | success |\n| `pack` | success |\n\n'
-            + '| **Output** | **Value** |\n|---|---|\n| `draft.state` | created |\n'
-            + '| `draft.url` | https://github.com/Jybbs/luxout/releases |\n'
-            + '| `pack.tarball` | homebridge-luxout-0.2.0.tgz |\n'
+    expect(await brief({ draft: need('success', draft), pack: need('success', pack) }, scratch)).toEqual({
+      status  : 0,
+      summary : '| **Job** | **Result** |\n|---|---|\n| `draft` | success |\n| `pack` | success |\n\n'
+              + '| **Output** | **Value** |\n|---|---|\n| `draft.state` | created |\n'
+              + '| `draft.url` | https://github.com/Jybbs/luxout/releases |\n'
+              + '| `pack.tarball` | homebridge-luxout-0.2.0.tgz |\n'
+    })
   })
-})
 
-test.for(['failure', 'cancelled'])('fails where a job reports %s', async (result, { scratch }) => {
-  expect((await brief({ check: need('success'), press: need(result) }, scratch)).status).toBe(1)
+  test.for(['failure', 'cancelled'])('fails where a job reports %s', async (result, { scratch }) => {
+    expect((await brief({ check: need('success'), press: need(result) }, scratch)).status).toBe(1)
+  })
 })

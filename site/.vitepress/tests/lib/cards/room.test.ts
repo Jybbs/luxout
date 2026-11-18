@@ -18,9 +18,7 @@ it('projects a nearer point further from the middle of the view', () => {
 it('sends a southern noon sun north and down, with no sideways travel', () => {
   const [x, y, z] = room.travelOf(45, 180)
 
-  expect(x).toBeCloseTo(0, 6)
-  expect(y).toBeCloseTo(-Math.SQRT1_2, 6)
-  expect(z).toBeCloseTo(Math.SQRT1_2, 6)
+  expect([x, y, z]).toStrictEqual([0, -Math.SQRT1_2, Math.SQRT1_2].map((v) => expect.closeTo(v, 6)))
 })
 
 it('sends an afternoon sun in the west toward the east wall', () => {
@@ -30,8 +28,7 @@ it('sends an afternoon sun in the west toward the east wall', () => {
 it.each([0, 1, 2, 3, 4, 5])('keeps the bars’ gaps around pane %i', (index) => {
   const { x0, x1, y0, y1 } = scene.pane(index)
 
-  expect(x1 - x0).toBeCloseTo(1 - 0.08, 6)
-  expect(y1 - y0).toBeCloseTo(2.15 / 2 - 0.08, 6)
+  expect([x1 - x0, y1 - y0]).toStrictEqual([1 - 0.08, 2.15 / 2 - 0.08].map((v) => expect.closeTo(v, 6)))
 })
 
 it.each([0, 1, 2, 3, 4, 5])('holds pane %i inside the window drawn on the card', (index) => {
@@ -49,13 +46,13 @@ it('holds a cast inside the floor and the side wall it reaches', () => {
   const all  = cast.flat()
 
   expect(cast.length).toBeGreaterThan(0)
-  expect(all.every(([x, y, z]) =>
-       Math.abs(x) <= 5.2 + 1e-9
-    && y >= -1e-9
-    && y <= 3.6 + 1e-9
-    && z >= -1e-9
-    && z <= 3.7 + 1e-9
-  )).toBe(true)
+  expect(all.filter(([x, y, z]) =>
+       Math.abs(x) > 5.2 + 1e-9
+    || y < -1e-9
+    || y > 3.6 + 1e-9
+    || z < -1e-9
+    || z > 3.7 + 1e-9
+  )).toStrictEqual([])
 })
 
 it('cuts a cast where it crosses the room’s open side', () => {

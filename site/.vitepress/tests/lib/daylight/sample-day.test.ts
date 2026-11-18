@@ -13,7 +13,7 @@ it('reads every minute of the day and the midnight that closes it', () => {
 })
 
 it('clamps every reading into the range the characteristic accepts', () => {
-  expect(day.readings.every((lux) => lux >= luxRange.min && lux <= luxRange.max)).toBe(true)
+  expect(day.readings.filter((lux) => lux < luxRange.min || lux > luxRange.max)).toStrictEqual([])
 })
 
 it('reads the sun in the east before its noon and in the west after it', () => {

@@ -70,8 +70,7 @@ it('sets one tagline on the hero and beneath the title in the logo lockup', asyn
   const data = await config.transformPageData?.(front, { siteConfig: config })
   const logo = await Logo.read(new URL('../', import.meta.url))
 
-  expect(logo.lockup('light').props?.['aria-label'])
-    .toBe(`Luxout. ${data?.frontmatter.hero.tagline}`)
+  expect(logo.lockup('light').props?.['aria-label']).toBe(`Luxout. ${data?.frontmatter.hero.tagline}`)
 })
 
 it('renders the value transformPageData sets wherever a page interpolates a fact', () => {
@@ -111,8 +110,10 @@ it('writes the preview of each page through the head hook', async () => {
   expect(await config.transformHead?.(context as never)).toEqual(transformHead(manifest.homepage)(context))
 })
 
-test('renders the site’s card into the build’s output through the build hook', async ({ scratch }) => {
+test('renders the site’s card into the build’s output through the build hook', { tags: 'draws' }, async ({
+  scratch
+}) => {
   await config.buildEnd?.({ ...config, outDir: scratch, pages: ['index.md'] })
 
   expect((await readFile(join(scratch, 'cards', 'index.png'))).subarray(1, 4).toString()).toBe('PNG')
-}, 60_000)
+})

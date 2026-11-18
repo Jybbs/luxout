@@ -10,27 +10,27 @@ import { afterAll, expect, it, vi } from 'vitest'
 import { createApp, h }             from 'vue'
 import { renderToString }           from 'vue/server-renderer'
 
-import { Sheet }                    from '../lib/bundle/sheet.ts'
-import { type Scheme, Tokens }      from '../lib/theme/tokens.ts'
-import { PLACEMENTS, WIDGET_NAMES } from '../lib/widgets/placements.ts'
-import theme                        from '../theme/index.ts'
-import { frameSheet }               from './common/frames.ts'
+import { Sheet }                    from '../../../lib/bundle/sheet.ts'
+import { type Scheme, Tokens }      from '../../../lib/theme/tokens.ts'
+import { PLACEMENTS, WIDGET_NAMES } from '../../../lib/widgets/placements.ts'
+import theme                        from '../../../theme/index.ts'
+import { frameSheet }               from '../../common/frames.ts'
 
 vi.mock('vitepress', () => ({ inBrowser: false }))
 vi.mock('vitepress/theme-without-fonts', () => ({ default: { Layout: 'Layout' } }))
-vi.mock('../lib/credit/credit.data.ts', () => import('./common/data/credit.ts'))
-vi.mock('../lib/daylight/cloud-steps.data.ts', () => import('./common/data/cloud-steps.ts'))
-vi.mock('../lib/daylight/day-dial.data.ts', () => import('./common/data/day-dial.ts'))
-vi.mock('../lib/daylight/daylight.data.ts', () => import('./common/data/daylight.ts'))
-vi.mock('../lib/daylight/factor-day.data.ts', () => import('./common/data/factor-day.ts'))
-vi.mock('../lib/daylight/sun-year.data.ts', () => import('./common/data/sun-year.ts'))
-vi.mock('../lib/daylight/twilight-bridge.data.ts', () => import('./common/data/twilight-bridge.ts'))
-vi.mock('../lib/front/front.data.ts', () => import('./common/data/front.ts'))
-vi.mock('../lib/identity/identity.data.ts', () => import('./common/data/identity.ts'))
-vi.mock('../lib/privacy/privacy.data.ts', () => import('./common/data/privacy.ts'))
-vi.mock('../lib/search/search.data.ts', () => import('./common/data/search.ts'))
-vi.mock('../lib/settings/settings.data.ts', () => import('./common/data/settings.ts'))
-vi.mock('../lib/troubleshooting/debug-line.data.ts', () => import('./common/data/debug-line.ts'))
+vi.mock('../../../lib/credit/credit.data.ts', () => import('../../common/data/credit.ts'))
+vi.mock('../../../lib/daylight/cloud-steps.data.ts', () => import('../../common/data/cloud-steps.ts'))
+vi.mock('../../../lib/daylight/day-dial.data.ts', () => import('../../common/data/day-dial.ts'))
+vi.mock('../../../lib/daylight/daylight.data.ts', () => import('../../common/data/daylight.ts'))
+vi.mock('../../../lib/daylight/factor-day.data.ts', () => import('../../common/data/factor-day.ts'))
+vi.mock('../../../lib/daylight/sun-year.data.ts', () => import('../../common/data/sun-year.ts'))
+vi.mock('../../../lib/daylight/twilight-bridge.data.ts', () => import('../../common/data/twilight-bridge.ts'))
+vi.mock('../../../lib/front/front.data.ts', () => import('../../common/data/front.ts'))
+vi.mock('../../../lib/identity/identity.data.ts', () => import('../../common/data/identity.ts'))
+vi.mock('../../../lib/privacy/privacy.data.ts', () => import('../../common/data/privacy.ts'))
+vi.mock('../../../lib/search/search.data.ts', () => import('../../common/data/search.ts'))
+vi.mock('../../../lib/settings/settings.data.ts', () => import('../../common/data/settings.ts'))
+vi.mock('../../../lib/troubleshooting/debug-line.data.ts', () => import('../../common/data/debug-line.ts'))
 
 /**
  * The VitePress breakpoints at which a media query may reflow a widget with
@@ -58,7 +58,7 @@ const FRAME_MARKS = {
  * and the dark one inside its media query.
  */
 const SCHEMES: Scheme[] = ['light', 'dark']
-const STYLES            = new URL('../theme/styles/', import.meta.url)
+const STYLES            = new URL('../../../theme/styles/', import.meta.url)
 const source            = await readFile(new URL('tokens.css', STYLES), 'utf8')
 const tokens            = Tokens.parse(source)
 const frameInks         = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [

@@ -4,30 +4,30 @@ import { join }     from 'node:path'
 import { createMarkdownRenderer } from 'vitepress'
 import { expect, it }             from 'vitest'
 
-import { CLOUD_TUNING }              from '../../../src/daylight/cloud-factor.ts'
-import { REQUEST_TUNING }            from '../../../src/weather/client.ts'
-import { SCHEDULE_TUNING }           from '../../../src/weather/schedule.ts'
-import config                        from '../config.ts'
-import { SECTIONS }                  from '../lib/config/sections.ts'
-import { cloudSteps }                from '../lib/daylight/cloud-steps.ts'
-import { dayDial }                   from '../lib/daylight/day-dial.ts'
-import { factorDay }                 from '../lib/daylight/factor-day.ts'
-import { SampleDay }                 from '../lib/daylight/sample-day.ts'
-import { sunYear }                   from '../lib/daylight/sun-year.ts'
-import { replaySearch }              from '../lib/search/replay.ts'
-import { exampleBlock, settingRows } from '../lib/settings/rows.ts'
-import { PLACEMENTS, WIDGET_NAMES }  from '../lib/widgets/placements.ts'
-import * as blocks                   from './common/blocks.ts'
-import { data }                      from './common/data/daylight.ts'
-import { data as line }              from './common/data/debug-line.ts'
-import { data as front }             from './common/data/front.ts'
-import { data as identity }          from './common/data/identity.ts'
-import { data as privacy }           from './common/data/privacy.ts'
+import { CLOUD_TUNING }              from '../../../../../src/daylight/cloud-factor.ts'
+import { REQUEST_TUNING }            from '../../../../../src/weather/client.ts'
+import { SCHEDULE_TUNING }           from '../../../../../src/weather/schedule.ts'
+import config                        from '../../../config.ts'
+import { SECTIONS }                  from '../../../lib/config/sections.ts'
+import { cloudSteps }                from '../../../lib/daylight/cloud-steps.ts'
+import { dayDial }                   from '../../../lib/daylight/day-dial.ts'
+import { factorDay }                 from '../../../lib/daylight/factor-day.ts'
+import { SampleDay }                 from '../../../lib/daylight/sample-day.ts'
+import { sunYear }                   from '../../../lib/daylight/sun-year.ts'
+import { replaySearch }              from '../../../lib/search/replay.ts'
+import { exampleBlock, settingRows } from '../../../lib/settings/rows.ts'
+import { PLACEMENTS, WIDGET_NAMES }  from '../../../lib/widgets/placements.ts'
+import * as blocks                   from '../../common/blocks.ts'
+import { data }                      from '../../common/data/daylight.ts'
+import { data as line }              from '../../common/data/debug-line.ts'
+import { data as front }             from '../../common/data/front.ts'
+import { data as identity }          from '../../common/data/identity.ts'
+import { data as privacy }           from '../../common/data/privacy.ts'
 
 const day               = SampleDay.record()
 const { gap, luxScale } = data
 const rows              = await settingRows()
-const site              = join(import.meta.dirname, '..', '..')
+const site              = join(import.meta.dirname, '..', '..', '..', '..')
 const dial              = dayDial(day)
 const md                = await createMarkdownRenderer(site, config.markdown)
 const year              = sunYear(day)

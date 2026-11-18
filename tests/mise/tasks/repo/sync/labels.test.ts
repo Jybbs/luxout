@@ -1,5 +1,5 @@
 /** @module-tag spawns */
-import { expect } from 'vitest'
+import { describe, expect } from 'vitest'
 
 import { confirm, sync } from '../../../../common/sync.js'
 import { plant, test }   from '../../../../common/scratch.js'
@@ -35,55 +35,57 @@ async function labels(
   return { calls: requests, status, stdout }
 }
 
-test('creates or updates each declared label with every value as written', async ({ scratch }) => {
-  expect(await labels(REGISTRY, scratch, { live: ['🐞 bug', '🧪 it\'s "odd"'] })).toEqual({
-    status : 0,
-    stdout : '',
-    calls  : [
-      [
-        'label', 'create', '--color', 'c62d42', '--description',
-        'A defect, filed beside the label of the domain where it breaks', '--force', '🐞 bug'
-      ],
-      [
-        'label', 'create', '--color', '8cc5a3', '--description',
-        '-Quotes \' and " and $HOME and \\ stay as written', '--force', '🧪 it\'s "odd"'
-      ],
-      LISTING
-    ]
-  })
-})
-
-test('lists each live label the registry omits rather than deleting it', async ({ scratch }) => {
-  const { calls, status, stdout } = await labels(REGISTRY, scratch, {
-    live: ['🔦 discovery', '🐞 bug', 'wontfix']
+describe.concurrent('repo:sync:labels', () => {
+  test('creates or updates each declared label with every value as written', async ({ scratch }) => {
+    expect(await labels(REGISTRY, scratch, { live: ['🐞 bug', '🧪 it\'s "odd"'] })).toEqual({
+      status : 0,
+      stdout : '',
+      calls  : [
+        [
+          'label', 'create', '--color', 'c62d42', '--description',
+          'A defect, filed beside the label of the domain where it breaks', '--force', '🐞 bug'
+        ],
+        [
+          'label', 'create', '--color', '8cc5a3', '--description',
+          '-Quotes \' and " and $HOME and \\ stay as written', '--force', '🧪 it\'s "odd"'
+        ],
+        LISTING
+      ]
+    })
   })
 
-  expect({ commands: calls.map((call) => call.slice(0, 2)), status, stdout }).toEqual({
-    commands : [['label', 'create'], ['label', 'create'], LISTING.slice(0, 2)],
-    status   : 0,
-    stdout   : 'GitHub holds labels no file declares, left in place:\n  🔦 discovery\n  wontfix\n'
+  test('lists each live label the registry omits rather than deleting it', async ({ scratch }) => {
+    const { calls, status, stdout } = await labels(REGISTRY, scratch, {
+      live: ['🔦 discovery', '🐞 bug', 'wontfix']
+    })
+
+    expect({ commands: calls.map((call) => call.slice(0, 2)), status, stdout }).toEqual({
+      commands : [['label', 'create'], ['label', 'create'], LISTING.slice(0, 2)],
+      status   : 0,
+      stdout   : 'GitHub holds labels no file declares, left in place:\n  🔦 discovery\n  wontfix\n'
+    })
   })
-})
 
-test('creates nothing where the registry declares no label', async ({ scratch }) => {
-  expect(await labels('', scratch)).toEqual({ calls: [LISTING], status: 0, stdout: '' })
-})
+  test('creates nothing where the registry declares no label', async ({ scratch }) => {
+    expect(await labels('', scratch)).toEqual({ calls: [LISTING], status: 0, stdout: '' })
+  })
 
-test('writes nothing where the registry fails to parse', async ({ scratch }) => {
-  expect(await labels('["🐞 bug"]\ncolor = [\n', scratch)).toMatchObject({ calls: [], status: 1 })
-})
+  test('writes nothing where the registry fails to parse', async ({ scratch }) => {
+    expect(await labels('["🐞 bug"]\ncolor = [\n', scratch)).toMatchObject({ calls: [], status: 1 })
+  })
 
-test('stops before listing the live labels where a create fails', async ({ scratch }) => {
-  const { calls, status } = await labels(REGISTRY, scratch, { fail: 'label' })
+  test('stops before listing the live labels where a create fails', async ({ scratch }) => {
+    const { calls, status } = await labels(REGISTRY, scratch, { fail: 'label' })
 
-  expect({ commands: calls.map(([command]) => command), failed: status !== 0 })
-    .toEqual({ commands: ['label', 'label'], failed: true })
-})
+    expect({ commands: calls.map(([command]) => command), failed: status !== 0 })
+      .toEqual({ commands: ['label', 'label'], failed: true })
+  })
 
-test('fails without listing where reading the live labels fails', async ({ scratch }) => {
-  expect(await labels(REGISTRY, scratch, { fail: 'api' })).toMatchObject({ status: 1, stdout: '' })
-})
+  test('fails without listing where reading the live labels fails', async ({ scratch }) => {
+    expect(await labels(REGISTRY, scratch, { fail: 'api' })).toMatchObject({ status: 1, stdout: '' })
+  })
 
-test('asks before writing when run as labels, failing with no terminal to answer', async ({ scratch }) => {
-  expect(await confirm('labels', scratch, 'repo:sync:labels')).toEqual({ asked: true, status: 1 })
+  test('asks before writing when run as labels, failing with no terminal to answer', async ({ scratch }) => {
+    expect(await confirm('labels', scratch, 'repo:sync:labels')).toEqual({ asked: true, status: 1 })
+  })
 })

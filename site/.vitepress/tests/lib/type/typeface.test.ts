@@ -67,8 +67,9 @@ it('scales the measures with the size', () => {
   const small = face.set('Luxout', { axes, size: 40 })
   const large = face.set('Luxout', { axes, size: 80 })
 
-  expect(large.width).toBeCloseTo(small.width * 2, 6)
-  expect(large.ink.top).toBeCloseTo(small.ink.top * 2, 6)
+  expect([large.width, large.ink.top]).toStrictEqual([small.width, small.ink.top].map((v) =>
+    expect.closeTo(v * 2, 6)
+  ))
 })
 
 it('holds the ink inside its pen and above its baseline for a letter with no descender', () => {
