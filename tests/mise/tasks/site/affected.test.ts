@@ -7,6 +7,44 @@ import { describe } from 'vitest'
 import { ARGS, BASE, MERGE, affected, canned, reader } from '../../../common/affected.js'
 import { test }                                        from '../../../common/scratch.js'
 
+/**
+ * Two site tests, one listing the Markdown files of `guide/` through a module
+ * calling `readdirSync`, the other listing its own folder through `readdir`
+ * and naming no Markdown file.
+ */
+const LISTED_PAGES = {
+  'site/.vitepress/lib/list.ts'         : "import { readdirSync } from 'node:fs'\n\n"
+                                        + 'export const list = (dir: string): string[] => '
+                                        + "readdirSync(dir).filter((name) => name.endsWith('.md'))\n",
+  'site/.vitepress/tests/list.test.ts'  : "import { join } from 'node:path'\n\n"
+                                        + "import { expect, test } from 'vitest'\n\n"
+                                        + "import { list } from '../lib/list.ts'\n\n"
+                                        + "test('lists the guide', () => {\n"
+                                        + "  expect(list(join(import.meta.dirname, '..', '..', 'guide')))"
+                                        + '.toBeInstanceOf(Array)\n})\n',
+  'site/.vitepress/tests/other.test.ts' : "import { readdir } from 'node:fs/promises'\n\n"
+                                        + "import { expect, test } from 'vitest'\n\n"
+                                        + "test('lists the tests', async () => {\n"
+                                        + '  await expect(readdir(import.meta.dirname))'
+                                        + ".resolves.toContain('other.test.ts')\n})\n"
+}
+
+/**
+ * A site test reading each page VitePress resolves through `resolveConfig`.
+ */
+const RESOLVED_PAGES = {
+  'site/.vitepress/tests/site.test.ts': "import { readFileSync } from 'node:fs'\n"
+                                      + "import { join } from 'node:path'\n\n"
+                                      + "import { resolveConfig } from 'vitepress'\n"
+                                      + "import { expect, test } from 'vitest'\n\n"
+                                      + "const site = join(import.meta.dirname, '..', '..')\n\n"
+                                      + "test('reads the pages', async () => {\n"
+                                      + '  const { pages, srcDir } = '
+                                      + "await resolveConfig(site, 'build')\n\n"
+                                      + '  expect(pages.map((page) => readFileSync(join(srcDir, page), '
+                                      + "'utf8'))).not.toContain('')\n})\n"
+}
+
 const SITE = ['mise', 'run', 'site:test', '--', '--changed', BASE, ...ARGS]
 const root = join(import.meta.dirname, '..', '..', '..', '..')
 
@@ -72,29 +110,25 @@ function selected(
 
 /**
  * Runs the task from the site of a repository under `scratch` whose branch
- * changes only `changed`, where one site test reads each page VitePress
- * resolves through `resolveConfig`, spelling no page path, and the site's
- * `srcExclude` leaves out `drafts/`.
+ * changes only `changed`, or deletes it where `deleted` is set, where the site
+ * holds the `readers` files, each reading its pages while spelling no page
+ * path, and the site's `srcExclude` leaves out `drafts/`.
  */
-function paged(changed: string, scratch: string): ReturnType<typeof affected> {
+function paged(
+  changed : string,
+  deleted : boolean,
+  readers : Record<string, string>,
+  scratch : string
+): ReturnType<typeof affected> {
   return run(changed, {
-    '.gitignore'                         : '.cache\nnode_modules\n',
-    'package.json'                       : '{ "type": "module" }\n',
-    'site/.vitepress/config.ts'          : "export default { srcExclude: ['drafts/**'] }\n",
-    'site/.vitepress/tests/site.test.ts' : "import { readFileSync } from 'node:fs'\n"
-                                         + "import { join } from 'node:path'\n\n"
-                                         + "import { resolveConfig } from 'vitepress'\n"
-                                         + "import { expect, test } from 'vitest'\n\n"
-                                         + "const site = join(import.meta.dirname, '..', '..')\n\n"
-                                         + "test('reads the pages', async () => {\n"
-                                         + '  const { pages, srcDir } = '
-                                         + "await resolveConfig(site, 'build')\n\n"
-                                         + '  expect(pages.map((page) => readFileSync(join(srcDir, page), '
-                                         + "'utf8'))).not.toContain('')\n})\n",
-    'site/drafts/note.md'                : '# Note\n',
-    'site/guide/install.md'              : '# Install\n',
-    'site/package.json'                  : '{ "type": "module" }\n'
-  }, scratch)
+    ...readers,
+    '.gitignore'                : '.cache\nnode_modules\n',
+    'package.json'              : '{ "type": "module" }\n',
+    'site/.vitepress/config.ts' : "export default { srcExclude: ['drafts/**'] }\n",
+    'site/drafts/note.md'       : '# Note\n',
+    'site/guide/install.md'     : '# Install\n',
+    'site/package.json'         : '{ "type": "module" }\n'
+  }, scratch, deleted)
 }
 
 /**
@@ -129,14 +163,21 @@ function read(changed: string, scratch: string): ReturnType<typeof affected> {
 
 /**
  * Runs the task from the site of a repository under `scratch` holding the
- * `planted` files, whose branch changes only `changed`.
+ * `planted` files, whose branch changes only `changed`, or deletes it where
+ * `deleted` is set.
  */
-function run(changed: string, planted: Record<string, string>, scratch: string): ReturnType<typeof affected> {
+function run(
+  changed : string,
+  planted : Record<string, string>,
+  scratch : string,
+  deleted = false
+): ReturnType<typeof affected> {
   const repo     = join(scratch, 'repo')
   const checkout = {
     changed : changed,
     copied  : ['site/.vitepress/vitest.config.ts'],
     cwd     : join(repo, 'site'),
+    deleted : deleted,
     linked  : { 'site/node_modules': join(root, 'site', 'node_modules') },
     repo    : repo,
     scratch : scratch,
@@ -199,10 +240,13 @@ describe.concurrent('site:affected', () => {
   test.for([
     { changed: 'site/drafts/note.md', name: 'runs no site test', ran: false },
     { changed: 'site/guide/install.md', name: 'runs the site test reading it', ran: true }
-  ])(
-    '$name through VitePress where a branch changes only $changed',
-    async ({ changed, ran }, { expect, scratch }) => {
-      expect(await paged(changed, scratch)).toEqual({ ran, status: 0 })
+  ].flatMap((row) => Object.entries({ changes: false, deletes: true }).flatMap(([verb, deleted]) => [
+    { ...row, deleted, readers: RESOLVED_PAGES, through: 'VitePress', verb },
+    { ...row, deleted, readers: LISTED_PAGES, through: 'a folder listing', verb }
+  ])))(
+    '$name through $through where a branch $verb only $changed',
+    async ({ changed, deleted, ran, readers }, { expect, scratch }) => {
+      expect(await paged(changed, deleted, readers, scratch)).toEqual({ ran, status: 0 })
     }
   )
 

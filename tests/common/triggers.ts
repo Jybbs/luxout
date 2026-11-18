@@ -1,8 +1,8 @@
-import { execFileSync }                                               from 'node:child_process'
-import { existsSync, globSync, readFileSync, realpathSync, statSync } from 'node:fs'
-import { createRequire, findPackageJSON }                             from 'node:module'
-import { basename, dirname, join, matchesGlob, resolve, sep }         from 'node:path'
-import { pathToFileURL }                                              from 'node:url'
+import { execFileSync }                                                 from 'node:child_process'
+import { existsSync, globSync, readFileSync, realpathSync, statSync }   from 'node:fs'
+import { createRequire, findPackageJSON }                               from 'node:module'
+import { basename, dirname, join, matchesGlob, relative, resolve, sep } from 'node:path'
+import { pathToFileURL }                                                from 'node:url'
 
 import type * as Experimental from 'rolldown/experimental'
 import type * as Utils        from 'rolldown/utils'
@@ -28,15 +28,27 @@ interface Tsconfig {
 }
 
 /**
- * The function of VitePress's node API that resolves the pages of a site.
+ * The fields of a resolved VitePress config that place the pages of a site.
+ */
+interface SiteConfig {
+  srcDir     : string
+  userConfig : { srcExclude?: string[] }
+}
+
+/**
+ * The function of VitePress's node API that resolves the config of a site.
  */
 interface VitePress {
-  resolveConfig: (root: string, command: 'build') => Promise<{ pages: string[], srcDir: string }>
+  resolveConfig: (root: string, command: 'build') => Promise<SiteConfig>
 }
 
 const BREAKS    = /[\s"'`=;|&<>(){}]+/
+const FS        = new Set(['fs', 'fs/promises', 'node:fs', 'node:fs/promises'])
 const GLOB      = /[*?[{]/
+const LISTS     = new Set(['glob', 'globSync', 'opendir', 'opendirSync', 'readdir', 'readdirSync'])
+const MARKDOWN  = /(?:^|\*)\.md$/
 const MODULES   = `${sep}node_modules${sep}`
+const PAGES     = '**/*.md'
 const RESOLVING = {
   conditionNames : ['node', 'import'],
   extensionAlias : { '.js': ['.ts', '.js'] },
@@ -211,15 +223,26 @@ function names(file: string, spelling: string): boolean {
 }
 
 /**
- * Lists the path of each page VitePress resolves for the site at `site`,
- * through the `resolveConfig` of the `vitepress` that `resolver` finds there.
+ * Reports whether `changed` holds a page of the VitePress site at `site`,
+ * reading its `srcDir` and `srcExclude` through the `resolveConfig` of the
+ * `vitepress` that `resolver` finds there. A page is a file under `srcDir`
+ * that `PAGES`, the glob VitePress lists pages through, matches and no glob of
+ * `srcExclude` does, so a page the branch deletes counts too.
  */
-async function pages(resolver: Experimental.ResolverFactory, site: string): Promise<string[]> {
-  const path              = located(site, 'vitepress', resolver)
-  const { resolveConfig } = await import(pathToFileURL(path).href) as VitePress
-  const config            = await resolveConfig(site, 'build')
+async function pageChanged(
+  changed  : string[],
+  resolver : Experimental.ResolverFactory,
+  site     : string
+): Promise<boolean> {
+  const path                   = located(site, 'vitepress', resolver)
+  const { resolveConfig }      = await import(pathToFileURL(path).href) as VitePress
+  const { srcDir, userConfig } = await resolveConfig(site, 'build')
 
-  return config.pages.map((page) => join(config.srcDir, page))
+  return changed.some((file) => {
+    const page = relative(srcDir, file)
+
+    return matchesGlob(page, PAGES) && !userConfig.srcExclude?.some((glob) => matchesGlob(page, glob))
+  })
 }
 
 /**
@@ -265,7 +288,7 @@ async function readers(changed: string[], include: string[], root: string, top: 
   const { ResolverFactory }    = require('rolldown/experimental') as typeof Experimental
   const { Visitor, parseSync } = require('rolldown/utils') as typeof Utils
 
-  const paged    = new Map<string, Promise<string[]>>()
+  const sites    = new Map<string, Promise<boolean>>()
   const resolver = new ResolverFactory(RESOLVING)
   const scans    = new Map<string, Scan>()
   const targets  = new Set(changed)
@@ -282,9 +305,10 @@ async function readers(changed: string[], include: string[], root: string, top: 
   const scan = (file: string): Scan => {
     const text                = readFileSync(file, 'utf8')
     const { module, program } = parseSync(file, text)
+    const texts               = strings(program, Visitor)
     const found               = {
-      site      : site(file, module),
-      spellings : rooted(strings(program, Visitor)),
+      site      : site(file, module, texts),
+      spellings : rooted(texts),
       imports   : imports(file, module, resolver, text)
         .filter((path) => !lockfile(path) && SCRIPT.test(path))
     }
@@ -295,10 +319,10 @@ async function readers(changed: string[], include: string[], root: string, top: 
   }
 
   const markdown = changed.some((file) => file.endsWith('.md'))
-  const resolved = (dir: string): Promise<string[]> => {
-    const found = paged.get(dir) ?? pages(resolver, dir)
+  const changes  = (dir: string): Promise<boolean> => {
+    const found = sites.get(dir) ?? pageChanged(changed, resolver, dir)
 
-    paged.set(dir, found)
+    sites.set(dir, found)
 
     return found
   }
@@ -313,7 +337,7 @@ async function readers(changed: string[], include: string[], root: string, top: 
         return true
       }
 
-      if (site && markdown && (await resolved(site)).some((page) => targets.has(page))) {
+      if (site && markdown && await changes(site)) {
         return true
       }
 
@@ -351,16 +375,22 @@ function rooted(texts: string[]): string[] {
 
 /**
  * Names the root of the VitePress site whose `.vitepress` directory holds
- * `file`, where `module` imports `resolveConfig` from `vitepress`, since the
- * `pages` that call resolves are each a page of that site.
+ * `file`, where `module` reads the pages of that site. It reads them where it
+ * imports `resolveConfig` from `vitepress`, or a function of `node:fs` in
+ * `LISTS` beside a string of `texts` naming every Markdown file, as the `.md`
+ * extension alone or a glob ending `*.md` does, since a page of the site is a
+ * Markdown file under its source directory.
  */
-function site(file: string, module: Utils.ParseResult['module']): string | undefined {
-  const root  = file.lastIndexOf(SITE)
-  const calls = module.staticImports
-    .filter(({ moduleRequest }) => moduleRequest.value === 'vitepress')
-    .some(({ entries }) => entries.some(({ importName }) => importName.name === 'resolveConfig'))
+function site(file: string, module: Utils.ParseResult['module'], texts: string[]): string | undefined {
+  const root     = file.lastIndexOf(SITE)
+  const imported = (sources: Set<string>): Set<string | null> => new Set(module.staticImports
+    .filter(({ moduleRequest }) => sources.has(moduleRequest.value))
+    .flatMap(({ entries }) => entries.map(({ importName }) => importName.name)))
 
-  return root >= 0 && calls ? file.slice(0, root) : undefined
+  const resolves = imported(new Set(['vitepress'])).has('resolveConfig')
+  const lists    = !imported(FS).isDisjointFrom(LISTS) && texts.some((text) => MARKDOWN.test(text))
+
+  return root >= 0 && (resolves || lists) ? file.slice(0, root) : undefined
 }
 
 /**
