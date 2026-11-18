@@ -85,8 +85,8 @@ async function provided(scratch: string, changedSince?: string, include = ['*.te
  * linking `modules` as its `node_modules`. Its config sets `srcDir` to
  * `pages`, whose `drafts/` its `srcExclude` leaves out. Two site tests call
  * `resolveConfig`, one through a module it imports, a third imports another
- * export of `vitepress`, and a test outside `.vitepress` calls `resolveConfig`
- * too.
+ * export of `vitepress`, a fourth imports the `resolveConfig` of `vite`, and
+ * a test outside `.vitepress` calls `resolveConfig` too.
  */
 async function site(changed: string, modules: string, scratch: string): Promise<void> {
   await plant(scratch, {
@@ -94,6 +94,8 @@ async function site(changed: string, modules: string, scratch: string): Promise<
     '.vitepress/config.ts'            : "export default { srcDir: 'pages', srcExclude: ['drafts/**'] }\n",
     '.vitepress/lib/pages.ts'         : "import { resolveConfig } from 'vitepress'\n"
                                       + 'export const pages = resolveConfig\n',
+    '.vitepress/tests/bundle.test.ts' : "import { resolveConfig } from 'vite'\n"
+                                      + 'export const bundle = resolveConfig\n',
     '.vitepress/tests/helper.test.ts' : "export { pages } from '../lib/pages.ts'\n",
     '.vitepress/tests/render.test.ts' : "import { createMarkdownRenderer } from 'vitepress'\n"
                                       + 'export const render = createMarkdownRenderer\n',
@@ -102,6 +104,7 @@ async function site(changed: string, modules: string, scratch: string): Promise<
     'notes.txt'                       : 'A\n',
     'outside.test.ts'                 : "import { resolveConfig } from 'vitepress'\n"
                                       + 'export const outside = resolveConfig\n',
+    'package.json'                    : '{ "type": "module" }\n',
     'pages/drafts/a.md'               : '# A\n',
     'pages/guide/a.md'                : '# A\n'
   })
