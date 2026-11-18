@@ -20,6 +20,15 @@ interface Scan {
 }
 
 /**
+ * The modules a suite imports and the files read to transform and install
+ * them, per `traced`.
+ */
+interface Traced {
+  modules : string[]
+  reads   : string[]
+}
+
+/**
  * The fields of a tsconfig that name other tsconfig files.
  */
 interface Tsconfig {
@@ -488,31 +497,33 @@ export function lockfiles(root: string): string[] {
 }
 
 /**
- * Lists the files a suite reads beside the modules it imports, following each
- * import from the test files `include` matches under `root` through every
- * module outside `node_modules`.
+ * Follows each import from the test files `include` matches under `root`
+ * through every module outside `node_modules`.
  *
  * Args:
  *   include : The suite's test file globs, relative to `root`.
  *   root    : The suite's root directory.
  *
  * Returns:
- *   The absolute path of each tsconfig Vite's transform tests for a module
- *   and the files its `extends` chain names, the path a `tsconfig.json`
- *   takes in each directory the transform walks, the path a `package.json`
- *   takes in each directory from the module's own up to the nearest one, the
- *   `bun.lock` beside each `node_modules` an import resolves through, and
- *   this file.
+ *   The absolute path of each test file and each module outside
+ *   `node_modules` it imports at any depth, beside the files read to
+ *   transform and install them: each tsconfig Vite's transform tests for a
+ *   module and the files its `extends` chain names, the path a
+ *   `tsconfig.json` takes in each directory the transform walks, the path a
+ *   `package.json` takes in each directory from the module's own up to the
+ *   nearest one, and the `bun.lock` beside each `node_modules` an import
+ *   resolves through.
  */
-export function triggers(root: string, include: string[]): string[] {
+export function traced(root: string, include: string[]): Traced {
   const require = vite(root)
 
   const { ResolverFactory, resolveTsconfig } = require('rolldown/experimental') as typeof Experimental
   const { TsconfigCache, parseSync }         = require('rolldown/utils') as typeof Utils
 
   const cache    = new TsconfigCache()
+  const data     = new Set<string>()
   const modules  = new Set(globSync(include, { cwd: root }).map((file) => join(root, file)))
-  const reads    = new Set([import.meta.filename])
+  const reads    = new Set<string>()
   const resolver = new ResolverFactory(RESOLVING)
   const extender = resolver.cloneWithOptions({
     conditionNames : ['node', 'import'],
@@ -540,11 +551,21 @@ export function triggers(root: string, include: string[]): string[] {
         reads.add(lock)
       } else if (SCRIPT.test(path)) {
         modules.add(path)
+      } else {
+        data.add(path)
       }
     }
   }
 
-  return [...reads]
+  return { modules: [...modules, ...data], reads: [...reads] }
+}
+
+/**
+ * Lists the files a suite reads beside the modules it imports, per `traced`,
+ * and this file.
+ */
+export function triggers(root: string, include: string[]): string[] {
+  return [import.meta.filename, ...traced(root, include).reads]
 }
 
 /**

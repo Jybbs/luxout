@@ -2,7 +2,9 @@ import { type SpawnSyncReturns, spawnSync }   from 'node:child_process'
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import { join, relative, resolve }            from 'node:path'
 
+import { traced }          from '../../tests/common/triggers.ts'
 import { Actions }         from './actions.ts'
+import { DeployPaths }     from './deploy.ts'
 import type { Finding }    from './finding.ts'
 import { LabelRegistry }   from './labels.ts'
 import { LineBudget }      from './lines.ts'
@@ -43,6 +45,7 @@ export class Audit {
       ...tasks.findings(manifest),
       ...actions.findings,
       ...workflows.findings(actions, tasks),
+      ...DeployPaths.read(this).findings(tasks),
       ...Rulesets.read(this).findings(workflows),
       ...labels.findings,
       ...ReleaseNotes.read(this).findings(labels),
@@ -53,6 +56,18 @@ export class Audit {
 
   exists(file: string): boolean {
     return existsSync(join(this.#root, file))
+  }
+
+  /**
+   * Lists the module `file` in the directory `dir` and each module it imports
+   * outside `node_modules`, beside the files read to transform and install
+   * them, per `traced`, relative to the checkout and leaving out each path
+   * outside it.
+   */
+  imports(dir: string, file: string): string[] {
+    const { modules, reads } = traced(join(this.#root, dir), [file])
+
+    return [...modules, ...reads].map((path) => this.relative(path)).filter((path) => !path.startsWith('..'))
   }
 
   /**
