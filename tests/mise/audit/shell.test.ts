@@ -67,6 +67,16 @@ it.each([
     ]
   },
   {
+    name     : 'reads the commands a case item, a loop, and a subshell run',
+    script   : 'case $x in\n  a) b ;;\nesac\nfor i in $(c); do d; done\n(e)',
+    expected : [
+      { line: 2, words: ['b'] },
+      { line: 4, words: ['c'] },
+      { line: 4, words: ['d'] },
+      { line: 5, words: ['e'] }
+    ]
+  },
+  {
     expected : [{ line: 1, words: ['cat'] }],
     name     : 'reads a heredoc as the text it feeds rather than as commands',
     script   : 'cat <<EOF\nbun install\nEOF\n'
@@ -102,6 +112,17 @@ it.each([
       { line: 1, words: ['bun', 'i'] },
       { line: 1, words: ['bun', 'i'] },
       { line: 1, words: ['bun', 'i'] }
+    ]
+  },
+  {
+    name     : 'reads the command a substitution runs in a test, an arithmetic expansion, or a redirection',
+    script   : '[[ -n $(a) ]] && echo $(( $(b) )) > "$(c)" <<< "$(d)"',
+    expected : [
+      { line: 1, words: ['a'] },
+      { line: 1, words: ['echo', '$(( $(b) ))'] },
+      { line: 1, words: ['b'] },
+      { line: 1, words: ['c'] },
+      { line: 1, words: ['d'] }
     ]
   },
   {
