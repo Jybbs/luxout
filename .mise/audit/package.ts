@@ -1,9 +1,10 @@
+import { join } from 'node:path'
+
 import type { Audit } from './audit.ts'
 import { YamlFile }   from './files.ts'
 import { Finding }    from './finding.ts'
 
 const FLOOR          = /(?<=\^)\d[\d.]*/g
-const INSTALLED      = ['site/package.json', 'tests/homebridge/package.json', 'tests/vet/*/package.json']
 const MANIFEST       = 'package.json'
 const RELEASE        = /^\d+\.\d+\.\d+(?:-[\dA-Za-z.-]+)?(?:\+[\dA-Za-z.-]+)?$/
 const SECTIONS       = ['dependencies', 'devDependencies', 'optionalDependencies']
@@ -17,12 +18,14 @@ export class PackageManifest {
   }
 
   /**
-   * Reads each manifest Bun installs from beside the root's, meaning the
-   * site's, the Homebridge UI's under `tests/homebridge`, and each under
-   * `tests/vet`, leaving out one the checkout lacks.
+   * Reads the manifest of each package `bun_packages` names beside the root,
+   * leaving out one the checkout lacks.
    */
   static installed(audit: Audit): PackageManifest[] {
-    return Object.entries(audit.readAll(...INSTALLED)).map(([file, text]) => new PackageManifest(text, file))
+    return audit.packages()
+      .map((dir) => join(dir, MANIFEST))
+      .filter((file) => file !== MANIFEST && audit.exists(file))
+      .map((file) => new PackageManifest(audit.read(file), file))
   }
 
   constructor(text: string, file = MANIFEST) {

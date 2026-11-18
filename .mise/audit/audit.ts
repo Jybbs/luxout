@@ -67,6 +67,18 @@ export class Audit {
     return stdout
   }
 
+  /**
+   * Lists each package directory `bun_packages` in `.mise/lib/lock.sh` names,
+   * relative to the checkout.
+   */
+  packages(): string[] {
+    const { stderr, stdout } = this.#spawn('bash', ['-c', 'source .mise/lib/lock.sh && bun_packages'])
+
+    if (stderr !== '') throw new Error(stderr.trim())
+
+    return stdout.split('\n').filter((dir) => dir !== '')
+  }
+
   read(file: string): string {
     return readFileSync(join(this.#root, file), 'utf8')
   }
