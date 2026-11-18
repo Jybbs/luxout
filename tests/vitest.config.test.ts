@@ -23,8 +23,8 @@ const spawning = sources.filter(({ text }) => spawns.test(text))
 
 /**
  * Plants a repository at `scratch` whose branch changes only `changed` since
- * `origin/main`. Each test file in it spells one path, `bin/tool` is a program
- * that sources `lib/a.sh`, and `lib/a.sh` sources `lib/b.sh`.
+ * `origin/main`. Each test file in it spells at most one path, `bin/tool` is a
+ * program that sources `lib/a.sh`, and `lib/a.sh` sources `lib/b.sh`.
  */
 async function checkout(changed: string, scratch: string): Promise<void> {
   await plant(scratch, {
@@ -39,10 +39,13 @@ async function checkout(changed: string, scratch: string): Promise<void> {
     'lib/b.sh'          : ':\n',
     'notes/a.md'        : '# A\n',
     'source.test.ts'    : "import './package.json'\nexport * from '../package.json'\n"
+                        + "export { name } from './cfg/package.json'\n"
                         + "export const read = import('./cfg/package.json')\n",
     'tasks/labels'      : ':\n',
     'tool.test.ts'      : "export const tool = 'bin/tool'\n",
     'var.test.ts'       : "export const note = '$ROOT/notes/a.md'\n",
+    'wide.test.ts'      : "export const wide = (a: string, b: string): string[] => "
+                        + "[`${a}-frame.css`, `${a}/${b}`, `./${a}.css`]\n",
     'word.test.ts'      : "export const word = 'labels'\n"
   })
   await Promise.all([

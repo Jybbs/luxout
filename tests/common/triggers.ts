@@ -265,7 +265,8 @@ function spelled(text: string): string[] {
  * - Each string literal but the source of an import or export
  * - Each part of a template literal, and a template literal holding an
  *   expression read whole as a glob, `*` standing for each expression, where
- *   the glob holds a `/` and a segment with a character other than `*` or `.`
+ *   the glob holds a `/` and a segment that, once its extension drops off,
+ *   holds a character other than `*` or `.`
  * - The run of string arguments ending each `join` or `resolve` call, joined
  *   by `/`
  */
@@ -309,9 +310,10 @@ function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): 
     },
 
     TemplateLiteral: ({ expressions, quasis }) => {
-      const glob = quasis.map(({ value: { cooked } }) => cooked ?? '').join('*')
+      const glob  = quasis.map(({ value: { cooked } }) => cooked ?? '').join('*')
+      const named = glob.split('/').some((part) => /[^*.]/.test(part.replace(/\.[^*.]*$/, '')))
 
-      if (expressions.length && glob.includes('/') && glob.split('/').some((part) => /[^*.]/.test(part))) {
+      if (expressions.length && glob.includes('/') && named) {
         found.push(glob)
       }
     }
