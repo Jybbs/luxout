@@ -4,9 +4,9 @@ import { join }       from 'node:path'
 
 import { describe } from 'vitest'
 
-import { ARGS, BASE, MERGE, affected, canned } from '../../../common/affected.js'
-import { test }                                from '../../../common/scratch.js'
-import { info }                                from '../../../common/sync.js'
+import { ARGS, BASE, MERGE, affected, canned, reader } from '../../../common/affected.js'
+import { test }                                        from '../../../common/scratch.js'
+import { info }                                        from '../../../common/sync.js'
 
 const PLUGIN = ['mise', 'run', 'plugin:test', '--', '--changed', BASE, ...ARGS]
 const STORE  = '.mise/vet/node_modules/.bun/@luxout+base@1.0.0/node_modules/@luxout/base'
@@ -103,6 +103,48 @@ function selected(
   })
 }
 
+/**
+ * Runs the task from a repository under `scratch` whose branch changes only
+ * `changed`, where each of six plugin tests reads one file by path. Two spell
+ * it through `join`, one through `new URL`, one through a task name, one
+ * through a task file that sources it, and one through a glob a module it
+ * imports holds.
+ */
+function read(changed: string, scratch: string): ReturnType<typeof affected> {
+  const repo     = join(scratch, 'repo')
+  const checkout = {
+    changed : changed,
+    copied  : ['.mise/lib/lock.sh', '.mise/tasks/repo/sync/labels', 'tests/vitest.config.ts'],
+    linked  : {},
+    repo    : repo,
+    scratch : scratch,
+    task    : 'plugin:affected'
+  }
+
+  return affected(checkout, {
+    '.github/rulesets/main.json'  : '{}\n',
+    '.github/rulesets/tags.json'  : '{}\n',
+    '.github/workflows/ci.yml'    : 'on: pull_request\n',
+    '.gitignore'                  : '.cache\nnode_modules\n',
+    '.mise/lib/sync.sh'           : 'list_omitted() { :; }\n',
+    '.mise/tasks/plugin/affected' : '#!/usr/bin/env bash\n',
+    'package.json'                : '{ "type": "module" }\n',
+    'src/ui/public/index.html'    : '<!doctype html>\n',
+    'src/workflows.ts'            : "import { globSync } from 'node:fs'\n\n"
+                                  + "export const workflows = globSync('.github/workflows/*.yml')\n",
+    'tests/fixture.test.ts'       : reader("join(import.meta.dirname, 'mise', 'fixtures', 'gh.sh')"),
+    'tests/library.test.ts'       : reader("join('.mise', 'tasks', ...'repo:sync:labels'.split(':'))"),
+    'tests/mise/fixtures/gh.sh'   : '#!/bin/sh\n',
+    'tests/page.test.ts'          : reader("join('src', 'ui', 'public', 'index.html')"),
+    'tests/ruleset.test.ts'       : reader("new URL('../.github/rulesets/main.json', import.meta.url)"),
+    'tests/task.test.ts'          : reader("join('.mise', 'tasks', ...'plugin:affected'.split(':'))"),
+    'tests/workflow.test.ts'      : "import { expect, test } from 'vitest'\n\n"
+                                  + "import { workflows } from '../src/workflows.ts'\n\n"
+                                  + "test('reads the workflows', () => {\n"
+                                  + "  expect(workflows).toHaveLength(1)\n})\n"
+  })
+}
+
 describe.concurrent('plugin:affected', () => {
   test('takes the alias affected', async ({ expect }) => {
     expect(await info('plugin:affected')).toMatchObject({ aliases: ['affected'] })
@@ -172,6 +214,21 @@ describe.concurrent('plugin:affected', () => {
     expect(await selected(deleted, scratch, true)).toEqual({ ran, status: 0 })
     expect(existsSync(join(scratch, 'repo', deleted))).toBe(false)
   })
+
+  test.for([
+    { changed: '.github/rulesets/tags.json', name: 'runs no plugin test', ran: false },
+    { changed: '.github/rulesets/main.json', name: 'runs only the plugin test reading it', ran: true },
+    { changed: '.github/workflows/ci.yml', name: 'runs only the plugin test reading it', ran: true },
+    { changed: '.mise/lib/sync.sh', name: 'runs only the plugin test reading it', ran: true },
+    { changed: '.mise/tasks/plugin/affected', name: 'runs only the plugin test reading it', ran: true },
+    { changed: 'src/ui/public/index.html', name: 'runs only the plugin test reading it', ran: true },
+    { changed: 'tests/mise/fixtures/gh.sh', name: 'runs only the plugin test reading it', ran: true }
+  ])(
+    '$name by path where a branch changes only $changed',
+    async ({ changed, ran }, { expect, scratch }) => {
+      expect(await read(changed, scratch)).toEqual({ ran, status: 0 })
+    }
+  )
 
   test.for([
     { changed: 'site/package.json', name: 'runs no plugin test', ran: false },

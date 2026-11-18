@@ -66,6 +66,15 @@ export async function affected(
 }
 
 /**
+ * Returns the source of a test that reads the file `expression` names.
+ */
+export function reader(expression: string): string {
+  return "import { globSync, readFileSync } from 'node:fs'\nimport { join } from 'node:path'\n\n"
+       + "import { expect, test } from 'vitest'\n\n"
+       + `test('reads a file', () => {\n  expect(readFileSync(${expression}, 'utf8')).not.toBe('')\n})\n`
+}
+
+/**
  * Runs `task` in `scratch` with `ARGS`, beside stand-ins for `git` and `mise`,
  * where the merge base is `BASE`, the `suite` call that runs the tests passes,
  * and the call `failing` names exits 1.

@@ -3,8 +3,8 @@ import { dirname, join } from 'node:path'
 import vueJsx           from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitest/config'
 
-import { thresholds } from '../../tests/common/coverage.ts'
-import { triggers }   from '../../tests/common/triggers.ts'
+import { thresholds }             from '../../tests/common/coverage.ts'
+import { changedFiles, triggers } from '../../tests/common/triggers.ts'
 
 const INCLUDE = ['.vitepress/tests/**/*.test.ts']
 const PATHS   = ['.mise/config.toml', '.mise/mise.lock']
@@ -17,6 +17,7 @@ export default defineConfig({
   root     : root,
   test     : {
     expect              : { requireAssertions: true },
+    experimental        : { vcsProvider: changedFiles(INCLUDE) },
     forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE), ...read],
     fsModuleCachePath   : '../.cache/site/vitest',
     include             : INCLUDE,

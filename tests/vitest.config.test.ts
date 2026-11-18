@@ -1,14 +1,14 @@
-import { existsSync }                     from 'node:fs'
-import { glob, readFile, symlink }        from 'node:fs/promises'
-import { dirname, join, parse, relative } from 'node:path'
+import { existsSync }                                 from 'node:fs'
+import { appendFile, chmod, glob, readFile, symlink } from 'node:fs/promises'
+import { dirname, join, parse, relative }             from 'node:path'
 
 import type * as Experimental from 'rolldown/experimental'
 import { expect, it, vi }     from 'vitest'
 import { defaultExclude }     from 'vitest/config'
 
-import { plant, test }    from './common/scratch.js'
-import { triggers, vite } from './common/triggers.js'
-import config             from './vitest.config.js'
+import { branch, plant, test }          from './common/scratch.js'
+import { changedFiles, triggers, vite } from './common/triggers.js'
+import config                           from './vitest.config.js'
 
 const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const root    = dirname(import.meta.dirname)
@@ -19,6 +19,64 @@ const sources = await Array.fromAsync(files, async (file) => ({
   text : await readFile(join(root, file), 'utf8')
 }))
 const spawning = sources.filter(({ text }) => spawns.test(text))
+
+/**
+ * Plants a repository at `scratch` whose branch changes only `changed` since
+ * `origin/main`. Each test file in it spells at most one path or glob,
+ * `bin/tool` is a program that sources `lib/a.sh`, `lib/a.sh` sources
+ * `lib/b.sh`, and `bin/each` reads `logs/` through a glob.
+ */
+async function checkout(changed: string, scratch: string): Promise<void> {
+  await plant(scratch, {
+    '.gitignore'        : 'node_modules\n',
+    'art/day-frame.css' : ':root {}\n',
+    'bin/each'          : '#!/bin/sh\ncat logs/*.txt\n',
+    'bin/tool'          : '#!/bin/sh\n. lib/a.sh\n',
+    'cfg/package.json'  : '{}\n',
+    'dir.test.ts'       : "export const dir = join('docs', 'guide')\n",
+    'docs/guide/a.md'   : '# A\n',
+    'each.test.ts'      : "export const each = 'bin/each'\n",
+    'frame.test.ts'     : 'export const frame = (name: string): string => `art/${name}-frame.css`\n',
+    'glob.test.ts'      : "export const all = '*.md'\n",
+    'lib/a.sh'          : '. lib/b.sh\n',
+    'lib/b.sh'          : ':\n',
+    'logs/a.txt'        : 'a\n',
+    'misc.md'           : '# Misc\n',
+    'nest.test.ts'      : "export const nest = '*/b.md'\n",
+    'notes/a.md'        : '# A\n',
+    'pages.test.ts'     : "export const pages = ['../pages', '*.md']\n",
+    'pages/b.md'        : '# B\n',
+    'source.test.ts'    : "import './package.json'\nexport * from '../package.json'\n"
+                        + "export { name } from './cfg/package.json'\n"
+                        + "export const read = import('./cfg/package.json')\n",
+    'tasks/labels'      : ':\n',
+    'tool.test.ts'      : "export const tool = 'bin/tool'\n",
+    'var.test.ts'       : "export const note = '$ROOT/notes/a.md'\n",
+    'wide.test.ts'      : "export const wide = (a: string, b: string): string[] => "
+                        + "['art', `${a}-frame.css`, `${a}/${b}`, `./${a}.css`]\n",
+    'word.test.ts'      : "export const word = 'labels'\n"
+  })
+  await Promise.all([
+    chmod(join(scratch, 'bin', 'each'), 0o755),
+    chmod(join(scratch, 'bin', 'tool'), 0o755),
+    symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+  ])
+  await branch(changed, scratch)
+}
+
+/**
+ * Lists, relative to `scratch`, the files `changedFiles` gives a run there
+ * that reads each change since `changedSince`.
+ */
+async function provided(scratch: string, changedSince?: string): Promise<string[]> {
+  const files = await changedFiles(['*.test.ts']).findChangedFiles({
+    changedSince : changedSince,
+    resolver     : { getDependencies: () => Promise.resolve([]) },
+    root         : scratch
+  })
+
+  return files.map((file) => relative(scratch, file))
+}
 
 it('fails a case with no assertion, shuffles the order, and undoes every spy and stub', () => {
   expect(config.test).toMatchObject({
@@ -122,6 +180,35 @@ test(
     expect(triggers(scratch, ['a.ts'])).toEqual(expect.arrayContaining([
       join(scratch, 'base.json'), join(scratch, 'link.json')
     ]))
+  }
+)
+
+test.for([
+  { changed: 'art/day-frame.css', name: 'a test spelling it in a template', selected: ['frame.test.ts'] },
+  { changed: 'cfg/package.json', name: 'no test for an import or export naming it', selected: [] },
+  { changed: 'docs/guide/a.md', name: 'a test spelling a directory holding it', selected: ['dir.test.ts'] },
+  { changed: 'lib/b.sh', name: 'a test spelling a program sourcing it in turn', selected: ['tool.test.ts'] },
+  { changed: 'logs/a.txt', name: 'no test for a program naming it through a glob', selected: [] },
+  { changed: 'misc.md', name: 'no test for a glob naming no directory alone', selected: [] },
+  { changed: 'notes/a.md', name: 'a test spelling it behind a leading $ segment', selected: ['var.test.ts'] },
+  { changed: 'pages/b.md', name: 'a test joining a glob to its directory', selected: ['pages.test.ts'] },
+  { changed: 'tasks/labels', name: 'no test for a string of one segment holding no dot', selected: [] }
+])(
+  'selects $name where a branch changes only $changed',
+  async ({ changed, selected }, { scratch }) => {
+    await checkout(changed, scratch)
+
+    expect(await provided(scratch, 'origin/main')).toEqual([changed, ...selected])
+  }
+)
+
+test(
+  'selects the test reading an uncommitted change alone where the run names no commit to start from',
+  async ({ scratch }) => {
+    await checkout('notes/a.md', scratch)
+    await appendFile(join(scratch, 'docs', 'guide', 'a.md'), '\n')
+
+    expect(await provided(scratch)).toEqual(['docs/guide/a.md', 'dir.test.ts'])
   }
 )
 

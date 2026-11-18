@@ -4,8 +4,8 @@ import { join }       from 'node:path'
 
 import { describe } from 'vitest'
 
-import { ARGS, BASE, MERGE, affected, canned } from '../../../common/affected.js'
-import { test }                                from '../../../common/scratch.js'
+import { ARGS, BASE, MERGE, affected, canned, reader } from '../../../common/affected.js'
+import { test }                                        from '../../../common/scratch.js'
 
 const SITE = ['mise', 'run', 'site:test', '--', '--changed', BASE, ...ARGS]
 const root = join(import.meta.dirname, '..', '..', '..', '..')
@@ -70,6 +70,47 @@ function selected(
   })
 }
 
+/**
+ * Runs the task from the site of a repository under `scratch` whose branch
+ * changes only `changed`, where each of five site tests reads one file by
+ * path. Two spell it through `new URL`, one through `join`, one through a
+ * glob, and one through a glob a module it imports holds.
+ */
+function read(changed: string, scratch: string): ReturnType<typeof affected> {
+  const repo     = join(scratch, 'repo')
+  const checkout = {
+    changed : changed,
+    copied  : ['site/.vitepress/vitest.config.ts'],
+    cwd     : join(repo, 'site'),
+    linked  : { 'site/node_modules': join(root, 'site', 'node_modules') },
+    repo    : repo,
+    scratch : scratch,
+    task    : 'site:affected'
+  }
+
+  return affected(checkout, {
+    '.github/README.md'                   : '# Luxout\n',
+    '.gitignore'                          : '.cache\nnode_modules\n',
+    'package.json'                        : '{ "type": "module" }\n',
+    'site/.vitepress/lib/pages.ts'        : "import { globSync } from 'node:fs'\n\n"
+                                          + "export const pages = globSync('guide/*.md')\n",
+    'site/.vitepress/tests/bib.test.ts'   : reader("new URL('../../references.bib', import.meta.url)"),
+    'site/.vitepress/tests/doc.test.ts'   : reader("new URL('../../../.github/README.md', import.meta.url)"),
+    'site/.vitepress/tests/pages.test.ts' : "import { expect, test } from 'vitest'\n\n"
+                                          + "import { pages } from '../lib/pages.ts'\n\n"
+                                          + "test('reads the pages', () => {\n"
+                                          + "  expect(pages).toHaveLength(1)\n})\n",
+    'site/.vitepress/tests/sheet.test.ts' : reader("globSync('.vitepress/theme/*.css')[0]"),
+    'site/.vitepress/tests/svg.test.ts'   : reader("join('estimate', 'sun-path.svg')"),
+    'site/.vitepress/theme/tokens.css'    : ':root {}\n',
+    'site/estimate/day.svg'               : '<svg/>\n',
+    'site/estimate/sun-path.svg'          : '<svg/>\n',
+    'site/guide/install.md'               : '# Install\n',
+    'site/package.json'                   : '{ "type": "module" }\n',
+    'site/references.bib'                 : '@misc{a,}\n'
+  })
+}
+
 describe.concurrent('site:affected', () => {
   test('runs site:test against the merge base, passing every further argument to Vitest', async ({
     expect,
@@ -105,6 +146,20 @@ describe.concurrent('site:affected', () => {
   ])('$name where a branch changes only $changed', async ({ changed, ran }, { expect, scratch }) => {
     expect(await selected(changed, scratch)).toEqual({ ran, status: 0 })
   })
+
+  test.for([
+    { changed: 'site/estimate/day.svg', name: 'runs no site test', ran: false },
+    { changed: '.github/README.md', name: 'runs only the site test reading it', ran: true },
+    { changed: 'site/.vitepress/theme/tokens.css', name: 'runs only the site test reading it', ran: true },
+    { changed: 'site/estimate/sun-path.svg', name: 'runs only the site test reading it', ran: true },
+    { changed: 'site/guide/install.md', name: 'runs only the site test reading it', ran: true },
+    { changed: 'site/references.bib', name: 'runs only the site test reading it', ran: true }
+  ])(
+    '$name by path where a branch changes only $changed',
+    async ({ changed, ran }, { expect, scratch }) => {
+      expect(await read(changed, scratch)).toEqual({ ran, status: 0 })
+    }
+  )
 
   test.for([
     { deleted: 'tests/tsconfig.json', name: 'runs no site test', ran: false },
