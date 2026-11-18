@@ -1,12 +1,11 @@
 /** @module-tag spawns-many */
-import { execFileSync }      from 'node:child_process'
 import { readFile, readdir } from 'node:fs/promises'
 import { join }              from 'node:path'
 
 import { describe } from 'vitest'
 
-import { plant, test }       from '../../../common/scratch.js'
-import { type Answer, sync } from '../../../common/sync.js'
+import { plant, repository, test } from '../../../common/scratch.js'
+import { type Answer, sync }       from '../../../common/sync.js'
 
 interface Prerelease {
   lagging : [string, string, string][]
@@ -216,22 +215,10 @@ async function lift(
   scratch                                                                                        : string,
   { args = [], canned = {}, edits = {}, env = {}, fail, files = {}, live = LIVE, staged = false } : Setup = {}
 ) {
-  const git = (...words: string[]): string => execFileSync('git', words, {
-    cwd      : scratch,
-    encoding : 'utf8',
-    env      : {
-      GIT_AUTHOR_EMAIL    : 'lift@example.com',
-      GIT_AUTHOR_NAME     : 'Lift',
-      GIT_COMMITTER_EMAIL : 'lift@example.com',
-      GIT_COMMITTER_NAME  : 'Lift',
-      GIT_CONFIG_GLOBAL   : '/dev/null',
-      GIT_CONFIG_NOSYSTEM : '1',
-      PATH                : process.env.PATH
-    }
-  })
-
   await plant(scratch, { ...FILES, ...files })
-  git('init', '--quiet')
+
+  const git = repository(scratch)
+
   git('add', '--all')
   git('commit', '--message', 'Fixture', '--quiet')
   await plant(scratch, edits)
