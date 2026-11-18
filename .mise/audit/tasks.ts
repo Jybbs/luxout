@@ -131,7 +131,7 @@ export class TaskList {
 
     try {
       defects = JSON.parse(audit.mise('tasks', 'validate', '--json')).issues
-      listed  = JSON.parse(audit.mise('tasks', 'ls', '--hidden', '--json', '--local'))
+      listed  = JSON.parse(audit.mise('tasks', 'ls', '--hidden', '--json', '--no-global'))
     } catch (error) {
       return new TaskList([new Finding(String(error), LISTING, 'Task listing')], [])
     }

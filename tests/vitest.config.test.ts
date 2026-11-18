@@ -1,6 +1,6 @@
-import { existsSync }              from 'node:fs'
-import { glob, readFile, symlink } from 'node:fs/promises'
-import { dirname, join, relative } from 'node:path'
+import { existsSync }                     from 'node:fs'
+import { glob, readFile, symlink }        from 'node:fs/promises'
+import { dirname, join, parse, relative } from 'node:path'
 
 import type * as Experimental from 'rolldown/experimental'
 import { expect, it, vi }     from 'vitest'
@@ -8,7 +8,6 @@ import { defaultExclude }     from 'vitest/config'
 
 import { plant, test }    from './common/scratch.js'
 import { triggers, vite } from './common/triggers.js'
-import thresholds         from './coverage.json' with { type: 'json' }
 import config             from './vitest.config.js'
 
 const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
@@ -47,10 +46,9 @@ it('reruns every test after a change to the runtime pins or a file read beside t
 
   expect(new Set(triggers)).toEqual(new Set([
     '.mise/audit/tsconfig.json', '.mise/config.toml', '.mise/mise.lock', '.mise/vet/tsconfig.json',
-    'bun.lock', 'bunfig.toml', 'package.json', 'site/.vitepress/vitest.config.ts', 'site/bun.lock',
-    'src/tsconfig.json', 'src/ui/public/tsconfig.json', 'tests/common/triggers.ts',
-    'tests/homebridge/bun.lock', 'tests/tsconfig.json', 'tests/vet/floor/bun.lock',
-    'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
+    'bun.lock', 'package.json', 'site/.vitepress/vitest.config.ts', 'site/bun.lock', 'src/tsconfig.json',
+    'src/ui/public/tsconfig.json', 'tests/common/triggers.ts', 'tests/homebridge/bun.lock',
+    'tests/tsconfig.json', 'tests/vet/floor/bun.lock', 'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
   ]))
 })
 
@@ -123,8 +121,88 @@ test(
   }
 )
 
-it('reads the coverage floor from tests/coverage.json', () => {
-  expect(config.test?.coverage?.thresholds).toBe(thresholds)
+test.for<{ files: Record<string, string>, module: string, name: string, tsconfigs: string[] }>([
+  {
+    module    : 'a/x.ts',
+    name      : 'lists each reference the transform tests before the tsconfig.json that claims a module',
+    tsconfigs : ['a/other.json', 'a/tsconfig.json'],
+    files     : {
+      'a/other.json'    : '{ "include": ["c"] }\n',
+      'a/tsconfig.json' : '{ "references": [{ "path": "./other.json" }] }\n',
+      'a/x.ts'          : 'export const x = 1\n'
+    }
+  },
+  {
+    module : 'a/b/x.ts',
+    name   : 'lists each tsconfig the transform tests for a module, up to the reference that claims it',
+
+    files: {
+      'a/after.json'       : '{}\n',
+      'a/b/base.json'      : '{ "files": [], "references": [{ "path": "./inherited.json" }] }\n',
+      'a/b/deep.json'      : '{}\n',
+      'a/b/include.json'   : '{ "include": ["c"] }\n',
+      'a/b/inherited.json' : '{}\n',
+      'a/b/other.json'     : '{ "extends": "./include.json", "references": [{ "path": "./deep.json" }] }\n',
+      'a/b/tsconfig.json'  : '{ "extends": "./base.json", "references": [{ "path": "./other" }] }\n',
+      'a/b/x.ts'           : 'export const x = 1\n',
+      'a/own.json'         : '{}\n',
+      'a/ref.json'         : '{}\n',
+      'a/tsconfig.json'    : '{ "extends": "./own.json", '
+                           + '"references": [{ "path": "ref.json" }, { "path": "./after.json" }] }\n',
+      'tsconfig.json'      : '{}\n'
+    },
+
+    tsconfigs: [
+      'a/b/base.json', 'a/b/include.json', 'a/b/other.json', 'a/b/tsconfig.json', 'a/ref.json',
+      'a/tsconfig.json'
+    ]
+  }
+])('$name', async ({ files, module, tsconfigs }, { scratch }) => {
+  await plant(scratch, files)
+  await symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+
+  const tested = triggers(scratch, [module])
+    .map((file) => relative(scratch, file))
+    .filter((file) => !file.startsWith('..') && !file.endsWith('package.json'))
+
+  expect(new Set(tested)).toEqual(new Set(tsconfigs))
+})
+
+test(
+  'lists the path a tsconfig.json takes up to the filesystem root where no config claims a module',
+  async ({ scratch }) => {
+    await plant(scratch, { 'a/tsconfig.json': '{ "include": ["c"] }\n', 'a/x.ts': 'export const x = 1\n' })
+    await symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
+
+    expect(triggers(scratch, ['a/x.ts'])).toEqual(expect.arrayContaining([
+      join(scratch, 'a', 'tsconfig.json'), join(scratch, 'tsconfig.json'),
+      join(parse(scratch).root, 'tsconfig.json')
+    ]))
+  }
+)
+
+it.each(['95', '87.5'])('holds every coverage metric to a COVERAGE_FLOOR of %s', async (floor) => {
+  vi.stubEnv('COVERAGE_FLOOR', floor)
+  vi.resetModules()
+
+  const { default: fresh } = await import('./vitest.config.js')
+  const share              = Number(floor)
+
+  expect(fresh.test?.coverage?.thresholds)
+    .toEqual({ branches: share, functions: share, lines: share, statements: share })
+})
+
+it.each([
+  { floor: undefined, held: 'nothing' },
+  { floor: '', held: '""' },
+  { floor: ' ', held: '" "' },
+  { floor: 'ninety-five', held: '"ninety-five"' },
+  { floor: 'Infinity', held: '"Infinity"' }
+])('fails to load where COVERAGE_FLOOR holds $held', async ({ floor, held }) => {
+  vi.stubEnv('COVERAGE_FLOOR', floor)
+  vi.resetModules()
+
+  await expect(import('./vitest.config.js')).rejects.toThrow(`COVERAGE_FLOOR holds ${held}, whereas`)
 })
 
 it('writes the snapshot file of a case beside its test', () => {

@@ -12,7 +12,9 @@ const entry = join(import.meta.dirname, '..', '..', '..', '.mise', 'audit', 'ind
 test('runs under Node’s type stripping and exits 1 on the annotations it prints', async ({ scratch }) => {
   await plant(scratch, {
     '.mise/config.toml'             : '[tools]\nnode = "24.21.0"\n',
+    '.mise/lib/lock.sh'             : 'bun_packages() {\n  printf "%s\\n" . extra tests/vet/*\n}\n',
     '.mise/tasks/plugin/bake'       : '#!/usr/bin/env bash\nbun install\n',
+    'extra/package.json'            : '{\n  "dependencies": { "a": "^1.0.0" }\n}\n',
     'package.json'                  : JSON.stringify({ engines: { node: '^24.21.0 || ^26.10.0' } }),
     'src/long.ts'                   : `${'a'.repeat(111)}\n`,
     'tests/vet/floor/package.json'  : '{}',
@@ -30,7 +32,9 @@ test('runs under Node’s type stripping and exits 1 on the annotations it print
 
   expect({ status, stdout }).toEqual({
     status : 1,
-    stdout : '::error file=.mise/config.toml,line=2,title=Node pin::Node 24.21.0 sits outside '
+    stdout : '::error file=extra/package.json,line=2,title=Exact pin::`a` pins "^1.0.0" under '
+           + '`dependencies`, which names no exact release\n'
+           + '::error file=.mise/config.toml,line=2,title=Node pin::Node 24.21.0 sits outside '
            + '^26.10.0, the newest line `engines` admits\n'
            + '::error file=.mise/tasks/plugin/bake,line=2,title=Unfrozen install::`bun install` '
            + 'runs without `--frozen-lockfile` or `--lockfile-only`\n'

@@ -4,8 +4,8 @@ import { basename, join }              from 'node:path'
 
 import { describe } from 'vitest'
 
-import { plant, test }        from '../../../common/scratch.js'
-import { type SyncRun, sync } from '../../../common/sync.js'
+import { plant, test }              from '../../../common/scratch.js'
+import { type SyncRun, info, sync } from '../../../common/sync.js'
 
 interface Setup {
   args?    : string[]
@@ -16,7 +16,6 @@ interface Setup {
 const CACHE = '.cache/homebridge'
 const SEED  = {
   'tests/homebridge/bun.lock'     : 'lockfile\n',
-  'tests/homebridge/bunfig.toml'  : 'bunfig\n',
   'tests/homebridge/config.json'  : 'config\n',
   'tests/homebridge/package.json' : 'manifest\n',
   'tests/homebridge/startup.json' : 'startup\n'
@@ -96,14 +95,20 @@ describe.concurrent('plugin:run', () => {
     }
   )
 
-  test('installs from fresh copies of the manifest, the bunfig, and the lockfile on every run', async ({
+  test('installs from fresh copies of the manifest and the lockfile on every run', async ({
     expect,
     scratch
   }) => {
     await run(scratch, { planted: { [`${CACHE}/bun.lock`]: 'stale\n' } })
 
-    expect(await read(join(scratch, CACHE), 'bun.lock', 'bunfig.toml', 'package.json'))
-      .toEqual(['lockfile\n', 'bunfig\n', 'manifest\n'])
+    expect(await read(join(scratch, CACHE), 'bun.lock', 'package.json')).toEqual(['lockfile\n', 'manifest\n'])
+  })
+
+  test('unsets NPM_CONFIG_IGNORE_SCRIPTS, so the UI install runs each install script it trusts', async ({
+    expect
+  }) => {
+    expect(await info('plugin:run'))
+      .toMatchObject({ env: expect.arrayContaining(['unset NPM_CONFIG_IGNORE_SCRIPTS']) })
   })
 
   test('links the checkout, its Homebridge, and the installed UI as the only plugins', async ({

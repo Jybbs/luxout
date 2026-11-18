@@ -8,7 +8,9 @@ import { Bibliography } from '../../../lib/citations/bibliography.ts'
 
 const site              = join(import.meta.dirname, '..', '..', '..', '..')
 const { pages, srcDir } = await resolveConfig(site, 'build', 'production')
-const bibliography      = Bibliography.parse(await readFile(join(srcDir, 'references.bib'), 'utf8'))
+const references        = new URL('../../../lib/citations/references.bib', import.meta.url)
+const bib               = await readFile(references, 'utf8')
+const bibliography      = Bibliography.parse(bib)
 
 it.each(pages)('%s carries the footnote text site:cite writes from references.bib', async (page) => {
   const path = join(srcDir, page)
@@ -18,7 +20,7 @@ it.each(pages)('%s carries the footnote text site:cite writes from references.bi
 
 it('cites every work on the bibliography page', async () => {
   const page = await readFile(join(srcDir, 'estimate', 'bibliography.md'), 'utf8')
-  const keys = (await readFile(join(srcDir, 'references.bib'), 'utf8')).matchAll(/^@\w+\{(\w+),$/gm)
+  const keys = bib.matchAll(/^@\w+\{(\w+),$/gm)
 
   expect(keys.filter(([, key]) => !page.includes(`[^${key!}]`)).toArray()).toEqual([])
 })

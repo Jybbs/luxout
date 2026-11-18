@@ -72,14 +72,14 @@ it('reports a manifest under a directory no source is named for', () => {
   }])
 })
 
-it('reports a manifest that fails to parse rather than throwing', () => {
+it('reports the pin of a manifest that fails to parse as missing rather than throwing', () => {
   const files = {
     'tests/vet/floor/package.json'  : '{ "dependencies": ',
     'tests/vet/pinned/package.json' : JSON.stringify({ dependencies: { homebridge: '2.4.0' } })
   }
 
-  expect(new VetManifests(files).findings(manifest)).toMatchObject([
-    { title: 'Parse error' },
-    { title: 'Vet pin' }
-  ])
+  expect(new VetManifests(files).findings(manifest)).toMatchObject([{
+    message : '`homebridge` pins nothing, whereas `engines.homebridge` sets its floor at 1.8.5',
+    title   : 'Vet pin'
+  }])
 })

@@ -4,7 +4,7 @@ import { expect, it } from 'vitest'
 
 import * as credit from '../../../lib/credit/credit.ts'
 
-const bib    = await readFile(new URL('../../../../references.bib', import.meta.url), 'utf8')
+const bib    = await readFile(new URL('../../../lib/citations/references.bib', import.meta.url), 'utf8')
 const page   = await readFile(new URL('../../../../estimate/bibliography.md', import.meta.url), 'utf8')
 const client = await readFile(new URL('../../../../../src/weather/client.ts', import.meta.url), 'utf8')
 

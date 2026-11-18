@@ -45,19 +45,18 @@ const VENDORED = {
 } satisfies Record<string, Vendored>
 const exec     = promisify(execFile)
 const fixtures = join(import.meta.dirname, '..', '..', 'fixtures')
-const root     = join(import.meta.dirname, '..', '..', '..', '..')
+const scripts  = { NPM_CONFIG_IGNORE_SCRIPTS: process.env.NPM_CONFIG_IGNORE_SCRIPTS }
 
 /**
  * Builds a checkout under `scratch` whose packed plugin runs `source`, beside a
  * seed for each release and a `node_modules` holding every package its manifest
  * declares, the devDependencies `absent` and the 2.4.0 stand-in among them. The
  * manifest's failing `postinstall` fails any install that runs without the
- * `ignoreScripts` of `bunfig.toml`.
+ * `NPM_CONFIG_IGNORE_SCRIPTS` of `.mise/config.toml`.
  */
 async function checkout(scratch: string, source: string): Promise<string> {
   const dir      = join(scratch, 'checkout')
-  const env      = { BUN_INSTALL_CACHE_DIR: join(scratch, 'cache'), PATH: process.env.PATH }
-  const bunfig   = await readFile(join(root, 'bunfig.toml'), 'utf8')
+  const env      = { ...scripts, BUN_INSTALL_CACHE_DIR: join(scratch, 'cache'), PATH: process.env.PATH }
   const standIn  = await readFile(join(fixtures, 'homebridge.js'), 'utf8')
   const tarball  = (key: string): string => join(scratch, 'vendor', `${key}.tgz`)
   const manifest = JSON.stringify({
@@ -69,9 +68,8 @@ async function checkout(scratch: string, source: string): Promise<string> {
     type            : 'module',
     version         : '1.2.3'
   })
-  const seeds = RELEASES.flatMap((release) => [
-    [`tests/vet/${release}/bunfig.toml`, bunfig],
-    [`tests/vet/${release}/package.json`, JSON.stringify({ dependencies: { homebridge: tarball(release) } })]
+  const seeds = RELEASES.map((release) => [
+    `tests/vet/${release}/package.json`, JSON.stringify({ dependencies: { homebridge: tarball(release) } })
   ])
 
   await Promise.all(Object.entries(VENDORED).map(async ([key, { exports, name, type, version }]) => {
@@ -91,7 +89,6 @@ async function checkout(scratch: string, source: string): Promise<string> {
   await plant(dir, {
     ...Object.fromEntries(seeds),
     ...BUILT,
-    'bunfig.toml'                  : bunfig,
     'config.schema.json'           : JSON.stringify({ pluginAlias: 'Luxout', schema: { properties: {} } }),
     'package.json'                 : manifest,
     'packed/package/index.js'      : source,
@@ -134,7 +131,12 @@ async function vet(cwd: string, scratch: string) {
 
   const run = await sync(scratch, 'plugin:vet', {
     cwd : cwd,
-    env : { BUN_INSTALL_CACHE_DIR: join(scratch, 'cache'), PWD: cwd, TUNING: JSON.stringify(TUNING) }
+    env : {
+      ...scripts,
+      BUN_INSTALL_CACHE_DIR : join(scratch, 'cache'),
+      PWD                   : cwd,
+      TUNING                : JSON.stringify(TUNING)
+    }
   })
 
   return {

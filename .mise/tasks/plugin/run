@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE depends     = ["plugin:build"]
 #MISE description = "Install the Homebridge UI into `.cache/homebridge` and start it beside Homebridge against `.cache/homebridge/storage`, copying in the test config and the UI's startup options from `tests/homebridge` where the storage holds none, loading plugins only from the links under `.cache/homebridge/plugins`, and passing any further arguments to `hb-service`"
-#MISE env         = { HOMEBRIDGE_CONFIG_UI_TERMINAL = "1" }
+#MISE env         = { HOMEBRIDGE_CONFIG_UI_TERMINAL = "1", NPM_CONFIG_IGNORE_SCRIPTS = false }
 
 source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
 

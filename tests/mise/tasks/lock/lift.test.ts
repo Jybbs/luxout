@@ -13,6 +13,7 @@ interface Setup {
   canned? : Record<string, Answer>
   edits?  : Record<string, string>
   env?    : NodeJS.ProcessEnv
+  fail?   : string
   files?  : Record<string, string>
   live?   : Record<string, unknown>
   staged? : boolean
@@ -27,14 +28,15 @@ const ADVISORIES = {
 }
 const CHECKOUT                        = '1'.repeat(40)
 const CURRENT: Record<string, Answer> = {
-  'bun audit --cwd . --json'            : json({}),
-  'bun outdated --cwd .'                : outdated(),
-  'bun outdated --cwd site'             : outdated(),
-  'mise latest node@24'                 : { stdout: '24.21.0\n' },
-  'mise latest node@26'                 : { stdout: '26.10.0\n' },
-  'mise outdated --bump --json --local' : json({}),
+  'bun audit --cwd . --json'                : json({}),
+  'bun outdated --cwd .'                    : outdated(),
+  'bun outdated --cwd site'                 : outdated(),
+  'mise latest node@24'                     : { stdout: '24.21.0\n' },
+  'mise latest node@26'                     : { stdout: '26.10.0\n' },
+  'mise outdated --bump --json --no-global' : json({}),
   'mise version --json': json({ latest: '2026.9.18', version: '2026.10.12 macos-arm64 (2026-10-16)' })
 }
+const IGNORED                        = ['GHSA-fc5q-39xc-vjpf', 'GHSA-jjjj-kkkk-llll']
 const LIFTED                         = '2'.repeat(40)
 const NOW                            = Date.parse('2026-10-20T12:00:00Z')
 const PINNED                         = '3'.repeat(40)
@@ -72,7 +74,7 @@ const CANNED: Record<string, Answer> = {
     ['vitest (dev)', '5.0.3', '5.0.5']
   ),
 
-  'mise outdated --bump --json --local': json({
+  'mise outdated --bump --json --no-global': json({
     bun: {
       latest    : '1.4.3',
       name      : 'bun',
@@ -95,7 +97,7 @@ const CANNED: Record<string, Answer> = {
     }
   }),
 
-  'mise tasks ls --hidden --json --local': json([
+  'mise tasks ls --hidden --json --no-global': json([
     { name: 'plugin:test', source: `${root}/.mise/tasks/plugin/test`, tools: {} },
     { name: 'plugin:test:22', source: `${root}/.mise/tasks/plugin/lines.toml`, tools: { node: '22.23.3' } },
     { name: 'plugin:test:24', source: `${root}/.mise/tasks/plugin/lines.toml`, tools: { node: '24.21.0' } }
@@ -203,8 +205,8 @@ function json(value: unknown, status = 0): Answer {
  *   ran in the checkout or in a clone, and whether `git status` changed.
  */
 async function lift(
-  scratch                                                                                   : string,
-  { args = [], canned = {}, edits = {}, env = {}, files = {}, live = LIVE, staged = false } : Setup = {}
+  scratch                                                                                        : string,
+  { args = [], canned = {}, edits = {}, env = {}, fail, files = {}, live = LIVE, staged = false } : Setup = {}
 ) {
   const git = (...words: string[]): string => execFileSync('git', words, {
     cwd      : scratch,
@@ -230,16 +232,18 @@ async function lift(
 
   const before = git('status', '--porcelain')
 
-  const { commands, invoked, status, stderr, stdout } = await sync(scratch, 'lock:lift', {
+  const { commands, invoked, requests, status, stderr, stdout } = await sync(scratch, 'lock:lift', {
     args   : args,
     canned : { ...CANNED, ...canned },
     env    : { LIFT_NOW: String(NOW / 1000), ...env },
+    fail   : fail,
     live   : live
   })
 
   return {
     commands : commands,
     moved    : before !== git('status', '--porcelain'),
+    requests : requests,
     status   : status,
     stderr   : stderr,
     stdout   : stdout,
@@ -738,4 +742,89 @@ describe.concurrent('lock:lift', () => {
       })
     }
   )
+
+  test.for<{ audits: boolean, ignore: string, message: string, patched: string | null, suffix: string }>([
+    { audits: true, ignore: '', message: '', patched: null, suffix: '' },
+    {
+      audits  : true,
+      ignore  : IGNORED.join(' '),
+      message : '',
+      patched : null,
+      suffix  : IGNORED.map((id) => ` --ignore=${id}`).join('')
+    },
+    {
+      audits  : false,
+      ignore  : IGNORED.join(' '),
+      message : `\`${IGNORED[1]}\` has a patched release, so delete it from \`AUDIT_IGNORE\` `
+              + 'in .mise/config.toml and lift to `picomatch` 4.0.8\n',
+      patched : '4.0.8',
+      suffix  : ''
+    }
+  ])(
+    'passes each AUDIT_IGNORE entry to bun audit until a release patches it, given "$ignore" and $patched',
+    async ({ audits, ignore, message, patched, suffix }, { expect, scratch }) => {
+      const calls    = Object.keys(CANNED).filter((call) => call.startsWith('bun audit ')).toSorted()
+      const ignoring = (call: string): string => call.replace(/ --json$/, `${suffix} --json`)
+      const advisory = (fixed: string | null): unknown => ({
+        vulnerabilities: [
+          { first_patched_version: null, package: { name: 'micromatch' } },
+          { first_patched_version: fixed, package: { name: 'picomatch' } }
+        ]
+      })
+      const { commands, requests, status, stderr } = await lift(scratch, {
+        canned : Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
+        env    : { AUDIT_IGNORE: ignore },
+        live   : {
+          ...LIVE,
+          [`advisories/${IGNORED[0]}`] : advisory(null),
+          [`advisories/${IGNORED[1]}`] : advisory(patched)
+        }
+      })
+
+      expect({
+        audited : commands.filter(([program, verb]) => program === 'bun' && verb === 'audit'),
+        looked  : requests.map((args) => args.at(-1))
+          .filter((endpoint) => endpoint?.startsWith('advisories/')),
+        status  : status,
+        stderr  : stderr
+      }).toEqual({
+        audited : audits ? calls.map((call) => ignoring(call).split(' ')) : [],
+        looked  : ignore.split(' ').filter(Boolean).map((id) => `advisories/${id}`),
+        status  : audits ? 0 : 1,
+        stderr  : message
+      })
+    }
+  )
+
+  test('stops before any audit where gh cannot read an AUDIT_IGNORE entry', async ({ expect, scratch }) => {
+    const { commands, status } = await lift(scratch, {
+      env  : { AUDIT_IGNORE: IGNORED.join(' ') },
+      fail : `advisories/${IGNORED[1]}`
+    })
+
+    expect({
+      audited : commands.filter(([program, verb]) => program === 'bun' && verb === 'audit'),
+      status  : status
+    }).toEqual({ audited: [], status: 1 })
+  })
+
+  test('lists no advisory AUDIT_IGNORE sets aside in the row it would clear', async ({ expect, scratch }) => {
+    const ids        = ['GHSA-dddd-eeee-ffff', 'GHSA-aaaa-bbbb-cccc']
+    const calls      = Object.keys(CANNED).filter((call) => call.startsWith('bun audit '))
+    const suffix     = ids.map((id) => ` --ignore=${id}`).join('')
+    const ignoring   = (call: string): string => call.replace(/ --json$/, `${suffix} --json`)
+    const { stdout } = await lift(scratch, {
+      env    : { AUDIT_IGNORE: ` ${ids.join('   ')} ` },
+      live   : {
+        ...LIVE,
+        ...Object.fromEntries(ids.map((id) => [`advisories/${id}`, { vulnerabilities: [] }]))
+      },
+      canned : {
+        ...Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
+        [ignoring('bun audit --cwd site --json')]: json(ADVISORIES, 1)
+      }
+    })
+
+    expect(row(stdout, 'vitest')[5]).toBe('')
+  })
 })

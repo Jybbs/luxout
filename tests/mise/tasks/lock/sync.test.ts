@@ -6,8 +6,9 @@ import { type SyncRun, sync } from '../../../common/sync.js'
 
 const BAKE = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
   .map((dir) => ['bun', 'install', '--cwd', dir, '--lockfile-only'])
-const LOCK = [['mise', 'lock'], ['mise', 'ls', '--json', '--local', '--missing']]
-const VET  = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }
+const MISSING = ['mise', 'ls', '--json', '--missing', '--no-global']
+const VET     = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }
+const LOCK    = [['mise', 'lock'], MISSING]
 
 /**
  * Runs the task in `scratch` under stand-ins for `mise` and `bun`, where
@@ -27,7 +28,7 @@ async function relock(missing: string[], scratch: string): Promise<SyncRun> {
       ...Object.fromEntries(BAKE.map((call) => [call.join(' '), {}])),
       [['mise install', ...missing].join(' ')] : {},
       'mise lock'                              : {},
-      'mise ls --json --local --missing'       : { stdout: JSON.stringify(lacking) }
+      [MISSING.join(' ')]                      : { stdout: JSON.stringify(lacking) }
     }
   })
 }

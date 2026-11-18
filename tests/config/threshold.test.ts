@@ -58,7 +58,7 @@ it('caps the name so the serial it gives fits the length SerialNumber accepts', 
 })
 
 it.each([
-  'Dark Outside', 'Café 2', "Jo's Porch, East", 'D', ' Dusk', 'Dusk!', 'Dusk 🌙'
+  'Dark Outside', 'Café 2', "Jo's Porch, East", 'D', '7', '!', ' Dusk', 'Dusk!', 'Dusk 🌙'
 ])('accepts the name %s only where HAP-NodeJS accepts it', (name) => {
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 

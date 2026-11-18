@@ -24,7 +24,7 @@ for seed in tests/vet/*; do
   install_seed "$seed" "$release"
   mkdir -p "$plugin"
   tar --directory "$plugin" --extract --file "$tarball" --strip-components 1
-  cp bun.lock bunfig.toml "$plugin"
+  cp bun.lock "$plugin"
   bun install --cwd "$plugin" --frozen-lockfile --production
   releases+=("$release")
 done
