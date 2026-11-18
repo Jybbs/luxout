@@ -4,7 +4,7 @@ import { readFile }     from 'node:fs/promises'
 import { join }         from 'node:path'
 import { parseEnv }     from 'node:util'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
@@ -82,7 +82,7 @@ const release = (draft: boolean, tag: string) => ({
 })
 
 describe.concurrent('gha:cut', () => {
-  test('cuts nothing where a push leaves the version where HEAD~1 had it', async ({ scratch }) => {
+  test('cuts nothing where a push leaves the version where HEAD~1 had it', async ({ expect, scratch }) => {
     expect(await cut(scratch, ['0.1.0', '0.1.0'])).toEqual({
       calls   : [],
       outputs : { state: 'unmoved', version: '0.1.0' },
@@ -92,7 +92,7 @@ describe.concurrent('gha:cut', () => {
     })
   })
 
-  test('creates a draft where the version moved and no release carries it', async ({ scratch }) => {
+  test('creates a draft where the version moved and no release carries it', async ({ expect, scratch }) => {
     expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages: [[release(false, '0.1.0')]] })).toEqual({
       calls   : [LISTING, create('0.2.0')],
       outputs : { state: 'created', url: ADDRESS, version: '0.2.0' },
@@ -102,7 +102,7 @@ describe.concurrent('gha:cut', () => {
     })
   })
 
-  test('creates a draft on a dispatched run whose version did not move', async ({ scratch }) => {
+  test('creates a draft on a dispatched run whose version did not move', async ({ expect, scratch }) => {
     const { calls, outputs } = await cut(scratch, ['0.1.0', '0.1.0'], { event: 'workflow_dispatch' })
 
     expect({ calls, outputs }).toEqual({
@@ -112,6 +112,7 @@ describe.concurrent('gha:cut', () => {
   })
 
   test('leaves a draft already carrying the version untouched and reports its address', async ({
+    expect,
     scratch
   }) => {
     const draft = release(true, '0.2.0')
@@ -130,7 +131,7 @@ describe.concurrent('gha:cut', () => {
     { order: 'before', pages: [[release(false, '0.2.0'), release(true, '0.2.0')]] }
   ])(
     'skips the cut with a warning where a release listed $order a draft is published',
-    async ({ pages }, { scratch }) => {
+    async ({ pages }, { expect, scratch }) => {
       expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages })).toEqual({
         calls   : [LISTING],
         outputs : { state: 'published', url: release(false, '0.2.0').html_url, version: '0.2.0' },
@@ -141,7 +142,10 @@ describe.concurrent('gha:cut', () => {
     }
   )
 
-  test('reads a release carrying the version off a later page of the listing', async ({ scratch }) => {
+  test('reads a release carrying the version off a later page of the listing', async ({
+    expect,
+    scratch
+  }) => {
     const draft = release(true, '0.2.0')
 
     const { calls, outputs } = await cut(scratch, ['0.1.0', '0.2.0'], {
@@ -154,13 +158,13 @@ describe.concurrent('gha:cut', () => {
     })
   })
 
-  test('fails without creating a draft where reading the releases fails', async ({ scratch }) => {
+  test('fails without creating a draft where reading the releases fails', async ({ expect, scratch }) => {
     const { calls, outputs, status } = await cut(scratch, ['0.1.0', '0.2.0'], { fail: 'api' })
 
     expect({ calls, outputs, status }).toEqual({ calls: [LISTING], outputs: { version: '0.2.0' }, status: 1 })
   })
 
-  test('fails without reporting a state where creating the draft fails', async ({ scratch }) => {
+  test('fails without reporting a state where creating the draft fails', async ({ expect, scratch }) => {
     const { calls, outputs, status } = await cut(scratch, ['0.1.0', '0.2.0'], { fail: 'release' })
 
     expect({ calls, outputs, status }).toEqual({
@@ -170,7 +174,10 @@ describe.concurrent('gha:cut', () => {
     })
   })
 
-  test('fails before reading a release where the checkout has no HEAD~1 to compare', async ({ scratch }) => {
+  test('fails before reading a release where the checkout has no HEAD~1 to compare', async ({
+    expect,
+    scratch
+  }) => {
     const { calls, outputs, status } = await cut(scratch, ['0.1.0'])
 
     expect({ calls, failed: status !== 0, outputs }).toEqual({
@@ -180,7 +187,10 @@ describe.concurrent('gha:cut', () => {
     })
   })
 
-  test('fails before reading a release on a run from a branch other than main', async ({ scratch }) => {
+  test('fails before reading a release on a run from a branch other than main', async ({
+    expect,
+    scratch
+  }) => {
     expect(await cut(scratch, ['0.1.0', '0.2.0'], { event: 'workflow_dispatch', ref: 'next' })).toEqual({
       calls   : [],
       outputs : {},

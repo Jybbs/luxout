@@ -1,5 +1,5 @@
 /** @module-tag spawns */
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test }        from '../../../common/scratch.js'
 import { type SyncRun, sync } from '../../../common/sync.js'
@@ -34,6 +34,7 @@ async function relock(missing: string[], scratch: string): Promise<SyncRun> {
 
 describe.concurrent('lock:sync', () => {
   test('locks mise first and installs each missing tool before any Bun package relocks', async ({
+    expect,
     scratch
   }) => {
     expect(await relock(['bun', 'zizmor'], scratch)).toMatchObject({
@@ -42,7 +43,10 @@ describe.concurrent('lock:sync', () => {
     })
   })
 
-  test('installs nothing where no tool the local mise config pins is missing', async ({ scratch }) => {
+  test('installs nothing where no tool the local mise config pins is missing', async ({
+    expect,
+    scratch
+  }) => {
     expect(await relock([], scratch)).toMatchObject({ commands: [...LOCK, ...BAKE], status: 0 })
   })
 })

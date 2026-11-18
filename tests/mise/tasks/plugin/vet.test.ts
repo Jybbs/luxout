@@ -4,7 +4,7 @@ import { mkdir, readFile, readdir, symlink } from 'node:fs/promises'
 import { join }                              from 'node:path'
 import { promisify }                         from 'node:util'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test }   from '../../../common/scratch.js'
 import { sync }          from '../../../common/sync.js'
@@ -148,6 +148,7 @@ async function vet(cwd: string, scratch: string) {
 
 describe.concurrent('plugin:vet', () => {
   test('passes a plugin importing its dependencies and what both releases export, removing the area', async ({
+    expect,
     scratch
   }) => {
     const { left, status, stored, verdicts } = await vet(await checkout(scratch, CONTROL), scratch)
@@ -177,7 +178,7 @@ describe.concurrent('plugin:vet', () => {
     }
   ])(
     'fails a plugin importing $name under each release lacking it, keeping the storage',
-    async ({ floor, message, pinned, source }, { scratch }) => {
+    async ({ floor, message, pinned, source }, { expect, scratch }) => {
       const { status, stdout, stored, verdicts } = await vet(await checkout(scratch, source), scratch)
 
       expect({ status, stdout, stored, verdicts }).toEqual({
@@ -191,7 +192,7 @@ describe.concurrent('plugin:vet', () => {
 
   test(
     'fails before installing where the test area lies inside a checkout reached through a symlink',
-    async ({ scratch }) => {
+    async ({ expect, scratch }) => {
       const link = join(scratch, 'link')
 
       await symlink(scratch, link)

@@ -2,7 +2,7 @@
 import { cp, readFile, readdir } from 'node:fs/promises'
 import { delimiter, join }       from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
 import { spawned }     from '../../../common/sync.js'
@@ -48,7 +48,10 @@ async function pack(files: Record<string, string>, scratch: string, env: NodeJS.
 }
 
 describe.concurrent('plugin:pack', () => {
-  test('copies the README to the root, prints the files, and imports the package', async ({ scratch }) => {
+  test('copies the README to the root, prints the files, and imports the package', async ({
+    expect,
+    scratch
+  }) => {
     const { status, stdout } = await pack(PACKAGE, scratch)
 
     expect({ readme: await readFile(join(scratch, 'README.md'), 'utf8'), status, stdout }).toEqual({
@@ -60,7 +63,7 @@ describe.concurrent('plugin:pack', () => {
     })
   })
 
-  test('makes the directory it installs the tarball into under TMPDIR', async ({ scratch }) => {
+  test('makes the directory it installs the tarball into under TMPDIR', async ({ expect, scratch }) => {
     const tmpdir = join(scratch, 'file')
 
     const { status, stderr } = await pack({ ...PACKAGE, file: '' }, scratch, { TMPDIR: tmpdir })
@@ -68,13 +71,13 @@ describe.concurrent('plugin:pack', () => {
     expect({ status, stderr }).toEqual({ status: 1, stderr: expect.stringContaining(tmpdir) })
   })
 
-  test('removes the directory it installs the tarball into', async ({ scratch }) => {
+  test('removes the directory it installs the tarball into', async ({ expect, scratch }) => {
     await pack(PACKAGE, scratch)
 
     expect((await readdir(scratch)).filter((entry) => entry.startsWith('tmp.'))).toEqual([])
   })
 
-  test('installs the tarball without running its install scripts', async ({ scratch }) => {
+  test('installs the tarball without running its install scripts', async ({ expect, scratch }) => {
     const manifest = JSON.stringify({ ...MANIFEST, scripts: { postinstall: 'exit 1' } })
 
     const { status } = await pack({ ...PACKAGE, 'package.json': manifest }, scratch)
@@ -82,7 +85,7 @@ describe.concurrent('plugin:pack', () => {
     expect(status).toBe(0)
   })
 
-  test('fails a package whose main imports a file the tarball leaves out', async ({ scratch }) => {
+  test('fails a package whose main imports a file the tarball leaves out', async ({ expect, scratch }) => {
     const files = {
       ...PACKAGE,
       'dist/index.js' : "export { default } from '../lib/plugin.js'\n",
@@ -97,7 +100,7 @@ describe.concurrent('plugin:pack', () => {
   test.for([
     { key: 'repository', value: 'https://example.com/luxout' },
     { key: 'types', value: 'dist/index.d.ts' }
-  ])('fails where publint reports pkg.$key', async ({ key, value }, { scratch }) => {
+  ])('fails where publint reports pkg.$key', async ({ key, value }, { expect, scratch }) => {
     const manifest = JSON.stringify({ ...MANIFEST, [key]: value })
 
     const { status, stdout } = await pack({ ...PACKAGE, 'package.json': manifest }, scratch)
@@ -105,7 +108,7 @@ describe.concurrent('plugin:pack', () => {
     expect({ status, stdout }).toEqual({ status: 1, stdout: expect.stringContaining(`pkg.${key}`) })
   })
 
-  test('fails a tarball whose files leave out README.md', async ({ scratch }) => {
+  test('fails a tarball whose files leave out README.md', async ({ expect, scratch }) => {
     await cp(join(import.meta.dirname, '..', '..', 'fixtures', 'npm.sh'), join(scratch, 'bin', 'npm'))
 
     expect(await pack(PACKAGE, scratch)).toEqual({
@@ -123,7 +126,7 @@ describe.concurrent('plugin:pack', () => {
       reason : 'the settings page cannot search for a location or show the generated form below it'
     },
     { file: 'dist/ui/server.js', reason: 'the settings page has no server script to answer it' }
-  ])('fails a tarball leaving out $file', async ({ file, reason }, { scratch }) => {
+  ])('fails a tarball leaving out $file', async ({ file, reason }, { expect, scratch }) => {
     const files = Object.fromEntries(Object.entries(PACKAGE).filter(([path]) => path !== file))
 
     const { status, stderr } = await pack(files, scratch)
@@ -131,7 +134,10 @@ describe.concurrent('plugin:pack', () => {
     expect({ status, stderr }).toEqual({ status: 1, stderr: `The tarball holds no ${file}, so ${reason}\n` })
   })
 
-  test('looks for the settings page under the customUiPath config.schema.json names', async ({ scratch }) => {
+  test('looks for the settings page under the customUiPath config.schema.json names', async ({
+    expect,
+    scratch
+  }) => {
     const schema = JSON.stringify({ customUiPath: './dist/page' })
 
     const { status, stderr } = await pack({ ...PACKAGE, 'config.schema.json': schema }, scratch)
@@ -143,7 +149,7 @@ describe.concurrent('plugin:pack', () => {
     })
   })
 
-  test('passes a settings page packed under another customUiPath', async ({ scratch }) => {
+  test('passes a settings page packed under another customUiPath', async ({ expect, scratch }) => {
     const moved  = Object.entries(PACKAGE).map(([file, text]) =>
       [file.replace('dist/ui/', 'dist/page/'), text]
     )
@@ -155,15 +161,20 @@ describe.concurrent('plugin:pack', () => {
   })
 
   test.for([
-    { script: '', what: 'stops before it sends its ready message' },
-    { script: 'setInterval(() => {}, 1000)\n', what: 'never sends its ready message' }
-  ])('fails a server script that $what', async ({ script }, { scratch }) => {
+    { env: {}, script: '', seconds: '10', what: 'stops before it sends its ready message' },
+    {
+      env     : { PACK_READY_SECONDS: '0.1' },
+      script  : 'setInterval(() => {}, 1000)\n',
+      seconds : '0.1',
+      what    : 'never sends its ready message'
+    }
+  ])('fails a server script that $what', async ({ env, script, seconds }, { expect, scratch }) => {
     const files              = { ...PACKAGE, 'dist/ui/server.js': script }
-    const { status, stderr } = await pack(files, scratch, { PACK_READY_SECONDS: '0.1' })
+    const { status, stderr } = await pack(files, scratch, env)
 
     expect({ status, stderr }).toEqual({
       status : 1,
-      stderr : expect.stringContaining('The server script sent no ready message within 0.1 seconds\n')
+      stderr : expect.stringContaining(`The server script sent no ready message within ${seconds} seconds\n`)
     })
   })
 })

@@ -1,5 +1,5 @@
 /** @module-tag spawns */
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
@@ -14,6 +14,7 @@ const VET = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.
 
 describe.concurrent('lock:check', () => {
   test('checks the Bun lockfile of every package .mise/lib/lock.sh lists before the mise lockfile', async ({
+    expect,
     scratch
   }) => {
     await plant(scratch, { ...VET, '.mise/mise.lock': 'locked\n' })

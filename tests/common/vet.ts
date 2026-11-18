@@ -39,8 +39,10 @@ export const BUILT = {
 /**
  * The waits a case runs on:
  *
- * - `start`, long enough for a stand-in to listen on a busy machine
+ * - `grace`, for a stand-in to exit after `SIGTERM`
  * - `observe`, long enough for the acts a stand-in takes once it listens
+ * - `settle`, for a second start to run before it is stopped
+ * - `start`, long enough for a stand-in to listen on a busy machine
  */
 export const TUNING = { grace: 3_000, observe: 200, settle: 100, start: 4_000 }
 const cache         = join(import.meta.dirname, '..', '..', '.cache')

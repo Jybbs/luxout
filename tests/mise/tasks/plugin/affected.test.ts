@@ -2,7 +2,7 @@
 import { existsSync } from 'node:fs'
 import { join }       from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { ARGS, BASE, MERGE, affected, canned } from '../../../common/affected.js'
 import { test }                                from '../../../common/scratch.js'
@@ -100,11 +100,12 @@ function selected(
 }
 
 describe.concurrent('plugin:affected', () => {
-  test('takes the alias affected', async () => {
+  test('takes the alias affected', async ({ expect }) => {
     expect(await info('plugin:affected')).toMatchObject({ aliases: ['affected'] })
   })
 
   test('runs plugin:test against the merge base, passing every further argument to Vitest', async ({
+    expect,
     scratch
   }) => {
     expect(await canned(scratch, PLUGIN, 'plugin:affected'))
@@ -114,7 +115,7 @@ describe.concurrent('plugin:affected', () => {
   test.for([
     { commands: [MERGE], failing: MERGE, name: '`git merge-base`' },
     { commands: [MERGE, PLUGIN], failing: PLUGIN, name: '`plugin:test`' }
-  ])('fails once $name fails', async ({ commands, failing }, { scratch }) => {
+  ])('fails once $name fails', async ({ commands, failing }, { expect, scratch }) => {
     expect(await canned(scratch, PLUGIN, 'plugin:affected', failing)).toMatchObject({ commands, status: 1 })
   })
 
@@ -152,7 +153,7 @@ describe.concurrent('plugin:affected', () => {
     { changed: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true },
     { changed: 'tests/vet/floor/bun.lock', name: 'runs every plugin test', ran: true },
     { changed: 'tests/vitest.config.ts', name: 'runs every plugin test', ran: true }
-  ])('$name where a branch changes only $changed', async ({ changed, ran }, { scratch }) => {
+  ])('$name where a branch changes only $changed', async ({ changed, ran }, { expect, scratch }) => {
     expect(await selected(changed, scratch)).toEqual({ ran, status: 0 })
   })
 
@@ -163,7 +164,7 @@ describe.concurrent('plugin:affected', () => {
     { deleted: 'src/package.json', name: 'runs every plugin test', ran: true },
     { deleted: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
     { deleted: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true }
-  ])('$name where a branch deletes only $deleted', async ({ deleted, ran }, { scratch }) => {
+  ])('$name where a branch deletes only $deleted', async ({ deleted, ran }, { expect, scratch }) => {
     expect(await selected(deleted, scratch, true)).toEqual({ ran, status: 0 })
     expect(existsSync(join(scratch, 'repo', deleted))).toBe(false)
   })
@@ -179,7 +180,7 @@ describe.concurrent('plugin:affected', () => {
     { changed: 'src/package.json', name: 'runs every plugin test', ran: true }
   ])(
     '$name where a branch changes only $changed in a checkout under luxout (old)',
-    async ({ changed, ran }, { scratch }) => {
+    async ({ changed, ran }, { expect, scratch }) => {
       expect(await selected(changed, scratch, false, 'luxout (old)')).toEqual({ ran, status: 0 })
     }
   )

@@ -1,5 +1,5 @@
 /** @module-tag spawns */
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { test }                     from '../../../common/scratch.js'
 import { type SyncRun, info, sync } from '../../../common/sync.js'
@@ -22,21 +22,24 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
 }
 
 describe.concurrent('repo:check', () => {
-  test('runs the type and lint checks of the plugin and the site before its own body', async () => {
+  test('runs the type and lint checks of the plugin and the site before its own body', async ({ expect }) => {
     expect(await info('repo:check')).toMatchObject({
       aliases : ['check'],
       depends : ['plugin:lint', 'plugin:typecheck', 'site:lint', 'site:typecheck']
     })
   })
 
-  test('runs the plugin tests and then the site tests a branch reaches', async ({ scratch }) => {
+  test('runs the plugin tests and then the site tests a branch reaches', async ({ expect, scratch }) => {
     expect(await run(scratch)).toMatchObject({ commands: [PLUGIN, SITE], status: 0 })
   })
 
   test.for([
     { commands: [PLUGIN], failing: PLUGIN, name: '`plugin:affected`' },
     { commands: [PLUGIN, SITE], failing: SITE, name: '`site:affected`' }
-  ])('fails and runs nothing further once $name fails', async ({ commands, failing }, { scratch }) => {
+  ])('fails and runs nothing further once $name fails', async ({ commands, failing }, {
+    expect,
+    scratch
+  }) => {
     expect(await run(scratch, failing)).toMatchObject({ commands, status: 1 })
   })
 })

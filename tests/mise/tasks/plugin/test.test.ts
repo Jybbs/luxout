@@ -2,7 +2,7 @@
 import { cp }   from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { test } from '../../../common/scratch.js'
 import { sync } from '../../../common/sync.js'
@@ -39,12 +39,15 @@ async function run(
 }
 
 describe.concurrent('plugin:test', () => {
-  test('runs Vitest with every argument where the task declares no release of Node', async ({ scratch }) => {
+  test('runs Vitest with every argument where the task declares no release of Node', async ({
+    expect,
+    scratch
+  }) => {
     expect(await run('plugin:test', 'v26.10.0', scratch, {}))
       .toEqual({ status: 0, stderr: '', vitest: VITEST })
   })
 
-  test('runs Vitest where the running Node is the release the task declares', async ({ scratch }) => {
+  test('runs Vitest where the running Node is the release the task declares', async ({ expect, scratch }) => {
     expect(await run('plugin:test:24', 'v24.21.0', scratch, { node: '24.21.0' }))
       .toEqual({ status: 0, stderr: '', vitest: VITEST })
   })
@@ -53,12 +56,12 @@ describe.concurrent('plugin:test', () => {
     { name: 'another release of Node', running: 'v26.10.0' },
     { name: 'another release of the same line', running: 'v24.21.1' },
     { name: 'a node that fails to run', running: '' }
-  ])('fails before Vitest starts where the path holds $name', async ({ running }, { scratch }) => {
+  ])('fails before Vitest starts where the path holds $name', async ({ running }, { expect, scratch }) => {
     expect(await run('plugin:test:24', running, scratch, { node: '24.21.0' }))
       .toEqual({ status: 1, stderr: MESSAGE, vitest: [] })
   })
 
-  test('fails before Vitest starts where mise cannot read the task', async ({ scratch }) => {
+  test('fails before Vitest starts where mise cannot read the task', async ({ expect, scratch }) => {
     expect(await run('plugin:test:24', 'v24.21.0', scratch)).toEqual({ status: 1, stderr: '', vitest: [] })
   })
 })

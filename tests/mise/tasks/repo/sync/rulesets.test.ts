@@ -2,7 +2,7 @@
 import { readFile } from 'node:fs/promises'
 import { join }     from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { type Call, type SyncRun, confirm, sync } from '../../../../common/sync.js'
 import { plant, test }                            from '../../../../common/scratch.js'
@@ -70,7 +70,10 @@ describe.concurrent('repo:sync:rulesets', () => {
       '.github/settings.toml'      : ''
     }
 
-    test('renames in place the live ruleset its file is named for, or creates one', async ({ scratch }) => {
+    test('renames in place the live ruleset its file is named for, or creates one', async ({
+      expect,
+      scratch
+    }) => {
       const { calls, status } = await rulesets(files, scratch, {
         live: { [RULESETS]: [[{ id: 7, name: 'main' }, { id: 8, name: 'release' }]] }
       })
@@ -85,7 +88,7 @@ describe.concurrent('repo:sync:rulesets', () => {
       })
     })
 
-    test('creates every ruleset where GitHub holds none', async ({ scratch }) => {
+    test('creates every ruleset where GitHub holds none', async ({ expect, scratch }) => {
       const { calls } = await rulesets(files, scratch)
 
       expect(calls.slice(1, 3)).toEqual([
@@ -95,6 +98,7 @@ describe.concurrent('repo:sync:rulesets', () => {
     })
 
     test('prefers the live ruleset carrying the file’s name to one named for the file', async ({
+      expect,
       scratch
     }) => {
       const { calls } = await rulesets(files, scratch, {
@@ -104,7 +108,7 @@ describe.concurrent('repo:sync:rulesets', () => {
       expect(calls[1]).toEqual(send('PUT', `${RULESETS}/9`, main, '.github/rulesets/main.json'))
     })
 
-    test('finds a live ruleset on any page of the listing', async ({ scratch }) => {
+    test('finds a live ruleset on any page of the listing', async ({ expect, scratch }) => {
       const { calls } = await rulesets(files, scratch, {
         live: { [RULESETS]: [[{ id: 1, name: 'other' }], [{ id: 2, name: 'tags' }]] }
       })
@@ -112,7 +116,7 @@ describe.concurrent('repo:sync:rulesets', () => {
       expect(calls[2]).toEqual(send('PUT', `${RULESETS}/2`, tags, '.github/rulesets/tags.json'))
     })
 
-    test('lists each live ruleset no file names rather than deleting it', async ({ scratch }) => {
+    test('lists each live ruleset no file names rather than deleting it', async ({ expect, scratch }) => {
       const pages = [
         [{ id: 1, name: 'main branch protection' }, { id: 2, name: 'legacy' }],
         [{ id: 3, name: 'x' }]
@@ -126,7 +130,7 @@ describe.concurrent('repo:sync:rulesets', () => {
       })
     })
 
-    test('sends no setting once a ruleset fails to apply', async ({ scratch }) => {
+    test('sends no setting once a ruleset fails to apply', async ({ expect, scratch }) => {
       const { requests, status } = await rulesets(files, scratch, {
         fail : 'PUT',
         live : { [RULESETS]: [[{ id: 7, name: 'main' }]] }
@@ -140,7 +144,10 @@ describe.concurrent('repo:sync:rulesets', () => {
   describe('the settings', () => {
     const ruleset = { '.github/rulesets/main.json': '{ "name": "main" }' }
 
-    test('sends every table the file declares to its endpoint, with its body', async ({ scratch }) => {
+    test('sends every table the file declares to its endpoint, with its body', async ({
+      expect,
+      scratch
+    }) => {
       const { calls, status } = await rulesets({ ...ruleset, '.github/settings.toml': SETTINGS }, scratch, {
         live: { 'repos/{owner}/{repo}': { node_id: 'R_1' }, [RULESETS]: [[{ id: 7, name: 'main' }]] }
       })
@@ -172,7 +179,10 @@ describe.concurrent('repo:sync:rulesets', () => {
       })
     })
 
-    test('sends the description, homepage, and topics where the file holds no table', async ({ scratch }) => {
+    test('sends the description, homepage, and topics where the file holds no table', async ({
+      expect,
+      scratch
+    }) => {
       const { calls } = await rulesets({ ...ruleset, '.github/settings.toml': '' }, scratch)
 
       expect(calls.slice(2, 4)).toEqual([
@@ -204,14 +214,14 @@ describe.concurrent('repo:sync:rulesets', () => {
         named : 'repos/{owner}/{repo}.has_wiki',
         text  : '["repos/{owner}/{repo}"]\nhas_wiki = { status = "enabled" }'
       }
-    ])('sends nothing where the file declares $name', async ({ named, text }, { scratch }) => {
+    ])('sends nothing where the file declares $name', async ({ named, text }, { expect, scratch }) => {
       const { calls, status, stderr } = await rulesets({ ...ruleset, '.github/settings.toml': text }, scratch)
 
       expect({ calls, named: stderr.includes(`\n  ${named}\n`), status })
         .toEqual({ calls: [], named: true, status: 1 })
     })
 
-    test('sends no further setting once one fails to send', async ({ scratch }) => {
+    test('sends no further setting once one fails to send', async ({ expect, scratch }) => {
       const files                = { ...ruleset, '.github/settings.toml': SETTINGS }
       const { requests, status } = await rulesets(files, scratch, { fail: 'PATCH' })
 
@@ -219,7 +229,7 @@ describe.concurrent('repo:sync:rulesets', () => {
         .toEqual({ endpoints: [RULESETS, RULESETS, 'repos/{owner}/{repo}'], failed: true })
     })
 
-    test('sends nothing where the file fails to parse', async ({ scratch }) => {
+    test('sends nothing where the file fails to parse', async ({ expect, scratch }) => {
       const { calls, status } = await rulesets(
         { ...ruleset, '.github/settings.toml': 'has_wiki = [\n' },
         scratch
@@ -230,6 +240,7 @@ describe.concurrent('repo:sync:rulesets', () => {
   })
 
   test('asks before writing when run as rulesets, failing with no terminal to answer', async ({
+    expect,
     scratch
   }) => {
     expect(await confirm('rulesets', scratch, 'repo:sync:rulesets')).toEqual({ asked: true, status: 1 })

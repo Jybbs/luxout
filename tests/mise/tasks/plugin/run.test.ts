@@ -2,7 +2,7 @@
 import { readFile, readdir, readlink } from 'node:fs/promises'
 import { basename, join }              from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test }        from '../../../common/scratch.js'
 import { type SyncRun, sync } from '../../../common/sync.js'
@@ -64,7 +64,10 @@ describe.concurrent('plugin:run', () => {
     { planted: { [config]: 'paired\n' },                       what: 'a config' },
     { planted: { [startup]: 'edited\n' },                      what: 'startup options' },
     { planted: { [config]: 'paired\n', [startup]: 'edited\n' }, what: 'both' }
-  ])('copies only the seed files missing from storage that holds $what', async ({ planted }, { scratch }) => {
+  ])('copies only the seed files missing from storage that holds $what', async ({ planted }, {
+    expect,
+    scratch
+  }) => {
     await run(scratch, { planted })
 
     expect(await read(scratch, config, startup)).toEqual([
@@ -75,7 +78,7 @@ describe.concurrent('plugin:run', () => {
 
   test(
     'installs the UI, then runs hb-service with the links, the storage, and every further argument',
-    async ({ scratch }) => {
+    async ({ expect, scratch }) => {
       const cache   = join(scratch, CACHE)
       const plugins = join(cache, 'plugins')
       const storage = join(cache, 'storage')
@@ -94,6 +97,7 @@ describe.concurrent('plugin:run', () => {
   )
 
   test('installs from fresh copies of the manifest, the bunfig, and the lockfile on every run', async ({
+    expect,
     scratch
   }) => {
     await run(scratch, { planted: { [`${CACHE}/bun.lock`]: 'stale\n' } })
@@ -103,6 +107,7 @@ describe.concurrent('plugin:run', () => {
   })
 
   test('links the checkout, its Homebridge, and the installed UI as the only plugins', async ({
+    expect,
     scratch
   }) => {
     const plugins = join(scratch, CACHE, 'plugins')
@@ -121,6 +126,7 @@ describe.concurrent('plugin:run', () => {
   })
 
   test('replaces each link on a later run rather than writing a link inside the checkout', async ({
+    expect,
     scratch
   }) => {
     await run(scratch)
@@ -133,6 +139,7 @@ describe.concurrent('plugin:run', () => {
   })
 
   test('passes a checkout path holding a space whole to bun, hb-service, and the plugin link', async ({
+    expect,
     scratch
   }) => {
     const checkout = join(scratch, 'holds a space')
@@ -156,7 +163,7 @@ describe.concurrent('plugin:run', () => {
     })
   })
 
-  test('starts no Homebridge where the UI fails to install', async ({ scratch }) => {
+  test('starts no Homebridge where the UI fails to install', async ({ expect, scratch }) => {
     const { commands, status } = await run(scratch, { failing: true })
 
     expect({ programs: commands.map(([program]) => program), status })

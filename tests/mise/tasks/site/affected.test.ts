@@ -2,7 +2,7 @@
 import { existsSync } from 'node:fs'
 import { join }       from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { ARGS, BASE, MERGE, affected, canned } from '../../../common/affected.js'
 import { test }                                from '../../../common/scratch.js'
@@ -66,6 +66,7 @@ function selected(
 
 describe.concurrent('site:affected', () => {
   test('runs site:test against the merge base, passing every further argument to Vitest', async ({
+    expect,
     scratch
   }) => {
     expect(await canned(scratch, SITE, 'site:affected')).toMatchObject({ commands: [MERGE, SITE], status: 0 })
@@ -74,7 +75,7 @@ describe.concurrent('site:affected', () => {
   test.for([
     { commands: [MERGE], failing: MERGE, name: '`git merge-base`' },
     { commands: [MERGE, SITE], failing: SITE, name: '`site:test`' }
-  ])('fails once $name fails', async ({ commands, failing }, { scratch }) => {
+  ])('fails once $name fails', async ({ commands, failing }, { expect, scratch }) => {
     expect(await canned(scratch, SITE, 'site:affected', failing)).toMatchObject({ commands, status: 1 })
   })
 
@@ -93,7 +94,7 @@ describe.concurrent('site:affected', () => {
     { changed: 'site/package.json', name: 'runs every site test', ran: true },
     { changed: 'src/tsconfig.json', name: 'runs every site test', ran: true },
     { changed: 'src/ui/public/tsconfig.json', name: 'runs every site test', ran: true }
-  ])('$name where a branch changes only $changed', async ({ changed, ran }, { scratch }) => {
+  ])('$name where a branch changes only $changed', async ({ changed, ran }, { expect, scratch }) => {
     expect(await selected(changed, scratch)).toEqual({ ran, status: 0 })
   })
 
@@ -102,7 +103,7 @@ describe.concurrent('site:affected', () => {
     { deleted: 'site/.vitepress/tsconfig.json', name: 'runs every site test', ran: true },
     { deleted: 'site/package.json', name: 'runs every site test', ran: true },
     { deleted: 'src/ui/public/tsconfig.json', name: 'runs every site test', ran: true }
-  ])('$name where a branch deletes only $deleted', async ({ deleted, ran }, { scratch }) => {
+  ])('$name where a branch deletes only $deleted', async ({ deleted, ran }, { expect, scratch }) => {
     expect(await selected(deleted, scratch, true)).toEqual({ ran, status: 0 })
     expect(existsSync(join(scratch, 'repo', deleted))).toBe(false)
   })
@@ -120,7 +121,7 @@ describe.concurrent('site:affected', () => {
     { changed: 'src/ui/public/tsconfig.json', name: 'runs every site test', ran: true }
   ])(
     '$name where a branch changes only $changed in a checkout under luxout (old)',
-    async ({ changed, ran }, { scratch }) => {
+    async ({ changed, ran }, { expect, scratch }) => {
       expect(await selected(changed, scratch, false, 'luxout (old)')).toEqual({ ran, status: 0 })
     }
   )

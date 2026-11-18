@@ -2,7 +2,7 @@
 import { copyFile, readFile, readdir, symlink } from 'node:fs/promises'
 import { join }                                 from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
@@ -10,7 +10,10 @@ import { sync }        from '../../../common/sync.js'
 const root = join(import.meta.dirname, '..', '..', '..', '..')
 
 describe.concurrent('plugin:build', () => {
-  test('bundles the settings page’s script with its packages beside the page', async ({ scratch }) => {
+  test('bundles the settings page’s script with its packages beside the page', async ({
+    expect,
+    scratch
+  }) => {
     await plant(scratch, {
       'package.json'             : '{ "type": "module" }',
       'src/index.ts'             : 'export const lux = 1\n',
@@ -32,7 +35,7 @@ describe.concurrent('plugin:build', () => {
     expect(await readFile(join(page, 'index.js'), 'utf8')).not.toMatch(/@zag-js\//)
   })
 
-  test('leaves no dist behind a compile that fails', async ({ scratch }) => {
+  test('leaves no dist behind a compile that fails', async ({ expect, scratch }) => {
     await plant(scratch, {
       'dist/index.js' : '',
       'package.json'  : '{ "type": "module" }',
