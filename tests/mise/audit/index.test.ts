@@ -1,11 +1,11 @@
 /** @module-tag spawns */
-import { execFileSync, spawnSync } from 'node:child_process'
-import { chmod }                   from 'node:fs/promises'
-import { join }                    from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { chmod }     from 'node:fs/promises'
+import { join }      from 'node:path'
 
 import { expect } from 'vitest'
 
-import { plant, test } from '../../common/scratch.js'
+import { plant, repository, test } from '../../common/scratch.js'
 
 const entry = join(import.meta.dirname, '..', '..', '..', '.mise', 'audit', 'index.ts')
 
@@ -21,8 +21,7 @@ test('runs under Node’s type stripping and exits 1 on the annotations it print
     'tests/vet/pinned/package.json' : '{}'
   })
   await chmod(join(scratch, '.mise', 'tasks', 'plugin', 'bake'), 0o755)
-  execFileSync('git', ['init', '--quiet'], { cwd: scratch })
-  execFileSync('git', ['add', 'src/long.ts'], { cwd: scratch })
+  repository(scratch)('add', 'src/long.ts')
 
   const { status, stdout } = spawnSync(process.execPath, [entry], {
     cwd      : scratch,

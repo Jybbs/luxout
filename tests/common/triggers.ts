@@ -10,11 +10,13 @@ import stripJsonComments      from 'strip-json-comments'
 import type { Vitest }        from 'vitest/node'
 
 /**
- * The modules a module imports, beside the paths its strings spell.
+ * The modules a module imports, beside the paths its strings spell and the
+ * root of the VitePress site whose pages it reads, per `site`.
  */
 interface Scan {
   imports   : string[]
   spellings : string[]
+  site?     : string
 }
 
 /**
@@ -23,6 +25,13 @@ interface Scan {
 interface Tsconfig {
   extends?    : string | string[]
   references? : { path: string }[]
+}
+
+/**
+ * The function of VitePress's node API that resolves the pages of a site.
+ */
+interface VitePress {
+  resolveConfig: (root: string, command: 'build') => Promise<{ pages: string[], srcDir: string }>
 }
 
 const BREAKS    = /[\s"'`=;|&<>(){}]+/
@@ -34,6 +43,7 @@ const RESOLVING = {
   symlinks       : false
 }
 const SCRIPT = /\.[cm]?[jt]sx?$/
+const SITE   = `${sep}.vitepress${sep}`
 const TASK   = /^[\w-]+(?::[\w-]+)+$/
 
 /**
@@ -66,13 +76,7 @@ function extended(base: string, dir: string, extender: Experimental.ResolverFact
     return named(resolve(dir, base))
   }
 
-  const { error, path } = extender.sync(dir, base)
-
-  if (path === undefined) {
-    throw new Error(`${base} in ${dir}: ${error}`)
-  }
-
-  return path
+  return located(dir, base, extender)
 }
 
 /**
@@ -107,6 +111,20 @@ function imports(
   return [...requests]
     .map((request) => resolver.sync(dirname(file), request).path)
     .filter((path) => path !== undefined)
+}
+
+/**
+ * Resolves `request` through `resolver` from `dir`, failing where nothing
+ * resolves.
+ */
+function located(dir: string, request: string, resolver: Experimental.ResolverFactory): string {
+  const { error, path } = resolver.sync(dir, request)
+
+  if (path === undefined) {
+    throw new Error(`${request} in ${dir}: ${error}`)
+  }
+
+  return path
 }
 
 /**
@@ -193,6 +211,18 @@ function names(file: string, spelling: string): boolean {
 }
 
 /**
+ * Lists the path of each page VitePress resolves for the site at `site`,
+ * through the `resolveConfig` of the `vitepress` that `resolver` finds there.
+ */
+async function pages(resolver: Experimental.ResolverFactory, site: string): Promise<string[]> {
+  const path              = located(site, 'vitepress', resolver)
+  const { resolveConfig } = await import(pathToFileURL(path).href) as VitePress
+  const config            = await resolveConfig(site, 'build')
+
+  return config.pages.map((page) => join(config.srcDir, page))
+}
+
+/**
  * Maps each program Git tracks under `top` to the paths its text spells, glob
  * tokens aside, where a program is a file Git records as executable or a `.sh`
  * file.
@@ -217,9 +247,11 @@ function programs(top: string): Map<string, string[]> {
 
 /**
  * Lists each test file `include` matches under `root` that reads one of
- * `changed` by path. A test reads a file where its own source, or a module it
- * imports outside `node_modules`, holds a string naming the file or a program
- * that names it in turn, per `rooted`.
+ * `changed`. A test reads a file where its own source, or a module it imports
+ * outside `node_modules`, holds a string naming the file or a program that
+ * names it in turn, per `rooted`, or reads the pages of a VitePress site the
+ * file is one of, per `site`. VitePress takes only `.md` files as pages, so a
+ * run changing none resolves no site.
  *
  * Args:
  *   changed : The absolute path of each file the branch changes.
@@ -227,12 +259,13 @@ function programs(top: string): Map<string, string[]> {
  *   root    : The suite's root directory.
  *   top     : The root of the Git checkout holding `root`.
  */
-function readers(changed: string[], include: string[], root: string, top: string): string[] {
+async function readers(changed: string[], include: string[], root: string, top: string): Promise<string[]> {
   const require = vite(root)
 
   const { ResolverFactory }    = require('rolldown/experimental') as typeof Experimental
   const { Visitor, parseSync } = require('rolldown/utils') as typeof Utils
 
+  const paged    = new Map<string, Promise<string[]>>()
   const resolver = new ResolverFactory(RESOLVING)
   const scans    = new Map<string, Scan>()
   const targets  = new Set(changed)
@@ -250,6 +283,7 @@ function readers(changed: string[], include: string[], root: string, top: string
     const text                = readFileSync(file, 'utf8')
     const { module, program } = parseSync(file, text)
     const found               = {
+      site      : site(file, module),
       spellings : rooted(strings(program, Visitor)),
       imports   : imports(file, module, resolver, text)
         .filter((path) => !lockfile(path) && SCRIPT.test(path))
@@ -260,23 +294,39 @@ function readers(changed: string[], include: string[], root: string, top: string
     return found
   }
 
-  return globSync(include, { cwd: root })
-    .map((file) => join(root, file))
-    .filter((test) => {
-      const modules = new Set([test])
+  const markdown = changed.some((file) => file.endsWith('.md'))
+  const resolved = (dir: string): Promise<string[]> => {
+    const found = paged.get(dir) ?? pages(resolver, dir)
 
-      for (const module of modules) {
-        const { imports, spellings } = scans.get(module) ?? scan(module)
+    paged.set(dir, found)
 
-        if (spellings.some((spelling) => targets.values().some((target) => names(target, spelling)))) {
-          return true
-        }
+    return found
+  }
 
-        imports.forEach((path) => modules.add(path))
+  const reads = async (test: string): Promise<boolean> => {
+    const modules = new Set([test])
+
+    for (const module of modules) {
+      const { imports, site, spellings } = scans.get(module) ?? scan(module)
+
+      if (spellings.some((spelling) => targets.values().some((target) => names(target, spelling)))) {
+        return true
       }
 
-      return false
-    })
+      if (site && markdown && (await resolved(site)).some((page) => targets.has(page))) {
+        return true
+      }
+
+      imports.forEach((path) => modules.add(path))
+    }
+
+    return false
+  }
+
+  const tests = globSync(include, { cwd: root }).map((file) => join(root, file))
+  const kept  = await Promise.all(tests.map(reads))
+
+  return tests.filter((_, index) => kept[index])
 }
 
 /**
@@ -297,6 +347,20 @@ function rooted(texts: string[]): string[] {
       ? [spelling]
       : dirs.map((dir) => `${dir}/${spelling}`)
   )
+}
+
+/**
+ * Names the root of the VitePress site whose `.vitepress` directory holds
+ * `file`, where `module` imports `resolveConfig` from `vitepress`, since the
+ * `pages` that call resolves are each a page of that site.
+ */
+function site(file: string, module: Utils.ParseResult['module']): string | undefined {
+  const root  = file.lastIndexOf(SITE)
+  const calls = module.staticImports
+    .filter(({ moduleRequest }) => moduleRequest.value === 'vitepress')
+    .some(({ entries }) => entries.some(({ importName }) => importName.name === 'resolveConfig'))
+
+  return root >= 0 && calls ? file.slice(0, root) : undefined
 }
 
 /**
@@ -388,8 +452,8 @@ function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): 
 /**
  * Creates the provider of the files a `--changed` run starts from. It lists
  * each file Git reports changed, through the commands Vitest's own provider
- * runs, beside each test file `include` matches that reads one of them by
- * path, per `readers`.
+ * runs, beside each test file `include` matches that reads one of them, per
+ * `readers`.
  */
 export function changedFiles(include: string[]): Vitest['vcs'] {
   return {
@@ -407,7 +471,7 @@ export function changedFiles(include: string[]): Vitest['vcs'] {
         .filter(Boolean)
         .map((file) => join(top, file))
 
-      return [...changed, ...readers(changed, include, root, top)]
+      return [...changed, ...await readers(changed, include, root, top)]
     }
   }
 }

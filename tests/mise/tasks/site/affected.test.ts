@@ -72,23 +72,39 @@ function selected(
 
 /**
  * Runs the task from the site of a repository under `scratch` whose branch
+ * changes only `changed`, where one site test reads each page VitePress
+ * resolves through `resolveConfig`, spelling no page path, and the site's
+ * `srcExclude` leaves out `drafts/`.
+ */
+function paged(changed: string, scratch: string): ReturnType<typeof affected> {
+  return run(changed, {
+    '.gitignore'                         : '.cache\nnode_modules\n',
+    'package.json'                       : '{ "type": "module" }\n',
+    'site/.vitepress/config.ts'          : "export default { srcExclude: ['drafts/**'] }\n",
+    'site/.vitepress/tests/site.test.ts' : "import { readFileSync } from 'node:fs'\n"
+                                         + "import { join } from 'node:path'\n\n"
+                                         + "import { resolveConfig } from 'vitepress'\n"
+                                         + "import { expect, test } from 'vitest'\n\n"
+                                         + "const site = join(import.meta.dirname, '..', '..')\n\n"
+                                         + "test('reads the pages', async () => {\n"
+                                         + '  const { pages, srcDir } = '
+                                         + "await resolveConfig(site, 'build')\n\n"
+                                         + '  expect(pages.map((page) => readFileSync(join(srcDir, page), '
+                                         + "'utf8'))).not.toContain('')\n})\n",
+    'site/drafts/note.md'                : '# Note\n',
+    'site/guide/install.md'              : '# Install\n',
+    'site/package.json'                  : '{ "type": "module" }\n'
+  }, scratch)
+}
+
+/**
+ * Runs the task from the site of a repository under `scratch` whose branch
  * changes only `changed`, where each of five site tests reads one file by
  * path. Two spell it through `new URL`, one through `join`, one through a
  * glob, and one through a glob a module it imports holds.
  */
 function read(changed: string, scratch: string): ReturnType<typeof affected> {
-  const repo     = join(scratch, 'repo')
-  const checkout = {
-    changed : changed,
-    copied  : ['site/.vitepress/vitest.config.ts'],
-    cwd     : join(repo, 'site'),
-    linked  : { 'site/node_modules': join(root, 'site', 'node_modules') },
-    repo    : repo,
-    scratch : scratch,
-    task    : 'site:affected'
-  }
-
-  return affected(checkout, {
+  return run(changed, {
     '.github/README.md'                   : '# Luxout\n',
     '.gitignore'                          : '.cache\nnode_modules\n',
     'package.json'                        : '{ "type": "module" }\n',
@@ -108,7 +124,26 @@ function read(changed: string, scratch: string): ReturnType<typeof affected> {
     'site/guide/install.md'               : '# Install\n',
     'site/package.json'                   : '{ "type": "module" }\n',
     'site/references.bib'                 : '@misc{a,}\n'
-  })
+  }, scratch)
+}
+
+/**
+ * Runs the task from the site of a repository under `scratch` holding the
+ * `planted` files, whose branch changes only `changed`.
+ */
+function run(changed: string, planted: Record<string, string>, scratch: string): ReturnType<typeof affected> {
+  const repo     = join(scratch, 'repo')
+  const checkout = {
+    changed : changed,
+    copied  : ['site/.vitepress/vitest.config.ts'],
+    cwd     : join(repo, 'site'),
+    linked  : { 'site/node_modules': join(root, 'site', 'node_modules') },
+    repo    : repo,
+    scratch : scratch,
+    task    : 'site:affected'
+  }
+
+  return affected(checkout, planted)
 }
 
 describe.concurrent('site:affected', () => {
@@ -158,6 +193,16 @@ describe.concurrent('site:affected', () => {
     '$name by path where a branch changes only $changed',
     async ({ changed, ran }, { expect, scratch }) => {
       expect(await read(changed, scratch)).toEqual({ ran, status: 0 })
+    }
+  )
+
+  test.for([
+    { changed: 'site/drafts/note.md', name: 'runs no site test', ran: false },
+    { changed: 'site/guide/install.md', name: 'runs the site test reading it', ran: true }
+  ])(
+    '$name through VitePress where a branch changes only $changed',
+    async ({ changed, ran }, { expect, scratch }) => {
+      expect(await paged(changed, scratch)).toEqual({ ran, status: 0 })
     }
   )
 
