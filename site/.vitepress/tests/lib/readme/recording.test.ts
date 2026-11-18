@@ -22,6 +22,14 @@ function delays(gif: Uint8Array): number[] {
     .map((at) => gif[at + 4]! | gif[at + 5]! << 8)
 }
 
-it('lengthens the frame before one that changes nothing and holds the last', () => {
-  expect(delays(record([square('#ff0000'), square('#ff0000'), square('#0000ff')], PACING))).toEqual([4, 102])
+it('lengthens the frame before one that changes nothing and holds the last', async () => {
+  const gif = await record([square('#ff0000'), square('#ff0000'), square('#0000ff')], PACING)
+
+  expect(delays(gif)).toEqual([4, 102])
+})
+
+it('keeps the order of frames across batches, rasterizing the frames the palette never sampled', async () => {
+  const drawings = Array.from({ length: 50 }, (_, at) => square(at === 4 ? '#0000ff' : '#ff0000'))
+
+  expect(delays(await record(drawings, PACING))).toEqual([8, 2, 190])
 })

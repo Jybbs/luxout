@@ -15,8 +15,9 @@ it('centers the rounded pair on the cell and the area that rounds to it', () => 
   const middle = cell.x + cell.width / 2
 
   expect(place.pair).toEqual([middle, middle])
-  expect(area.x + area.width / 2).toBeCloseTo(middle, 0)
-  expect(area.y + area.height / 2).toBeCloseTo(middle, 0)
+  expect([area.x + area.width / 2, area.y + area.height / 2]).toStrictEqual([middle, middle].map((v) =>
+    expect.closeTo(v, 0)
+  ))
 })
 
 it('rings the stored place on the pair, since the settings page stores the rounded figures', () => {
@@ -25,9 +26,9 @@ it('rings the stored place on the pair, since the settings page stores the round
 })
 
 it('keeps every tile inside the cell', () => {
-  expect(place.tiles.every(({ height, width, x, y }) =>
-    x >= cell.x && y >= cell.y && x + width <= cell.x + cell.width && y + height <= cell.y + cell.height
-  )).toBe(true)
+  expect(place.tiles.filter(({ height, width, x, y }) =>
+    x < cell.x || y < cell.y || x + width > cell.x + cell.width || y + height > cell.y + cell.height
+  )).toStrictEqual([])
 })
 
 it('tiles the whole cell, with no gap and no overlap', () => {

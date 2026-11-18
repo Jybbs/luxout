@@ -106,7 +106,12 @@ test('holds each run to the checks’ 30-second window and 12-second grace by de
 
   await new Vet([stub], [new Homebridge(scratch, '2.4.0')], scratch, undefined, write).run()
 
-  expect(stub.run.mock.calls[0]?.[2]).toEqual({ grace: 12_000, observe: 30_000, settle: 1_500 })
+  expect(stub.run.mock.calls[0]?.[2]).toEqual({
+    grace   : 12_000,
+    observe : 30_000,
+    settle  : 1_500,
+    start   : 30_000
+  })
 })
 
 test('draws each port clear of Homebridge’s sample bridge port and the Homebridge UI’s default port', async ({

@@ -1,5 +1,5 @@
 /** @module-tag spawns */
-import { expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test }        from '../../../common/scratch.js'
 import { type SyncRun, sync } from '../../../common/sync.js'
@@ -18,10 +18,7 @@ const LOCK    = [['mise', 'lock'], MISSING]
  * Returns:
  *   The run, whose `commands` hold each call the stand-ins received, in order.
  */
-async function relock(
-  missing : string[],
-  scratch : string
-): Promise<SyncRun> {
+async function relock(missing: string[], scratch: string): Promise<SyncRun> {
   const lacking = Object.fromEntries(missing.map((tool) => [tool, []]))
 
   await plant(scratch, { ...VET, '.mise/mise.lock': '[[tools.bun]]\nversion = "1.4.2"\n' })
@@ -36,15 +33,21 @@ async function relock(
   })
 }
 
-test('locks mise first and installs each missing tool before any Bun package relocks', async ({
-  scratch
-}) => {
-  expect(await relock(['bun', 'zizmor'], scratch)).toMatchObject({
-    commands : [...LOCK, ['mise', 'install', 'bun', 'zizmor'], ...BAKE],
-    status   : 0
+describe.concurrent('lock:sync', () => {
+  test('locks mise first and installs each missing tool before any Bun package relocks', async ({
+    expect,
+    scratch
+  }) => {
+    expect(await relock(['bun', 'zizmor'], scratch)).toMatchObject({
+      commands : [...LOCK, ['mise', 'install', 'bun', 'zizmor'], ...BAKE],
+      status   : 0
+    })
   })
-})
 
-test('installs nothing where no tool the local mise config pins is missing', async ({ scratch }) => {
-  expect(await relock([], scratch)).toMatchObject({ commands: [...LOCK, ...BAKE], status: 0 })
+  test('installs nothing where no tool the local mise config pins is missing', async ({
+    expect,
+    scratch
+  }) => {
+    expect(await relock([], scratch)).toMatchObject({ commands: [...LOCK, ...BAKE], status: 0 })
+  })
 })

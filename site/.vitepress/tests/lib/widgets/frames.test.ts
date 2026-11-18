@@ -6,28 +6,28 @@ import { expect, it }             from 'vitest'
 import { type VNode, cloneVNode } from 'vue'
 import { renderToString }         from 'vue/server-renderer'
 
-import { dayDial }                  from '../lib/daylight/day-dial.ts'
-import * as dialLens                from '../lib/daylight/dial-lens.ts'
-import { SampleDay }                from '../lib/daylight/sample-day.ts'
-import { SUNSET_WORD, SUN_LAYOUTS } from '../lib/daylight/sun-curve.ts'
-import { sunYear }                  from '../lib/daylight/sun-year.ts'
-import { twilightBridge }           from '../lib/daylight/twilight-bridge.ts'
-import { roundedPlace }             from '../lib/privacy/rounded-place.ts'
-import { PLACEMENTS }               from '../lib/widgets/placements.ts'
-import { bridgeDrawing }            from '../theme/components/daylight/bridge-drawing.tsx'
-import { dialDrawing }              from '../theme/components/daylight/dial-drawing.tsx'
-import { gapDrawing }               from '../theme/components/daylight/gap-drawing.tsx'
-import { sunDrawing }               from '../theme/components/daylight/sun-drawing.tsx'
-import { placeDrawing }             from '../theme/components/privacy/place-drawing.tsx'
-import { plotDrawing }              from '../theme/controls/plot-marks.tsx'
-import { data }                     from './common/data/daylight.ts'
-import { frameSheet }               from './common/frames.ts'
-import { framed }                   from './common/outline.ts'
+import { dayDial }                  from '../../../lib/daylight/day-dial.ts'
+import * as dialLens                from '../../../lib/daylight/dial-lens.ts'
+import { SampleDay }                from '../../../lib/daylight/sample-day.ts'
+import { SUNSET_WORD, SUN_LAYOUTS } from '../../../lib/daylight/sun-curve.ts'
+import { sunYear }                  from '../../../lib/daylight/sun-year.ts'
+import { twilightBridge }           from '../../../lib/daylight/twilight-bridge.ts'
+import { roundedPlace }             from '../../../lib/privacy/rounded-place.ts'
+import { PLACEMENTS }               from '../../../lib/widgets/placements.ts'
+import { bridgeDrawing }            from '../../../theme/components/daylight/bridge-drawing.tsx'
+import { dialDrawing }              from '../../../theme/components/daylight/dial-drawing.tsx'
+import { gapDrawing }               from '../../../theme/components/daylight/gap-drawing.tsx'
+import { sunDrawing }               from '../../../theme/components/daylight/sun-drawing.tsx'
+import { placeDrawing }             from '../../../theme/components/privacy/place-drawing.tsx'
+import { plotDrawing }              from '../../../theme/controls/plot-marks.tsx'
+import { data }                     from '../../common/data/daylight.ts'
+import { frameSheet }               from '../../common/frames.ts'
+import { framed }                   from '../../common/outline.ts'
 
 const day     = SampleDay.record()
 const { gap } = data
 const placed  = PLACEMENTS.filter(({ frame }) => frame)
-const site    = join(import.meta.dirname, '..', '..')
+const site    = join(import.meta.dirname, '..', '..', '..', '..')
 const bridge  = twilightBridge(day.sky)
 const dial    = dayDial(day)
 const year    = sunYear(day)

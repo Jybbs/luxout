@@ -48,9 +48,9 @@ it('lists the depths of twilight from the deepest up, ending at sunset', () => {
 it('nests each depth of twilight inside the one before it', () => {
   const [morning, evening] = transpose(marks.washes)
 
-  expect([...morning!, ...evening!].every(([from, to]) => from < to)).toBe(true)
-  expect(pairs(morning!).every(([outer, inner]) => outer[1] === inner[0])).toBe(true)
-  expect(pairs(evening!).every(([outer, inner]) => outer[0] === inner[1])).toBe(true)
+  expect([...morning!, ...evening!].filter(([from, to]) => from >= to)).toStrictEqual([])
+  expect(pairs(morning!).filter(([outer, inner]) => outer[1] !== inner[0])).toStrictEqual([])
+  expect(pairs(evening!).filter(([outer, inner]) => outer[0] !== inner[1])).toStrictEqual([])
 })
 
 it.each([
@@ -58,7 +58,7 @@ it.each([
   { name: 'clear sky', shares: marks.clear }
 ])('writes a share from 0 to 1 for each minute of the $name', ({ shares }) => {
   expect(shares).toHaveLength(SampleDay.MINUTES)
-  expect(shares.every((share) => share >= 0 && share <= 1)).toBe(true)
+  expect(shares.filter((share) => share < 0 || share > 1)).toStrictEqual([])
 })
 
 it('places the reading on the floor ring at midnight and off it at noon', () => {
@@ -74,7 +74,7 @@ it.each(stretches)('holds the name $name inside the dial’s drawing', ({ place 
 })
 
 it('writes each stretch’s span as two clock times', () => {
-  expect(stretches.every(({ span }) => /^\d\d:\d\d–\d\d:\d\d$/.test(span))).toBe(true)
+  expect(stretches.filter(({ span }) => !/^\d\d:\d\d–\d\d:\d\d$/.test(span))).toStrictEqual([])
 })
 
 it('gives the night’s figure as HomeKit’s floor', () => {

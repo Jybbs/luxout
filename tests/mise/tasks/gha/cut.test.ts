@@ -4,7 +4,7 @@ import { readFile }     from 'node:fs/promises'
 import { join }         from 'node:path'
 import { parseEnv }     from 'node:util'
 
-import { expect } from 'vitest'
+import { describe } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
@@ -81,108 +81,122 @@ const release = (draft: boolean, tag: string) => ({
   tag_name : tag
 })
 
-test('cuts nothing where a push leaves the version where HEAD~1 had it', async ({ scratch }) => {
-  expect(await cut(scratch, ['0.1.0', '0.1.0'])).toEqual({
-    calls   : [],
-    outputs : { state: 'unmoved', version: '0.1.0' },
-    status  : 0,
-    stderr  : '',
-    stdout  : 'Version 0.1.0 did not move since HEAD~1, so no draft is cut\n'
-  })
-})
-
-test('creates a draft where the version moved and no release carries it', async ({ scratch }) => {
-  expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages: [[release(false, '0.1.0')]] })).toEqual({
-    calls   : [LISTING, create('0.2.0')],
-    outputs : { state: 'created', url: ADDRESS, version: '0.2.0' },
-    status  : 0,
-    stderr  : '',
-    stdout  : `Created a draft release for version 0.2.0 at ${ADDRESS}\n`
-  })
-})
-
-test('creates a draft on a dispatched run whose version did not move', async ({ scratch }) => {
-  const { calls, outputs } = await cut(scratch, ['0.1.0', '0.1.0'], { event: 'workflow_dispatch' })
-
-  expect({ calls, outputs }).toEqual({
-    calls   : [LISTING, create('0.1.0')],
-    outputs : { state: 'created', url: ADDRESS, version: '0.1.0' }
-  })
-})
-
-test('leaves a draft already carrying the version untouched and reports its address', async ({ scratch }) => {
-  const draft = release(true, '0.2.0')
-
-  expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages: [[release(false, '0.1.0'), draft]] })).toEqual({
-    calls   : [LISTING],
-    outputs : { state: 'draft', url: draft.html_url, version: '0.2.0' },
-    status  : 0,
-    stderr  : '',
-    stdout  : `Version 0.2.0 already has a draft at ${draft.html_url}, so no draft is cut\n`
-  })
-})
-
-test.for([
-  { order: 'after', pages: [[release(true, '0.2.0'), release(false, '0.2.0')]] },
-  { order: 'before', pages: [[release(false, '0.2.0'), release(true, '0.2.0')]] }
-])(
-  'skips the cut with a warning where a release listed $order a draft is published',
-  async ({ pages }, { scratch }) => {
-    expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages })).toEqual({
-      calls   : [LISTING],
-      outputs : { state: 'published', url: release(false, '0.2.0').html_url, version: '0.2.0' },
+describe.concurrent('gha:cut', () => {
+  test('cuts nothing where a push leaves the version where HEAD~1 had it', async ({ expect, scratch }) => {
+    expect(await cut(scratch, ['0.1.0', '0.1.0'])).toEqual({
+      calls   : [],
+      outputs : { state: 'unmoved', version: '0.1.0' },
       status  : 0,
       stderr  : '',
-      stdout  : '::warning::Version 0.2.0 is already published, so no draft is cut\n'
+      stdout  : 'Version 0.1.0 did not move since HEAD~1, so no draft is cut\n'
     })
-  }
-)
-
-test('reads a release carrying the version off a later page of the listing', async ({ scratch }) => {
-  const draft = release(true, '0.2.0')
-
-  const { calls, outputs } = await cut(scratch, ['0.1.0', '0.2.0'], {
-    pages: [[release(false, '0.1.1')], [release(false, '0.1.0'), draft]]
   })
 
-  expect({ calls, outputs }).toEqual({
-    calls   : [LISTING],
-    outputs : { state: 'draft', url: draft.html_url, version: '0.2.0' }
+  test('creates a draft where the version moved and no release carries it', async ({ expect, scratch }) => {
+    expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages: [[release(false, '0.1.0')]] })).toEqual({
+      calls   : [LISTING, create('0.2.0')],
+      outputs : { state: 'created', url: ADDRESS, version: '0.2.0' },
+      status  : 0,
+      stderr  : '',
+      stdout  : `Created a draft release for version 0.2.0 at ${ADDRESS}\n`
+    })
   })
-})
 
-test('fails without creating a draft where reading the releases fails', async ({ scratch }) => {
-  const { calls, outputs, status } = await cut(scratch, ['0.1.0', '0.2.0'], { fail: 'api' })
+  test('creates a draft on a dispatched run whose version did not move', async ({ expect, scratch }) => {
+    const { calls, outputs } = await cut(scratch, ['0.1.0', '0.1.0'], { event: 'workflow_dispatch' })
 
-  expect({ calls, outputs, status }).toEqual({ calls: [LISTING], outputs: { version: '0.2.0' }, status: 1 })
-})
-
-test('fails without reporting a state where creating the draft fails', async ({ scratch }) => {
-  const { calls, outputs, status } = await cut(scratch, ['0.1.0', '0.2.0'], { fail: 'release' })
-
-  expect({ calls, outputs, status }).toEqual({
-    calls   : [LISTING, create('0.2.0')],
-    outputs : { version: '0.2.0' },
-    status  : 1
+    expect({ calls, outputs }).toEqual({
+      calls   : [LISTING, create('0.1.0')],
+      outputs : { state: 'created', url: ADDRESS, version: '0.1.0' }
+    })
   })
-})
 
-test('fails before reading a release where the checkout has no HEAD~1 to compare', async ({ scratch }) => {
-  const { calls, outputs, status } = await cut(scratch, ['0.1.0'])
+  test('leaves a draft already carrying the version untouched and reports its address', async ({
+    expect,
+    scratch
+  }) => {
+    const draft = release(true, '0.2.0')
 
-  expect({ calls, failed: status !== 0, outputs }).toEqual({
-    calls   : [],
-    failed  : true,
-    outputs : { version: '0.1.0' }
+    expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages: [[release(false, '0.1.0'), draft]] })).toEqual({
+      calls   : [LISTING],
+      outputs : { state: 'draft', url: draft.html_url, version: '0.2.0' },
+      status  : 0,
+      stderr  : '',
+      stdout  : `Version 0.2.0 already has a draft at ${draft.html_url}, so no draft is cut\n`
+    })
   })
-})
 
-test('fails before reading a release on a run from a branch other than main', async ({ scratch }) => {
-  expect(await cut(scratch, ['0.1.0', '0.2.0'], { event: 'workflow_dispatch', ref: 'next' })).toEqual({
-    calls   : [],
-    outputs : {},
-    status  : 1,
-    stderr  : 'A cut from next fails, since the draft\'s tag lands on main\n',
-    stdout  : ''
+  test.for([
+    { order: 'after', pages: [[release(true, '0.2.0'), release(false, '0.2.0')]] },
+    { order: 'before', pages: [[release(false, '0.2.0'), release(true, '0.2.0')]] }
+  ])(
+    'skips the cut with a warning where a release listed $order a draft is published',
+    async ({ pages }, { expect, scratch }) => {
+      expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages })).toEqual({
+        calls   : [LISTING],
+        outputs : { state: 'published', url: release(false, '0.2.0').html_url, version: '0.2.0' },
+        status  : 0,
+        stderr  : '',
+        stdout  : '::warning::Version 0.2.0 is already published, so no draft is cut\n'
+      })
+    }
+  )
+
+  test('reads a release carrying the version off a later page of the listing', async ({
+    expect,
+    scratch
+  }) => {
+    const draft = release(true, '0.2.0')
+
+    const { calls, outputs } = await cut(scratch, ['0.1.0', '0.2.0'], {
+      pages: [[release(false, '0.1.1')], [release(false, '0.1.0'), draft]]
+    })
+
+    expect({ calls, outputs }).toEqual({
+      calls   : [LISTING],
+      outputs : { state: 'draft', url: draft.html_url, version: '0.2.0' }
+    })
+  })
+
+  test('fails without creating a draft where reading the releases fails', async ({ expect, scratch }) => {
+    const { calls, outputs, status } = await cut(scratch, ['0.1.0', '0.2.0'], { fail: 'api' })
+
+    expect({ calls, outputs, status }).toEqual({ calls: [LISTING], outputs: { version: '0.2.0' }, status: 1 })
+  })
+
+  test('fails without reporting a state where creating the draft fails', async ({ expect, scratch }) => {
+    const { calls, outputs, status } = await cut(scratch, ['0.1.0', '0.2.0'], { fail: 'release' })
+
+    expect({ calls, outputs, status }).toEqual({
+      calls   : [LISTING, create('0.2.0')],
+      outputs : { version: '0.2.0' },
+      status  : 1
+    })
+  })
+
+  test('fails before reading a release where the checkout has no HEAD~1 to compare', async ({
+    expect,
+    scratch
+  }) => {
+    const { calls, outputs, status } = await cut(scratch, ['0.1.0'])
+
+    expect({ calls, failed: status !== 0, outputs }).toEqual({
+      calls   : [],
+      failed  : true,
+      outputs : { version: '0.1.0' }
+    })
+  })
+
+  test('fails before reading a release on a run from a branch other than main', async ({
+    expect,
+    scratch
+  }) => {
+    expect(await cut(scratch, ['0.1.0', '0.2.0'], { event: 'workflow_dispatch', ref: 'next' })).toEqual({
+      calls   : [],
+      outputs : {},
+      status  : 1,
+      stderr  : "A cut from next fails, since the draft's tag lands on main\n",
+      stdout  : ''
+    })
   })
 })

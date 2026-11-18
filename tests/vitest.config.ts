@@ -18,6 +18,7 @@ export default defineConfig({
     expect              : { requireAssertions: true },
     experimental        : { vcsProvider: changedFiles(INCLUDE) },
     forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE), ...read],
+    fsModuleCachePath   : '.cache/vitest',
     include             : INCLUDE,
     resolveSnapshotPath : (testPath, extension) => testPath + extension,
     restoreMocks        : true,

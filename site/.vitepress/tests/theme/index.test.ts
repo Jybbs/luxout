@@ -1,9 +1,15 @@
 /** @vitest-environment happy-dom */
-import DefaultTheme                         from 'vitepress/theme-without-fonts'
-import { expect, it, vi }                   from 'vitest'
+import { readFile }                     from 'node:fs/promises'
+import { join }                         from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
+import { parse }                           from 'postcss'
+import DefaultTheme                        from 'vitepress/theme-without-fonts'
+import { expect, it, vi }                  from 'vitest'
 import { type VNode, createApp, nextTick } from 'vue'
 
 import { useMotion }    from '../../lib/motion/motion.ts'
+import { Tokens }       from '../../lib/theme/tokens.ts'
 import { WIDGET_NAMES } from '../../lib/widgets/placements.ts'
 import { PauseSwitch }  from '../../theme/controls/pause-switch.tsx'
 import theme            from '../../theme/index.ts'
@@ -22,6 +28,17 @@ vi.mock('../../lib/front/front.data.ts', () => import('../common/data/front.ts')
 vi.mock('../../lib/search/search.data.ts', () => import('../common/data/search.ts'))
 vi.mock('../../lib/settings/settings.data.ts', () => import('../common/data/settings.ts'))
 
+const site    = join(import.meta.dirname, '..', '..')
+const source  = await readFile(join(site, 'theme', 'index.ts'), 'utf8')
+const tokens  = await Tokens.read(pathToFileURL(`${site}/`))
+const sheets  = await Promise.all(source.matchAll(/^import '(@fontsource-variable\/[^']+)'$/gm)
+  .map(([, name]) => readFile(fileURLToPath(import.meta.resolve(name!)), 'utf8')))
+const faces   = sheets.flatMap((sheet) => parse(sheet).nodes
+  .filter((node) => node.type === 'atrule')
+  .filter(({ name }) => name === 'font-face')
+  .map((face) => Object.fromEntries(face.nodes!
+    .filter((node) => node.type === 'decl')
+    .map(({ prop, value }) => [prop, value]))))
 const context = () => ({ app: createApp({}), router: {} as never, siteData: {} as never })
 
 it('extends the default theme that leaves out its bundled face', () => {
@@ -73,3 +90,20 @@ it('marks the root element paused in the browser once the reader pauses the draw
 
   expect(document.documentElement.hasAttribute('data-paused')).toBe(true)
 })
+
+it.for([
+  { axis: 'opsz', token: '--luxout-font-display' },
+  { axis: 'opsz', token: '--vp-font-family-base' },
+  { axis: 'wght', token: '--vp-font-family-mono' }
+])(
+  'imports the Fontsource sheet setting the upright face $token opens on along its $axis axis',
+  ({ axis, token }) => {
+    const family = /^'[^']+'/.exec(tokens.resolve(token, 'light'))![0]
+
+    expect(faces).toContainEqual(expect.objectContaining({
+      'font-family' : family,
+      'font-style'  : 'normal',
+      'src'         : expect.stringMatching(new RegExp(`-${axis}-normal\\.woff2\\)`))
+    }))
+  }
+)

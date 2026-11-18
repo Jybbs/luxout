@@ -235,11 +235,12 @@ export class Plugin {
 
 /**
  * Starts Homebridge insecure and offline under the block the local run starts
- * with, and reads every accessory it exposes over HAP once the observe window
- * ends. The check fails where the run config holds no block, where the bridge
- * never exposes its accessories over HAP, where the read fails, where those
- * accessories differ from what the platform registers for the block, or where
- * the run breaks a requirement `Run.faults` names.
+ * with, and reads every accessory it exposes over HAP once it has run for the
+ * observe window past the moment it listens. The check fails where the run
+ * config holds no block, where the bridge never exposes its accessories over
+ * HAP, where the read fails, where those accessories differ from what the
+ * platform registers for the block, or where the run breaks a requirement
+ * `Run.faults` names.
  */
 export class Services implements scenario.Check {
   readonly block   : Block | undefined
@@ -253,20 +254,19 @@ export class Services implements scenario.Check {
   }
 
   async run(
-    homebridge         : Homebridge,
-    stage              : scenario.Stage,
-    { grace, observe } : scenario.Tuning
+    homebridge                : Homebridge,
+    stage                     : scenario.Stage,
+    { grace, observe, start } : scenario.Tuning
   ): Promise<scenario.Verdict> {
     if (this.block === undefined) return { failures: ['finds no Luxout block in the run config'], output: '' }
 
-    const run       = await homebridge.start({ ...stage, block: this.block, insecure: true, offline: true })
-    const [started] = await Promise.all([run.started(observe), run.wait(observe)])
-    const failures  = started && !run.exited
-                    ? await Exposure.read(stage.port).then(
-                        (exposure) => exposure.differences(this.block, this.#plugin),
-                        (error: Error) => [`reads none of its accessories over HAP, because ${error.message}`]
-                      )
-                    : ['never exposes its accessories over HAP']
+    const run      = await homebridge.start({ ...stage, block: this.block, insecure: true, offline: true })
+    const failures = await run.listens(start, observe) && !run.exited
+                   ? await Exposure.read(stage.port).then(
+                       (exposure) => exposure.differences(this.block, this.#plugin),
+                       (error: Error) => [`reads none of its accessories over HAP, because ${error.message}`]
+                     )
+                   : ['never exposes its accessories over HAP']
 
     await run.stop(grace)
 

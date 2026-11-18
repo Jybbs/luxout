@@ -55,12 +55,16 @@ it.each([
   expect(sky.illuminance(altitude - 1e-9) / sky.illuminance(altitude + 1e-9)).toBeCloseTo(1, 6)
 })
 
-it('names the span the curve bridges, from civil twilight’s lower limit to the refraction cutoff', () => {
-  expect(BRIDGE_SPAN).toEqual([-6, -5 / 6])
+it('bridges from the end of civil twilight to the altitude where the refraction starts', () => {
+  const [from, to] = BRIDGE_SPAN
+
+  expect({ from, refracts: [sky.refracted(to - 1e-9) - (to - 1e-9), sky.refracted(to) > to] })
+    .toEqual({ from: TWILIGHT.civil, refracts: [0, true] })
 })
 
-it('places sunset at -5/6° and the ends of civil, nautical, and astronomical twilight below it', () => {
-  expect(TWILIGHT).toEqual({ astronomical: -18, civil: -6, nautical: -12, sunset: -5 / 6 })
+// The U.S. Naval Observatory’s Rise, Set, and Twilight Definitions give each figure in degrees
+it('places sunset and the ends of civil, nautical, and astronomical twilight where the USNO does', () => {
+  expect(TWILIGHT).toEqual({ astronomical: -18, civil: -6, nautical: -12, sunset: -50 / 60 })
 })
 
 test.prop([fc.double({ max: -5 / 6, maxExcluded: true, min: -6, minExcluded: true, noNaN: true })])(

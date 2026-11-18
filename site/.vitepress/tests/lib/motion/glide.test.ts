@@ -1,9 +1,10 @@
 /** @vitest-environment happy-dom */
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { beforeEach, expect, vi } from 'vitest'
 
 import { Glide }     from '../../../lib/motion/glide.ts'
 import { useMotion } from '../../../lib/motion/motion.ts'
 import { DURATIONS } from '../../../lib/motion/timing.ts'
+import { test }      from '../../common/clock.ts'
 import { stubMedia } from '../../common/media.ts'
 
 function frames(): void {
@@ -12,15 +13,10 @@ function frames(): void {
 
 beforeEach(() => {
   localStorage.clear()
-  vi.useFakeTimers()
   stubMedia(() => false)
 })
 
-afterEach(() => {
-  vi.useRealTimers()
-})
-
-it('eases to the goal through values between the two, and reports once it settles', () => {
+test('eases to the goal through values between the two, and reports once it settles', () => {
   const write   = vi.fn<(value: number) => void>()
   const settled = vi.fn<() => void>()
   const glide   = new Glide(0, undefined, settled, write)
@@ -43,7 +39,7 @@ it('eases to the goal through values between the two, and reports once it settle
   expect(settled).toHaveBeenCalledOnce()
 })
 
-it('holds each new goal from the moment it arrives', () => {
+test('holds each new goal from the moment it arrives', () => {
   const write = vi.fn<(value: number) => void>()
   const glide = new Glide(4, undefined, vi.fn<() => void>(), write)
 
@@ -59,7 +55,7 @@ it('holds each new goal from the moment it arrives', () => {
   expect(glide.goal).toBe(2)
 })
 
-it('continues from where it stands when a new goal arrives partway', () => {
+test('continues from where it stands when a new goal arrives partway', () => {
   const write = vi.fn<(value: number) => void>()
   const glide = new Glide(0, undefined, vi.fn<() => void>(), write)
 
@@ -79,7 +75,7 @@ it('continues from where it stands when a new goal arrives partway', () => {
   expect(turned).toBeLessThanOrEqual(partway)
 })
 
-it('snaps to the goal under reduced motion', () => {
+test('snaps to the goal under reduced motion', () => {
   stubMedia(() => true)
 
   const write   = vi.fn<(value: number) => void>()
@@ -92,7 +88,7 @@ it('snaps to the goal under reduced motion', () => {
   expect(settled).toHaveBeenCalledOnce()
 })
 
-it('snaps to the goal while the site’s drawings are paused', () => {
+test('snaps to the goal while the site’s drawings are paused', () => {
   localStorage.setItem('luxout-paused', 'true')
 
   const write = vi.fn<(value: number) => void>()
@@ -104,7 +100,7 @@ it('snaps to the goal while the site’s drawings are paused', () => {
   expect(useMotion().paused.value).toBe(true)
 })
 
-it('stops a motion under way when told to snap', () => {
+test('stops a motion under way when told to snap', () => {
   const write = vi.fn<(value: number) => void>()
   const glide = new Glide(0, undefined, vi.fn<() => void>(), write)
 
@@ -115,7 +111,7 @@ it('stops a motion under way when told to snap', () => {
   expect(write).toHaveBeenCalledExactlyOnceWith(4)
 })
 
-it('runs a motion over the duration it is built with', () => {
+test('runs a motion over the duration it is built with', () => {
   const settled = vi.fn<() => void>()
   const glide   = new Glide(0, undefined, settled, vi.fn<(value: number) => void>(), DURATIONS.settle)
 
@@ -129,7 +125,7 @@ it('runs a motion over the duration it is built with', () => {
   expect(settled).toHaveBeenCalledOnce()
 })
 
-it('eases on a move whose `eased` holds, and snaps on one whose `eased` does not', () => {
+test('eases on a move whose `eased` holds, and snaps on one whose `eased` does not', () => {
   const write = vi.fn<(value: number) => void>()
   const glide = new Glide(0, undefined, vi.fn<() => void>(), write)
 

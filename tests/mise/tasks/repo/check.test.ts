@@ -1,11 +1,8 @@
 /** @module-tag spawns */
-import { execFileSync } from 'node:child_process'
-import { join }         from 'node:path'
+import { describe } from 'vitest'
 
-import { expect } from 'vitest'
-
-import { test }               from '../../../common/scratch.js'
-import { type SyncRun, sync } from '../../../common/sync.js'
+import { test }                     from '../../../common/scratch.js'
+import { type SyncRun, info, sync } from '../../../common/sync.js'
 
 const PLUGIN = ['mise', 'run', 'plugin:affected']
 const SITE   = ['mise', 'run', 'site:affected']
@@ -24,25 +21,25 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
   })
 }
 
-test('runs the type and lint checks of the plugin and the site before its own body', () => {
-  const info = execFileSync('mise', ['tasks', 'info', '--json', 'repo:check'], {
-    cwd      : join(import.meta.dirname, '..', '..', '..', '..'),
-    encoding : 'utf8'
+describe.concurrent('repo:check', () => {
+  test('runs the type and lint checks of the plugin and the site before its own body', async ({ expect }) => {
+    expect(await info('repo:check')).toMatchObject({
+      aliases : ['check'],
+      depends : ['plugin:lint', 'plugin:typecheck', 'site:lint', 'site:typecheck']
+    })
   })
 
-  expect(JSON.parse(info)).toMatchObject({
-    aliases : ['check'],
-    depends : ['plugin:lint', 'plugin:typecheck', 'site:lint', 'site:typecheck']
+  test('runs the plugin tests and then the site tests a branch reaches', async ({ expect, scratch }) => {
+    expect(await run(scratch)).toMatchObject({ commands: [PLUGIN, SITE], status: 0 })
   })
-})
 
-test('runs the plugin tests and then the site tests a branch reaches', async ({ scratch }) => {
-  expect(await run(scratch)).toMatchObject({ commands: [PLUGIN, SITE], status: 0 })
-})
-
-test.for([
-  { commands: [PLUGIN], failing: PLUGIN, name: '`plugin:affected`' },
-  { commands: [PLUGIN, SITE], failing: SITE, name: '`site:affected`' }
-])('fails and runs nothing further once $name fails', async ({ commands, failing }, { scratch }) => {
-  expect(await run(scratch, failing)).toMatchObject({ commands: commands, status: 1 })
+  test.for([
+    { commands: [PLUGIN], failing: PLUGIN, name: '`plugin:affected`' },
+    { commands: [PLUGIN, SITE], failing: SITE, name: '`site:affected`' }
+  ])('fails and runs nothing further once $name fails', async ({ commands, failing }, {
+    expect,
+    scratch
+  }) => {
+    expect(await run(scratch, failing)).toMatchObject({ commands, status: 1 })
+  })
 })
