@@ -106,6 +106,45 @@ ignored() {
   done
 }
 
+lagging() {
+  local current listed manifest=$1/package.json pin prereleases
+
+  listed=$(
+    bun outdated --cwd "$1" | jq --raw-input --raw-output '
+      select(startswith("| "))
+      | split("|")[1:5]
+      | map(gsub("^ +| +$"; ""))
+      | select(.[0] != "Package")
+      | "\(.[0] | sub(" \\(\\w+\\)$"; ""))\t\(.[3])"
+    '
+  )
+  prereleases=$(
+    jq --arg listed "$listed" --raw-output '
+      {} + .dependencies + .devDependencies
+      | del(.[$listed | split("\n")[] | split("\t")[0]])
+      | to_entries[]
+      | select(.value | test("^\\d+\\.\\d+\\.\\d+-"))
+      | "\(.key)\t\(.value)"
+    ' "$manifest"
+  )
+
+  [[ -z "$listed" ]] || printf '%s\n' "$listed"
+
+  while IFS=$'\t' read -r pin current; do
+    [[ -n "$pin" ]] || continue
+
+    bun info --json "$pin" dist-tags time \
+      | jq --arg current "$current" --arg pin "$pin" --raw-output '
+          .time as $time
+          | ($current | sub("-.*"; "")) as $release
+          | [.["dist-tags"][] | select(. == $release or startswith("\($release)-"))]
+          | max_by($time[.]) // empty
+          | select($time[.] > $time[$current])
+          | "\($pin)\t\(.)"
+        '
+  done <<<"$prereleases"
+}
+
 minimum() {
   local current newest released
 
@@ -218,7 +257,7 @@ packages() {
       ' <<<"$audit"
     )
 
-    bun outdated --cwd "$dir" | jq \
+    lagging "$dir" | jq \
       --arg manifest "${manifest#./}" \
       --argjson audit "$audit" \
       --compact-output \
@@ -227,12 +266,7 @@ packages() {
       '
         def pinned($pin): first(.dependencies, .devDependencies | .[$pin]? // empty);
 
-        select(startswith("| "))
-        | split("|")[1:5]
-        | map(gsub("^ +| +$"; ""))
-        | select(.[0] != "Package")
-        | .[3] as $newest
-        | (.[0] | sub(" \\(\\w+\\)$"; "")) as $pin
+        split("\t") as [$pin, $newest]
         | ($pins[0] | pinned($pin)) as $current
         | {
             $current, $newest, $pin,
