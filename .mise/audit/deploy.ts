@@ -1,4 +1,4 @@
-import { basename, join } from 'node:path'
+import { basename, relative } from 'node:path'
 
 import picomatch from 'picomatch'
 
@@ -10,12 +10,11 @@ import { scan }          from './shell.ts'
 import type { TaskList } from './tasks.ts'
 
 const BUILD     = 'site:linkcheck'
-const ENTRY     = '.vitepress/config.ts'
+const ENTRIES   = { 'site/.vitepress/config.ts': 'config', 'site/.vitepress/theme/index.ts': 'theme' }
 const PROVISION = ['.github/actions/provision/action.yml', CONFIG, '.mise/mise.lock']
 const SITE      = 'site'
 const WORKFLOW  = '.github/workflows/deploy.yml'
 const WRAPPERS  = '.mise/bin/*'
-const entry     = join(SITE, ENTRY)
 
 /**
  * Holds the `on.push.paths` globs of the workflow deploying the site to every
@@ -23,18 +22,24 @@ const entry     = join(SITE, ENTRY)
  */
 export class DeployPaths {
   readonly #file     : YamlFile
-  readonly #imports  : string[]
+  readonly #imports  : Record<string, string[]>
   readonly #wrappers : string[]
 
+  /**
+   * Reads the workflow, the wrappers, and the files each entry VitePress loads
+   * reads, leaving out an entry the checkout does not hold.
+   */
   static read(audit: Audit): DeployPaths {
+    const entries = Object.keys(ENTRIES).filter((entry) => audit.exists(entry))
+
     return new DeployPaths(
       new YamlFile(WORKFLOW, audit.exists(WORKFLOW) ? audit.read(WORKFLOW) : ''),
-      audit.exists(entry) ? audit.imports(SITE, ENTRY) : [],
+      Object.fromEntries(entries.map((entry) => [entry, audit.imports(SITE, relative(SITE, entry))])),
       Object.keys(audit.readAll(WRAPPERS))
     )
   }
 
-  constructor(file: YamlFile, imports: string[], wrappers: string[]) {
+  constructor(file: YamlFile, imports: Record<string, string[]>, wrappers: string[]) {
     this.#file     = file
     this.#imports  = imports
     this.#wrappers = wrappers
@@ -61,7 +66,12 @@ export class DeployPaths {
       matches  : picomatch(glob.replace(/^!/, ''), { dot: true })
     }))
     const reads = new Map([
-      ...this.#imports.map((file) => [file, `\`${entry}\` imports it or reads it`] as const),
+      ...Object.entries(ENTRIES).flatMap(([entry, role]) => (this.#imports[entry] ?? []).map((file) => [
+        file,
+        file === entry
+          ? `VitePress loads it as the site ${role}`
+          : `building \`${entry}\` and its imports reads it`
+      ] as const)),
       ...scripts.map(({ file }) => [file, `\`${BUILD}\` runs it`] as const),
       ...this.#wrappers
         .filter((file) => programs.has(basename(file)))
