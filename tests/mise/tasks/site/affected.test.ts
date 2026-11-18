@@ -28,7 +28,6 @@ const LISTED_PAGES = {
                                         + '  await expect(readdir(import.meta.dirname))'
                                         + ".resolves.toContain('other.test.ts')\n})\n"
 }
-
 /**
  * A site test reading each page VitePress resolves through `resolveConfig`.
  */
@@ -44,7 +43,6 @@ const RESOLVED_PAGES = {
                                       + '  expect(pages.map((page) => readFileSync(join(srcDir, page), '
                                       + "'utf8'))).not.toContain('')\n})\n"
 }
-
 const SITE = ['mise', 'run', 'site:test', '--', '--changed', BASE, ...ARGS]
 const root = join(import.meta.dirname, '..', '..', '..', '..')
 

@@ -10,21 +10,18 @@ import stripJsonComments      from 'strip-json-comments'
 import type { Vitest }        from 'vitest/node'
 
 /**
- * The modules a module imports, beside the paths its strings spell and the
- * root of the VitePress site whose pages it reads, per `site`.
+ * The modules a module imports, each beside the bindings it takes from it, and
+ * the paths its strings spell. Where a VitePress site's `.vitepress` directory
+ * holds the module, `site` names the site's root, `lists` the exports listing
+ * its pages, per `listings`, and `resolves` whether it imports `resolveConfig`
+ * from `vitepress`.
  */
 interface Scan {
-  imports   : string[]
+  imports   : Map<string, Set<string>>
+  lists     : Set<string>
+  resolves  : boolean
   spellings : string[]
   site?     : string
-}
-
-/**
- * The fields of a tsconfig that name other tsconfig files.
- */
-interface Tsconfig {
-  extends?    : string | string[]
-  references? : { path: string }[]
 }
 
 /**
@@ -36,15 +33,33 @@ interface SiteConfig {
 }
 
 /**
+ * The fields of a tsconfig that name other tsconfig files.
+ */
+interface Tsconfig {
+  extends?    : string | string[]
+  references? : { path: string }[]
+}
+
+/**
+ * A string a module holds, beside the offset it starts at.
+ */
+interface Spelling {
+  start : number
+  text  : string
+}
+
+/**
  * The function of VitePress's node API that resolves the config of a site.
  */
 interface VitePress {
   resolveConfig: (root: string, command: 'build') => Promise<SiteConfig>
 }
 
+const ALL       = '*'
 const BREAKS    = /[\s"'`=;|&<>(){}]+/
 const FS        = new Set(['fs', 'fs/promises', 'node:fs', 'node:fs/promises'])
 const GLOB      = /[*?[{]/
+const IGNORED   = ['**/dist/**', '**/node_modules/**']
 const LISTS     = new Set(['glob', 'globSync', 'opendir', 'opendirSync', 'readdir', 'readdirSync'])
 const MARKDOWN  = /(?:^|\*)\.md$/
 const MODULES   = `${sep}node_modules${sep}`
@@ -57,6 +72,14 @@ const RESOLVING = {
 const SCRIPT = /\.[cm]?[jt]sx?$/
 const SITE   = `${sep}.vitepress${sep}`
 const TASK   = /^[\w-]+(?::[\w-]+)+$/
+
+/**
+ * Names the binding an import or a re-export takes, `default` for a default
+ * import and `ALL` for a namespace import or an `export *`.
+ */
+function bound({ kind, name }: { kind: string, name: string | null }): string {
+  return name ?? (kind === 'Default' ? 'default' : ALL)
+}
 
 /**
  * Lists `file` and its real path beside each file its `extends` chain names,
@@ -92,6 +115,26 @@ function extended(base: string, dir: string, extender: Experimental.ResolverFact
 }
 
 /**
+ * Lists the name and the span of each binding `statement` declares at the top
+ * of a module, exported or not.
+ */
+function declared(statement: Utils.ESTree.Program['body'][number]): [string, Utils.ESTree.Span][] {
+  const node = statement.type === 'ExportNamedDeclaration' || statement.type === 'ExportDefaultDeclaration'
+             ? statement.declaration
+             : statement
+
+  if (node?.type === 'VariableDeclaration') {
+    return node.declarations.flatMap((declarator) =>
+      declarator.id.type === 'Identifier' ? [[declarator.id.name, declarator]] : []
+    )
+  }
+
+  return (node?.type === 'ClassDeclaration' || node?.type === 'FunctionDeclaration') && node.id
+    ? [[node.id.name, node]]
+    : []
+}
+
+/**
  * Runs Git with `args` in `cwd`, returning what it prints.
  */
 function git(cwd: string, ...args: string[]): string {
@@ -99,30 +142,84 @@ function git(cwd: string, ...args: string[]): string {
 }
 
 /**
- * Resolves each import in `module` that carries a value, and each dynamic
- * import naming a string, through `resolver` from the directory of `file`.
+ * Maps each module `module` imports with a value, and each dynamic import
+ * naming a string, resolved through `resolver` from the directory of `file`,
+ * to the bindings it takes from it, per `bound`, a dynamic import taking
+ * `ALL`.
  */
 function imports(
   file     : string,
   module   : Utils.ParseResult['module'],
   resolver : Experimental.ResolverFactory,
   text     : string
-): string[] {
-  const requests = new Set([
+): Map<string, Set<string>> {
+  const requests: [string, string[]][] = [
     ...module.staticImports
       .filter(({ entries }) => !entries.length || entries.some(({ isType }) => !isType))
-      .map(({ moduleRequest }) => moduleRequest.value),
-    ...module.staticExports.flatMap(({ entries }) => entries.flatMap(({ isType, moduleRequest }) =>
-      moduleRequest && !isType ? [moduleRequest.value] : []
+      .map(({ entries, moduleRequest }): [string, string[]] => [
+        moduleRequest.value,
+        entries.filter(({ isType }) => !isType).map(({ importName }) => bound(importName))
+      ]),
+    ...module.staticExports.flatMap(({ entries }) => entries.flatMap(
+      ({ importName, isType, moduleRequest }): [string, string[]][] =>
+        moduleRequest && !isType ? [[moduleRequest.value, [bound(importName)]]] : []
     )),
     ...module.dynamicImports
       .filter(({ moduleRequest: { start } }) => /['"]/.test(text.charAt(start)))
-      .map(({ moduleRequest: { end, start } }) => text.slice(start + 1, end - 1))
-  ])
+      .map(({ moduleRequest: { end, start } }): [string, string[]] => [text.slice(start + 1, end - 1), [ALL]])
+  ]
+  const found = new Map<string, Set<string>>()
 
-  return [...requests]
-    .map((request) => resolver.sync(dirname(file), request).path)
-    .filter((path) => path !== undefined)
+  for (const [request, names] of requests) {
+    const { path } = resolver.sync(dirname(file), request)
+
+    if (path !== undefined) {
+      found.set(path, new Set(names).union(found.get(path) ?? new Set()))
+    }
+  }
+
+  return found
+}
+
+/**
+ * Names each export of `module` whose own declaration calls a function of
+ * `node:fs` in `LISTS` beside a string of `texts` naming every Markdown file,
+ * as the `.md` extension alone or a glob ending `*.md` does, since a page of a
+ * site is a Markdown file under its source directory.
+ */
+function listings(
+  module  : Utils.ParseResult['module'],
+  program : Utils.ESTree.Program,
+  texts   : Spelling[],
+  Visitor : typeof Utils.Visitor
+): Set<string> {
+  const listers = new Set(module.staticImports
+    .filter(({ moduleRequest }) => FS.has(moduleRequest.value))
+    .flatMap(({ entries }) => entries.filter(({ importName }) => LISTS.has(importName.name ?? '')))
+    .map(({ localName }) => localName.value))
+
+  if (!listers.size) {
+    return new Set()
+  }
+
+  const calls: number[] = []
+  const marks           = texts.filter(({ text }) => MARKDOWN.test(text)).map(({ start }) => start)
+  const spans           = new Map(program.body.flatMap(declared))
+
+  new Visitor({
+    CallExpression: ({ callee, start }) => {
+      if (callee.type === 'Identifier' && listers.has(callee.name)) {
+        calls.push(start)
+      }
+    }
+  }).visit(program)
+
+  return new Set(module.staticExports.flatMap((statement) => statement.entries.flatMap((entry) => {
+    const { end, start } = spans.get(entry.localName.name ?? '') ?? statement
+    const within         = (at: number): boolean => start <= at && at < end
+
+    return !entry.moduleRequest && calls.some(within) && marks.some(within) ? [bound(entry.exportName)] : []
+  })))
 }
 
 /**
@@ -227,7 +324,8 @@ function names(file: string, spelling: string): boolean {
  * reading its `srcDir` and `srcExclude` through the `resolveConfig` of the
  * `vitepress` that `resolver` finds there. A page is a file under `srcDir`
  * that `PAGES`, the glob VitePress lists pages through, matches and no glob of
- * `srcExclude` does, so a page the branch deletes counts too.
+ * `srcExclude` or of `IGNORED`, the folders VitePress always leaves out, does,
+ * so a page the branch deletes counts too.
  */
 async function pageChanged(
   changed  : string[],
@@ -237,11 +335,12 @@ async function pageChanged(
   const path                   = located(site, 'vitepress', resolver)
   const { resolveConfig }      = await import(pathToFileURL(path).href) as VitePress
   const { srcDir, userConfig } = await resolveConfig(site, 'build')
+  const excluded               = [...IGNORED, ...userConfig.srcExclude ?? []]
 
   return changed.some((file) => {
     const page = relative(srcDir, file)
 
-    return matchesGlob(page, PAGES) && !userConfig.srcExclude?.some((glob) => matchesGlob(page, glob))
+    return matchesGlob(page, PAGES) && !excluded.some((glob) => matchesGlob(page, glob))
   })
 }
 
@@ -273,8 +372,11 @@ function programs(top: string): Map<string, string[]> {
  * `changed`. A test reads a file where its own source, or a module it imports
  * outside `node_modules`, holds a string naming the file or a program that
  * names it in turn, per `rooted`, or reads the pages of a VitePress site the
- * file is one of, per `site`. VitePress takes only `.md` files as pages, so a
- * run changing none resolves no site.
+ * file is one of. A module under the site's `.vitepress` reads them where it
+ * imports `resolveConfig` from `vitepress`, and any module reads them where it
+ * imports, by name, an export of such a module that `listings` names.
+ * VitePress takes only `.md` files as pages, so a run changing none resolves
+ * no site.
  *
  * Args:
  *   changed : The absolute path of each file the branch changes.
@@ -303,14 +405,27 @@ async function readers(changed: string[], include: string[], root: string, top: 
   }
 
   const scan = (file: string): Scan => {
+    const cached = scans.get(file)
+
+    if (cached) {
+      return cached
+    }
+
     const text                = readFileSync(file, 'utf8')
     const { module, program } = parseSync(file, text)
     const texts               = strings(program, Visitor)
+    const root                = file.lastIndexOf(SITE)
+    const paths               = imports(file, module, resolver, text)
+    const resolves            = module.staticImports.some(({ entries, moduleRequest }) =>
+      moduleRequest.value === 'vitepress'
+      && entries.some(({ importName }) => importName.name === 'resolveConfig')
+    )
     const found               = {
-      site      : site(file, module, texts),
-      spellings : rooted(texts),
-      imports   : imports(file, module, resolver, text)
-        .filter((path) => !lockfile(path) && SCRIPT.test(path))
+      imports   : new Map(paths.entries().filter(([path]) => !lockfile(path) && SCRIPT.test(path))),
+      lists     : root >= 0 ? listings(module, program, texts, Visitor) : new Set<string>(),
+      resolves  : resolves,
+      site      : root >= 0 ? file.slice(0, root) : undefined,
+      spellings : rooted(texts.map(({ text }) => text))
     }
 
     scans.set(file, found)
@@ -327,21 +442,32 @@ async function readers(changed: string[], include: string[], root: string, top: 
     return found
   }
 
+  const listed = (path: string, names: Set<string>): string | undefined => {
+    const { lists, site } = scan(path)
+
+    return names.values().some((name) => name === ALL ? lists.size > 0 : lists.has(name)) ? site : undefined
+  }
+
   const reads = async (test: string): Promise<boolean> => {
     const modules = new Set([test])
 
     for (const module of modules) {
-      const { imports, site, spellings } = scans.get(module) ?? scan(module)
+      const { imports, resolves, site, spellings } = scan(module)
 
       if (spellings.some((spelling) => targets.values().some((target) => names(target, spelling)))) {
         return true
       }
 
-      if (site && markdown && await changes(site)) {
-        return true
+      const listing = imports.entries().map(([path, names]) => listed(path, names))
+      const sources = markdown ? [resolves ? site : undefined, ...listing] : []
+
+      for (const source of sources) {
+        if (source && await changes(source)) {
+          return true
+        }
       }
 
-      imports.forEach((path) => modules.add(path))
+      imports.keys().forEach((path) => modules.add(path))
     }
 
     return false
@@ -374,26 +500,6 @@ function rooted(texts: string[]): string[] {
 }
 
 /**
- * Names the root of the VitePress site whose `.vitepress` directory holds
- * `file`, where `module` reads the pages of that site. It reads them where it
- * imports `resolveConfig` from `vitepress`, or a function of `node:fs` in
- * `LISTS` beside a string of `texts` naming every Markdown file, as the `.md`
- * extension alone or a glob ending `*.md` does, since a page of the site is a
- * Markdown file under its source directory.
- */
-function site(file: string, module: Utils.ParseResult['module'], texts: string[]): string | undefined {
-  const root     = file.lastIndexOf(SITE)
-  const imported = (sources: Set<string>): Set<string | null> => new Set(module.staticImports
-    .filter(({ moduleRequest }) => sources.has(moduleRequest.value))
-    .flatMap(({ entries }) => entries.map(({ importName }) => importName.name)))
-
-  const resolves = imported(new Set(['vitepress'])).has('resolveConfig')
-  const lists    = !imported(FS).isDisjointFrom(LISTS) && texts.some((text) => MARKDOWN.test(text))
-
-  return root >= 0 && (resolves || lists) ? file.slice(0, root) : undefined
-}
-
-/**
  * Lists the one path `text` spells, `text` being a string a module holds or a
  * token a program holds:
  *
@@ -417,7 +523,8 @@ function spelled(text: string): string[] {
 }
 
 /**
- * Lists the strings `program` holds:
+ * Lists the strings `program` holds, each beside the offset of the node
+ * holding it:
  *
  * - Each string literal but the source of an import or export
  * - Each part of a template literal, and a template literal holding an
@@ -427,9 +534,9 @@ function spelled(text: string): string[] {
  * - The run of string arguments ending each `join` or `resolve` call, joined
  *   by `/`
  */
-function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): string[] {
-  const found: string[] = []
-  const sources         = new Set<number>()
+function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): Spelling[] {
+  const found: Spelling[] = []
+  const sources           = new Set<number>()
   const source          = ({ source }: { source: Utils.ESTree.Expression | null }): void => {
     if (source) {
       sources.add(source.start)
@@ -442,7 +549,7 @@ function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): 
     ImportDeclaration      : source,
     ImportExpression       : source,
 
-    CallExpression: ({ arguments: args, callee }) => {
+    CallExpression: ({ arguments: args, callee, start }) => {
       const name   = callee.type === 'MemberExpression' && !callee.computed ? callee.property : callee
       const values = args.map((arg) =>
         arg.type === 'Literal' && typeof arg.value === 'string' ? arg.value : undefined
@@ -450,28 +557,28 @@ function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): 
       const parts  = values.slice(values.lastIndexOf(undefined) + 1)
 
       if (name.type === 'Identifier' && ['join', 'resolve'].includes(name.name) && parts.length) {
-        found.push(parts.join('/'))
+        found.push({ start: start, text: parts.join('/') })
       }
     },
 
     Literal: ({ start, value }) => {
       if (typeof value === 'string' && !sources.has(start)) {
-        found.push(value)
+        found.push({ start: start, text: value })
       }
     },
 
-    TemplateElement: ({ value: { cooked } }) => {
+    TemplateElement: ({ start, value: { cooked } }) => {
       if (cooked) {
-        found.push(cooked)
+        found.push({ start: start, text: cooked })
       }
     },
 
-    TemplateLiteral: ({ expressions, quasis }) => {
+    TemplateLiteral: ({ expressions, quasis, start }) => {
       const glob  = quasis.map(({ value: { cooked } }) => cooked ?? '').join('*')
       const named = glob.split('/').some((part) => /[^*.]/.test(part.replace(/\.[^*.]*$/, '')))
 
       if (expressions.length && glob.includes('/') && named) {
-        found.push(glob)
+        found.push({ start: start, text: glob })
       }
     }
   }).visit(program)
@@ -555,7 +662,7 @@ export function triggers(root: string, include: string[]): string[] {
     const text       = readFileSync(file, 'utf8')
     const { module } = parseSync(file, text)
     const tsconfigs  = resolveTsconfig(file, cache)?.tsconfigFilePaths ?? []
-    const paths      = imports(file, module, resolver, text)
+    const paths      = imports(file, module, resolver, text).keys()
     const settings   = [
       ...tested(tsconfigs, dirname(file), extender),
       ...lookups(dirname(file), findPackageJSON(pathToFileURL(file)))

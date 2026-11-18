@@ -14,14 +14,13 @@ const BRANCHES   = { changes: false, deletes: true }
 const PAGED      = ['.vitepress/tests/*.test.ts', 'outside.test.ts']
 const PAGE_TESTS = [
   '.vitepress/tests/glob.test.ts', '.vitepress/tests/helper.test.ts', '.vitepress/tests/list.test.ts',
-  '.vitepress/tests/site.test.ts'
+  '.vitepress/tests/read.test.ts', '.vitepress/tests/site.test.ts'
 ]
-
-const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
-const root    = dirname(import.meta.dirname)
-const spawns  = /from '(?:node:child_process|[./]+\/common\/(?:affected|sync|vet)\.js)'/
-const files   = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
-const sources = await Array.fromAsync(files, async (file) => ({
+const pragma     = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
+const root       = dirname(import.meta.dirname)
+const spawns     = /from '(?:node:child_process|[./]+\/common\/(?:affected|sync|vet)\.js)'/
+const files      = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
+const sources    = await Array.fromAsync(files, async (file) => ({
   file : file,
   text : await readFile(join(root, file), 'utf8')
 }))
@@ -87,16 +86,19 @@ async function provided(scratch: string, changedSince?: string, include = ['*.te
 }
 
 /**
- * Plants a VitePress site at `scratch` whose branch changes only `changed`,
- * or deletes it where `deleted` is set, linking `modules` as its
- * `node_modules`. Its config sets `srcDir` to `pages`, whose `drafts/` its
- * `srcExclude` leaves out. Two site tests call `resolveConfig`, one through a
- * module it imports, a third imports another export of `vitepress`, a fourth
- * imports the `resolveConfig` of `vite`, and a test outside `.vitepress` calls
- * `resolveConfig` too. Two more site tests each import a module listing
- * Markdown files, one through `readdirSync` and one through `globSync`,
- * another lists a folder through `readdir` naming no Markdown file, and a last
- * names every Markdown file through a glob while listing no folder.
+ * Plants a VitePress site at `scratch` whose branch changes only `changed`, or
+ * deletes it where `deleted` is set, linking `modules` as its `node_modules`.
+ * Its config sets `srcDir` to `pages`, whose `drafts/` its `srcExclude` leaves
+ * out, as VitePress leaves out its `dist/`. Two site tests call
+ * `resolveConfig`, one through a module it imports, a third imports another
+ * export of `vitepress`, a fourth imports the `resolveConfig` of `vite`, and a
+ * test outside `.vitepress` calls `resolveConfig` too. Three more site tests
+ * each import a module listing Markdown files, through `readdirSync`, through
+ * `globSync`, and through the `readdir` of `node:fs/promises`, another imports
+ * only the export of the `readdirSync` module reading one named page, another
+ * lists a folder through `readdir` naming no Markdown file, a last names every
+ * Markdown file through a glob while listing no folder, and `notes.md` sits
+ * outside `srcDir`.
  */
 async function site(changed: string, modules: string, scratch: string, deleted = false): Promise<void> {
   await plant(scratch, {
@@ -105,11 +107,16 @@ async function site(changed: string, modules: string, scratch: string, deleted =
     '.vitepress/lib/glob.ts'          : "import { globSync } from 'node:fs'\n"
                                       + 'export const glob = (cwd: string): string[] => '
                                       + "globSync('**/*.md', { cwd })\n",
-    '.vitepress/lib/list.ts'          : "import { readdirSync } from 'node:fs'\n"
+    '.vitepress/lib/list.ts'          : "import { readFileSync, readdirSync } from 'node:fs'\n"
                                       + 'export const list = (dir: string): string[] => '
-                                      + "readdirSync(dir).filter((name) => name.endsWith('.md'))\n",
+                                      + "readdirSync(dir).filter((name) => name.endsWith('.md'))\n"
+                                      + 'export const title = (dir: string): string => '
+                                      + "readFileSync(`${dir}/index.md`, 'utf8')\n",
     '.vitepress/lib/pages.ts'         : "import { resolveConfig } from 'vitepress'\n"
                                       + 'export const pages = resolveConfig\n',
+    '.vitepress/lib/read.ts'          : "import { readdir } from 'node:fs/promises'\n"
+                                      + 'export const read = async (dir: string): Promise<string[]> => '
+                                      + "(await readdir(dir)).filter((name) => name.endsWith('.md'))\n",
     '.vitepress/tests/bundle.test.ts' : "import { resolveConfig } from 'vite'\n"
                                       + 'export const bundle = resolveConfig\n',
     '.vitepress/tests/cards.test.ts'  : "import { readdir } from 'node:fs/promises'\n"
@@ -118,16 +125,19 @@ async function site(changed: string, modules: string, scratch: string, deleted =
     '.vitepress/tests/helper.test.ts' : "export { pages } from '../lib/pages.ts'\n",
     '.vitepress/tests/list.test.ts'   : "export { list } from '../lib/list.ts'\n",
     '.vitepress/tests/names.test.ts'  : "export const names = '*.md'\n",
+    '.vitepress/tests/read.test.ts'   : "export { read } from '../lib/read.ts'\n",
     '.vitepress/tests/render.test.ts' : "import { createMarkdownRenderer } from 'vitepress'\n"
                                       + 'export const render = createMarkdownRenderer\n',
     '.vitepress/tests/site.test.ts'   : "import { resolveConfig } from 'vitepress'\n"
                                       + 'export const site = resolveConfig\n',
+    '.vitepress/tests/title.test.ts'  : "export { title } from '../lib/list.ts'\n",
     'notes.txt'                       : 'A\n',
     'outside.test.ts'                 : "import { resolveConfig } from 'vitepress'\n"
                                       + 'export const outside = resolveConfig\n',
-    'package.json'                    : '{ "type": "module" }\n',
-    'pages/drafts/a.md'               : '# A\n',
     'notes.md'                        : '# Notes\n',
+    'package.json'                    : '{ "type": "module" }\n',
+    'pages/dist/a.md'                 : '# A\n',
+    'pages/drafts/a.md'               : '# A\n',
     'pages/guide/a.md'                : '# A\n'
   })
   await symlink(modules, join(scratch, 'node_modules'))
@@ -270,6 +280,7 @@ test(
 
 test.for([
   { changed: 'notes.md', name: 'no test for a Markdown file outside srcDir', selected: [] },
+  { changed: 'pages/dist/a.md', name: 'no test for a page under a dist folder', selected: [] },
   { changed: 'pages/drafts/a.md', name: 'no test for a page srcExclude leaves out', selected: [] },
   { changed: 'pages/guide/a.md', name: 'each test under .vitepress reading the pages', selected: PAGE_TESTS }
 ].flatMap((row) => Object.entries(BRANCHES).map(([verb, deleted]) => ({ ...row, deleted, verb }))))(
@@ -290,6 +301,18 @@ test(
     expect(new Set(await provided(scratch, 'origin/main', PAGED))).toEqual(new Set([
       'notes.txt', 'pages/guide/b.md', ...PAGE_TESTS
     ]))
+  }
+)
+
+test(
+  'selects no test importing only an export of a listing module that lists no page',
+  async ({ scratch }) => {
+    await site('pages/guide/a.md', join(root, 'site', 'node_modules'), scratch)
+
+    const files = await provided(scratch, 'origin/main', PAGED)
+
+    expect(files).toContain('.vitepress/tests/list.test.ts')
+    expect(files).not.toContain('.vitepress/tests/title.test.ts')
   }
 )
 
