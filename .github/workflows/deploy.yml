@@ -88,9 +88,12 @@ on:
     paths:
       - .github/actions/provision/**
       - .github/workflows/deploy.yml
+      - .mise/bin/vitepress
       - .mise/config.toml
       - .mise/mise.lock
+      - .mise/tasks/plugin/bake
       - .mise/tasks/site/**
+      - bun.lock
       - config.schema.json
       - package.json
       - site/**
