@@ -37,8 +37,7 @@ export class Audit {
     const workflows = Workflows.read(this)
 
     return [
-      ...manifest.findings,
-      ...PackageManifest.site(this)?.findings ?? [],
+      ...[manifest, ...PackageManifest.installed(this)].flatMap(({ findings }) => findings),
       ...MiseConfig.read(this).findings(manifest),
       ...VetManifests.read(this).findings(manifest),
       ...tasks.findings(manifest),
@@ -66,6 +65,18 @@ export class Audit {
     if (stdout === '') throw new Error(stderr.trim())
 
     return stdout
+  }
+
+  /**
+   * Lists each package directory `bun_packages` in `.mise/lib/lock.sh` names,
+   * relative to the checkout.
+   */
+  packages(): string[] {
+    const { stderr, stdout } = this.#spawn('bash', ['-c', 'source .mise/lib/lock.sh && bun_packages'])
+
+    if (stderr !== '') throw new Error(stderr.trim())
+
+    return stdout.split('\n').filter((dir) => dir !== '')
   }
 
   read(file: string): string {

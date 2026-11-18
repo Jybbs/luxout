@@ -37,6 +37,50 @@ it('reports a coverage pin against the file the manifest was read from', () => {
 })
 
 it.each([
+  '1.8.5', '2.0.0-alpha.21', '7.0.2007', '1.0.0+build.5'
+])('reports nothing where every section pins the exact release %s', (pin) => {
+  const sections = { dependencies: { a: pin }, devDependencies: { b: pin }, optionalDependencies: { c: pin } }
+
+  expect(new PackageManifest(JSON.stringify(sections)).findings).toEqual([])
+})
+
+it.each([
+  { pin: '^1.8.5', section: 'dependencies' },
+  { pin: '~1.8.5', section: 'devDependencies' },
+  { pin: '>=1.8.5', section: 'optionalDependencies' },
+  { pin: '1.8', section: 'dependencies' },
+  { pin: 'v1.8.5', section: 'dependencies' },
+  { pin: '1.8.5 || 2.0.0', section: 'dependencies' },
+  { pin: '*', section: 'dependencies' },
+  { pin: 'latest', section: 'dependencies' },
+  { pin: 'npm:homebridge@1.8.5', section: 'dependencies' },
+  { pin: 'github:homebridge/homebridge', section: 'dependencies' },
+  { pin: 1, section: 'dependencies' }
+])('reports $pin under $section on the line of its name', ({ pin, section }) => {
+  const text = JSON.stringify({ [section]: { homebridge: pin } }, null, 2)
+
+  expect(new PackageManifest(text, 'tests/vet/floor/package.json').findings).toEqual([{
+    message : `\`homebridge\` pins ${JSON.stringify(pin)} under \`${section}\`, which names no exact release`,
+    spot    : { file: 'tests/vet/floor/package.json', line: 3 },
+    title   : 'Exact pin'
+  }])
+})
+
+it('reports nothing for a range outside the sections Bun installs from', () => {
+  const text = JSON.stringify({ engines: { node: '^26.10.0' }, peerDependencies: { homebridge: '^2.0.0' } })
+
+  expect(new PackageManifest(text).findings).toEqual([])
+})
+
+it.each([
+  { held: '"^1.8.5"', what: 'a string' },
+  { held: '["^1.8.5"]', what: 'a list' },
+  { held: 'null', what: 'null' }
+])('reports nothing for a dependencies section holding $what, which names no package', ({ held }) => {
+  expect(new PackageManifest(`{ "dependencies": ${held} }`).findings).toEqual([])
+})
+
+it.each([
   { engines: { node: '^22.23.3 || ^24.21.0 || ^26.10.0' }, floors: ['22.23.3', '24.21.0', '26.10.0'] },
   { engines: { node: '>=22' }, floors: [] },
   { engines: {}, floors: [] }

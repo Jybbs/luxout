@@ -28,10 +28,11 @@ const root     = join(import.meta.dirname, '..', '..')
  * `changed`, or deletes it where `deleted` is set, since it left `origin/main`.
  *
  * The repository at `repo` holds the `planted` files and a copy of each
- * `copied` file, `tests/common/triggers.ts`, and `tests/coverage.json`, taken
- * from the repository the suite runs in at the same path. A link at each
+ * `copied` file, `tests/common/coverage.ts`, and `tests/common/triggers.ts`,
+ * taken from the repository the suite runs in at the same path. A link at each
  * `linked` path names its target, beside a link to the `node_modules` of the
- * repository the suite runs in.
+ * repository the suite runs in. The task runs under the `COVERAGE_FLOOR` the
+ * suite runs under.
  *
  * Returns:
  *   Whether Vitest reported one test passing, beside the task's exit status.
@@ -42,7 +43,7 @@ export async function affected(
 ): Promise<{ ran: boolean, status: number | null }> {
   await plant(repo, planted)
   await Promise.all([
-    ...[...copied, 'tests/common/triggers.ts', 'tests/coverage.json']
+    ...[...copied, 'tests/common/coverage.ts', 'tests/common/triggers.ts']
       .map((file) => cp(join(root, file), join(repo, file))),
     cp(join(fixtures, 'mise.sh'), join(scratch, 'bin', 'mise')),
     ...Object.entries({ ...linked, node_modules: join(root, 'node_modules') }).map(async ([link, target]) => {
@@ -53,7 +54,10 @@ export async function affected(
 
   await branch(changed, repo, deleted)
 
-  const { status, stdout } = await sync(scratch, task, { cwd, env: { NO_COLOR: '1' } })
+  const { status, stdout } = await sync(scratch, task, {
+    cwd : cwd,
+    env : { COVERAGE_FLOOR: process.env.COVERAGE_FLOOR, NO_COLOR: '1' }
+  })
 
   return { ran: /Tests +1 passed/.test(stdout), status }
 }

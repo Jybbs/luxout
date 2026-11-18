@@ -1,8 +1,15 @@
 min_version = "2026.11.9"
 
+[doctor.checks.tools]
+description = "Every tool `.mise/config.toml` pins is installed, since a task otherwise runs whatever release of that tool the machine's `PATH` holds"
+hint        = "Run `mise install` from the repository root."
+run         = 'test -z "$(mise ls --missing --no-global --no-header)"'
+
 [env]
-AUDIT_IGNORE = "GHSA-fc5q-39xc-vjpf" # ReDoS in `picomatch`, reached only by dev tooling, with no release fixing it
-_.path       = ".mise/bin"
+AUDIT_IGNORE              = "GHSA-fc5q-39xc-vjpf" # ReDoS in `picomatch`, reached only by dev tooling, with no release fixing it
+COVERAGE_FLOOR            = "95"
+NPM_CONFIG_IGNORE_SCRIPTS = "true"
+_.path                    = ".mise/bin"
 
 [settings]
 auto_install = false

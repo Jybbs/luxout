@@ -1,4 +1,5 @@
 /** @module-tag spawns */
+import { execFileSync }                from 'node:child_process'
 import { readFile, readdir, readlink } from 'node:fs/promises'
 import { basename, join }              from 'node:path'
 
@@ -16,12 +17,12 @@ interface Setup {
 const CACHE = '.cache/homebridge'
 const SEED  = {
   'tests/homebridge/bun.lock'     : 'lockfile\n',
-  'tests/homebridge/bunfig.toml'  : 'bunfig\n',
   'tests/homebridge/config.json'  : 'config\n',
   'tests/homebridge/package.json' : 'manifest\n',
   'tests/homebridge/startup.json' : 'startup\n'
 }
 const config  = `${CACHE}/storage/config.json`
+const root    = join(import.meta.dirname, '..', '..', '..', '..')
 const startup = `${CACHE}/storage/.uix-hb-service-homebridge-startup.json`
 
 test.for<{ planted: Record<string, string>, what: string }>([
@@ -57,13 +58,19 @@ test('installs the UI, then runs hb-service with the links, the storage, and eve
   })
 })
 
-test('installs from fresh copies of the manifest, the bunfig, and the lockfile on every run', async ({
-  scratch
-}) => {
+test('installs from fresh copies of the manifest and the lockfile on every run', async ({ scratch }) => {
   await run(scratch, { planted: { [`${CACHE}/bun.lock`]: 'stale\n' } })
 
-  expect(await read(join(scratch, CACHE), 'bun.lock', 'bunfig.toml', 'package.json'))
-    .toEqual(['lockfile\n', 'bunfig\n', 'manifest\n'])
+  expect(await read(join(scratch, CACHE), 'bun.lock', 'package.json')).toEqual(['lockfile\n', 'manifest\n'])
+})
+
+test('unsets NPM_CONFIG_IGNORE_SCRIPTS, so the UI install runs each install script it trusts', () => {
+  const info = execFileSync('mise', ['tasks', 'info', '--json', 'plugin:run'], {
+    cwd      : root,
+    encoding : 'utf8'
+  })
+
+  expect(JSON.parse(info)).toMatchObject({ env: expect.arrayContaining(['unset NPM_CONFIG_IGNORE_SCRIPTS']) })
 })
 
 test('links the checkout, its Homebridge, and the installed UI as the only plugins', async ({ scratch }) => {
