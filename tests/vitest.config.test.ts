@@ -10,6 +10,7 @@ import { branch, plant, test }          from './common/scratch.js'
 import { changedFiles, triggers, vite } from './common/triggers.js'
 import config                           from './vitest.config.js'
 
+const PAGED   = ['.vitepress/tests/*.test.ts', 'outside.test.ts']
 const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const root    = dirname(import.meta.dirname)
 const spawns  = /from '(?:node:child_process|[./]+\/common\/(?:affected|sync|vet)\.js)'/
@@ -66,16 +67,46 @@ async function checkout(changed: string, scratch: string): Promise<void> {
 
 /**
  * Lists, relative to `scratch`, the files `changedFiles` gives a run there
- * that reads each change since `changedSince`.
+ * that reads each change since `changedSince`, among the test files `include`
+ * matches.
  */
-async function provided(scratch: string, changedSince?: string): Promise<string[]> {
-  const files = await changedFiles(['*.test.ts']).findChangedFiles({
+async function provided(scratch: string, changedSince?: string, include = ['*.test.ts']): Promise<string[]> {
+  const files = await changedFiles(include).findChangedFiles({
     changedSince : changedSince,
     resolver     : { getDependencies: () => Promise.resolve([]) },
     root         : scratch
   })
 
   return files.map((file) => relative(scratch, file))
+}
+
+/**
+ * Plants a VitePress site at `scratch` whose branch changes only `changed`,
+ * linking `modules` as its `node_modules`. Its config sets `srcDir` to
+ * `pages`, whose `drafts/` its `srcExclude` leaves out. Two site tests call
+ * `resolveConfig`, one through a module it imports, a third imports another
+ * export of `vitepress`, and a test outside `.vitepress` calls `resolveConfig`
+ * too.
+ */
+async function site(changed: string, modules: string, scratch: string): Promise<void> {
+  await plant(scratch, {
+    '.gitignore'                      : 'node_modules\n',
+    '.vitepress/config.ts'            : "export default { srcDir: 'pages', srcExclude: ['drafts/**'] }\n",
+    '.vitepress/lib/pages.ts'         : "import { resolveConfig } from 'vitepress'\n"
+                                      + 'export const pages = resolveConfig\n',
+    '.vitepress/tests/helper.test.ts' : "export { pages } from '../lib/pages.ts'\n",
+    '.vitepress/tests/render.test.ts' : "import { createMarkdownRenderer } from 'vitepress'\n"
+                                      + 'export const render = createMarkdownRenderer\n',
+    '.vitepress/tests/site.test.ts'   : "import { resolveConfig } from 'vitepress'\n"
+                                      + 'export const site = resolveConfig\n',
+    'notes.txt'                       : 'A\n',
+    'outside.test.ts'                 : "import { resolveConfig } from 'vitepress'\n"
+                                      + 'export const outside = resolveConfig\n',
+    'pages/drafts/a.md'               : '# A\n',
+    'pages/guide/a.md'                : '# A\n'
+  })
+  await symlink(modules, join(scratch, 'node_modules'))
+  await branch(changed, scratch)
 }
 
 it('fails a case with no assertion, shuffles the order, and undoes every spy and stub', () => {
@@ -209,6 +240,40 @@ test(
     await appendFile(join(scratch, 'docs', 'guide', 'a.md'), '\n')
 
     expect(await provided(scratch)).toEqual(['docs/guide/a.md', 'dir.test.ts'])
+  }
+)
+
+test.for([
+  { changed: 'pages/drafts/a.md', name: 'no test for a page srcExclude leaves out', selected: [] },
+  {
+    changed  : 'pages/guide/a.md',
+    name     : 'each test under .vitepress calling resolveConfig or importing a module that does',
+    selected : ['.vitepress/tests/helper.test.ts', '.vitepress/tests/site.test.ts']
+  }
+])(
+  'selects $name where a branch changes only the page $changed',
+  async ({ changed, selected }, { scratch }) => {
+    await site(changed, join(root, 'site', 'node_modules'), scratch)
+
+    expect(new Set(await provided(scratch, 'origin/main', PAGED))).toEqual(new Set([changed, ...selected]))
+  }
+)
+
+test(
+  'fails where no vitepress resolves beside a site test calling resolveConfig',
+  async ({ scratch }) => {
+    await site('pages/guide/a.md', join(root, 'node_modules'), scratch)
+
+    await expect(provided(scratch, 'origin/main', PAGED)).rejects.toThrow(`vitepress in ${scratch}:`)
+  }
+)
+
+test(
+  'resolves no site where a branch changes no Markdown file',
+  async ({ scratch }) => {
+    await site('notes.txt', join(root, 'node_modules'), scratch)
+
+    expect(await provided(scratch, 'origin/main', PAGED)).toEqual(['notes.txt'])
   }
 )
 
