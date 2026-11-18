@@ -23,21 +23,29 @@ const spawning = sources.filter(({ text }) => spawns.test(text))
 
 /**
  * Plants a repository at `scratch` whose branch changes only `changed` since
- * `origin/main`. Each test file in it spells at most one path, `bin/tool` is a
- * program that sources `lib/a.sh`, and `lib/a.sh` sources `lib/b.sh`.
+ * `origin/main`. Each test file in it spells at most one path or glob,
+ * `bin/tool` is a program that sources `lib/a.sh`, `lib/a.sh` sources
+ * `lib/b.sh`, and `bin/each` reads `logs/` through a glob.
  */
 async function checkout(changed: string, scratch: string): Promise<void> {
   await plant(scratch, {
     '.gitignore'        : 'node_modules\n',
     'art/day-frame.css' : ':root {}\n',
+    'bin/each'          : '#!/bin/sh\ncat logs/*.txt\n',
     'bin/tool'          : '#!/bin/sh\n. lib/a.sh\n',
     'cfg/package.json'  : '{}\n',
     'dir.test.ts'       : "export const dir = join('docs', 'guide')\n",
     'docs/guide/a.md'   : '# A\n',
+    'each.test.ts'      : "export const each = 'bin/each'\n",
     'frame.test.ts'     : 'export const frame = (name: string): string => `art/${name}-frame.css`\n',
+    'glob.test.ts'      : "export const all = '*.md'\n",
     'lib/a.sh'          : '. lib/b.sh\n',
     'lib/b.sh'          : ':\n',
+    'logs/a.txt'        : 'a\n',
+    'misc.md'           : '# Misc\n',
     'notes/a.md'        : '# A\n',
+    'pages.test.ts'     : "export const pages = ['pages', '*.md']\n",
+    'pages/b.md'        : '# B\n',
     'source.test.ts'    : "import './package.json'\nexport * from '../package.json'\n"
                         + "export { name } from './cfg/package.json'\n"
                         + "export const read = import('./cfg/package.json')\n",
@@ -45,10 +53,11 @@ async function checkout(changed: string, scratch: string): Promise<void> {
     'tool.test.ts'      : "export const tool = 'bin/tool'\n",
     'var.test.ts'       : "export const note = '$ROOT/notes/a.md'\n",
     'wide.test.ts'      : "export const wide = (a: string, b: string): string[] => "
-                        + "[`${a}-frame.css`, `${a}/${b}`, `./${a}.css`]\n",
+                        + "['art', `${a}-frame.css`, `${a}/${b}`, `./${a}.css`]\n",
     'word.test.ts'      : "export const word = 'labels'\n"
   })
   await Promise.all([
+    chmod(join(scratch, 'bin', 'each'), 0o755),
     chmod(join(scratch, 'bin', 'tool'), 0o755),
     symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
   ])
@@ -172,7 +181,10 @@ test.for([
   { changed: 'cfg/package.json', name: 'no test for an import or export naming it', selected: [] },
   { changed: 'docs/guide/a.md', name: 'a test spelling a directory holding it', selected: ['dir.test.ts'] },
   { changed: 'lib/b.sh', name: 'a test spelling a program sourcing it in turn', selected: ['tool.test.ts'] },
+  { changed: 'logs/a.txt', name: 'no test for a program naming it through a glob', selected: [] },
+  { changed: 'misc.md', name: 'no test for a glob naming no directory alone', selected: [] },
   { changed: 'notes/a.md', name: 'a test spelling it behind a leading $ segment', selected: ['var.test.ts'] },
+  { changed: 'pages/b.md', name: 'a test joining a glob to its directory', selected: ['pages.test.ts'] },
   { changed: 'tasks/labels', name: 'no test for a string of one segment holding no dot', selected: [] }
 ])(
   'selects $name where a branch changes only $changed',

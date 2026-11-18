@@ -152,8 +152,9 @@ function names(file: string, spelling: string): boolean {
 }
 
 /**
- * Maps each program Git tracks under `top` to the paths its text spells, where
- * a program is a file Git records as executable or a `.sh` file.
+ * Maps each program Git tracks under `top` to the paths its text spells, glob
+ * tokens aside, where a program is a file Git records as executable or a `.sh`
+ * file.
  */
 function programs(top: string): Map<string, string[]> {
   const files = git(top, 'ls-files', '--stage', '-z')
@@ -169,6 +170,7 @@ function programs(top: string): Map<string, string[]> {
     readFileSync(file, 'utf8')
       .split(BREAKS)
       .flatMap(spelled)
+      .filter((spelling) => !GLOB.test(spelling))
   ]))
 }
 
@@ -176,7 +178,7 @@ function programs(top: string): Map<string, string[]> {
  * Lists each test file `include` matches under `root` that reads one of
  * `changed` by path. A test reads a file where its own source, or a module it
  * imports outside `node_modules`, holds a string naming the file or a program
- * that names it in turn.
+ * that names it in turn, per `rooted`.
  *
  * Args:
  *   changed : The absolute path of each file the branch changes.
@@ -207,7 +209,7 @@ function readers(changed: string[], include: string[], root: string, top: string
     const text                = readFileSync(file, 'utf8')
     const { module, program } = parseSync(file, text)
     const found               = {
-      spellings : strings(program, Visitor).flatMap(spelled),
+      spellings : rooted(strings(program, Visitor)),
       imports   : imports(file, module, resolver, text)
         .filter((path) => !lockfile(path) && SCRIPT.test(path))
     }
@@ -234,6 +236,25 @@ function readers(changed: string[], include: string[], root: string, top: string
 
       return false
     })
+}
+
+/**
+ * Lists the paths `texts` spell, per `spelled`, where a glob naming no
+ * directory outside its wildcards counts only joined under each directory
+ * `texts` name, as the `cwd` of the call running it.
+ */
+function rooted(texts: string[]): string[] {
+  const spellings = texts.flatMap(spelled)
+  const dirs      = texts
+    .filter((text) => !GLOB.test(text) && !text.includes('$'))
+    .map((text) => text.split('/').filter((part) => !/^\.{0,2}$/.test(part)).join('/'))
+    .filter(Boolean)
+
+  return spellings.flatMap((spelling) =>
+    !GLOB.test(spelling) || spelling.split('/').slice(0, -1).some((part) => !GLOB.test(part))
+      ? [spelling]
+      : dirs.map((dir) => `${dir}/${spelling}`)
+  )
 }
 
 /**
