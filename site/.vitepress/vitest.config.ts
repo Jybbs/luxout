@@ -3,8 +3,8 @@ import { dirname, join } from 'node:path'
 import vueJsx           from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitest/config'
 
-import { triggers } from '../../tests/common/triggers.ts'
-import thresholds   from '../../tests/coverage.json' with { type: 'json' }
+import { thresholds } from '../../tests/common/coverage.ts'
+import { triggers }   from '../../tests/common/triggers.ts'
 
 const INCLUDE = ['.vitepress/tests/**/*.test.ts']
 const PATHS   = ['.mise/config.toml', '.mise/mise.lock']
@@ -32,7 +32,7 @@ export default defineConfig({
       provider         : 'v8',
       reportOnFailure  : true,
       reportsDirectory : '../.cache/site/coverage',
-      thresholds       : thresholds
+      thresholds       : thresholds()
     },
 
     reporters: process.env.GITHUB_ACTIONS

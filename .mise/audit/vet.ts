@@ -53,7 +53,7 @@ export class VetManifests {
       const held  = sources.get(role)
 
       if (!held) {
-        return [...file.errors, new Finding(
+        return [new Finding(
           `\`tests/vet/${role}\` names no source its \`homebridge\` pin follows, `
         + `since only ${conjunction.format(sources.keys().map((name) => `\`${name}\``))} name one`,
           file.start,
@@ -61,11 +61,11 @@ export class VetManifests {
         )]
       }
 
-      return [...file.errors, ...pin === held.release ? [] : [new Finding(
+      return pin === held.release ? [] : [new Finding(
         `\`homebridge\` pins ${pin ?? 'nothing'}, whereas ${held.source} ${held.release ?? 'nothing'}`,
         entry ?? file.start,
         TITLE
-      )]]
+      )]
     })]
   }
 }

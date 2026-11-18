@@ -52,6 +52,28 @@ test('prints a finding against the site’s manifest where the checkout holds on
   ])
 })
 
+test('prints a range and a parse error from each manifest Bun installs from, once each', async ({
+  scratch
+}) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.mise/config.toml'             : CONFIG,
+    'package.json'                  : manifest('5.0.3'),
+    'tests/homebridge/package.json' : '{\n  "dependencies": { "homebridge-config-ui-x": "^5.30.1" }\n}\n',
+    'tests/vet/floor/package.json'  : '{ "dependencies": ',
+    'tests/vet/pinned/package.json' : '{}'
+  })
+
+  new Audit(scratch, mise([]), write).report()
+
+  expect(write.mock.calls.flat().filter((line) => /title=(?:Exact pin|Parse error)/.test(line))).toEqual([
+    '::error file=tests/homebridge/package.json,line=2,title=Exact pin::`homebridge-config-ui-x` pins '
+  + '"^5.30.1" under `dependencies`, which names no exact release',
+    expect.stringMatching(/^::error file=tests\/vet\/floor\/package\.json,line=1,title=Parse error::/)
+  ])
+})
+
 test('prints the findings of the workflows and the composite actions', async ({ scratch }) => {
   const write = vi.fn<(line: string) => void>()
 

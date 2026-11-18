@@ -37,8 +37,7 @@ export class Audit {
     const workflows = Workflows.read(this)
 
     return [
-      ...manifest.findings,
-      ...PackageManifest.site(this)?.findings ?? [],
+      ...[manifest, ...PackageManifest.installed(this)].flatMap(({ findings }) => findings),
       ...MiseConfig.read(this).findings(manifest),
       ...VetManifests.read(this).findings(manifest),
       ...tasks.findings(manifest),

@@ -3,8 +3,10 @@ import { YamlFile }   from './files.ts'
 import { Finding }    from './finding.ts'
 
 const FLOOR          = /(?<=\^)\d[\d.]*/g
+const INSTALLED      = ['site/package.json', 'tests/homebridge/package.json', 'tests/vet/*/package.json']
 const MANIFEST       = 'package.json'
-const SITE           = 'site/package.json'
+const RELEASE        = /^\d+\.\d+\.\d+(?:-[\dA-Za-z.-]+)?(?:\+[\dA-Za-z.-]+)?$/
+const SECTIONS       = ['dependencies', 'devDependencies', 'optionalDependencies']
 export const numeric = new Intl.Collator('en', { numeric: true })
 
 export class PackageManifest {
@@ -14,8 +16,13 @@ export class PackageManifest {
     return new PackageManifest(audit.read(MANIFEST))
   }
 
-  static site(audit: Audit): PackageManifest | undefined {
-    return audit.exists(SITE) ? new PackageManifest(audit.read(SITE), SITE) : undefined
+  /**
+   * Reads each manifest Bun installs from beside the root's, meaning the
+   * site's, the Homebridge UI's under `tests/homebridge`, and each under
+   * `tests/vet`, leaving out one the checkout lacks.
+   */
+  static installed(audit: Audit): PackageManifest[] {
+    return Object.entries(audit.readAll(...INSTALLED)).map(([file, text]) => new PackageManifest(text, file))
   }
 
   constructor(text: string, file = MANIFEST) {
@@ -23,7 +30,7 @@ export class PackageManifest {
   }
 
   get findings(): Finding[] {
-    return [...this.#file.errors, ...this.#coverage]
+    return [...this.#file.errors, ...this.#coverage, ...this.#ranges]
   }
 
   get floors(): string[] {
@@ -47,6 +54,23 @@ export class PackageManifest {
                   + `it runs under, pins ${vitest ? String(vitest.value) : 'nothing'}`
 
     return [new Finding(message, coverage, 'Coverage pin')]
+  }
+
+  /**
+   * Reports each entry of `dependencies`, `devDependencies`, and
+   * `optionalDependencies` naming anything but one exact release, on the line
+   * of its name.
+   */
+  get #ranges(): Finding[] {
+    return SECTIONS.flatMap((section) => this.#file.keys(section).flatMap(({ value: name, ...spot }) => {
+      const pin = this.#file.at(section, String(name))?.value
+
+      return typeof pin === 'string' && RELEASE.test(pin) ? [] : [new Finding(
+        `\`${String(name)}\` pins ${JSON.stringify(pin)} under \`${section}\`, which names no exact release`,
+        spot,
+        'Exact pin'
+      )]
+    }))
   }
 
   floor(release: string): string | undefined {

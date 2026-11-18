@@ -4,11 +4,18 @@ import { join, relative } from 'node:path'
 import type { Plugin, UserConfig } from 'vite'
 import { expect, it, vi }          from 'vitest'
 
-import thresholds from '../../../tests/coverage.json' with { type: 'json' }
-import config     from '../vitest.config.ts'
+import { thresholds } from '../../../tests/common/coverage.ts'
+import config         from '../vitest.config.ts'
 
 it('holds the site to the coverage floor the plugin suite reads', () => {
-  expect(config.test?.coverage?.thresholds).toBe(thresholds)
+  expect(config.test?.coverage?.thresholds).toEqual(thresholds())
+})
+
+it('fails to load where COVERAGE_FLOOR is unset', async () => {
+  vi.stubEnv('COVERAGE_FLOOR', undefined)
+  vi.resetModules()
+
+  await expect(import('../vitest.config.ts')).rejects.toThrow('COVERAGE_FLOOR holds nothing')
 })
 
 it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to Vite’s own transform', () => {

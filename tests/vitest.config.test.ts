@@ -8,7 +8,6 @@ import { defaultExclude }     from 'vitest/config'
 
 import { plant, test }    from './common/scratch.js'
 import { triggers, vite } from './common/triggers.js'
-import thresholds         from './coverage.json' with { type: 'json' }
 import config             from './vitest.config.js'
 
 const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
@@ -47,10 +46,9 @@ it('reruns every test after a change to the runtime pins or a file read beside t
 
   expect(new Set(triggers)).toEqual(new Set([
     '.mise/audit/tsconfig.json', '.mise/config.toml', '.mise/mise.lock', '.mise/vet/tsconfig.json',
-    'bun.lock', 'bunfig.toml', 'package.json', 'site/.vitepress/vitest.config.ts', 'site/bun.lock',
-    'src/tsconfig.json', 'src/ui/public/tsconfig.json', 'tests/common/triggers.ts',
-    'tests/homebridge/bun.lock', 'tests/tsconfig.json', 'tests/vet/floor/bun.lock',
-    'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
+    'bun.lock', 'package.json', 'site/.vitepress/vitest.config.ts', 'site/bun.lock', 'src/tsconfig.json',
+    'src/ui/public/tsconfig.json', 'tests/common/triggers.ts', 'tests/homebridge/bun.lock',
+    'tests/tsconfig.json', 'tests/vet/floor/bun.lock', 'tests/vet/pinned/bun.lock', 'tests/vitest.config.ts'
   ]))
 })
 
@@ -183,8 +181,28 @@ test(
   }
 )
 
-it('reads the coverage floor from tests/coverage.json', () => {
-  expect(config.test?.coverage?.thresholds).toBe(thresholds)
+it.each(['95', '87.5'])('holds every coverage metric to a COVERAGE_FLOOR of %s', async (floor) => {
+  vi.stubEnv('COVERAGE_FLOOR', floor)
+  vi.resetModules()
+
+  const { default: fresh } = await import('./vitest.config.js')
+  const share              = Number(floor)
+
+  expect(fresh.test?.coverage?.thresholds)
+    .toEqual({ branches: share, functions: share, lines: share, statements: share })
+})
+
+it.each([
+  { floor: undefined, held: 'nothing' },
+  { floor: '', held: '""' },
+  { floor: ' ', held: '" "' },
+  { floor: 'ninety-five', held: '"ninety-five"' },
+  { floor: 'Infinity', held: '"Infinity"' }
+])('fails to load where COVERAGE_FLOOR holds $held', async ({ floor, held }) => {
+  vi.stubEnv('COVERAGE_FLOOR', floor)
+  vi.resetModules()
+
+  await expect(import('./vitest.config.js')).rejects.toThrow(`COVERAGE_FLOOR holds ${held}, whereas`)
 })
 
 it('writes the snapshot file of a case beside its test', () => {
