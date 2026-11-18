@@ -8,7 +8,7 @@ const BAKE = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pin
   .map((dir) => ['bun', 'install', '--cwd', dir, '--lockfile-only'])
 const MISSING = ['mise', 'ls', '--json', '--missing', '--no-global']
 const VET     = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }
-const LOCK    = [['mise', 'lock'], MISSING]
+const LOCK    = [['mise', 'lock', '--upgrade'], MISSING]
 
 /**
  * Runs the task in `scratch` under stand-ins for `mise` and `bun`, where
@@ -27,7 +27,7 @@ async function relock(missing: string[], scratch: string): Promise<SyncRun> {
     canned: {
       ...Object.fromEntries(BAKE.map((call) => [call.join(' '), {}])),
       [['mise install', ...missing].join(' ')] : {},
-      'mise lock'                              : {},
+      'mise lock --upgrade'                    : {},
       [MISSING.join(' ')]                      : { stdout: JSON.stringify(lacking) }
     }
   })

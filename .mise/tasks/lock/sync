@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "relock"
-#MISE description = "Re-resolve `.mise/mise.lock`, rerunning `mise lock` until it stops changing, install each tool the local mise config pins that mise has not installed, then re-resolve the `bun.lock` of each package `.mise/lib/lock.sh` lists against its manifest"
+#MISE description = "Re-resolve `.mise/mise.lock` in the newest lockfile format, rerunning `mise lock --upgrade` until it stops changing, install each tool the local mise config pins that mise has not installed, then re-resolve the `bun.lock` of each package `.mise/lib/lock.sh` lists against its manifest"
 
 source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
 
@@ -9,7 +9,7 @@ trap 'rm -f "$previous"' EXIT
 
 until cmp -s "$previous" .mise/mise.lock; do
   cp -p .mise/mise.lock "$previous"
-  mise lock
+  mise lock --upgrade
 done
 
 missing=$(mise ls --json --missing --no-global | jq --raw-output 'keys | join(" ")')
