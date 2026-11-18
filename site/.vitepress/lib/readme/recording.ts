@@ -27,15 +27,11 @@ const FILLER = [255, 0, 255] as const
 
 /**
  * Builds the palette from `seeds`, then fills the rest of it with the colors
- * the pixels of every frame in `frames` quantize to as one image, leaving out
- * each color within `CLOSE` of one already held.
+ * `pixels` quantize to as one image, leaving out each color within `CLOSE` of
+ * one already held.
  */
-function paletteOf(frames: readonly Uint8Array[], seeds: readonly string[]): Color[] {
-  const held   = [...new Set(seeds)].map(channelsOf).slice(0, COLORS)
-  const pixels = new Uint8Array(frames.length * frames[0]!.length)
-
-  frames.forEach((frame, at) => pixels.set(frame, at * frame.length))
-
+function paletteOf(pixels: Uint8Array, seeds: readonly string[]): Color[] {
+  const held      = [...new Set(seeds)].map(channelsOf).slice(0, COLORS)
   const quantized = quantize(pixels, COLORS, { format: 'rgb444' })
   const apart     = (palette: readonly Color[], color: Color) =>
     palette.every((own) => own.reduce((sum, channel, at) => sum + (channel - color[at]!) ** 2, 0) > CLOSE)
@@ -66,17 +62,25 @@ export async function record(
   drawings              : readonly string[],
   { hold, seeds, step } : Pacing
 ): Promise<Uint8Array> {
-  const shots             = await Promise.all(drawings.map(raster))
-  const { height, width } = shots[0]!
-  const palette           = paletteOf(shots.map(({ pixels }) => pixels), seeds)
-  const kept              = palette.length
-  const gif               = GIFEncoder()
+  const { height, pixels: first, width } = await raster(drawings[0]!)
+  const size                             = first.length
+  const pixels                           = new Uint8Array(drawings.length * size)
+  const rest                             = drawings.slice(1).map(async (drawing, at) =>
+    pixels.set((await raster(drawing)).pixels, (at + 1) * size))
+
+  pixels.set(first)
+  await Promise.all(rest)
+
+  const palette = paletteOf(pixels, seeds)
+  const kept    = palette.length
+  const gif     = GIFEncoder()
 
   const frames : Frame[]    = []
   let shown    : Uint8Array = new Uint8Array()
 
-  for (const { pixels } of shots) {
-    const index   = applyPalette(pixels, palette)
+  // Copies each frame out of `pixels`, since `applyPalette` reads the whole buffer beneath a view
+  for (let start = 0; start < pixels.length; start += size) {
+    const index   = applyPalette(pixels.slice(start, start + size), palette)
     const changes = index.map((color, at) => color === shown[at] ? kept : color)
     const last    = frames.at(-1)
 
