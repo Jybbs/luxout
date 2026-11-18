@@ -239,14 +239,15 @@ function readers(changed: string[], include: string[], root: string, top: string
 }
 
 /**
- * Lists the paths `texts` spell, per `spelled`, where a glob naming no
- * directory outside its wildcards counts only joined under each directory
- * `texts` name, as the `cwd` of the call running it.
+ * Lists the paths `texts` spell, per `spelled`, leaving out each holding white
+ * space. A glob naming no directory outside its wildcards counts only joined
+ * under each string of `texts` holding no wildcard, white space, or `$`, read
+ * as the `cwd` of the call running it.
  */
 function rooted(texts: string[]): string[] {
-  const spellings = texts.flatMap(spelled)
+  const spellings = texts.flatMap(spelled).filter((spelling) => !/\s/.test(spelling))
   const dirs      = texts
-    .filter((text) => !GLOB.test(text) && !text.includes('$'))
+    .filter((text) => !GLOB.test(text) && !/[\s$]/.test(text))
     .map((text) => text.split('/').filter((part) => !/^\.{0,2}$/.test(part)).join('/'))
     .filter(Boolean)
 

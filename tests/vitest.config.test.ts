@@ -43,8 +43,9 @@ async function checkout(changed: string, scratch: string): Promise<void> {
     'lib/b.sh'          : ':\n',
     'logs/a.txt'        : 'a\n',
     'misc.md'           : '# Misc\n',
+    'nest.test.ts'      : "export const nest = '*/b.md'\n",
     'notes/a.md'        : '# A\n',
-    'pages.test.ts'     : "export const pages = ['pages', '*.md']\n",
+    'pages.test.ts'     : "export const pages = ['../pages', '*.md']\n",
     'pages/b.md'        : '# B\n',
     'source.test.ts'    : "import './package.json'\nexport * from '../package.json'\n"
                         + "export { name } from './cfg/package.json'\n"
