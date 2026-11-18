@@ -41,11 +41,11 @@ export class Bibliography {
   }
 
   /**
-   * Reads the site's `references.bib`, which sits beside `root`, the site's
-   * `.vitepress` directory.
+   * Reads the site's `references.bib` from `lib/citations/` under `root`, the
+   * site's `.vitepress` directory.
    */
   static async read(root: URL): Promise<Bibliography> {
-    return Bibliography.parse(await readFile(new URL('../references.bib', root), 'utf8'))
+    return Bibliography.parse(await readFile(new URL('lib/citations/references.bib', root), 'utf8'))
   }
 
   constructor(notes: ReadonlyMap<string, string>, addresses: ReadonlyMap<string, string> = new Map()) {

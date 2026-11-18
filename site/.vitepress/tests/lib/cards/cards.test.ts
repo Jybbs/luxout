@@ -111,7 +111,7 @@ test('names the section’s place, the hour, the true minus sign, and the readin
     'Sensor in Home',
     '06:33 · SUN −3°',
     '54.7',
-    'lux'
+    'LUX'
   ])
 })
 

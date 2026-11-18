@@ -79,6 +79,33 @@ holding() {
   } | jq --compact-output --null-input --raw-input '[inputs]'
 }
 
+ignored() {
+  local id patched
+
+  for id in ${AUDIT_IGNORE:-}; do
+    patched=$(
+      gh api \
+        --jq '
+          [
+            .vulnerabilities[]
+            | select(.first_patched_version)
+            | "`\(.package.name)` \(.first_patched_version)"
+          ]
+          | join(", ")
+        ' \
+        "advisories/$id"
+    ) || return
+
+    if [[ -n "$patched" ]]; then
+      echo "\`$id\` has a patched release, so delete it from \`AUDIT_IGNORE\`" \
+           "in .mise/config.toml and lift to $patched" >&2
+      return 1
+    fi
+
+    echo "--ignore=$id"
+  done
+}
+
 minimum() {
   local current newest released
 
@@ -114,7 +141,7 @@ nodes() {
   node=$(mise config get --file .mise/config.toml tools.node)
   pins=$(
     printf 'node\t.mise/config.toml\t%s\n' "$node"
-    mise tasks ls --hidden --json --local \
+    mise tasks ls --hidden --json --no-global \
       | jq --arg root "$MISE_PROJECT_ROOT/" --raw-output '
           .[]
           | select(.tools.node)
@@ -182,8 +209,14 @@ packages() {
         --slurpfile pins "$manifest" \
         '. + { ($manifest): $pins[0] }' <<<"$manifests"
     )
-    audit=$(bun audit --cwd "$dir" --json) ||
+    audit=$(bun audit --cwd "$dir" $ignores --json) ||
       jq --exit-status 'type == "object"' <<<"$audit" >/dev/null
+    audit=$(
+      jq --arg ignores "$ignores" --compact-output '
+        [$ignores | scan("--ignore=(\\S+)")[0]] as $ids
+        | map_values(map(select(.url | split("/")[-1] | IN($ids[]) | not)))
+      ' <<<"$audit"
+    )
 
     bun outdated --cwd "$dir" | jq \
       --arg manifest "${manifest#./}" \
@@ -323,7 +356,7 @@ table() {
 }
 
 tools() {
-  mise outdated --bump --json --local \
+  mise outdated --bump --json --no-global \
     | jq --arg root "$MISE_PROJECT_ROOT/" --raw-output '
         .[]
         | select(.name != "node")
@@ -449,6 +482,7 @@ while (( $# > 0 )); do
   shift
 done
 
+ignores=$(ignored)
 holds=$(bun --print 'JSON.stringify(require("./.mise/holds.toml"))')
 scratch=$(mktemp -d)
 version=$(mise version --json)

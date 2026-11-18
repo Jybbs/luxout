@@ -1,6 +1,6 @@
 {
   "name": "luxout-homebridge",
   "private": true,
-  "dependencies": { "homebridge-config-ui-x": "5.29.0" },
+  "dependencies": { "homebridge-config-ui-x": "5.30.1" },
   "trustedDependencies": ["@homebridge/node-pty-prebuilt-multiarch"]
 }

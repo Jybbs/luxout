@@ -2,11 +2,11 @@ import { dirname, join } from 'node:path'
 
 import { defineConfig } from 'vitest/config'
 
+import { thresholds }                        from './common/coverage.js'
 import { changedFiles, lockfiles, triggers } from './common/triggers.js'
-import thresholds                            from './coverage.json' with { type: 'json' }
 
 const INCLUDE = ['tests/**/*.test.ts']
-const PATHS   = ['.mise/config.toml', '.mise/mise.lock', 'bunfig.toml', 'site/.vitepress/vitest.config.ts']
+const PATHS   = ['.mise/config.toml', '.mise/mise.lock', 'site/.vitepress/vitest.config.ts']
 const root    = dirname(import.meta.dirname)
 const read    = [...PATHS, ...lockfiles(root)].map((file) => join(root, file))
 
@@ -30,7 +30,7 @@ export default defineConfig({
       provider         : 'v8',
       reportOnFailure  : true,
       reportsDirectory : '.cache/coverage',
-      thresholds       : thresholds
+      thresholds       : thresholds()
     },
 
     reporters: process.env.GITHUB_ACTIONS

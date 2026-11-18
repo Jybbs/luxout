@@ -52,6 +52,47 @@ test('prints a finding against the site’s manifest where the checkout holds on
   ])
 })
 
+test('prints a range and a parse error from each manifest Bun installs from, once each', async ({
+  scratch
+}) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.mise/config.toml'             : CONFIG,
+    'package.json'                  : manifest('5.0.3'),
+    'tests/homebridge/package.json' : '{\n  "dependencies": { "homebridge-config-ui-x": "^5.30.1" }\n}\n',
+    'tests/vet/floor/package.json'  : '{ "dependencies": ',
+    'tests/vet/pinned/package.json' : '{}'
+  })
+
+  new Audit(scratch, mise([]), write).report()
+
+  expect(write.mock.calls.flat().filter((line) => /title=(?:Exact pin|Parse error)/.test(line))).toEqual([
+    '::error file=tests/homebridge/package.json,line=2,title=Exact pin::`homebridge-config-ui-x` pins '
+  + '"^5.30.1" under `dependencies`, which names no exact release',
+    expect.stringMatching(/^::error file=tests\/vet\/floor\/package\.json,line=1,title=Parse error::/)
+  ])
+})
+
+test('prints a range from each package `bun_packages` names', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.mise/config.toml'     : CONFIG,
+    'extra/package.json'    : '{\n  "devDependencies": { "vitest": "~5.0.3" }\n}\n',
+    'package.json'          : manifest('5.0.3'),
+    'unlisted/package.json' : '{\n  "devDependencies": { "vitest": "~5.0.3" }\n}\n'
+  })
+
+  new Audit(scratch, mise([], [], '', ['.', 'extra']), write).report()
+
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=extra/package.json,line=2,title=Exact pin::`vitest` pins "~5.0.3" under '
+  + '`devDependencies`, which names no exact release'
+  ])
+})
+
 test('prints the findings of the workflows and the composite actions', async ({ scratch }) => {
   const write = vi.fn<(line: string) => void>()
 
@@ -160,12 +201,30 @@ test('throws what mise printed to standard error where it prints nothing else', 
 })
 
 test.for([
+  { call: (audit: Audit) => audit.packages(), command: 'bash' },
   { call: (audit: Audit) => audit.tracked('*.ts'), command: 'git' },
   { call: (audit: Audit) => audit.mise('tasks', 'ls'), command: 'mise' }
 ])('throws the error starting $command raised', ({ call, command }, { scratch }) => {
   const error = new Error(`spawnSync ${command} ENOENT`)
 
   expect(() => call(new Audit(scratch, () => ({ error, stderr: '', stdout: '' })))).toThrow(error)
+})
+
+test('lists each package directory `bun_packages` prints', ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: '', stdout: '.\nsite\ntests/vet/floor\n' }))
+
+  expect(new Audit(scratch, run).packages()).toEqual(['.', 'site', 'tests/vet/floor'])
+  expect(run).toHaveBeenCalledExactlyOnceWith('bash', ['-c', 'source .mise/lib/lock.sh && bun_packages'], {
+    cwd      : scratch,
+    encoding : 'utf8'
+  })
+})
+
+test('throws what bash printed to standard error reading `bun_packages`', ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: 'bash: lock.sh: No such file or directory\n', stdout: '' }))
+
+  expect(() => new Audit(scratch, run).packages())
+    .toThrow(new Error('bash: lock.sh: No such file or directory'))
 })
 
 test('reads each file git tracks that the working tree still holds', async ({ scratch }) => {

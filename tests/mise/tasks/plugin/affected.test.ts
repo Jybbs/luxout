@@ -43,6 +43,9 @@ function canned(scratch: string, failing?: string[]): Promise<SyncRun> {
  * package another `bun.lock` installs, an absolute path naming a directory
  * beside a `.json` file of the same name, and, through `..`, a directory whose
  * `package.json` names a `main`.
+ * The `tsconfig.json` beside the module under `src/ui/public/` claims it
+ * neither through the empty `files` its `extends` entry sets nor through its
+ * one reference, so the transform applies `src/tsconfig.json`.
  */
 function selected(
   changed : string,
@@ -87,7 +90,6 @@ function selected(
                                        + '"./tsconfig.notes.json", ".."], }\n',
     '.mise/vet/vendor/bun.lock'        : '{}\n',
     'bun.lock'                         : '{}\n',
-    'bunfig.toml'                      : '{}\n',
     'package.json'                     : '{ "type": "module" }\n',
     'site/.vitepress/tsconfig.json'    : '{}\n',
     'site/.vitepress/vitest.config.ts' : '{}\n',
@@ -98,15 +100,17 @@ function selected(
     'src/b.ts'                         : 'export const b = 2\n',
     'src/package.json'                 : '{}\n',
     'src/tsconfig.json'                : '{}\n',
+    'src/ui/public/files.json'         : '{ "files": [] }\n',
     'src/ui/public/index.ts'           : 'export const page = 4\n',
-    'src/ui/public/tsconfig.json'      : '{}\n',
+    'src/ui/public/page.json'          : '{ "include": ["page"] }\n',
+    'src/ui/public/tsconfig.json'      : '{ "extends": "./files.json", '
+                                       + '"references": [{ "path": "./page" }] }\n',
     'tests/a.test.ts'                  : "import { expect, test } from 'vitest'\n\n"
                                        + "import { a, page } from '../src/a.ts'\n\n"
                                        + "test('reads a', async () => {\n"
                                        + "  const { vet } = await import('../.mise/vet/index.ts')\n\n"
                                        + '  expect([a, vet, page]).toEqual([1, 3, 4])\n})\n',
     'tests/homebridge/bun.lock'        : '{}\n',
-    'tests/homebridge/bunfig.toml'     : '{}\n',
     'tests/tsconfig.json'              : '{}\n',
     'tests/vet/floor/bun.lock'         : '{}\n',
     'tsconfig.json'                    : '{}\n',
@@ -190,7 +194,6 @@ test.for([
   { changed: 'site/index.md', name: 'runs no plugin test', ran: false },
   { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
   { changed: 'src/b.ts', name: 'runs no plugin test', ran: false },
-  { changed: 'tests/homebridge/bunfig.toml', name: 'runs no plugin test', ran: false },
   { changed: 'tsconfig.json', name: 'runs no plugin test', ran: false },
   { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
   { changed: '.mise/bun.lock', name: 'runs every plugin test', ran: true },
@@ -207,12 +210,13 @@ test.for([
   { changed: '.mise/vet/tsconfig.root.json', name: 'runs every plugin test', ran: true },
   { changed: '.mise/vet/vendor/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'bun.lock', name: 'runs every plugin test', ran: true },
-  { changed: 'bunfig.toml', name: 'runs every plugin test', ran: true },
   { changed: 'package.json', name: 'runs every plugin test', ran: true },
   { changed: 'src/package.json', name: 'runs every plugin test', ran: true },
   { changed: 'site/.vitepress/vitest.config.ts', name: 'runs every plugin test', ran: true },
   { changed: 'site/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'src/tsconfig.json', name: 'runs every plugin test', ran: true },
+  { changed: 'src/ui/public/files.json', name: 'runs every plugin test', ran: true },
+  { changed: 'src/ui/public/page.json', name: 'runs every plugin test', ran: true },
   { changed: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
   { changed: 'tests/homebridge/bun.lock', name: 'runs every plugin test', ran: true },
   { changed: 'tests/tsconfig.json', name: 'runs every plugin test', ran: true },
