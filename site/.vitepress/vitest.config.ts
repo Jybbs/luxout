@@ -18,6 +18,7 @@ export default defineConfig({
   test     : {
     expect              : { requireAssertions: true },
     forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE), ...read],
+    fsModuleCachePath   : '../.cache/site/vitest',
     include             : INCLUDE,
     pool                : 'threads',
     resolveSnapshotPath : (testPath, extension) => testPath + extension,

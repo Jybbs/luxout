@@ -41,6 +41,10 @@ it('keeps the Vite and Vitest caches under .cache/vite', () => {
   expect(config.cacheDir).toBe('.cache/vite')
 })
 
+it('keeps the module cache under .cache/vitest rather than a node_modules a checkout links', () => {
+  expect(config.test?.fsModuleCachePath).toBe('.cache/vitest')
+})
+
 it('reruns every test after a change to the runtime pins or a file read beside the imported modules', () => {
   const triggers = config.test?.forceRerunTriggers?.filter(existsSync).map((file) => relative(root, file))
 
