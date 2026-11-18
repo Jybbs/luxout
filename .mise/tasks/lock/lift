@@ -136,7 +136,8 @@ lagging() {
     bun info --json "$pin" dist-tags time \
       | jq --arg current "$current" --arg pin "$pin" --raw-output '
           .time as $time
-          | [.["dist-tags"][] | select(startswith($current | sub("-.*"; "-")))]
+          | ($current | sub("-.*"; "")) as $release
+          | [.["dist-tags"][] | select(. == $release or startswith("\($release)-"))]
           | max_by($time[.]) // empty
           | select($time[.] > $time[$current])
           | "\($pin)\t\(.)"

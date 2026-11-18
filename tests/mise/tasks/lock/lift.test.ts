@@ -380,13 +380,14 @@ describe.concurrent('lock:lift', () => {
   test.for<Prerelease>([
     {
       lagging : [],
-      latest  : '1.6.4',
+      latest  : '2.0.0-alpha.20',
       newest  : ['2.0.0-alpha.22', 'no'],
       next    : '2.0.0-alpha.22',
       tags    : 'next leads'
     },
     { lagging: [], latest: '1.6.4', newest: [], next: '2.0.0-alpha.21', tags: 'next stands at the pin' },
     { lagging: [], latest: '1.6.4', newest: [], next: '1.6.4', tags: 'no dist-tag holds its release' },
+    { lagging: [], latest: '1.6.4', newest: ['2.0.0', 'no'], next: '2.0.0', tags: 'next holds the release' },
     {
       lagging : [['vitepress (dev)', '2.0.0-alpha.21', '2.0.0']],
       latest  : '2.0.0',
@@ -405,13 +406,14 @@ describe.concurrent('lock:lift', () => {
           'bun info --json vitepress time'           : json({ '2.0.0': ago(1), '2.0.0-alpha.22': ago(2) }),
           'bun outdated --cwd .'                     : outdated(...lagging),
           'bun info --json vitepress dist-tags time' : json({
-            'dist-tags' : { canary: '3.0.0-canary.1', latest, next },
+            'dist-tags' : { canary: '2.1.0-canary.1', latest, next },
             time        : {
               '1.6.4'          : ago(40),
               '2.0.0'          : ago(1),
+              '2.0.0-alpha.20' : ago(12),
               '2.0.0-alpha.21' : ago(9),
               '2.0.0-alpha.22' : ago(2),
-              '3.0.0-canary.1' : ago(1)
+              '2.1.0-canary.1' : ago(1)
             }
           })
         }
