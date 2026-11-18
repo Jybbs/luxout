@@ -1,13 +1,12 @@
 /** @module-tag spawns */
-import { execFileSync } from 'node:child_process'
-import { readFile }     from 'node:fs/promises'
-import { join }         from 'node:path'
-import { parseEnv }     from 'node:util'
+import { readFile } from 'node:fs/promises'
+import { join }     from 'node:path'
+import { parseEnv } from 'node:util'
 
 import { describe } from 'vitest'
 
-import { plant, test } from '../../../common/scratch.js'
-import { sync }        from '../../../common/sync.js'
+import { plant, repository, test } from '../../../common/scratch.js'
+import { sync }                    from '../../../common/sync.js'
 
 interface Conditions {
   event? : string
@@ -40,24 +39,9 @@ async function cut(
   versions : string[],
   { event = 'push', fail, pages = [[]], ref = 'main' } : Conditions = {}
 ) {
-  const env = {
-    GH_CREATED          : ADDRESS,
-    GITHUB_EVENT_NAME   : event,
-    GITHUB_OUTPUT       : join(scratch, 'output'),
-    GITHUB_REF_NAME     : ref,
-    GIT_AUTHOR_EMAIL    : 'cut@example.com',
-    GIT_AUTHOR_NAME     : 'Cut',
-    GIT_COMMITTER_EMAIL : 'cut@example.com',
-    GIT_COMMITTER_NAME  : 'Cut',
-    GIT_CONFIG_GLOBAL   : '/dev/null',
-    GIT_CONFIG_NOSYSTEM : '1'
-  }
-
-  const git = (...args: string[]) =>
-    execFileSync('git', args, { cwd: scratch, env: { ...env, PATH: process.env.PATH } })
-
   await plant(scratch, { output: '' })
-  git('init', '--quiet')
+
+  const git = repository(scratch)
 
   for (const version of versions) {
     await plant(scratch, { 'package.json': JSON.stringify({ version }) })
@@ -66,9 +50,14 @@ async function cut(
   }
 
   const { requests, status, stderr, stdout } = await sync(scratch, 'gha:cut', {
-    env  : env,
     fail : fail,
-    live : { [ENDPOINT]: pages }
+    live : { [ENDPOINT]: pages },
+    env  : {
+      GH_CREATED        : ADDRESS,
+      GITHUB_EVENT_NAME : event,
+      GITHUB_OUTPUT     : join(scratch, 'output'),
+      GITHUB_REF_NAME   : ref
+    }
   })
   const outputs = parseEnv(await readFile(join(scratch, 'output'), 'utf8'))
 
