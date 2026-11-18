@@ -41,11 +41,14 @@ interface Tsconfig {
 }
 
 /**
- * A string a module holds, beside the offset it starts at.
+ * A string a module holds, beside the offset it starts at and whether it is
+ * the whole string rather than a part of a template literal holding an
+ * expression.
  */
 interface Spelling {
   start : number
   text  : string
+  whole : boolean
 }
 
 /**
@@ -425,7 +428,7 @@ async function readers(changed: string[], include: string[], root: string, top: 
       lists     : root >= 0 ? listings(module, program, texts, Visitor) : new Set<string>(),
       resolves  : resolves,
       site      : root >= 0 ? file.slice(0, root) : undefined,
-      spellings : rooted(texts.map(({ text }) => text))
+      spellings : rooted(texts)
     }
 
     scans.set(file, found)
@@ -482,13 +485,15 @@ async function readers(changed: string[], include: string[], root: string, top: 
 /**
  * Lists the paths `texts` spell, per `spelled`, leaving out each holding white
  * space. A glob naming no directory outside its wildcards counts only joined
- * under each string of `texts` holding no wildcard, white space, or `$`, read
- * as the `cwd` of the call running it.
+ * under each whole string of `texts` holding no wildcard, white space, or `$`,
+ * read as the `cwd` of the call running it, since a part of a template literal
+ * is no `cwd` on its own.
  */
-function rooted(texts: string[]): string[] {
-  const spellings = texts.flatMap(spelled).filter((spelling) => !/\s/.test(spelling))
+function rooted(texts: Spelling[]): string[] {
+  const spellings = texts.flatMap(({ text }) => spelled(text)).filter((spelling) => !/\s/.test(spelling))
   const dirs      = texts
-    .filter((text) => !GLOB.test(text) && !/[\s$]/.test(text))
+    .filter(({ text, whole }) => whole && !GLOB.test(text) && !/[\s$]/.test(text))
+    .map(({ text }) => text)
     .map((text) => text.split('/').filter((part) => !/^\.{0,2}$/.test(part)).join('/'))
     .filter(Boolean)
 
@@ -557,19 +562,13 @@ function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): 
       const parts  = values.slice(values.lastIndexOf(undefined) + 1)
 
       if (name.type === 'Identifier' && ['join', 'resolve'].includes(name.name) && parts.length) {
-        found.push({ start: start, text: parts.join('/') })
+        found.push({ start: start, text: parts.join('/'), whole: true })
       }
     },
 
     Literal: ({ start, value }) => {
       if (typeof value === 'string' && !sources.has(start)) {
-        found.push({ start: start, text: value })
-      }
-    },
-
-    TemplateElement: ({ start, value: { cooked } }) => {
-      if (cooked) {
-        found.push({ start: start, text: cooked })
+        found.push({ start: start, text: value, whole: true })
       }
     },
 
@@ -578,7 +577,13 @@ function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): 
       const named = glob.split('/').some((part) => /[^*.]/.test(part.replace(/\.[^*.]*$/, '')))
 
       if (expressions.length && glob.includes('/') && named) {
-        found.push({ start: start, text: glob })
+        found.push({ start: start, text: glob, whole: true })
+      }
+
+      for (const { start, value: { cooked } } of quasis) {
+        if (cooked) {
+          found.push({ start: start, text: cooked, whole: !expressions.length })
+        }
       }
     }
   }).visit(program)

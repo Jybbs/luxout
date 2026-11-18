@@ -29,8 +29,9 @@ const spawning = sources.filter(({ text }) => spawns.test(text))
 /**
  * Plants a repository at `scratch` whose branch changes only `changed` since
  * `origin/main`. Each test file in it spells at most one path or glob,
- * `bin/tool` is a program that sources `lib/a.sh`, `lib/a.sh` sources
- * `lib/b.sh`, and `bin/each` reads `logs/` through a glob.
+ * `part.test.ts` beside a part of a template naming `drafts`, `bin/tool` is a
+ * program that sources `lib/a.sh`, `lib/a.sh` sources `lib/b.sh`, and
+ * `bin/each` reads `logs/` through a glob.
  */
 async function checkout(changed: string, scratch: string): Promise<void> {
   await plant(scratch, {
@@ -41,6 +42,7 @@ async function checkout(changed: string, scratch: string): Promise<void> {
     'cfg/package.json'  : '{}\n',
     'dir.test.ts'       : "export const dir = join('docs', 'guide')\n",
     'docs/guide/a.md'   : '# A\n',
+    'drafts/a.md'       : '# A\n',
     'each.test.ts'      : "export const each = 'bin/each'\n",
     'frame.test.ts'     : 'export const frame = (name: string): string => `art/${name}-frame.css`\n',
     'glob.test.ts'      : "export const all = '*.md'\n",
@@ -52,6 +54,7 @@ async function checkout(changed: string, scratch: string): Promise<void> {
     'notes/a.md'        : '# A\n',
     'pages.test.ts'     : "export const pages = ['../pages', '*.md']\n",
     'pages/b.md'        : '# B\n',
+    'part.test.ts'      : "export const part = (sep: string): string[] => [`${sep}drafts${sep}`, '*.md']\n",
     'source.test.ts'    : "import './package.json'\nexport * from '../package.json'\n"
                         + "export { name } from './cfg/package.json'\n"
                         + "export const read = import('./cfg/package.json')\n",
@@ -253,6 +256,7 @@ test.for([
   { changed: 'art/day-frame.css', name: 'a test spelling it in a template', selected: ['frame.test.ts'] },
   { changed: 'cfg/package.json', name: 'no test for an import or export naming it', selected: [] },
   { changed: 'docs/guide/a.md', name: 'a test spelling a directory holding it', selected: ['dir.test.ts'] },
+  { changed: 'drafts/a.md', name: 'no test for a glob beside a part of a template', selected: [] },
   { changed: 'lib/b.sh', name: 'a test spelling a program sourcing it in turn', selected: ['tool.test.ts'] },
   { changed: 'logs/a.txt', name: 'no test for a program naming it through a glob', selected: [] },
   { changed: 'misc.md', name: 'no test for a glob naming no directory alone', selected: [] },
@@ -261,6 +265,7 @@ test.for([
   { changed: 'tasks/labels', name: 'no test for a string of one segment holding no dot', selected: [] }
 ])(
   'selects $name where a branch changes only $changed',
+  { tags: ['spawns'] },
   async ({ changed, selected }, { scratch }) => {
     await checkout(changed, scratch)
 
@@ -270,6 +275,7 @@ test.for([
 
 test(
   'selects the test reading an uncommitted change alone where the run names no commit to start from',
+  { tags: ['spawns'] },
   async ({ scratch }) => {
     await checkout('notes/a.md', scratch)
     await appendFile(join(scratch, 'docs', 'guide', 'a.md'), '\n')
@@ -285,6 +291,7 @@ test.for([
   { changed: 'pages/guide/a.md', name: 'each test under .vitepress reading the pages', selected: PAGE_TESTS }
 ].flatMap((row) => Object.entries(BRANCHES).map(([verb, deleted]) => ({ ...row, deleted, verb }))))(
   'selects $name where a branch $verb only $changed',
+  { tags: ['spawns'] },
   async ({ changed, deleted, selected }, { scratch }) => {
     await site(changed, join(root, 'site', 'node_modules'), scratch, deleted)
 
@@ -294,6 +301,7 @@ test.for([
 
 test(
   'selects each test reading the pages of a site where a branch adds a page',
+  { tags: ['spawns'] },
   async ({ scratch }) => {
     await site('notes.txt', join(root, 'site', 'node_modules'), scratch)
     await plant(scratch, { 'pages/guide/b.md': '# B\n' })
@@ -306,6 +314,7 @@ test(
 
 test(
   'selects no test importing only an export of a listing module that lists no page',
+  { tags: ['spawns'] },
   async ({ scratch }) => {
     await site('pages/guide/a.md', join(root, 'site', 'node_modules'), scratch)
 
@@ -318,6 +327,7 @@ test(
 
 test(
   'fails where no vitepress resolves beside a site test calling resolveConfig',
+  { tags: ['spawns'] },
   async ({ scratch }) => {
     await site('pages/guide/a.md', join(root, 'node_modules'), scratch)
 
@@ -327,6 +337,7 @@ test(
 
 test(
   'resolves no site where a branch changes no Markdown file',
+  { tags: ['spawns'] },
   async ({ scratch }) => {
     await site('notes.txt', join(root, 'node_modules'), scratch)
 
