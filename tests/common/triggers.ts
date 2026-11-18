@@ -238,7 +238,7 @@ function readers(changed: string[], include: string[], root: string, top: string
 
 /**
  * Lists the one path `text` spells, `text` being a string a module holds or a
- * token a program holds, and lists none where it holds white space:
+ * token a program holds:
  *
  * - A task name `group:name` spells its task file under `.mise/tasks/`
  * - Each leading `.`, `..`, or segment holding a `$` drops off, and a later
@@ -247,10 +247,6 @@ function readers(changed: string[], include: string[], root: string, top: string
  *   character, so `src` and `.mise` spell nothing
  */
 function spelled(text: string): string[] {
-  if (/\s/.test(text)) {
-    return []
-  }
-
   const parts    = TASK.test(text) ? ['.mise', 'tasks', ...text.split(':')] : text.split('/')
   const start    = parts.findIndex((part) => !/^\.{0,2}$|\$/.test(part))
   const segments = start < 0 ? [] : parts.slice(start).filter(Boolean)
@@ -264,14 +260,30 @@ function spelled(text: string): string[] {
 }
 
 /**
- * Lists the strings `program` holds, meaning each string literal, each part
- * of a template literal, and the run of string arguments ending each `join` or
- * `resolve` call, joined by `/`.
+ * Lists the strings `program` holds:
+ *
+ * - Each string literal but the source of an import or export
+ * - Each part of a template literal, and a template literal holding an
+ *   expression read whole as a glob, `*` standing for each expression, where
+ *   the glob holds a `/` and a segment with a character other than `*` or `.`
+ * - The run of string arguments ending each `join` or `resolve` call, joined
+ *   by `/`
  */
 function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): string[] {
   const found: string[] = []
+  const sources         = new Set<number>()
+  const source          = ({ source }: { source: Utils.ESTree.Expression | null }): void => {
+    if (source) {
+      sources.add(source.start)
+    }
+  }
 
   new Visitor({
+    ExportAllDeclaration   : source,
+    ExportNamedDeclaration : source,
+    ImportDeclaration      : source,
+    ImportExpression       : source,
+
     CallExpression: ({ arguments: args, callee }) => {
       const name   = callee.type === 'MemberExpression' && !callee.computed ? callee.property : callee
       const values = args.map((arg) =>
@@ -283,14 +295,24 @@ function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): 
         found.push(parts.join('/'))
       }
     },
-    Literal: ({ value }) => {
-      if (typeof value === 'string') {
+
+    Literal: ({ start, value }) => {
+      if (typeof value === 'string' && !sources.has(start)) {
         found.push(value)
       }
     },
+
     TemplateElement: ({ value: { cooked } }) => {
       if (cooked) {
         found.push(cooked)
+      }
+    },
+
+    TemplateLiteral: ({ expressions, quasis }) => {
+      const glob = quasis.map(({ value: { cooked } }) => cooked ?? '').join('*')
+
+      if (expressions.length && glob.includes('/') && glob.split('/').some((part) => /[^*.]/.test(part))) {
+        found.push(glob)
       }
     }
   }).visit(program)

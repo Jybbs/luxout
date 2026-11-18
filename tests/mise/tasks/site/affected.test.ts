@@ -112,7 +112,7 @@ function read(changed: string, scratch: string): ReturnType<typeof affected> {
     'site/.vitepress/tests/pages.test.ts' : "import { expect, test } from 'vitest'\n\n"
                                           + "import { pages } from '../lib/pages.ts'\n\n"
                                           + "test('reads the pages', () => {\n"
-                                          + "  expect(pages).toEqual(['guide/install.md'])\n})\n",
+                                          + "  expect(pages).toHaveLength(1)\n})\n",
     'site/.vitepress/tests/sheet.test.ts' : reader("globSync('.vitepress/theme/*.css')[0]"),
     'site/.vitepress/tests/svg.test.ts'   : reader("join('estimate', 'sun-path.svg')"),
     'site/.vitepress/theme/tokens.css'    : ':root {}\n',

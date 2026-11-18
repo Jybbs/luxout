@@ -157,7 +157,7 @@ function read(changed: string, scratch: string): ReturnType<typeof affected> {
     'tests/workflow.test.ts'      : "import { expect, test } from 'vitest'\n\n"
                                   + "import { workflows } from '../src/workflows.ts'\n\n"
                                   + "test('reads the workflows', () => {\n"
-                                  + "  expect(workflows).toEqual(['.github/workflows/ci.yml'])\n})\n"
+                                  + "  expect(workflows).toHaveLength(1)\n})\n"
   })
 }
 

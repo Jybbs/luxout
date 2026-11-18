@@ -1,6 +1,6 @@
-import { existsSync }                                     from 'node:fs'
+import { existsSync }                                 from 'node:fs'
 import { appendFile, chmod, glob, readFile, symlink } from 'node:fs/promises'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join, relative }                    from 'node:path'
 
 import type * as Experimental from 'rolldown/experimental'
 import { expect, it, vi }     from 'vitest'
@@ -28,18 +28,22 @@ const spawning = sources.filter(({ text }) => spawns.test(text))
  */
 async function checkout(changed: string, scratch: string): Promise<void> {
   await plant(scratch, {
-    '.gitignore'      : 'node_modules\n',
-    'bin/tool'        : '#!/bin/sh\n. lib/a.sh\n',
-    'dir.test.ts'     : "export const dir = join('docs', 'guide')\n",
-    'docs/guide/a.md' : '# A\n',
-    'lib/a.sh'        : '. lib/b.sh\n',
-    'lib/b.sh'        : ':\n',
-    'notes/a.md'      : '# A\n',
-    'space.test.ts'   : "export const note = 'see docs/guide/a.md'\n",
-    'tasks/labels'    : ':\n',
-    'tool.test.ts'    : "export const tool = 'bin/tool'\n",
-    'var.test.ts'     : "export const note = '$ROOT/notes/a.md'\n",
-    'word.test.ts'    : "export const word = 'labels'\n"
+    '.gitignore'        : 'node_modules\n',
+    'art/day-frame.css' : ':root {}\n',
+    'bin/tool'          : '#!/bin/sh\n. lib/a.sh\n',
+    'cfg/package.json'  : '{}\n',
+    'dir.test.ts'       : "export const dir = join('docs', 'guide')\n",
+    'docs/guide/a.md'   : '# A\n',
+    'frame.test.ts'     : 'export const frame = (name: string): string => `art/${name}-frame.css`\n',
+    'lib/a.sh'          : '. lib/b.sh\n',
+    'lib/b.sh'          : ':\n',
+    'notes/a.md'        : '# A\n',
+    'source.test.ts'    : "import './package.json'\nexport * from '../package.json'\n"
+                        + "export const read = import('./cfg/package.json')\n",
+    'tasks/labels'      : ':\n',
+    'tool.test.ts'      : "export const tool = 'bin/tool'\n",
+    'var.test.ts'       : "export const note = '$ROOT/notes/a.md'\n",
+    'word.test.ts'      : "export const word = 'labels'\n"
   })
   await Promise.all([
     chmod(join(scratch, 'bin', 'tool'), 0o755),
@@ -161,6 +165,8 @@ test(
 )
 
 test.for([
+  { changed: 'art/day-frame.css', name: 'a test spelling it in a template', selected: ['frame.test.ts'] },
+  { changed: 'cfg/package.json', name: 'no test for an import or export naming it', selected: [] },
   { changed: 'docs/guide/a.md', name: 'a test spelling a directory holding it', selected: ['dir.test.ts'] },
   { changed: 'lib/b.sh', name: 'a test spelling a program sourcing it in turn', selected: ['tool.test.ts'] },
   { changed: 'notes/a.md', name: 'a test spelling it behind a leading $ segment', selected: ['var.test.ts'] },
