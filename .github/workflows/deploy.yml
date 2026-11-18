@@ -88,6 +88,8 @@ on:
     paths:
       - .github/actions/provision/**
       - .github/workflows/deploy.yml
+      - .mise/config.toml
+      - .mise/mise.lock
       - .mise/tasks/site/**
       - config.schema.json
       - package.json
