@@ -7,6 +7,14 @@ import { describe } from 'vitest'
 import { plant, repository, test } from '../../../common/scratch.js'
 import { type Answer, sync }       from '../../../common/sync.js'
 
+interface Prerelease {
+  lagging : [string, string, string][]
+  latest  : string
+  newest  : string[]
+  next    : string
+  tags    : string
+}
+
 interface Setup {
   args?   : string[]
   canned? : Record<string, Answer>
@@ -355,6 +363,56 @@ describe.concurrent('lock:lift', () => {
 
     expect(row(stdout, 'pkg')[4]).toBe('3 days')
   })
+
+  test.for<Prerelease>([
+    {
+      lagging : [],
+      latest  : '2.0.0-alpha.20',
+      newest  : ['2.0.0-alpha.22', 'no'],
+      next    : '2.0.0-alpha.22',
+      tags    : 'next leads'
+    },
+    { lagging: [], latest: '1.6.4', newest: [], next: '2.0.0-alpha.21', tags: 'next stands at the pin' },
+    { lagging: [], latest: '1.6.4', newest: [], next: '1.6.4', tags: 'no dist-tag holds its release' },
+    { lagging: [], latest: '1.6.4', newest: ['2.0.0', 'no'], next: '2.0.0', tags: 'next holds the release' },
+    {
+      lagging : [['vitepress (dev)', '2.0.0-alpha.21', '2.0.0']],
+      latest  : '2.0.0',
+      newest  : ['2.0.0', 'no'],
+      next    : '2.0.0-alpha.21',
+      tags    : 'latest leads'
+    }
+  ])(
+    'compares a prerelease pin with the newest dist-tag on its own release where $tags',
+    async ({ lagging, latest, newest, next }, { expect, scratch }) => {
+      const { commands, status, stdout } = await lift(scratch, {
+        files  : { 'package.json': JSON.stringify({ devDependencies: { vitepress: '2.0.0-alpha.21' } }) },
+        live   : SETTLED,
+        canned : {
+          ...CURRENT,
+          'bun info --json vitepress time'           : json({ '2.0.0': ago(1), '2.0.0-alpha.22': ago(2) }),
+          'bun outdated --cwd .'                     : outdated(...lagging),
+          'bun info --json vitepress dist-tags time' : json({
+            'dist-tags' : { canary: '2.1.0-canary.1', latest, next },
+            time        : {
+              '1.6.4'          : ago(40),
+              '2.0.0'          : ago(1),
+              '2.0.0-alpha.20' : ago(12),
+              '2.0.0-alpha.21' : ago(9),
+              '2.0.0-alpha.22' : ago(2),
+              '2.1.0-canary.1' : ago(1)
+            }
+          })
+        }
+      })
+
+      expect({
+        read   : commands.some((args) => args.includes('dist-tags')),
+        row    : row(stdout, 'vitepress').slice(2, 4),
+        status : status
+      }).toEqual({ read: lagging.length === 0, row: newest, status: 0 })
+    }
+  )
 
   test('shows an untagged action pin by its short commit and counts its lift as major', async ({
     expect,
