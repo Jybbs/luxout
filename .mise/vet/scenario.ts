@@ -24,13 +24,15 @@ export type Stage = Omit<Launch, 'block' | 'insecure' | 'offline'>
  * The milliseconds each wait of a check lasts:
  *
  * - `grace`, for Homebridge to exit after `SIGTERM`
- * - `observe`, for a run to be watched from its start
+ * - `observe`, for a run to be watched once it listens
  * - `settle`, for a second start to run before it is stopped
+ * - `start`, for a run to report its bridge listening
  */
 export interface Tuning {
   grace   : number
   observe : number
   settle  : number
+  start   : number
 }
 
 /**
@@ -45,11 +47,11 @@ export interface Verdict {
 const NEVER = 'never reports its bridge listening'
 
 /**
- * Starts Homebridge under one block for the window the checks watch a run,
- * failing where it never listens, exits on its own, initializes the platform
- * other than its block calls for, logs a `TypeError`, a `ReferenceError`, or
- * `Cannot find module`, writes outside its storage, or outlasts the grace after
- * `SIGTERM`.
+ * Starts Homebridge under one block and watches it for the window past the
+ * moment it listens, failing where it never listens, exits on its own,
+ * initializes the platform other than its block calls for, logs a `TypeError`,
+ * a `ReferenceError`, or `Cannot find module`, writes outside its storage, or
+ * outlasts the grace after `SIGTERM`.
  */
 export class Scenario implements Check {
   readonly block   : Block | undefined
@@ -64,10 +66,10 @@ export class Scenario implements Check {
     this.#alias  = alias
   }
 
-  async run(homebridge: Homebridge, stage: Stage, { grace, observe }: Tuning): Promise<Verdict> {
-    const run       = await homebridge.start({ ...stage, block: this.block, offline: this.offline })
-    const [started] = await Promise.all([run.started(observe), run.wait(observe)])
-    const lasted    = !run.exited
+  async run(homebridge: Homebridge, stage: Stage, { grace, observe, start }: Tuning): Promise<Verdict> {
+    const run     = await homebridge.start({ ...stage, block: this.block, offline: this.offline })
+    const started = await run.listens(start, observe)
+    const lasted  = !run.exited
 
     await run.stop(grace)
 
@@ -106,9 +108,9 @@ export class Shutdown implements Check {
     this.name  = 'shutdown and restart'
   }
 
-  async run(homebridge: Homebridge, stage: Stage, { grace, observe, settle }: Tuning): Promise<Verdict> {
+  async run(homebridge: Homebridge, stage: Stage, { grace, settle, start }: Tuning): Promise<Verdict> {
     const first   = await homebridge.start({ ...stage, block: this.block })
-    const started = await first.started(observe)
+    const started = await first.started(start)
 
     await first.stop(grace)
 
@@ -116,7 +118,7 @@ export class Shutdown implements Check {
 
     const second = await homebridge.start({ ...stage, block: this.block })
 
-    if (await second.started(observe)) await second.wait(settle)
+    await second.listens(start, settle)
 
     await second.stop(grace)
 

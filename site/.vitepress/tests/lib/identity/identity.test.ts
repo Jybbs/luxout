@@ -43,8 +43,9 @@ describe('the palette', () => {
       const color = identity.colors.find((candidate) => candidate.name === name)!
 
       expect(color.hex).toBe(hex)
-      expect(color.contrast.light).toBeCloseTo(light, 2)
-      expect(color.contrast.dark).toBeCloseTo(dark, 2)
+      expect([color.contrast.light, color.contrast.dark]).toStrictEqual([light, dark].map((v) =>
+        expect.closeTo(v, 2)
+      ))
       expect(color.use).toEqual(use)
     }
   )

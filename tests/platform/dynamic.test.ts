@@ -1,4 +1,5 @@
-import { format } from 'node:util'
+import { setImmediate } from 'node:timers/promises'
+import { format }       from 'node:util'
 
 import type { Logging, PlatformAccessory } from 'homebridge'
 import { expect, vi }                      from 'vitest'
@@ -374,9 +375,8 @@ test('logs an error the launch raises', async ({ bridge, log, start }) => {
   })
   start(delhi)
 
-  await vi.waitFor(() => {
-    expect(log.error).toHaveBeenCalledExactlyOnceWith('Outside could not start reading: %s', error)
-  })
+  await setImmediate()
+  expect(log.error).toHaveBeenCalledExactlyOnceWith('Outside could not start reading: %s', error)
 })
 
 /**

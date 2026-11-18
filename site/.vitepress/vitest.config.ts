@@ -18,6 +18,7 @@ export default defineConfig({
   test     : {
     expect              : { requireAssertions: true },
     forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE), ...read],
+    fsModuleCachePath   : '../.cache/site/vitest',
     include             : INCLUDE,
     pool                : 'threads',
     resolveSnapshotPath : (testPath, extension) => testPath + extension,
@@ -37,6 +38,24 @@ export default defineConfig({
 
     reporters: process.env.GITHUB_ACTIONS
              ? ['default', ['github-actions', { jobSummary: { enabled: false } }]]
-             : ['default']
+             : ['default'],
+
+    tags: [
+      {
+        description : 'Draws a card through resvg',
+        name        : 'draws',
+        timeout     : 60_000
+      },
+      {
+        description : 'Records the README preview, frame by frame',
+        name        : 'records',
+        timeout     : 600_000
+      },
+      {
+        description : 'Runs a script as a child process',
+        name        : 'spawns',
+        timeout     : 30_000
+      }
+    ]
   }
 })

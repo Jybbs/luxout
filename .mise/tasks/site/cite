@@ -7,4 +7,4 @@
 vitest run \
   --config .vitepress/vitest.config.ts \
   --update=all \
-  .vitepress/tests/citations.test.ts
+  .vitepress/tests/lib/citations/citations.test.ts

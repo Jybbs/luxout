@@ -37,12 +37,17 @@ export const BUILT = {
 }
 
 /**
- * The waits a case runs on, short enough to keep it quick and long enough for a
- * stand-in to start on a busy machine.
+ * The waits a case runs on:
+ *
+ * - `grace`, for a stand-in to exit after `SIGTERM`
+ * - `observe`, long enough for the acts a stand-in takes once it listens
+ * - `settle`, for a second start to run before it is stopped
+ * - `start`, long enough for a stand-in to listen on a busy machine
  */
-export const TUNING = { grace: 3_000, observe: 4_000, settle: 100 }
+export const TUNING = { grace: 3_000, observe: 200, settle: 100, start: 4_000 }
 const cache         = join(import.meta.dirname, '..', '..', '.cache')
 const standIn       = join(import.meta.dirname, '..', 'mise', 'fixtures', 'homebridge.js')
+
 /**
  * Extends the scratch fixture with `outside`, a directory under the checkout's
  * `.cache/` removed once the case ends, which lies outside the system temp

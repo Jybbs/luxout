@@ -1,9 +1,10 @@
 /** @vitest-environment happy-dom */
-import { type Mock, afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { effectScope, nextTick }                            from 'vue'
+import { type Mock, beforeEach, expect, vi } from 'vitest'
+import { effectScope, nextTick }             from 'vue'
 
 import { FrameClock } from '../../../lib/motion/frame-clock.ts'
 import { useMotion }  from '../../../lib/motion/motion.ts'
+import { test }       from '../../common/clock.ts'
 import { stubMedia }  from '../../common/media.ts'
 
 let disconnect : Mock<() => void>
@@ -13,7 +14,6 @@ beforeEach(() => {
   disconnect = vi.fn<() => void>()
   localStorage.clear()
   stubMedia(() => false)
-  vi.useFakeTimers()
   vi.stubGlobal('IntersectionObserver', class {
     disconnect = disconnect
     observe    = vi.fn<() => void>()
@@ -27,11 +27,7 @@ beforeEach(() => {
   })
 })
 
-afterEach(() => {
-  vi.useRealTimers()
-})
-
-it('ticks once per frame while the tick returns true, and stops once it returns false', () => {
+test('ticks once per frame while the tick returns true, and stops once it returns false', () => {
   const tick  = vi.fn<() => boolean>(() => false).mockReturnValueOnce(true)
   const clock = new FrameClock(undefined, tick)
 
@@ -43,7 +39,7 @@ it('ticks once per frame while the tick returns true, and stops once it returns 
   expect(tick).toHaveBeenCalledTimes(2)
 })
 
-it('requests one frame however often it starts or the element returns to the screen', async () => {
+test('requests one frame however often it starts or the element returns to the screen', async () => {
   const tick  = vi.fn<() => boolean>(() => true)
   const clock = new FrameClock(document.createElement('div'), tick)
 
@@ -58,7 +54,7 @@ it('requests one frame however often it starts or the element returns to the scr
   expect(tick).toHaveBeenCalledOnce()
 })
 
-it('requests no frame while the watched element is off screen, and resumes once it returns', async () => {
+test('requests no frame while the watched element is off screen, and resumes once it returns', async () => {
   const tick  = vi.fn<() => boolean>(() => true)
   const clock = new FrameClock(document.createElement('div'), tick)
 
@@ -73,7 +69,7 @@ it('requests no frame while the watched element is off screen, and resumes once 
   expect(tick).toHaveBeenCalledOnce()
 })
 
-it('stops ticking and disconnects the observer once its scope stops', () => {
+test('stops ticking and disconnects the observer once its scope stops', () => {
   const tick  = vi.fn<() => boolean>(() => true)
   const scope = effectScope()
   const clock = scope.run(() => new FrameClock(document.createElement('div'), tick))!
@@ -86,7 +82,7 @@ it('stops ticking and disconnects the observer once its scope stops', () => {
   expect(disconnect).toHaveBeenCalledOnce()
 })
 
-it('cancels the frame it requested when stopped', () => {
+test('cancels the frame it requested when stopped', () => {
   const tick  = vi.fn<() => boolean>(() => true)
   const clock = new FrameClock(undefined, tick)
 
@@ -97,7 +93,7 @@ it('cancels the frame it requested when stopped', () => {
   expect(tick).not.toHaveBeenCalled()
 })
 
-it('requests no frame while the drawings are paused, and resumes once they run', async () => {
+test('requests no frame while the drawings are paused, and resumes once they run', async () => {
   const tick  = vi.fn<() => boolean>(() => true)
   const clock = new FrameClock(undefined, tick)
 
@@ -113,7 +109,7 @@ it('requests no frame while the drawings are paused, and resumes once they run',
   expect(tick).toHaveBeenCalledOnce()
 })
 
-it('leaves out of its time every span the drawings spent paused', async () => {
+test('leaves out of its time every span the drawings spent paused', async () => {
   const times: number[] = []
   const clock           = new FrameClock(undefined, (now) => times.push(now) > 0)
 

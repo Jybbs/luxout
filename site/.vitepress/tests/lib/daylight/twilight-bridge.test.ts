@@ -39,15 +39,15 @@ it('names the span’s ends and its cutoff in the words a reader hears', () => {
 it('lays the stops left to right across the drawing, each to a tenth', () => {
   expect(x[0]).toBe(0)
   expect(x.at(-1)).toBe(width)
-  expect(pairs(x).every(([left, right]) => left < right)).toBe(true)
-  expect([...x, ...y].every((place) => tenth(place) === place)).toBe(true)
+  expect(pairs(x).filter(([left, right]) => left >= right)).toStrictEqual([])
+  expect([...x, ...y].filter((place) => tenth(place) !== place)).toStrictEqual([])
 })
 
 it('climbs at every stop, with no rise at the cutoff past what the span’s slope gives', () => {
   const rises = pairs(y).map(([left, right]) => left - right)
   const slope = rises[0]! / (x[1]! - x[0]!)
 
-  expect(rises.every((rise) => rise > 0)).toBe(true)
+  expect(rises.filter((rise) => rise <= 0)).toStrictEqual([])
   expect(rises[cut - 1]! / (x[cut]! - x[cut - 1]!)).toBeCloseTo(slope, 0)
 })
 

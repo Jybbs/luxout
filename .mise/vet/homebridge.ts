@@ -160,6 +160,19 @@ export class Run {
   }
 
   /**
+   * Waits up to `timeout` milliseconds for Homebridge to report its bridge
+   * listening, then watches it for `duration` milliseconds more or until it
+   * exits, resolving whether it listened.
+   */
+  async listens(timeout: number, duration: number): Promise<boolean> {
+    const started = await this.started(timeout)
+
+    if (started) await this.wait(duration)
+
+    return started
+  }
+
+  /**
    * Waits for Homebridge to report its bridge listening on its port, resolving
    * false where it exits or `timeout` milliseconds pass first.
    */

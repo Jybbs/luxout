@@ -12,7 +12,7 @@ import config             from './vitest.config.js'
 
 const pragma  = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const root    = dirname(import.meta.dirname)
-const spawns  = /from '(?:node:child_process|[./]+\/common\/(?:sync|vet)\.js)'/
+const spawns  = /from '(?:node:child_process|[./]+\/common\/(?:affected|sync|vet)\.js)'/
 const files   = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
 const sources = await Array.fromAsync(files, async (file) => ({
   file : file,
@@ -39,6 +39,10 @@ it('measures coverage over .mise/**/*.ts and src/**/*.ts and reports it under .c
 
 it('keeps the Vite and Vitest caches under .cache/vite', () => {
   expect(config.cacheDir).toBe('.cache/vite')
+})
+
+it('keeps the module cache under .cache/vitest rather than a node_modules a checkout links', () => {
+  expect(config.test?.fsModuleCachePath).toBe('.cache/vitest')
 })
 
 it('reruns every test after a change to the runtime pins or a file read beside the imported modules', () => {
@@ -249,8 +253,13 @@ it.each(spawning)('opens $file, which runs a child process, on a tag that sets i
   expect(text.slice(0, text.indexOf('\n'))).toBeOneOf(pragmas ?? [])
 })
 
-it.each(['tests/mise/bin.test.ts', 'tests/mise/tasks/lock/sync.test.ts', 'tests/mise/vet/vet.test.ts'])(
-  'finds %s among the test files importing node:child_process, the sync helper, or the vet helper',
+it.each([
+  'tests/mise/bin.test.ts',
+  'tests/mise/tasks/lock/sync.test.ts',
+  'tests/mise/tasks/site/affected.test.ts',
+  'tests/mise/vet/vet.test.ts'
+])(
+  'finds %s among the test files importing node:child_process or the affected, sync, or vet helper',
   (file) => {
     expect(spawning).toContainEqual(expect.objectContaining({ file }))
   }

@@ -1,4 +1,4 @@
-import { Resvg }           from '@resvg/resvg-js'
+import { renderAsync }     from '@resvg/resvg-js'
 import { wcagContrast }    from 'culori'
 import { quantile, range } from 'd3-array'
 import { type VNode, h }   from 'vue'
@@ -174,10 +174,10 @@ export class Card {
   }
 
   async #render(drawing: VNode) {
-    return new Resvg(await renderToString(drawing), {
+    return renderAsync(await renderToString(drawing), {
       fitTo : { mode: 'width', value: WIDTH },
       font  : { loadSystemFonts: false }
-    }).render()
+    })
   }
 
   #svg(parts: readonly VNode[], grounded = true): VNode {

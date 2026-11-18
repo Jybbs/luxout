@@ -325,7 +325,7 @@ released() {
 }
 
 table() {
-  jq --raw-output '
+  jq --argjson now "${LIFT_NOW:-null}" --raw-output '
     [
       [
         "**Pin**", "**Current**", "**Newest**", "**Major**", "**Age**", "**Clears**",
@@ -337,7 +337,8 @@ table() {
         .newest,
         if .major then "yes" else "no" end,
         if .released == "" then "" else
-          (now - (.released | sub("\\.\\d+Z$"; "Z") | fromdateiso8601)) / 86400
+          (($now // now) - (.released | sub("\\.\\d+Z$"; "Z") | fromdateiso8601))
+          / 86400
           | floor
           | "\(.) day\(if . == 1 then "" else "s" end)"
         end,

@@ -49,6 +49,10 @@ it('keeps the Vite cache and the coverage report under the .cache directory at t
     .toEqual(['../.cache/site/vite', '../.cache/site/coverage'])
 })
 
+it('keeps the module cache under .cache/site/vitest rather than a node_modules a checkout links', () => {
+  expect(config.test?.fsModuleCachePath).toBe('../.cache/site/vitest')
+})
+
 it('runs each test file on a worker thread of its own', () => {
   expect(config.test?.pool).toBe('threads')
 })

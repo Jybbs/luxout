@@ -6,17 +6,17 @@ import { createMarkdownRenderer } from 'vitepress'
 import { describe, expect, it }   from 'vitest'
 import { renderToString }         from 'vue/server-renderer'
 
-import manifest                       from '../../../package.json' with { type: 'json' }
-import { TWILIGHT }                   from '../../../src/daylight/clear-sky.ts'
-import config                         from '../config.ts'
-import * as credit                    from '../lib/credit/credit.ts'
-import { Seal, plaqueAddress }        from '../lib/credit/seal.ts'
-import { SampleDay }                  from '../lib/daylight/sample-day.ts'
-import { Logo, addressOf }            from '../lib/logo/logo.ts'
-import { DayPreview, previewAddress } from '../lib/readme/day-preview.ts'
-import * as startCards                from '../lib/readme/start-cards.ts'
-import { SCHEMES }                    from '../lib/theme/tokens.ts'
-import { dialDrawing }                from '../theme/components/daylight/dial-drawing.tsx'
+import manifest                       from '../../../../../package.json' with { type: 'json' }
+import { TWILIGHT }                   from '../../../../../src/daylight/clear-sky.ts'
+import config                         from '../../../config.ts'
+import * as credit                    from '../../../lib/credit/credit.ts'
+import { Seal, plaqueAddress }        from '../../../lib/credit/seal.ts'
+import { SampleDay }                  from '../../../lib/daylight/sample-day.ts'
+import { Logo, addressOf }            from '../../../lib/logo/logo.ts'
+import { DayPreview, previewAddress } from '../../../lib/readme/day-preview.ts'
+import * as startCards                from '../../../lib/readme/start-cards.ts'
+import { SCHEMES }                    from '../../../lib/theme/tokens.ts'
+import { dialDrawing }                from '../../../theme/components/daylight/dial-drawing.tsx'
 
 declare module 'vitest' {
   interface Matchers<R extends void | Promise<void> = void | Promise<void>, T = unknown> {
@@ -24,17 +24,16 @@ declare module 'vitest' {
   }
 }
 
-const RECORDING = 600_000  // The milliseconds one scheme's recording may take
-const forms     = startCards.START_CARDS.flatMap((card) => SCHEMES.map((scheme) => ({ card, scheme })))
-const root      = new URL('../', import.meta.url)
-const cards     = await startCards.StartCards.read(root)
-const md        = await createMarkdownRenderer(fileURLToPath(new URL('../', root)), config.markdown)
-const preview   = await DayPreview.read(root, dialDrawing)
-const seal      = await Seal.read(root)
-const logo      = await Logo.read(root)
-const readme    = await readFile(new URL('../../.github/README.md', root), 'utf8')
-const site      = (address: string) => new URL(`../public${address}`, root)
-const pages     = new Set(readme.matchAll(/(?:href="|\]\()(https:\/\/luxout\.fyi\/[^")]+)/g)
+const forms   = startCards.START_CARDS.flatMap((card) => SCHEMES.map((scheme) => ({ card, scheme })))
+const root    = new URL('../../../', import.meta.url)
+const cards   = await startCards.StartCards.read(root)
+const md      = await createMarkdownRenderer(fileURLToPath(new URL('../', root)), config.markdown)
+const preview = await DayPreview.read(root, dialDrawing)
+const seal    = await Seal.read(root)
+const logo    = await Logo.read(root)
+const readme  = await readFile(new URL('../../.github/README.md', root), 'utf8')
+const site    = (address: string) => new URL(`../public${address}`, root)
+const pages   = new Set(readme.matchAll(/(?:href="|\]\()(https:\/\/luxout\.fyi\/[^")]+)/g)
   .map(([, link]) => link!)
   .filter((link) => !/\.\w+$/.test(new URL(link).pathname)))
 
@@ -52,7 +51,7 @@ expect.extend({
 })
 
 describe('the tracked README files', () => {
-  it.for(SCHEMES)('hold the %s preview as the site records it', { timeout: RECORDING }, async (scheme) => {
+  it.for(SCHEMES)('hold the %s preview as the site records it', { tags: 'records' }, async (scheme) => {
     await expect(await preview.record(scheme)).toMatchFileBytes(site(previewAddress(scheme)))
   })
 

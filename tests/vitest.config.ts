@@ -17,6 +17,7 @@ export default defineConfig({
     environmentOptions  : { happyDOM: { settings: { handleDisabledFileLoadingAsSuccess: true } } },
     expect              : { requireAssertions: true },
     forceRerunTriggers  : [import.meta.filename, ...triggers(root, INCLUDE), ...read],
+    fsModuleCachePath   : '.cache/vitest',
     include             : INCLUDE,
     resolveSnapshotPath : (testPath, extension) => testPath + extension,
     restoreMocks        : true,

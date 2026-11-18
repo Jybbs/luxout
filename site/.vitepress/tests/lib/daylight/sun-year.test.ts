@@ -20,7 +20,9 @@ it('sets the sample on the day the estimate runs', () => {
 })
 
 it('samples each day of the year every half hour, the closing midnight included', () => {
-  expect(days.every(({ altitudes }) => altitudes.length === SampleDay.MINUTES / SUN_GRID + 1)).toBe(true)
+  const length = SampleDay.MINUTES / SUN_GRID + 1
+
+  expect(days.filter(({ altitudes }) => altitudes.length !== length)).toStrictEqual([])
 })
 
 it('rests at 10:00 on a minute the sample day reaches', () => {
@@ -93,5 +95,5 @@ it('writes each month once, in order, with its word inside the track', () => {
   expect(months.map(({ word }) => word)).toEqual([
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ])
-  expect(months.every(({ left }) => left > 0 && left < 100)).toBe(true)
+  expect(months.filter(({ left }) => left <= 0 || left >= 100)).toStrictEqual([])
 })

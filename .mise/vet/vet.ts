@@ -10,7 +10,7 @@ import { Plugin, Services }        from './services.ts'
 type Write = (line: string) => void
 
 export const HELD = [51826, 8581]  // Homebridge's sample bridge port and the Homebridge UI's default port
-const TUNING      = { grace: 12_000, observe: 30_000, settle: 1_500 }
+const TUNING      = { grace: 12_000, observe: 30_000, settle: 1_500, start: 30_000 }
 const conjunction = new Intl.ListFormat('en', { type: 'conjunction' })
 
 /**

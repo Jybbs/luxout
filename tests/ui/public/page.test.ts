@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
-import { readFile } from 'node:fs/promises'
-import { join }     from 'node:path'
+import { readFile }     from 'node:fs/promises'
+import { join }         from 'node:path'
+import { setImmediate } from 'node:timers/promises'
 
 import { RequestError }               from '@homebridge/plugin-ui-utils'
 import type { PluginConfig }          from '@homebridge/plugin-ui-utils/ui.interface'
@@ -139,11 +140,10 @@ it('shows a failed search’s message through the UI’s toast and lists no matc
 
   await submit('SW1A 1AA')
 
-  await vi.waitFor(() => {
-    expect(toast).toHaveBeenCalledExactlyOnceWith(
-      'No place matches “SW1A 1AA”, so search by the city’s name instead'
-    )
-  })
+  await setImmediate()
+  expect(toast).toHaveBeenCalledExactlyOnceWith(
+    'No place matches “SW1A 1AA”, so search by the city’s name instead'
+  )
   expect(hide).toHaveBeenCalledOnce()
   expect(screen.getByText('Matches appear here').hidden).toBe(false)
   expect(screen.queryByRole('listbox')).toBeNull()
@@ -154,14 +154,13 @@ it('keeps the match the user clicks, through the check, in the whole block it ha
 
   await user.click(option(ADDISON))
 
-  await vi.waitFor(() => {
-    expect(update).toHaveBeenCalledExactlyOnceWith([{
-      ...BOSTON,
-      latitude  : 32.96,
-      longitude : -96.83,
-      place     : { country: 'United States', name: 'Addison', region: 'Texas' }
-    }])
-  })
+  await setImmediate()
+  expect(update).toHaveBeenCalledExactlyOnceWith([{
+    ...BOSTON,
+    latitude  : 32.96,
+    longitude : -96.83,
+    place     : { country: 'United States', name: 'Addison', region: 'Texas' }
+  }])
   expect(option(ADDISON).getAttribute('aria-selected')).toBe('true')
   expect(kept()).toStrictEqual({ latitude: '32.96', longitude: '−96.83', place: ADDISON })
 })
@@ -188,9 +187,8 @@ it.each([
 
   expect(listbox.getAttribute('aria-activedescendant')).toBe(option(selected, true).id)
   expect([...document.querySelectorAll('.list-group-item-highlight')]).toStrictEqual([option(selected, true)])
-  await vi.waitFor(() => {
-    expect(kept().place).toBe(selected)
-  })
+  await setImmediate()
+  expect(kept().place).toBe(selected)
   expect(update).toHaveBeenLastCalledWith([
     expect.objectContaining({ place: expect.objectContaining({ name: selected.split(',')[0] }) })
   ])
@@ -264,9 +262,8 @@ it.each(['42.35843, -71.05977', '42.35843 -71.05977', '42.35843,-71.05977', ' +4
 
     await submit(typed)
 
-    await vi.waitFor(() => {
-      expect(update).toHaveBeenCalledExactlyOnceWith([{ ...BOSTON, place: undefined }])
-    })
+    await setImmediate()
+    expect(update).toHaveBeenCalledExactlyOnceWith([{ ...BOSTON, place: undefined }])
     expect(fetch).not.toHaveBeenCalled()
     expect(kept().place).toBe('')
   }
@@ -277,11 +274,10 @@ it('fails typed coordinates past the bounds with the check’s message, keeping 
 
   await submit('91, 0')
 
-  await vi.waitFor(() => {
-    expect(toast).toHaveBeenCalledExactlyOnceWith(
-      'Coordinates take a latitude from -90 to 90 and a longitude from -180 to 180'
-    )
-  })
+  await setImmediate()
+  expect(toast).toHaveBeenCalledExactlyOnceWith(
+    'Coordinates take a latitude from -90 to 90 and a longitude from -180 to 180'
+  )
   expect(update).not.toHaveBeenCalled()
   expect(kept().latitude).toBe('42.36')
 })
@@ -292,11 +288,10 @@ it('writes back each change the form below the page reported before the page’s
   homebridge.dispatchEvent(new MessageEvent('configChanged', { data: [{ ...BOSTON, name: 'Outdoors' }] }))
   await user.click(option(PARIS))
 
-  await vi.waitFor(() => {
-    expect(update).toHaveBeenCalledExactlyOnceWith([
-      expect.objectContaining({ latitude: 48.85, longitude: 2.35, name: 'Outdoors' })
-    ])
-  })
+  await setImmediate()
+  expect(update).toHaveBeenCalledExactlyOnceWith([
+    expect.objectContaining({ latitude: 48.85, longitude: 2.35, name: 'Outdoors' })
+  ])
 })
 
 it('writes back a change the form below reported while the check answered', async () => {
@@ -310,11 +305,10 @@ it('writes back a change the form below reported while the check answered', asyn
   })
   await user.click(option(PARIS))
 
-  await vi.waitFor(() => {
-    expect(update).toHaveBeenCalledExactlyOnceWith([
-      expect.objectContaining({ latitude: 48.85, longitude: 2.35, name: 'Outdoors' })
-    ])
-  })
+  await setImmediate()
+  expect(update).toHaveBeenCalledExactlyOnceWith([
+    expect.objectContaining({ latitude: 48.85, longitude: 2.35, name: 'Outdoors' })
+  ])
 })
 
 it('builds a block on the platform the schema names where the plugin has none yet', async () => {
@@ -322,14 +316,13 @@ it('builds a block on the platform the schema names where the plugin has none ye
 
   await user.click(option(ADDISON))
 
-  await vi.waitFor(() => {
-    expect(update).toHaveBeenCalledExactlyOnceWith([{
-      latitude  : 32.96,
-      longitude : -96.83,
-      place     : { country: 'United States', name: 'Addison', region: 'Texas' },
-      platform  : schema.pluginAlias
-    }])
-  })
+  await setImmediate()
+  expect(update).toHaveBeenCalledExactlyOnceWith([{
+    latitude  : 32.96,
+    longitude : -96.83,
+    place     : { country: 'United States', name: 'Addison', region: 'Texas' },
+    platform  : schema.pluginAlias
+  }])
 })
 
 it('sets the name of a match apart in semibold, in its option and in the place kept', async () => {
@@ -337,9 +330,8 @@ it('sets the name of a match apart in semibold, in its option and in the place k
 
   await user.click(option(ADDISON))
 
-  await vi.waitFor(() => {
-    expect(kept().place).toBe(ADDISON)
-  })
+  await setImmediate()
+  expect(kept().place).toBe(ADDISON)
 
   const names = [option(ADDISON), screen.getByRole('status', { name: 'Place' })]
     .map((node) => node.querySelector('strong.fw-semibold')?.textContent)

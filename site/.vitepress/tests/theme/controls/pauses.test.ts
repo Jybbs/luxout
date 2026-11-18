@@ -1,17 +1,10 @@
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { PAUSES } from '../../../lib/motion/timing.ts'
 import { Pauses } from '../../../theme/controls/pauses.ts'
+import { test }   from '../../common/clock.ts'
 
-beforeEach(() => {
-  vi.useFakeTimers()
-})
-
-afterEach(() => {
-  vi.useRealTimers()
-})
-
-it('runs the dwell callback with its arguments once the dwell pause passes', () => {
+test('runs the dwell callback with its arguments once the dwell pause passes', () => {
   const dwell  = vi.fn<(index: number, side: string) => void>()
   const pauses = new Pauses(dwell)
 
@@ -25,7 +18,7 @@ it('runs the dwell callback with its arguments once the dwell pause passes', () 
   expect(dwell).toHaveBeenCalledExactlyOnceWith(2, 'east')
 })
 
-it('runs the leave callback once the leave pause passes', () => {
+test('runs the leave callback once the leave pause passes', () => {
   const leave  = vi.fn<() => void>()
   const pauses = new Pauses(vi.fn<() => void>(), leave)
 
@@ -39,7 +32,7 @@ it('runs the leave callback once the leave pause passes', () => {
   expect(leave).toHaveBeenCalledOnce()
 })
 
-it('begins the dwell pause again on each start', () => {
+test('begins the dwell pause again on each start', () => {
   const dwell  = vi.fn<(index: number) => void>()
   const pauses = new Pauses(dwell)
 
@@ -55,7 +48,7 @@ it('begins the dwell pause again on each start', () => {
   expect(dwell).toHaveBeenCalledExactlyOnceWith(1)
 })
 
-it('keeps both callbacks from running once stopped', () => {
+test('keeps both callbacks from running once stopped', () => {
   const dwell  = vi.fn<() => void>()
   const leave  = vi.fn<() => void>()
   const pauses = new Pauses(dwell, leave)
@@ -69,7 +62,7 @@ it('keeps both callbacks from running once stopped', () => {
   expect(vi.getTimerCount()).toBe(0)
 })
 
-it('waits through the leave pause with nothing to run where no leave callback is given', () => {
+test('waits through the leave pause with nothing to run where no leave callback is given', () => {
   const pauses = new Pauses(vi.fn<() => void>())
 
   pauses.leave.start()

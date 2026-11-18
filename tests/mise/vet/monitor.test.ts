@@ -2,6 +2,7 @@
 import { spawnSync }     from 'node:child_process'
 import { tmpdir }        from 'node:os'
 import { join }          from 'node:path'
+import { setImmediate }  from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 
 import { expect, it, vi } from 'vitest'
@@ -141,7 +142,8 @@ it('fails the lookup of a host as ENOTFOUND without resolving it', async () => {
   const callback                     = vi.fn<(...args: unknown[]) => void>()
 
   resolver.lookup('api.open-meteo.com', { all: false }, callback)
-  await vi.waitFor(() => expect(callback).toHaveBeenCalled())
+  await setImmediate()
+  expect(callback).toHaveBeenCalled()
 
   expect({
     error    : callback.mock.calls[0]?.[0],

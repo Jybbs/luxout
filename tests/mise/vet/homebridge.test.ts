@@ -27,7 +27,7 @@ async function start(scratch: string, acts?: Acts, block?: Block, flags: Flags =
 async function stopped(scratch: string, acts?: Acts, flags?: Flags): Promise<Run> {
   const { run } = await start(scratch, acts, BLOCK, flags)
 
-  await run.started(TUNING.observe)
+  await run.started(TUNING.start)
   await run.stop(TUNING.grace)
 
   return run
@@ -73,7 +73,7 @@ test.concurrent('starts on the storage, loading only the plugins installed besid
   scratch
 }) => {
   const { launch, run } = await start(scratch, {}, BLOCK)
-  const started         = await run.started(TUNING.observe)
+  const started         = await run.started(TUNING.start)
   const plugins         = join(scratch, 'release', 'node_modules')
 
   await run.stop(TUNING.grace)
@@ -95,7 +95,7 @@ test.concurrent('starts insecure where the launch asks', async ({ expect, scratc
 test.concurrent('reports an exit within the grace after SIGTERM', async ({ expect, scratch }) => {
   const { run } = await start(scratch, {}, BLOCK)
 
-  await run.started(TUNING.observe)
+  await run.started(TUNING.start)
 
   await run.stop(TUNING.grace)
 
@@ -117,7 +117,7 @@ test.concurrent('reports no start and a conflict where it exits on a port in use
   await writeFile(join((await stage(scratch)).storage, 'started'), '')
 
   const { run } = await start(scratch, { conflicts: true }, BLOCK)
-  const started = await run.started(TUNING.observe)
+  const started = await run.started(TUNING.start)
 
   expect({ conflicted: run.conflicted, started }).toEqual({ conflicted: true, started: false })
 })
@@ -125,7 +125,7 @@ test.concurrent('reports no start and a conflict where it exits on a port in use
 test.concurrent('kills a run that outlasts the grace after SIGTERM', async ({ expect, scratch }) => {
   const { run } = await start(scratch, { lingers: true }, BLOCK)
 
-  await run.started(TUNING.observe)
+  await run.started(TUNING.start)
 
   await run.stop(200)
 
@@ -141,7 +141,7 @@ test.concurrent('kills the run once its signal aborts', async ({ expect, scratch
   const launch     = await stage(scratch, { lingers: true }, controller.signal)
   const run        = await homebridge.start({ ...launch, block: BLOCK })
 
-  await run.started(TUNING.observe)
+  await run.started(TUNING.start)
   controller.abort()
   await run.wait(TUNING.grace)
 

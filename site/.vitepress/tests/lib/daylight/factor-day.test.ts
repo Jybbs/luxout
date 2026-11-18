@@ -83,12 +83,13 @@ it('labels the window’s two ends with their clock times', () => {
 })
 
 it('sets the window on the time track as a share of the day', () => {
-  expect(track.from).toBeCloseTo(day.span[0] / SampleDay.MINUTES * 100, 1)
-  expect(track.to).toBeCloseTo(day.span[1] / SampleDay.MINUTES * 100, 1)
+  expect([track.from, track.to]).toStrictEqual(day.span.map((minute) =>
+    expect.closeTo(minute / SampleDay.MINUTES * 100, 1)
+  ))
 })
 
 it('draws HomeKit’s range across the plot’s whole width', () => {
-  expect(range.reading.every((x) => x >= 0 && x <= width)).toBe(true)
+  expect(range.reading.filter((x) => x < 0 || x > width)).toStrictEqual([])
   expect(range.ends).toEqual([formatLux(luxRange.min), formatLux(luxRange.max)])
 })
 

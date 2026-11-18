@@ -9,6 +9,7 @@ import type { Reading }                   from '../../src/sensor/reading.js'
 import { ForecastClient }                 from '../../src/weather/client.js'
 import { FetchSchedule, SCHEDULE_TUNING } from '../../src/weather/schedule.js'
 import { WindowStore }                    from '../../src/weather/store.js'
+import type { ForecastWindow }            from '../../src/weather/window.js'
 import { logging, test as homebridge }    from '../common/homebridge.js'
 import { delhi }                          from '../common/places.js'
 import { spaced }                         from '../common/window.js'
@@ -28,7 +29,13 @@ const fresh  = spaced(Array(28).fill(300), delhi, '2026-10-11T02:00:00Z')
 const held   = spaced(Array(28).fill(400), delhi, '2026-10-11T01:00:00Z')
 const test   = homebridge.extend('reading', () => ({ use: vi.fn<Reading['use']>() }))
   .extend('shutdown', () => new AbortController())
-  .extend('store', ({ scratch }) => new WindowStore(scratch))
+  .extend('store', ({ scratch }) => {
+    const store = new WindowStore(scratch)
+
+    vi.spyOn(store, 'write')
+
+    return store
+  })
 
 test(
   'draws the second and then the minute of the hourly fetch from 60 values each',
@@ -119,7 +126,7 @@ test(
     await vi.advanceTimersByTimeAsync(30 * MINUTE)
 
     expect(reading.use.mock.calls).toEqual([[held], [fresh]])
-    await vi.waitFor(() => expect(store.read(delhi)).resolves.toEqual(fresh))
+    expect(await stored(store)).toEqual(fresh)
   }
 )
 
@@ -247,8 +254,8 @@ test(
     await vi.advanceTimersByTimeAsync(7 * HOUR + 30 * MINUTE)
 
     expect(sent).toHaveLength(7 * 6 + 1)
-    await vi.waitFor(() => expect(reading.use).toHaveBeenLastCalledWith(later))
-    await vi.waitFor(() => expect(store.read(delhi)).resolves.toEqual(later))
+    expect(reading.use).toHaveBeenLastCalledWith(later)
+    expect(await stored(store)).toEqual(later)
   }
 )
 
@@ -264,7 +271,7 @@ test(
     await vi.advanceTimersByTimeAsync(5 * MINUTE)
 
     expect(sent).toEqual(['2026-10-11T02:37:20.000Z', '2026-10-11T03:40:20.000Z'])
-    await vi.waitFor(() => expect(store.read(delhi)).resolves.toEqual(fresh))
+    expect(await stored(store)).toEqual(fresh)
   }
 )
 
@@ -473,4 +480,13 @@ function served(reply: (index: number) => Response, delay = 0): Served {
   })
 
   return { fetch, sent }
+}
+
+/**
+ * Reads the window `store` holds once every write the schedule began settles.
+ */
+async function stored(store: WindowStore): Promise<ForecastWindow | undefined> {
+  await Promise.all(vi.spyOn(store, 'write').mock.results.map(({ value }) => value))
+
+  return store.read(delhi)
 }
