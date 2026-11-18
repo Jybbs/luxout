@@ -12,13 +12,15 @@ import type { Vitest }        from 'vitest/node'
 /**
  * The modules a module imports, each beside the bindings it takes from it, and
  * the paths its strings spell. Where a VitePress site's `.vitepress` directory
- * holds the module, `site` names the site's root, `lists` the exports listing
- * its pages, per `listings`, and `resolves` whether it imports `resolveConfig`
- * from `vitepress`.
+ * holds the module, `site` names the site's root. `lists` names the exports
+ * listing its pages and `own` reports whether its own statements list them,
+ * per `listings`, and `resolves` whether it imports `resolveConfig` from
+ * `vitepress`.
  */
 interface Scan {
   imports   : Map<string, Set<string>>
   lists     : Set<string>
+  own       : boolean
   resolves  : boolean
   spellings : string[]
   site?     : string
@@ -33,14 +35,6 @@ interface SiteConfig {
 }
 
 /**
- * The fields of a tsconfig that name other tsconfig files.
- */
-interface Tsconfig {
-  extends?    : string | string[]
-  references? : { path: string }[]
-}
-
-/**
  * A string a module holds, beside the offset it starts at and whether it is
  * the whole string rather than a part of a template literal holding an
  * expression.
@@ -49,6 +43,14 @@ interface Spelling {
   start : number
   text  : string
   whole : boolean
+}
+
+/**
+ * The fields of a tsconfig that name other tsconfig files.
+ */
+interface Tsconfig {
+  extends?    : string | string[]
+  references? : { path: string }[]
 }
 
 /**
@@ -105,19 +107,6 @@ function chain(file: string, extender: Experimental.ResolverFactory): string[] {
 }
 
 /**
- * Resolves the `extends` entry `base` of a tsconfig in `dir` as rolldown does,
- * taking a path that opens on `.` or `/` as `named` takes it, and resolving
- * any other entry through `extender`.
- */
-function extended(base: string, dir: string, extender: Experimental.ResolverFactory): string {
-  if (/^[./]/.test(base)) {
-    return named(resolve(dir, base))
-  }
-
-  return located(dir, base, extender)
-}
-
-/**
  * Lists the name and the span of each binding `statement` declares at the top
  * of a module, exported or not.
  */
@@ -135,6 +124,19 @@ function declared(statement: Utils.ESTree.Program['body'][number]): [string, Uti
   return (node?.type === 'ClassDeclaration' || node?.type === 'FunctionDeclaration') && node.id
     ? [[node.id.name, node]]
     : []
+}
+
+/**
+ * Resolves the `extends` entry `base` of a tsconfig in `dir` as rolldown does,
+ * taking a path that opens on `.` or `/` as `named` takes it, and resolving
+ * any other entry through `extender`.
+ */
+function extended(base: string, dir: string, extender: Experimental.ResolverFactory): string {
+  if (/^[./]/.test(base)) {
+    return named(resolve(dir, base))
+  }
+
+  return located(dir, base, extender)
 }
 
 /**
@@ -185,44 +187,71 @@ function imports(
 }
 
 /**
- * Names each export of `module` whose own declaration calls a function of
- * `node:fs` in `LISTS` beside a string of `texts` naming every Markdown file,
- * as the `.md` extension alone or a glob ending `*.md` does, since a page of a
- * site is a Markdown file under its source directory.
+ * Names each export of `module` whose declaration, or a declaration of
+ * `module` it names in turn, calls a function of `node:fs` in `LISTS` beside a
+ * string of `texts` naming every Markdown file, as the `.md` extension alone
+ * or a glob ending `*.md` does, and reports as `own` whether a statement of
+ * `module` does, since a page of a site is a Markdown file under its source
+ * directory.
  */
 function listings(
   module  : Utils.ParseResult['module'],
   program : Utils.ESTree.Program,
   texts   : Spelling[],
   Visitor : typeof Utils.Visitor
-): Set<string> {
+): Pick<Scan, 'lists' | 'own'> {
   const listers = new Set(module.staticImports
     .filter(({ moduleRequest }) => FS.has(moduleRequest.value))
     .flatMap(({ entries }) => entries.filter(({ importName }) => LISTS.has(importName.name ?? '')))
     .map(({ localName }) => localName.value))
 
   if (!listers.size) {
-    return new Set()
+    return { lists: new Set(), own: false }
   }
 
-  const calls: number[] = []
-  const marks           = texts.filter(({ text }) => MARKDOWN.test(text)).map(({ start }) => start)
-  const spans           = new Map(program.body.flatMap(declared))
+  const calls: number[]          = []
+  const marks                    = texts.filter(({ text }) => MARKDOWN.test(text)).map(({ start }) => start)
+  const spans                    = new Map(program.body.flatMap(declared))
+  const uses: [string, number][] = []
 
   new Visitor({
     CallExpression: ({ callee, start }) => {
       if (callee.type === 'Identifier' && listers.has(callee.name)) {
         calls.push(start)
       }
+    },
+
+    Identifier: ({ name, start }) => {
+      if (spans.has(name)) {
+        uses.push([name, start])
+      }
     }
   }).visit(program)
 
-  return new Set(module.staticExports.flatMap((statement) => statement.entries.flatMap((entry) => {
-    const { end, start } = spans.get(entry.localName.name ?? '') ?? statement
-    const within         = (at: number): boolean => start <= at && at < end
+  const reaches = (span: Utils.ESTree.Span): boolean => {
+    const reached = [span]
 
-    return !entry.moduleRequest && calls.some(within) && marks.some(within) ? [bound(entry.exportName)] : []
-  })))
+    for (const { end, start } of reached) {
+      for (const [name, at] of uses) {
+        const local = spans.get(name)
+
+        if (local && start <= at && at < end && !reached.includes(local)) {
+          reached.push(local)
+        }
+      }
+    }
+
+    const within = (at: number): boolean => reached.some(({ end, start }) => start <= at && at < end)
+
+    return calls.some(within) && marks.some(within)
+  }
+
+  return {
+    own   : program.body.some(reaches),
+    lists : new Set(module.staticExports.flatMap((statement) => statement.entries.flatMap((entry) =>
+      reaches(spans.get(entry.localName.name ?? '') ?? statement) ? [bound(entry.exportName)] : []
+    )))
+  }
 }
 
 /**
@@ -376,8 +405,10 @@ function programs(top: string): Map<string, string[]> {
  * outside `node_modules`, holds a string naming the file or a program that
  * names it in turn, per `rooted`, or reads the pages of a VitePress site the
  * file is one of. A module under the site's `.vitepress` reads them where it
- * imports `resolveConfig` from `vitepress`, and any module reads them where it
- * imports, by name, an export of such a module that `listings` names.
+ * imports `resolveConfig` from `vitepress`, the test reads them where its own
+ * statements list them, per `listings`, and any module reads them where it
+ * imports an export `listings` names, by name or through a namespace or
+ * dynamic import.
  * VitePress takes only `.md` files as pages, so a run changing none resolves
  * no site.
  *
@@ -424,8 +455,8 @@ async function readers(changed: string[], include: string[], root: string, top: 
       && entries.some(({ importName }) => importName.name === 'resolveConfig')
     )
     const found               = {
+      ...listings(module, program, texts, Visitor),
       imports   : new Map(paths.entries().filter(([path]) => !lockfile(path) && SCRIPT.test(path))),
-      lists     : root >= 0 ? listings(module, program, texts, Visitor) : new Set<string>(),
       resolves  : resolves,
       site      : root >= 0 ? file.slice(0, root) : undefined,
       spellings : rooted(texts)
@@ -455,14 +486,14 @@ async function readers(changed: string[], include: string[], root: string, top: 
     const modules = new Set([test])
 
     for (const module of modules) {
-      const { imports, resolves, site, spellings } = scan(module)
+      const { imports, own, resolves, site, spellings } = scan(module)
 
       if (spellings.some((spelling) => targets.values().some((target) => names(target, spelling)))) {
         return true
       }
 
       const listing = imports.entries().map(([path, names]) => listed(path, names))
-      const sources = markdown ? [resolves ? site : undefined, ...listing] : []
+      const sources = markdown ? [resolves || (own && module === test) ? site : undefined, ...listing] : []
 
       for (const source of sources) {
         if (source && await changes(source)) {
@@ -542,7 +573,7 @@ function spelled(text: string): string[] {
 function strings(program: Utils.ESTree.Program, Visitor: typeof Utils.Visitor): Spelling[] {
   const found: Spelling[] = []
   const sources           = new Set<number>()
-  const source          = ({ source }: { source: Utils.ESTree.Expression | null }): void => {
+  const source            = ({ source }: { source: Utils.ESTree.Expression | null }): void => {
     if (source) {
       sources.add(source.start)
     }
