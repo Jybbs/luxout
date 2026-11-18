@@ -26,8 +26,9 @@ export class DeployPaths {
   readonly #wrappers : string[]
 
   /**
-   * Reads the workflow, the wrappers, and the files each entry VitePress loads
-   * reads, leaving out an entry the checkout does not hold.
+   * Reads the workflow, the wrappers, and the files read to build the site
+   * config and the theme, leaving out either entry where the checkout does not
+   * hold it.
    */
   static read(audit: Audit): DeployPaths {
     const entries = Object.keys(ENTRIES).filter((entry) => audit.exists(entry))

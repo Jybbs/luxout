@@ -57,7 +57,7 @@ const workflow = (globs: string[]): YamlFile => new YamlFile(WORKFLOW, [
 test('reports each file the site build reads that no glob matches, at the line the globs open on', async ({
   scratch
 }) => {
-  const imports  = { [CONFIG]: [CONFIG, 'bun.lock'], [THEME]: [THEME] }
+  const imports  = { [CONFIG]: [CONFIG, 'bun.lock'], [THEME]: [THEME, 'config.schema.json'] }
   const findings = new DeployPaths(workflow(['site/lib/**']), imports, []).findings(await tasks(scratch))
   const reported = (file: string, reason: string): unknown[] => [
     { file: WORKFLOW, line: 6 },
@@ -70,6 +70,7 @@ test('reports each file the site build reads that no glob matches, at the line t
     reported(CONFIG, 'VitePress loads it as the site config'),
     reported('bun.lock', 'building `site/.vitepress/config.ts` and its imports reads it'),
     reported(THEME, 'VitePress loads it as the site theme'),
+    reported('config.schema.json', 'building `site/.vitepress/theme/index.ts` and its imports reads it'),
     ...Object.keys(SCRIPTS).map((file) => reported(file, '`site:linkcheck` runs it')),
     ...PROVISION.map((file) => reported(file, 'the press job installs its tools through it'))
   ])
@@ -136,6 +137,22 @@ test('reads the modules the site theme imports beside those of the site config',
 
   expect(named(DeployPaths.read(audit).findings(TaskList.read(audit))))
     .toEqual(['tsconfig.json', 'config.schema.json', ...PROVISION])
+})
+
+test('reads the modules the site theme imports in a checkout with no site config', async ({ scratch }) => {
+  await plant(scratch, {
+    '.github/workflows/deploy.yml'   : ['on:', '  push:', '    paths:', '      - site/**'].join('\n'),
+    'config.schema.json'             : '{}\n',
+    'site/.vitepress/theme/index.ts' : "import data from '../../../config.schema.json' with { type: 'json' }"
+                                     + '\n\nexport default { data }\n',
+    'site/package.json'              : '{}\n'
+  })
+  await symlink(join(root, 'node_modules'), join(scratch, 'site/node_modules'))
+
+  const audit = new Audit(scratch, mise([]))
+
+  expect(named(DeployPaths.read(audit).findings(TaskList.read(audit))))
+    .toEqual(['config.schema.json', 'tsconfig.json', ...PROVISION])
 })
 
 test.for<{ files: Record<string, string>, name: string, reported: string[] }>([
