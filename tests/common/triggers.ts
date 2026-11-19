@@ -10,6 +10,16 @@ import stripJsonComments      from 'strip-json-comments'
 import type { Vitest }        from 'vitest/node'
 
 /**
+ * A node naming a member or key, beside whether the name is computed or, for
+ * a shorthand property, also the value it reads.
+ */
+interface Keyed {
+  computed   : boolean
+  key        : Utils.ESTree.Span
+  shorthand? : boolean
+}
+
+/**
  * The modules a module imports, each beside the bindings it takes from it, and
  * the paths its strings spell. Where a VitePress site's `.vitepress` directory
  * holds the module, `site` names the site's root. `lists` names the exports
@@ -210,9 +220,16 @@ function listings(
   }
 
   const calls: number[]          = []
+  const keys                     = new Set<number>()
   const marks                    = texts.filter(({ text }) => MARKDOWN.test(text)).map(({ start }) => start)
   const spans                    = new Map(program.body.flatMap(declared))
   const uses: [string, number][] = []
+
+  const keyed = ({ computed, key, shorthand }: Keyed): void => {
+    if (!computed && !shorthand) {
+      keys.add(key.start)
+    }
+  }
 
   new Visitor({
     CallExpression: ({ callee, start }) => {
@@ -222,10 +239,19 @@ function listings(
     },
 
     Identifier: ({ name, start }) => {
-      if (spans.has(name)) {
+      if (spans.has(name) && !keys.has(start)) {
         uses.push([name, start])
       }
-    }
+    },
+
+    MemberExpression: ({ computed, property }) => {
+      keyed({ computed: computed, key: property })
+    },
+
+    MethodDefinition    : keyed,
+    Property            : keyed,
+    PropertyDefinition  : keyed,
+    TSPropertySignature : keyed
   }).visit(program)
 
   const reaches = (span: Utils.ESTree.Span): boolean => {
@@ -249,7 +275,9 @@ function listings(
   return {
     own   : program.body.some(reaches),
     lists : new Set(module.staticExports.flatMap((statement) => statement.entries.flatMap((entry) =>
-      reaches(spans.get(entry.localName.name ?? '') ?? statement) ? [bound(entry.exportName)] : []
+        !entry.moduleRequest && reaches(spans.get(entry.localName.name ?? '') ?? statement)
+      ? [bound(entry.exportName)]
+      : []
     )))
   }
 }
@@ -405,12 +433,11 @@ function programs(top: string): Map<string, string[]> {
  * outside `node_modules`, holds a string naming the file or a program that
  * names it in turn, per `rooted`, or reads the pages of a VitePress site the
  * file is one of. A module under the site's `.vitepress` reads them where it
- * imports `resolveConfig` from `vitepress`, the test reads them where its own
- * statements list them, per `listings`, and any module reads them where it
+ * imports `resolveConfig` from `vitepress`, a test there reads them where its
+ * own statements list them, per `listings`, and any module reads them where it
  * imports an export `listings` names, by name or through a namespace or
- * dynamic import.
- * VitePress takes only `.md` files as pages, so a run changing none resolves
- * no site.
+ * dynamic import. VitePress takes only `.md` files as pages, so a run changing
+ * none resolves no site.
  *
  * Args:
  *   changed : The absolute path of each file the branch changes.

@@ -14,8 +14,8 @@ const BRANCHES   = { changes: false, deletes: true }
 const PAGED      = ['.vitepress/tests/*.test.ts', 'outside.test.ts']
 const PAGE_TESTS = [
   '.vitepress/tests/glob.test.ts', '.vitepress/tests/helper.test.ts', '.vitepress/tests/list.test.ts',
-  '.vitepress/tests/own.test.ts', '.vitepress/tests/read.test.ts', '.vitepress/tests/site.test.ts',
-  '.vitepress/tests/sorted.test.ts', '.vitepress/tests/whole.test.ts'
+  '.vitepress/tests/own.test.ts', '.vitepress/tests/read.test.ts', '.vitepress/tests/shelf.test.ts',
+  '.vitepress/tests/site.test.ts', '.vitepress/tests/sorted.test.ts', '.vitepress/tests/whole.test.ts'
 ]
 const pragma     = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const root       = dirname(import.meta.dirname)
@@ -96,14 +96,18 @@ async function provided(scratch: string, changedSince?: string, include = ['*.te
  * out, as VitePress leaves out its `dist/`. Two site tests call
  * `resolveConfig`, one through a module it imports, a third imports another
  * export of `vitepress`, a fourth imports the `resolveConfig` of `vite`, and a
- * test outside `.vitepress` calls `resolveConfig` too. Four more site tests
+ * test outside `.vitepress` calls `resolveConfig` too. Five more site tests
  * each import an export listing Markdown files, through `readdirSync`, through
- * `globSync`, through the `readdir` of `node:fs/promises`, and through a local
- * helper calling `readdirSync`, a fifth lists them in its own body, and a
- * sixth imports the whole `readdirSync` module. Others import that module's
- * named and default exports reading one named page, an export listing a folder
- * through `readdir` naming no Markdown file, or name every Markdown file
- * through a glob while listing no folder, and `notes.md` sits outside `srcDir`.
+ * `globSync`, through the `readdir` of `node:fs/promises`, through a local
+ * helper calling `readdirSync`, and through an object holding such a helper as
+ * a shorthand property, a sixth lists them in its own body, and a seventh
+ * imports the whole of `list.ts`. Others import the named and default
+ * exports `list.ts` declares ahead of its listing helper, reading one named
+ * page, import an export listing a folder through `readdir` naming no Markdown
+ * file, directly or re-exported beside a listing declaration of the same
+ * name, import exports reading only members and keys that share the name of a
+ * listing declaration, or name every Markdown file in one statement while
+ * listing a folder in another, and `notes.md` sits outside `srcDir`.
  */
 async function site(changed: string, modules: string, scratch: string, deleted = false): Promise<void> {
   await plant(scratch, {
@@ -115,11 +119,11 @@ async function site(changed: string, modules: string, scratch: string, deleted =
                                       + 'export const glob = (cwd: string): string[] => '
                                       + "globSync('**/*.md', { cwd })\n",
     '.vitepress/lib/list.ts'          : "import { readFileSync, readdirSync } from 'node:fs'\n"
+                                      + 'export const title = (name: string): string => '
+                                      + "readFileSync(`${name}.md`, 'utf8')\n"
                                       + 'const list = (dir: string): string[] => '
                                       + "readdirSync(dir).filter((name) => name.endsWith('.md'))\n"
                                       + 'export { list }\n'
-                                      + 'export const title = (name: string): string => '
-                                      + "readFileSync(`${name}.md`, 'utf8')\n"
                                       + 'export default title\n',
     '.vitepress/lib/order.ts'         : "import { readdirSync } from 'node:fs'\n"
                                       + 'const list = (dir: string): string[] => readdirSync(dir)\n'
@@ -127,9 +131,21 @@ async function site(changed: string, modules: string, scratch: string, deleted =
                                       + "list(dir).filter((name) => name.endsWith('.md')).sort()\n",
     '.vitepress/lib/pages.ts'         : "import { resolveConfig } from 'vitepress'\n"
                                       + 'export const pages = resolveConfig\n',
+    '.vitepress/lib/prop.ts'          : "import { readdirSync } from 'node:fs'\n"
+                                      + 'const pages = (dir: string): string[] => '
+                                      + "readdirSync(dir).filter((name) => name.endsWith('.md'))\n"
+                                      + 'export const count = (o: { pages: string[] }): number => '
+                                      + 'o.pages.length + { pages: 0 }.pages\n'
+                                      + 'export class Deck { pages = 0; '
+                                      + 'static pages(): number { return 0 } }\n'
+                                      + 'export const shelf = { pages }\n',
     '.vitepress/lib/read.ts'          : "import { readdir } from 'node:fs/promises'\n"
                                       + 'export const read = async (dir: string): Promise<string[]> => '
                                       + "(await readdir(dir)).filter((name) => name.endsWith('.md'))\n",
+    '.vitepress/lib/shadow.ts'        : "import { readdirSync } from 'node:fs'\n"
+                                      + 'const cards = (dir: string): string[] => '
+                                      + "readdirSync(dir).filter((name) => name.endsWith('.md'))\n"
+                                      + "export { cards } from './cards.ts'\n",
     '.vitepress/tests/bundle.test.ts' : "import { resolveConfig } from 'vite'\n"
                                       + 'export const bundle = resolveConfig\n',
     '.vitepress/tests/cards.test.ts'  : "export { cards } from '../lib/cards.ts'\n",
@@ -138,12 +154,18 @@ async function site(changed: string, modules: string, scratch: string, deleted =
     '.vitepress/tests/lede.test.ts'   : "import lede from '../lib/list.ts'\n"
                                       + 'export const opening = lede\n',
     '.vitepress/tests/list.test.ts'   : "export { list } from '../lib/list.ts'\n",
-    '.vitepress/tests/names.test.ts'  : "export const names = '*.md'\n",
+    '.vitepress/tests/names.test.ts'  : "import { readdirSync } from 'node:fs'\n"
+                                      + "export const names = '*.md'\n"
+                                      + "export const cards = readdirSync('cards')\n",
     '.vitepress/tests/own.test.ts'    : "import { readdirSync } from 'node:fs'\n"
                                       + "readdirSync('.').filter((name) => name.endsWith('.md'))\n",
+    '.vitepress/tests/prop.test.ts'   : "export { Deck, count } from '../lib/prop.ts'\n",
     '.vitepress/tests/read.test.ts'   : "export { read } from '../lib/read.ts'\n",
     '.vitepress/tests/render.test.ts' : "import { createMarkdownRenderer } from 'vitepress'\n"
                                       + 'export const render = createMarkdownRenderer\n',
+    '.vitepress/tests/shadow.test.ts' : "import { cards } from '../lib/shadow.ts'\n"
+                                      + 'export const deck = cards\n',
+    '.vitepress/tests/shelf.test.ts'  : "export { shelf } from '../lib/prop.ts'\n",
     '.vitepress/tests/site.test.ts'   : "import { resolveConfig } from 'vitepress'\n"
                                       + 'export const site = resolveConfig\n',
     '.vitepress/tests/sorted.test.ts' : "export { sorted } from '../lib/order.ts'\n",
@@ -340,6 +362,9 @@ test(
     expect(files).toContain('.vitepress/tests/list.test.ts')
     expect(files).not.toContain('.vitepress/tests/cards.test.ts')
     expect(files).not.toContain('.vitepress/tests/lede.test.ts')
+    expect(files).not.toContain('.vitepress/tests/names.test.ts')
+    expect(files).not.toContain('.vitepress/tests/prop.test.ts')
+    expect(files).not.toContain('.vitepress/tests/shadow.test.ts')
     expect(files).not.toContain('.vitepress/tests/title.test.ts')
   }
 )
