@@ -12,6 +12,3 @@ reason  = "Moves to the release `vite` names, since a second copy fails the suit
 ["strip-json-comments"]
 follows = "knip"
 reason  = "Moves to the release `knip` names, so `bun.lock` keeps one copy"
-
-["unbash"]
-reason = "Release 5.1.0 adds an `unexpected token` error on an unclosed `case`, changing what the shell audit reports"
