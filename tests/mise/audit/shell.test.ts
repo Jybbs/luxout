@@ -37,6 +37,15 @@ it.each([
     script   : 'echo \'bun install\' "a \\"b\\" $c" d\\ e a#b'
   },
   {
+    name     : 'leaves each assignment a declaration command takes out of its words',
+    script   : 'export CI=1 PATH\nlocal dir=$(mktemp -d)',
+    expected : [
+      { line: 1, words: ['export', 'PATH'] },
+      { line: 2, words: ['local'] },
+      { line: 2, words: ['mktemp', '-d'] }
+    ]
+  },
+  {
     expected : [{ line: 1, words: ['bun', 'install'] }],
     name     : 'leaves each redirection out of the words',
     script   : 'bun install 2>&1 &>/dev/null'
@@ -45,6 +54,27 @@ it.each([
     expected : [{ line: 2, words: ['bun', 'install'] }],
     name     : 'reads the commands a function body runs',
     script   : 'function bake {\n  bun install\n}'
+  },
+  {
+    name     : 'reads the commands each elif branch runs',
+    script   : 'if a; then b\nelif c; then d\nelse e\nfi',
+    expected : [
+      { line: 1, words: ['a'] },
+      { line: 1, words: ['b'] },
+      { line: 2, words: ['c'] },
+      { line: 2, words: ['d'] },
+      { line: 3, words: ['e'] }
+    ]
+  },
+  {
+    name     : 'reads the commands a case item, a loop, and a subshell run',
+    script   : 'case $x in\n  a) b ;;\nesac\nfor i in $(c); do d; done\n(e)',
+    expected : [
+      { line: 2, words: ['b'] },
+      { line: 4, words: ['c'] },
+      { line: 4, words: ['d'] },
+      { line: 5, words: ['e'] }
+    ]
   },
   {
     expected : [{ line: 1, words: ['cat'] }],
@@ -62,6 +92,14 @@ it.each([
     script   : 'snapshot=$(bun install)'
   },
   {
+    name     : 'reads the command a substitution runs inside a bracket glob',
+    script   : 'bun --filter=[$(git rev-parse HEAD)] test',
+    expected : [
+      { line: 1, words: ['bun', '--filter=[$(git rev-parse HEAD)]', 'test'] },
+      { line: 1, words: ['git', 'rev-parse', 'HEAD'] }
+    ]
+  },
+  {
     expected : [{ line: 1, words: ['cat'] }, { line: 2, words: ['bun', 'install'] }],
     name     : 'reads the command a substitution runs inside an unquoted heredoc',
     script   : 'cat <<EOF\n$(bun install)\nEOF\n'
@@ -74,6 +112,17 @@ it.each([
       { line: 1, words: ['bun', 'i'] },
       { line: 1, words: ['bun', 'i'] },
       { line: 1, words: ['bun', 'i'] }
+    ]
+  },
+  {
+    name     : 'reads the command a substitution runs in a test, an arithmetic expansion, or a redirection',
+    script   : '[[ -n $(a) ]] && echo $(( $(b) )) > "$(c)" <<< "$(d)"',
+    expected : [
+      { line: 1, words: ['a'] },
+      { line: 1, words: ['echo', '$(( $(b) ))'] },
+      { line: 1, words: ['b'] },
+      { line: 1, words: ['c'] },
+      { line: 1, words: ['d'] }
     ]
   },
   {
@@ -103,12 +152,19 @@ it('numbers each command from the line its script starts on', () => {
 it.each([
   { expected: [{ line: 1, message: "unexpected token '('" }], script: 'cd {{arg(name="dir")}}\nbun install' },
   {
-    expected : [{ line: 3, message: "expected 'esac' to close 'case'" }],
-    script   : 'case $x in\n  a) echo ;;\nbun install'
+    script   : 'case $x in\n  a) echo ;;\nbun install',
+    expected : [
+      { line: 3, message: "unexpected token 'install'" },
+      { line: 3, message: "expected 'esac' to close 'case'" }
+    ]
   },
   {
     expected : [{ line: 2, message: 'unterminated command substitution' }],
     script   : 'x=1\ny=`echo \\$y; echo $(`'
+  },
+  {
+    expected : [{ line: 2, message: "expected 'then'" }, { line: 2, message: "expected 'fi' to close 'if'" }],
+    script   : 'a\necho <(if b)'
   }
 ])('reports each error the parser meets in $script', ({ expected, script }) => {
   expect(scan(script).errors).toEqual(expected)
