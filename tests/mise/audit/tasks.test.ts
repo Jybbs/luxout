@@ -5,28 +5,11 @@ import { describe, expect, vi } from 'vitest'
 import { Audit, type Run } from '../../../.mise/audit/audit.ts'
 import { PackageManifest } from '../../../.mise/audit/package.ts'
 import { TaskList }        from '../../../.mise/audit/tasks.ts'
-import { mise }            from '../../common/mise.js'
+import { listing, mise }   from '../../common/mise.js'
 import { plant, test }     from '../../common/scratch.js'
-
-interface Declared {
-  name   : string
-  source : string
-  file?  : boolean
-  run?   : (string | { tasks: string[] })[]
-  tools? : Record<string, string>
-}
 
 const FRONTMATTER = '#!/usr/bin/env -S bash -euo pipefail\n#MISE description = "Install"\n\n'
 const manifest    = new PackageManifest('{}')
-
-const listing = (root: string, tasks: Declared[]) =>
-  tasks.map(({ file = false, name, run = [], source, tools = {} }) => ({
-    file   : file ? join(root, source) : null,
-    name   : name,
-    run    : run,
-    source : join(root, source),
-    tools  : tools
-  }))
 
 describe('a bun install a task runs', () => {
   test.for([
@@ -339,4 +322,25 @@ test('finds the tasks repo:verify runs and the tools each task declares', async 
 
   expect([tasks.verified, tasks.tools('repo:verify'), tasks.tools('plugin:cover')])
     .toEqual([new Set(['plugin:cover', 'repo:audit']), { jq: '1.8.2' }, undefined])
+})
+
+test('lists the scripts of a task and each task its `depends` or a `run` entry reaches, once each', async ({
+  scratch
+}) => {
+  await plant(scratch, {
+    '.mise/tasks/site/bake'  : 'bun install --frozen-lockfile\n',
+    '.mise/tasks/site/check' : 'lychee dist\n',
+    '.mise/tasks/site/press' : 'vitepress build\n',
+    '.mise/tasks/site/serve' : 'vitepress dev\n'
+  })
+
+  const tasks = TaskList.read(new Audit(scratch, mise(listing(scratch, [
+    { depends: ['site:press'], file: true, name: 'site:check', source: '.mise/tasks/site/check' },
+    { file: true, name: 'site:press', run: [{ tasks: ['site:bake'] }], source: '.mise/tasks/site/press' },
+    { depends: ['site:check'], file: true, name: 'site:bake', source: '.mise/tasks/site/bake' },
+    { file: true, name: 'site:serve', source: '.mise/tasks/site/serve' }
+  ]))))
+
+  expect(tasks.chain('site:check').map(({ file }) => file))
+    .toEqual(['.mise/tasks/site/check', '.mise/tasks/site/press', '.mise/tasks/site/bake'])
 })
