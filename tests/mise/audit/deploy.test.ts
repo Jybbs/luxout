@@ -15,6 +15,7 @@ import { plant, repository, test } from '../../common/scratch.js'
 
 const ALL       = ['.github/actions/provision/**', '.github/workflows/deploy.yml', '.mise/**', 'site/**']
 const CONFIG    = 'site/.vitepress/config.ts'
+const FACE      = 'site/.vitepress/lib/face.ts'
 const LIB       = 'site/lib/a.ts'
 const PROVISION = ['.github/actions/provision/action.yml', '.mise/config.toml', '.mise/mise.lock']
 const THEME     = 'site/.vitepress/theme/index.ts'
@@ -238,6 +239,23 @@ test('reads each file a page embeds by a relative path, resolved as VitePress re
   })
 })
 
+test('reads each page under the config’s `srcDir` that no `srcExclude` glob matches', async ({
+  scratch
+}) => {
+  await plant(scratch, {
+    'site/.vitepress/config.ts' : "export default { srcDir: 'docs', srcExclude: ['drafts/**'] }\n",
+    'site/docs/drafts/a.md'     : '# A draft\n',
+    'site/docs/index.md'        : '# Home\n',
+    'site/index.md'             : '# Outside the source directory\n',
+    'site/package.json'         : '{ "type": "module" }\n'
+  })
+
+  expect(await (await staged(scratch)).site('site')).toEqual({
+    pages     : new Map([['site/docs/index.md', []]]),
+    publicDir : 'site/docs/public'
+  })
+})
+
 test.for<{ excluded: string, files: Record<string, string>, name: string }>([
   {
     excluded : 'site/public/logo.svg',
@@ -248,6 +266,16 @@ test.for<{ excluded: string, files: Record<string, string>, name: string }>([
     excluded : 'site/.vitepress/tests/**',
     files    : { 'site/.vitepress/tests/fonts/face.ttf': '' },
     name     : 'the site suite, though a module string names a file there'
+  },
+  {
+    excluded : 'site/.vitepress/fonts/src.ttf',
+    files    : {
+      [CONFIG]                        : "import { SRC } from '../../src/face.ts'\n\nexport default { SRC }\n",
+      'package.json'                  : '{ "type": "module" }\n',
+      'site/.vitepress/fonts/src.ttf' : '',
+      'src/face.ts'                   : "export const SRC = 'fonts/src.ttf'\n"
+    },
+    name     : 'the site that only a module outside the site spells'
   }
 ])('reports no file under $name', async ({ excluded, files }, { scratch }) => {
   await plant(scratch, { ...PAGES, ...files, [WORKFLOW]: triggers(['**', `!${excluded}`]) })
@@ -260,19 +288,17 @@ test.for<{ excluded: string, files: Record<string, string>, name: string }>([
 test('reports a module the site build imports by its import, though a module spells its path', async ({
   scratch
 }) => {
-  const face = 'site/.vitepress/lib/face.ts'
-
   await plant(scratch, {
     ...PAGES,
-    [face]     : `${PAGES[face]}export const SELF = 'lib/face.ts'\n`,
-    [WORKFLOW] : triggers(['**', `!${face}`])
+    [FACE]     : `${PAGES[FACE]}export const SELF = 'lib/face.ts'\n`,
+    [WORKFLOW] : triggers(['**', `!${FACE}`])
   })
 
   const audit    = await staged(scratch)
   const findings = (await DeployPaths.read(audit)).findings(TaskList.read(audit))
 
   expect(findings.map(({ message }) => message)).toEqual([
-    `\`${face}\` matches no \`on.push.paths\` glob, though building \`${CONFIG}\` and its imports reads it, `
+    `\`${FACE}\` matches no \`on.push.paths\` glob, though building \`${CONFIG}\` and its imports reads it, `
   + 'so a push changing it leaves the site unpublished'
   ])
 })
@@ -280,11 +306,9 @@ test('reports a module the site build imports by its import, though a module spe
 test('reports a page by its page, though a module the site build imports spells its path', async ({
   scratch
 }) => {
-  const face = 'site/.vitepress/lib/face.ts'
-
   await plant(scratch, {
     ...PAGES,
-    [face]     : `${PAGES[face]}export const HOME = '../index.md'\n`,
+    [FACE]     : `${PAGES[FACE]}export const HOME = '../index.md'\n`,
     [WORKFLOW] : triggers(['**', '!site/index.md'])
   })
 
@@ -294,5 +318,48 @@ test('reports a page by its page, though a module the site build imports spells 
   expect(findings.map(({ message }) => message)).toEqual([
     '`site/index.md` matches no `on.push.paths` glob, though VitePress builds it as a page, '
   + 'so a push changing it leaves the site unpublished'
+  ])
+})
+
+test('reads no page, public file, or spelled file in a checkout with a theme and no site config', async ({
+  scratch
+}) => {
+  const site   = Object.entries(PAGES).filter(([file]) => file !== CONFIG)
+  const unread = ['site/index.md', 'site/sun.svg', 'site/public/logo.svg', 'site/.vitepress/fonts/face.ttf']
+
+  await plant(scratch, {
+    ...Object.fromEntries(site),
+    [THEME]    : "import { FACE } from '../lib/face.ts'\n\nexport default { FACE }\n",
+    [WORKFLOW] : triggers(['**', ...unread.map((file) => `!${file}`)])
+  })
+
+  const audit = await staged(scratch)
+
+  expect((await DeployPaths.read(audit)).findings(TaskList.read(audit))).toEqual([])
+})
+
+test.for([
+  {
+    files  : { 'site/index.md': '![The sun](./sun.svg)\n\n![The logo](./public/logo.svg)\n' },
+    name   : 'a page embeds',
+    reason : 'the page `site/index.md` embeds it'
+  },
+  {
+    files  : { [FACE]: `${PAGES[FACE]}export const LOGO = 'public/logo.svg'\n` },
+    name   : 'a module spells',
+    reason : 'VitePress copies it from the public directory into the bundle'
+  }
+])('reports a public file $name by the reason ranked higher, where no glob matches it', async (
+  { files, reason },
+  { scratch }
+) => {
+  await plant(scratch, { ...PAGES, ...files, [WORKFLOW]: triggers(['**', '!site/public/logo.svg']) })
+
+  const audit    = await staged(scratch)
+  const findings = (await DeployPaths.read(audit)).findings(TaskList.read(audit))
+
+  expect(findings.map(({ message }) => message)).toEqual([
+    `\`site/public/logo.svg\` matches no \`on.push.paths\` glob, though ${reason}, so a push changing it `
+  + 'leaves the site unpublished'
   ])
 })
