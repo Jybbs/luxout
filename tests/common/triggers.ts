@@ -742,8 +742,10 @@ export function lockfiles(root: string): string[] {
 /**
  * Maps each script of `modules` to the files of `files` whose path a string of
  * the script spells, per `rooted` and `names`, leaving out a module that is no
- * script or spells none. A spelling counts only where it names a directory, so
- * a file name alone, such as `index.ts`, names no file.
+ * script or spells none. A string opening on `./` or `../` names the one file
+ * it resolves to from the script's directory, and any other spelling counts
+ * only where it names a directory, so a file name alone, such as `index.ts`,
+ * names no file.
  *
  * Args:
  *   files   : The absolute path of each file a string can name.
@@ -755,8 +757,14 @@ export function mentions(files: string[], modules: string[], root: string): Map<
 
   return new Map(modules.filter((module) => SCRIPT.test(module)).flatMap((module) => {
     const { program } = parseSync(module, readFileSync(module, 'utf8'))
-    const spellings   = rooted(strings(program, Visitor)).filter((spelling) => spelling.includes('/'))
-    const found       = files.filter((file) => spellings.some((spelling) => names(file, spelling)))
+    const texts       = strings(program, Visitor)
+    const beside      = new Set(
+      texts.filter(({ text }) => /^\.\.?\//.test(text)).map(({ text }) => resolve(dirname(module), text))
+    )
+    const spellings   = rooted(texts).filter((spelling) => spelling.includes('/'))
+    const found       = files.filter((file) =>
+      beside.has(file) || spellings.some((spelling) => names(file, spelling))
+    )
 
     return found.length ? [[module, found]] : []
   }))

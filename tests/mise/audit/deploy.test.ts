@@ -298,6 +298,28 @@ test.for<{ excluded: string, files: Record<string, string>, name: string }>([
   expect((await DeployPaths.read(audit)).findings(TaskList.read(audit))).toEqual([])
 })
 
+test('reports a file a module the site build imports reads beside itself through a relative URL', async ({
+  scratch
+}) => {
+  const beside = 'site/.vitepress/lib/face.ttf'
+  const reads  = "export const BESIDE = readFileSync(new URL('./face.ttf', import.meta.url))\n"
+
+  await plant(scratch, {
+    ...PAGES,
+    [FACE]     : `import { readFileSync } from 'node:fs'\n\n${PAGES[FACE]}${reads}`,
+    [beside]   : '',
+    [WORKFLOW] : triggers(['**', `!${beside}`])
+  })
+
+  const audit    = await staged(scratch)
+  const findings = (await DeployPaths.read(audit)).findings(TaskList.read(audit))
+
+  expect(findings.map(({ message }) => message)).toEqual([
+    `\`${beside}\` matches no \`on.push.paths\` glob, though \`${FACE}\`, a module the site build imports, `
+  + 'spells its path, so a push changing it leaves the site unpublished'
+  ])
+})
+
 test('reports a module the site build imports by its import, though a module spells its path', async ({
   scratch
 }) => {
