@@ -25,6 +25,7 @@ export interface Acts {
   logs?          : string
   mute?          : boolean
   silent?        : boolean
+  trails?        : string
   writes?        : string
 }
 

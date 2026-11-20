@@ -81,4 +81,4 @@ test.prop([fc.constantFrom(...names), fc.array(fc.string())], {
   const received = execFileSync(join(copies, name), args, { cwd: tmpdir(), encoding: 'utf8' })
 
   expect(received.split('\0').slice(0, -1)).toEqual([program(scratch, name), ...args])
-}, TAGS.spawns.timeout * (RUNS + names.length))
+}, TAGS.spawns.timeout * RUNS)

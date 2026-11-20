@@ -1,8 +1,9 @@
+import { spawn }                                                from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { createServer }                                           from 'node:http'
-import { join }                                                   from 'node:path'
-import { pathToFileURL }                                          from 'node:url'
-import { parseArgs }                                              from 'node:util'
+import { createServer }                                         from 'node:http'
+import { join }                                                 from 'node:path'
+import { pathToFileURL }                                        from 'node:url'
+import { parseArgs }                                            from 'node:util'
 
 const { values } = parseArgs({
   options: {
@@ -37,7 +38,12 @@ for (const name of existsSync(plugins) ? readdirSync(plugins) : []) {
 }
 
 setInterval(() => {}, 60_000)
-process.on('SIGTERM', () => acts.lingers || process.exit(0))
+process.on('SIGTERM', () => {
+  const trail = `setTimeout(() => console.log(${JSON.stringify(acts.trails)}), 100)`
+
+  if (acts.trails) spawn(process.execPath, ['-e', trail], { stdio: ['ignore', 'inherit', 'inherit'] })
+  if (!acts.lingers) process.exit(0)
+})
 console.log(`Started with ${process.argv.slice(2).join(' ')}`)
 console.log(`Preloaded with ${process.execArgv.join(' ')}`)
 

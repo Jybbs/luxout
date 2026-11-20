@@ -105,6 +105,16 @@ test.concurrent('reports an exit within the grace after SIGTERM', async ({ expec
   expect({ exited: run.exited, faults: run.faults }).toEqual({ exited: true, faults: [] })
 })
 
+test.concurrent('reads what a run prints until its output closes, past its exit', async ({
+  expect,
+  scratch,
+  tuning
+}) => {
+  const run = await stopped(scratch, tuning, { trails: 'Trailing line' })
+
+  expect(run.output).toEqual(expect.stringContaining('Trailing line\n'))
+})
+
 test.concurrent('reports no start where it never listens before the timeout', async ({
   expect,
   scratch,
