@@ -96,8 +96,8 @@ export class Card {
 
     return Promise.all(this.#words.map(async ({ fill, part, text }) => {
       const ink  = await this.#raster(this.#svg([part], false))
-      const seen = ink.keys()
-        .filter((at) => at % 4 === 0 && ink[at + 3]! > OPAQUE)
+      const seen = range(0, ink.length, 4)
+        .filter((at) => ink[at + 3]! > OPAQUE)
         .map((at) => wcagContrast(fill, { b: share(at + 2), g: share(at + 1), mode: 'rgb', r: share(at) }))
 
       return { contrast: quantile(seen, 0.02)!, text }

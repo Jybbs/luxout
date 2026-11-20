@@ -5,7 +5,8 @@ import { join }      from 'node:path'
 
 import { expect } from 'vitest'
 
-import { plant, repository, test } from '../../common/scratch.js'
+import { repository }  from '../../common/repository.js'
+import { plant, test } from '../../common/scratch.js'
 
 const entry = join(import.meta.dirname, '..', '..', '..', '.mise', 'audit', 'index.ts')
 

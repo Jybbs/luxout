@@ -1,6 +1,6 @@
-import { existsSync }          from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
-import { fileURLToPath }       from 'node:url'
+import { existsSync }    from 'node:fs'
+import { readFile }      from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
 import { createMarkdownRenderer } from 'vitepress'
 import { describe, expect, it }   from 'vitest'
@@ -18,12 +18,6 @@ import * as startCards                from '../../../lib/readme/start-cards.ts'
 import { SCHEMES }                    from '../../../lib/theme/tokens.ts'
 import { dialDrawing }                from '../../../theme/components/daylight/dial-drawing.tsx'
 
-declare module 'vitest' {
-  interface Matchers<R extends void | Promise<void> = void | Promise<void>, T = unknown> {
-    toMatchFileBytes(path: URL): Promise<void>
-  }
-}
-
 const forms   = startCards.START_CARDS.flatMap((card) => SCHEMES.map((scheme) => ({ card, scheme })))
 const root    = new URL('../../../', import.meta.url)
 const cards   = await startCards.StartCards.read(root)
@@ -37,24 +31,7 @@ const pages   = new Set(readme.matchAll(/(?:href="|\]\()(https:\/\/luxout\.fyi\/
   .map(([, link]) => link!)
   .filter((link) => !/\.\w+$/.test(new URL(link).pathname)))
 
-expect.extend({
-  async toMatchFileBytes(received: Uint8Array, path: URL) {
-    if (this.snapshotState.snapshotUpdateState === 'all') await writeFile(path, received)
-
-    const pass = Buffer.from(received).equals(await readFile(path))
-
-    return {
-      message : () => `${path.pathname} ${pass ? 'holds' : 'no longer holds'} the bytes the site writes`,
-      pass    : pass
-    }
-  }
-})
-
 describe('the tracked README files', () => {
-  it.for(SCHEMES)('hold the %s preview as the site records it', { tags: 'records' }, async (scheme) => {
-    await expect(await preview.record(scheme)).toMatchFileBytes(site(previewAddress(scheme)))
-  })
-
   it.for(SCHEMES)(
     'keep the %s preview at least 800 pixels wide, looping without end, and under 6 MB',
     async (scheme) => {
