@@ -6,24 +6,9 @@ import { expect, it, vi } from 'vitest'
 import type { Block }                              from '../../../.mise/vet/homebridge.ts'
 import { Scenario, Shutdown, type Tuning, checks } from '../../../.mise/vet/scenario.ts'
 import schema                                      from '../../../config.schema.json' with { type: 'json' }
-import { type Acts, install, stage, test as vet }  from '../../common/vet.js'
+import { type Acts, install, stage, test }         from '../../common/vet.js'
 
 const BLOCK = { platform: 'Luxout' }
-
-/**
- * Extends the stand-in fixtures with `verdict`, which runs a check against the
- * stand-in Homebridge installed under `scratch`, acting as `acts` asks, on
- * `waits` over the fixture's `tuning`, and stops a stand-in that never listens
- * once it prints its startup lines.
- */
-const test = vet.extend('verdict', ({ scratch, startup, tuning }) =>
-  async (check: Scenario | Shutdown, acts: Acts = {}, waits?: Partial<Tuning>) => {
-    const homebridge = await install(join(scratch, 'release'))
-    const launch     = await stage(scratch, acts)
-    const start      = acts.mute ? startup(launch.storage) : tuning.start
-
-    return check.run(homebridge, launch, { ...tuning, start, ...waits })
-  })
 
 it('builds each run the checks start from the schema, running a repeated block once', () => {
   const block = {
@@ -127,14 +112,12 @@ test.concurrent('fails a second start that meets EADDRINUSE once it listens', as
     .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
 })
 
-test('stops at a first start that never listens', async ({ scratch, startup, tuning }) => {
+test('stops at a first start that never listens', async ({ scratch, tuned }) => {
+  const acts         = { mute: true }
   const homebridge   = await install(join(scratch, 'release'))
-  const launch       = await stage(scratch, { mute: true })
+  const launch       = await stage(scratch, acts)
   const start        = vi.spyOn(homebridge, 'start')
-  const { failures } = await new Shutdown(BLOCK).run(homebridge, launch, {
-    ...tuning,
-    start: startup(launch.storage)
-  })
+  const { failures } = await new Shutdown(BLOCK).run(homebridge, launch, tuned(launch.storage, acts))
 
   expect({ failures, starts: start.mock.calls.length }).toEqual({
     failures : ['never reports its bridge listening'],

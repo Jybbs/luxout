@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { join }                from 'node:path'
 
 import type { Block, Launch, Run }         from '../../../.mise/vet/homebridge.ts'
-import type { Tuning }                    from '../../../.mise/vet/scenario.ts'
+import type { Tuning }                     from '../../../.mise/vet/scenario.ts'
 import { type Acts, install, stage, test } from '../../common/vet.js'
 
 type Flags = Pick<Launch, 'insecure' | 'offline'>

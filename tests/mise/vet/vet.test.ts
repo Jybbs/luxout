@@ -5,12 +5,12 @@ import { join, relative }    from 'node:path'
 import getPort        from 'get-port'
 import { expect, vi } from 'vitest'
 
-import { Homebridge }                from '../../../.mise/vet/homebridge.ts'
-import type * as scenario            from '../../../.mise/vet/scenario.ts'
-import { Vet }                       from '../../../.mise/vet/vet.ts'
-import { plant }                     from '../../common/scratch.js'
-import { checkout, install, test }   from '../../common/vet.js'
-import config                        from '../../homebridge/config.json' with { type: 'json' }
+import { Homebridge }              from '../../../.mise/vet/homebridge.ts'
+import type * as scenario          from '../../../.mise/vet/scenario.ts'
+import { Vet }                     from '../../../.mise/vet/vet.ts'
+import { plant }                   from '../../common/scratch.js'
+import { checkout, install, test } from '../../common/vet.js'
+import config                      from '../../homebridge/config.json' with { type: 'json' }
 
 vi.mock(import('get-port'), async (original) => {
   const actual = await original()

@@ -10,12 +10,12 @@ import { Characteristics, Services as Types } from '@homebridge/hap-client/hap-t
 import * as hap                               from '@homebridge/hap-nodejs'
 import { expect, it, vi }                     from 'vitest'
 
-import type { Tuning }                            from '../../../.mise/vet/scenario.ts'
-import * as services                              from '../../../.mise/vet/services.ts'
-import { Settings }                               from '../../../src/config/settings.js'
-import { OUTSIDE }                                from '../../../src/sensor/outside.js'
-import { plant }                                  from '../../common/scratch.js'
-import { type Acts, install, stage, test }         from '../../common/vet.js'
+import type { Tuning }                     from '../../../.mise/vet/scenario.ts'
+import * as services                       from '../../../.mise/vet/services.ts'
+import { Settings }                        from '../../../src/config/settings.js'
+import { OUTSIDE }                         from '../../../src/sensor/outside.js'
+import { plant }                           from '../../common/scratch.js'
+import { type Acts, install, stage, test } from '../../common/vet.js'
 
 /**
  * One characteristic HAP-NodeJS sends, named by the key `Characteristics`
@@ -260,20 +260,14 @@ test.concurrent.for<{ acts: Acts, bridge: string, failures: string[], waits?: Pa
   }
 ])('reads a bridge it starts insecure and offline, which $bridge', async ({ acts, failures, waits }, {
   expect,
-  scratch,
-  startup,
-  tuning
+  verdict
 }) => {
-  const check      = new services.Services(BLOCK, PLUGIN)
-  const homebridge = await install(join(scratch, 'release'))
-  const launch     = await stage(scratch, acts)
-  const start      = acts.mute ? startup(launch.storage) : tuning.start
-  const verdict    = await check.run(homebridge, launch, { ...tuning, start, ...waits })
+  const run = await verdict(new services.Services(BLOCK, PLUGIN), acts, waits)
 
   expect({
-    failures : verdict.failures,
-    insecure : verdict.output.includes('--strict-plugin-resolution -I'),
-    offline  : verdict.output.includes('offline.ts')
+    failures : run.failures,
+    insecure : run.output.includes('--strict-plugin-resolution -I'),
+    offline  : run.output.includes('offline.ts')
   }).toEqual({ failures, insecure: true, offline: true })
 })
 

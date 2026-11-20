@@ -4,12 +4,12 @@ import { join }                         from 'node:path'
 
 import getPort from 'get-port'
 
-import { Homebridge }             from '../../.mise/vet/homebridge.ts'
-import type { Stage, Tuning }     from '../../.mise/vet/scenario.ts'
-import { HELD }                   from '../../.mise/vet/vet.ts'
-import schema                     from '../../config.schema.json' with { type: 'json' }
-import config                     from '../homebridge/config.json' with { type: 'json' }
-import { plant, test as scratch } from './scratch.js'
+import { Homebridge }                from '../../.mise/vet/homebridge.ts'
+import type { Check, Stage, Tuning } from '../../.mise/vet/scenario.ts'
+import { HELD }                      from '../../.mise/vet/vet.ts'
+import schema                        from '../../config.schema.json' with { type: 'json' }
+import config                        from '../homebridge/config.json' with { type: 'json' }
+import { plant, test as scratch }    from './scratch.js'
 
 /**
  * How the stand-in Homebridge acts, each act off where unset.
@@ -54,11 +54,13 @@ const standIn       = join(import.meta.dirname, '..', 'mise', 'fixtures', 'homeb
  * - `outside`, a directory under the checkout's `.cache/` removed once the case
  *   ends, which lies outside the system temp directory and `/tmp` wherever the
  *   checkout does
- * - `startup`, which returns a signal that aborts once the stand-in starting
- *   on a storage directory has printed its startup lines and writes the
- *   `started` marker there, or once the case times out
  * - `tuning`, the `TUNING` windows beside a `start` that waits until the case
  *   times out
+ * - `tuned`, which returns `tuning` for a stand-in acting as `acts` sets on a
+ *   storage directory, ending the start of a `mute` one once it has printed its
+ *   startup lines and writes the `started` marker there
+ * - `verdict`, which runs a check against the stand-in installed under
+ *   `scratch`, acting as `acts` sets, on `waits` over what `tuned` returns
  */
 export const test = scratch
   .extend('outside', async ({ onTestFinished }) => {
@@ -70,18 +72,27 @@ export const test = scratch
 
     return outside
   })
-  .extend('startup', ({ onTestFinished, signal }) => (storage: string): AbortSignal => {
-    const printed = new AbortController()
-    const ended   = AbortSignal.any([printed.signal, signal])
+  .extend('tuning', ({ signal }): Tuning => ({ ...TUNING, start: signal }))
+  .extend('tuned', ({ onTestFinished, signal, tuning }) => (storage: string, acts: Acts): Tuning => {
+    if (!acts.mute) return tuning
 
-    watch(storage, { signal: ended }, (_, file) => {
+    const printed = new AbortController()
+    const start   = AbortSignal.any([printed.signal, signal])
+
+    watch(storage, { signal: start }, (_, file) => {
       if (file === 'started') printed.abort()
     })
     onTestFinished(() => printed.abort())
 
-    return ended
+    return { ...tuning, start }
   })
-  .extend('tuning', ({ signal }): Tuning => ({ ...TUNING, start: signal }))
+  .extend('verdict', ({ scratch, tuned }) =>
+    async (check: Check, acts: Acts = {}, waits?: Partial<Tuning>) => {
+      const homebridge = await install(join(scratch, 'release'))
+      const launch     = await stage(scratch, acts)
+
+      return check.run(homebridge, launch, { ...tuned(launch.storage, acts), ...waits })
+    })
 
 /**
  * Plants under `root` what `Vet.read` reads there beside the releases, meaning
