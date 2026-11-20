@@ -7,4 +7,4 @@
 vitest run \
   --config .vitepress/vitest.config.ts \
   --update=all \
-  .vitepress/tests/lib/readme/readme.test.ts
+  .vitepress/tests/lib/readme/readme
