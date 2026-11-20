@@ -1,15 +1,16 @@
 /** @module-tag spawns-many */
-import { readFile, readdir } from 'node:fs/promises'
-import { join }              from 'node:path'
+import { mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
+import { tmpdir }                                  from 'node:os'
+import { join }                                    from 'node:path'
 
 import { describe } from 'vitest'
 
-import { repository }        from '../../../common/repository.js'
-import { plant, test }       from '../../../common/scratch.js'
-import { type Answer, sync } from '../../../common/sync.js'
+import { repository }          from '../../../common/repository.js'
+import { plant, test as base } from '../../../common/scratch.js'
+import { type Answer, sync }   from '../../../common/sync.js'
 
 interface Prerelease {
-  lagging : [string, string, string][]
+  lagging : boolean
   latest  : string
   newest  : string[]
   next    : string
@@ -35,6 +36,12 @@ const ADVISORIES = {
   ]
 }
 const CHECKOUT                        = '1'.repeat(40)
+const COMPARISONS                     = [
+  { current: '0.33.1', major: 'yes', newest: '0.34.0' },
+  { current: '0.0.3', major: 'yes', newest: '0.0.4' },
+  { current: '7.0.2003', major: 'no', newest: '7.0.2004' },
+  { current: '2026.9.18', major: 'no', newest: '2026.10.8' }
+]
 const CURRENT: Record<string, Answer> = {
   'bun audit --cwd . --json'                : json({}),
   'bun outdated --cwd .'                    : outdated(),
@@ -48,9 +55,88 @@ const IGNORED                        = ['GHSA-fc5q-39xc-vjpf', 'GHSA-jjjj-kkkk-l
 const LIFTED                         = '2'.repeat(40)
 const NOW                            = Date.parse('2026-10-20T12:00:00Z')
 const PINNED                         = '3'.repeat(40)
+const PRERELEASES: Prerelease[]      = [
+  {
+    lagging : false,
+    latest  : '2.0.0-alpha.20',
+    newest  : ['2.0.0-alpha.22', 'no'],
+    next    : '2.0.0-alpha.22',
+    tags    : 'next leads'
+  },
+  { lagging: false, latest: '1.6.4', newest: [], next: '2.0.0-alpha.21', tags: 'next stands at the pin' },
+  { lagging: false, latest: '1.6.4', newest: [], next: '1.6.4', tags: 'no dist-tag holds its release' },
+  { lagging: false, latest: '1.6.4', newest: ['2.0.0', 'no'], next: '2.0.0', tags: 'next holds the release' },
+  { lagging: true, latest: '2.0.0', newest: ['2.0.0', 'no'], next: '2.0.0-alpha.21', tags: 'latest leads' }
+]
 const RELOCK                         = ['mise', 'run', 'lock:sync']
 const VERIFY                         = ['mise', 'run', 'repo:verify']
 const root                           = join(import.meta.dirname, '..', '..', '..', '..')
+const test                           = base
+  .extend('comparisons', { scope: 'file' }, async () => {
+    const pin        = (current: string): string => `pkg-${current}`
+    const { stdout } = await alone({
+      live: SETTLED,
+
+      canned: {
+        ...CURRENT,
+        ...Object.fromEntries(COMPARISONS.map(({ current, newest }) => [
+          `bun info --json ${pin(current)} time`,
+          json({ [newest]: ago(1) })
+        ])),
+        'bun outdated --cwd .': outdated(...COMPARISONS
+          .map(({ current, newest }): [string, string, string] => [`${pin(current)} (dev)`, current, newest]))
+      },
+
+      files: {
+        'package.json': JSON.stringify({
+          devDependencies: Object.fromEntries(COMPARISONS.map(({ current }) => [pin(current), current]))
+        })
+      }
+    })
+
+    return { row: (current: string): string[] => row(stdout, pin(current)) }
+  })
+  .extend('prereleases', { scope: 'file' }, async () => {
+    const current                      = '2.0.0-alpha.21'
+    const pin                          = (tags: string): string => tags.replaceAll(' ', '-')
+    const { commands, status, stdout } = await alone({
+      live: SETTLED,
+
+      canned: {
+        ...CURRENT,
+        ...Object.fromEntries(PRERELEASES.flatMap(({ latest, next, tags }) => [
+          [`bun info --json ${pin(tags)} time`, json({ '2.0.0': ago(1), '2.0.0-alpha.22': ago(2) })],
+          [`bun info --json ${pin(tags)} dist-tags time`, json({
+            'dist-tags' : { canary: '2.1.0-canary.1', latest, next },
+            time        : {
+              '1.6.4'          : ago(40),
+              '2.0.0'          : ago(1),
+              '2.0.0-alpha.20' : ago(12),
+              '2.0.0-alpha.21' : ago(9),
+              '2.0.0-alpha.22' : ago(2),
+              '2.1.0-canary.1' : ago(1)
+            }
+          })]
+        ])),
+        'bun outdated --cwd .': outdated(...PRERELEASES
+          .filter(({ lagging }) => lagging)
+          .map(({ latest, tags }): [string, string, string] => [`${pin(tags)} (dev)`, current, latest]))
+      },
+
+      files: {
+        'package.json': JSON.stringify({
+          devDependencies: Object.fromEntries(PRERELEASES.map(({ tags }) => [pin(tags), current]))
+        })
+      }
+    })
+
+    return {
+      row    : (tags: string): string[] => row(stdout, pin(tags)).slice(2, 4),
+      status : status,
+      read   : (tags: string): boolean => commands.some((args) => args.includes(pin(tags))
+                                                             && args.includes('dist-tags'))
+    }
+  })
 const CANNED: Record<string, Answer> = {
   'bun audit --cwd site --json'                    : json({}),
   'bun audit --cwd tests/homebridge --json'        : json({}),
@@ -197,6 +283,20 @@ function ago(days: number): string {
   return new Date(NOW - days * 86_400_000).toISOString()
 }
 
+/**
+ * Runs the task as `lift` does with `setup`, in a checkout of its own under the
+ * system's temporary directory, which it removes once the run settles.
+ */
+async function alone(setup: Setup) {
+  const scratch = await realpath(await mkdtemp(join(tmpdir(), 'luxout-')))
+
+  try {
+    return await lift(scratch, setup)
+  } finally {
+    await rm(scratch, { force: true, recursive: true })
+  }
+}
+
 function json(value: unknown, status = 0): Answer {
   return { status, stdout: JSON.stringify(value) }
 }
@@ -324,25 +424,10 @@ describe.concurrent('lock:lift', () => {
     }
   )
 
-  test.for([
-    { current: '0.33.1', major: 'yes', newest: '0.34.0' },
-    { current: '0.0.3', major: 'yes', newest: '0.0.4' },
-    { current: '7.0.2003', major: 'no', newest: '7.0.2004' },
-    { current: '2026.9.18', major: 'no', newest: '2026.10.8' }
-  ])(
+  test.for(COMPARISONS)(
     'counts $current to $newest as major only where the left-most non-zero part changes',
-    async ({ current, major, newest }, { expect, scratch }) => {
-      const { stdout } = await lift(scratch, {
-        files  : { 'package.json': JSON.stringify({ devDependencies: { pkg: current } }) },
-        live   : SETTLED,
-        canned : {
-          ...CURRENT,
-          'bun info --json pkg time' : json({ [newest]: ago(1) }),
-          'bun outdated --cwd .'     : outdated(['pkg (dev)', current, newest])
-        }
-      })
-
-      expect(row(stdout, 'pkg')[3]).toBe(major)
+    ({ current, major }, { comparisons, expect }) => {
+      expect(comparisons.row(current)[3]).toBe(major)
     }
   )
 
@@ -365,53 +450,14 @@ describe.concurrent('lock:lift', () => {
     expect(row(stdout, 'pkg')[4]).toBe('3 days')
   })
 
-  test.for<Prerelease>([
-    {
-      lagging : [],
-      latest  : '2.0.0-alpha.20',
-      newest  : ['2.0.0-alpha.22', 'no'],
-      next    : '2.0.0-alpha.22',
-      tags    : 'next leads'
-    },
-    { lagging: [], latest: '1.6.4', newest: [], next: '2.0.0-alpha.21', tags: 'next stands at the pin' },
-    { lagging: [], latest: '1.6.4', newest: [], next: '1.6.4', tags: 'no dist-tag holds its release' },
-    { lagging: [], latest: '1.6.4', newest: ['2.0.0', 'no'], next: '2.0.0', tags: 'next holds the release' },
-    {
-      lagging : [['vitepress (dev)', '2.0.0-alpha.21', '2.0.0']],
-      latest  : '2.0.0',
-      newest  : ['2.0.0', 'no'],
-      next    : '2.0.0-alpha.21',
-      tags    : 'latest leads'
-    }
-  ])(
+  test.for(PRERELEASES)(
     'compares a prerelease pin with the newest dist-tag on its own release where $tags',
-    async ({ lagging, latest, newest, next }, { expect, scratch }) => {
-      const { commands, status, stdout } = await lift(scratch, {
-        files  : { 'package.json': JSON.stringify({ devDependencies: { vitepress: '2.0.0-alpha.21' } }) },
-        live   : SETTLED,
-        canned : {
-          ...CURRENT,
-          'bun info --json vitepress time'           : json({ '2.0.0': ago(1), '2.0.0-alpha.22': ago(2) }),
-          'bun outdated --cwd .'                     : outdated(...lagging),
-          'bun info --json vitepress dist-tags time' : json({
-            'dist-tags' : { canary: '2.1.0-canary.1', latest, next },
-            time        : {
-              '1.6.4'          : ago(40),
-              '2.0.0'          : ago(1),
-              '2.0.0-alpha.20' : ago(12),
-              '2.0.0-alpha.21' : ago(9),
-              '2.0.0-alpha.22' : ago(2),
-              '2.1.0-canary.1' : ago(1)
-            }
-          })
-        }
-      })
-
+    ({ lagging, newest, tags }, { expect, prereleases }) => {
       expect({
-        read   : commands.some((args) => args.includes('dist-tags')),
-        row    : row(stdout, 'vitepress').slice(2, 4),
-        status : status
-      }).toEqual({ read: lagging.length === 0, row: newest, status: 0 })
+        read   : prereleases.read(tags),
+        row    : prereleases.row(tags),
+        status : prereleases.status
+      }).toEqual({ read: !lagging, row: newest, status: 0 })
     }
   )
 

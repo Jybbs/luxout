@@ -30,7 +30,7 @@ test.for([
 
   await plant(scratch, { ...VET, '.mise/config.toml': CONFIG, 'package.json': manifest(coverage) })
 
-  expect(new Audit(scratch, mise([]), write).report()).toBe(status)
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(status)
   expect(write.mock.calls.flat()).toEqual(written)
 })
 
@@ -44,7 +44,7 @@ test('prints a finding against the site’s manifest where the checkout holds on
     'site/package.json' : manifest('5.0.4')
   })
 
-  new Audit(scratch, mise([]), write).report()
+  await new Audit(scratch, mise([]), write).report()
 
   expect(write.mock.calls.flat()).toEqual([
     '::error file=site/package.json,line=3,title=Coverage pin::`@vitest/coverage-v8` pins 5.0.4, '
@@ -65,7 +65,7 @@ test('prints a range and a parse error from each manifest Bun installs from, onc
     'tests/vet/pinned/package.json' : '{}'
   })
 
-  new Audit(scratch, mise([]), write).report()
+  await new Audit(scratch, mise([]), write).report()
 
   expect(write.mock.calls.flat().filter((line) => /title=(?:Exact pin|Parse error)/.test(line))).toEqual([
     '::error file=tests/homebridge/package.json,line=2,title=Exact pin::`homebridge-config-ui-x` pins '
@@ -85,7 +85,7 @@ test('prints a range from each package `bun_packages` names', async ({ scratch }
     'unlisted/package.json' : '{\n  "devDependencies": { "vitest": "~5.0.3" }\n}\n'
   })
 
-  new Audit(scratch, mise([], [], '', ['.', 'extra']), write).report()
+  await new Audit(scratch, mise([], [], '', ['.', 'extra']), write).report()
 
   expect(write.mock.calls.flat()).toEqual([
     '::error file=extra/package.json,line=2,title=Exact pin::`vitest` pins "~5.0.3" under '
@@ -104,7 +104,7 @@ test('prints the findings of the workflows and the composite actions', async ({ 
     'package.json'                 : manifest('5.0.3')
   })
 
-  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '::error file=.github/actions/a/action.yml,line=4,title=YAML anchor::'
   + '`&a` is a YAML anchor or alias, which GitHub rejects in an action manifest',
@@ -112,6 +112,25 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   + 'and sets no `concurrency` group, so a superseded pull-request run keeps running',
     '::error file=.github/workflows/ci.yml,line=3,title=Reading gate::'
   + 'The workflow ends on no `✨ Reading` gate'
+  ])
+})
+
+test('prints a file the site build reads that no `deploy.yml` glob matches', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.github/workflows/deploy.yml' : 'on:\n  push:\n    paths:\n      - .github/**\n'
+                                   + '      - .mise/config.toml\n',
+    '.mise/config.toml'            : CONFIG,
+    'package.json'                 : manifest('5.0.3')
+  })
+
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat().filter((line) => line.includes('title=Deploy path'))).toEqual([
+    '::error file=.github/workflows/deploy.yml,line=4,title=Deploy path::`.mise/mise.lock` matches no '
+  + '`on.push.paths` glob, though the press job installs its tools through it, so a push changing it '
+  + 'leaves the site unpublished'
   ])
 })
 
@@ -128,7 +147,7 @@ test('prints what the rulesets report against the gates of the workflows', async
     'package.json'               : manifest('5.0.3')
   })
 
-  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '::error file=.github/rulesets/main.json,line=1,title=Required check::'
   + '`main` requires the check `build`, which is not the gate of any workflow that runs on `pull_request`'
@@ -147,7 +166,7 @@ test('prints what the label registry and the files naming its labels report', as
     'package.json'                   : manifest('5.0.3')
   })
 
-  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '::error file=.github/labels.toml,line=3,title=Label description::'
   + 'The description of `🐞 bug` ends on a period',
@@ -168,7 +187,7 @@ test('prints what the manifests of the releases the vet installs report', async 
     'tests/vet/pinned/package.json' : JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2)
   })
 
-  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
   expect(write.mock.calls.flat()).toEqual([
     '::error file=tests/vet/pinned/package.json,line=3,title=Vet pin::`homebridge` pins 2.4.0, '
   + 'whereas the `homebridge` devDependency pins nothing'
@@ -256,7 +275,7 @@ test('prints each tracked TypeScript line past the budget', async ({ scratch }) 
     'src/a.ts'          : `${'a'.repeat(111)}\n`
   })
 
-  expect(new Audit(scratch, run, write).report()).toBe(1)
+  expect(await new Audit(scratch, run, write).report()).toBe(1)
   expect(run).toHaveBeenCalledWith('git', ['ls-files', '-z', '--', '*.cts', '*.mts', '*.ts', '*.tsx'], {
     cwd      : scratch,
     encoding : 'utf8'

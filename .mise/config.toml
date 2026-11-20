@@ -6,7 +6,6 @@ hint        = "Run `mise install` from the repository root."
 run         = 'test -z "$(mise ls --missing --no-global --no-header)"'
 
 [env]
-AUDIT_IGNORE              = "GHSA-fc5q-39xc-vjpf" # ReDoS in `picomatch`, reached only by dev tooling, with no release fixing it
 COVERAGE_FLOOR            = "95"
 NPM_CONFIG_IGNORE_SCRIPTS = "true"
 _.path                    = ".mise/bin"
