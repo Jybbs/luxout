@@ -1,4 +1,7 @@
 /** @module-tag spawns */
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { join }                       from 'node:path'
+
 import { describe } from 'vitest'
 
 import { test } from '../../../common/scratch.js'
@@ -12,6 +15,24 @@ const PREVIEWS = [
 ]
 const BLOBS = `${COVER}/blobs`
 const MERGE = [...CONFIG, '--merge-reports', BLOBS]
+
+/**
+ * A stand-in `vitest` that logs the `COVERAGE_FLOOR` and the arguments of each
+ * call, and fails a covered run wherever the other has not started within five
+ * seconds of it.
+ */
+const STAND_IN = [
+  '#!/bin/sh',
+  'printf \'%s %s\\n\' "${COVERAGE_FLOOR-unset}" "$*" >> "$VITEST_LOG"',
+  'case "$*" in *--merge-reports*) exit 0 ;; esac',
+  'mkdir -p "$VITEST_LOG.d" && touch "$VITEST_LOG.d/$$"',
+  'for _ in $(seq 50); do',
+  '  [ "$(ls "$VITEST_LOG.d" | wc -l)" -ge 2 ] && exit 0',
+  '  sleep 0.1',
+  'done',
+  'exit 1',
+  ''
+].join('\n')
 
 const covered = (name: string, ...args: string[]): string[] => [
   ...CONFIG, '--coverage.reportsDirectory', `${COVER}/${name}`, '--outputFile',
@@ -41,5 +62,28 @@ describe.concurrent('site:cover', () => {
     expect(run.status).toBe(status)
     expect(new Set(run.commands.slice(0, 2))).toEqual(new Set([main, records]))
     expect(run.commands.slice(2)).toEqual([MERGE])
+  })
+
+  test('starts both runs together under no floor, then merges under the floor', async ({
+    expect,
+    scratch
+  }) => {
+    const log = join(scratch, 'vitest.log')
+
+    await mkdir(join(scratch, 'bin'), { recursive: true })
+    await writeFile(join(scratch, 'bin', 'vitest'), STAND_IN, { mode: 0o755 })
+
+    const { status } = await sync(scratch, 'site:cover', {
+      args : ARGS,
+      env  : { COVERAGE_FLOOR: '95', VITEST_LOG: log }
+    })
+
+    const lines = (await readFile(log, 'utf8')).split('\n').slice(0, -1)
+
+    expect({ merge: lines.slice(2), runs: new Set(lines.slice(0, 2)), status }).toEqual({
+      merge  : [`95 ${MERGE.slice(1).join(' ')}`],
+      runs   : new Set([`0 ${main.slice(1).join(' ')}`, `0 ${records.slice(1).join(' ')}`]),
+      status : 0
+    })
   })
 })

@@ -31,3 +31,11 @@ it('sets the tagline the front page opens on', async () => {
 
   expect(await readFile(join(site, 'index.md'), 'utf8')).toContain(`*${first} ${second}*`)
 })
+
+it('measures each word of the site’s card against the pixels under its ink', async () => {
+  expect((await card.audit()).map(({ contrast, text }) => [text, contrast.toFixed(2)])).toEqual([
+    ['An outdoor light sensor', '14.13'],
+    ['for Apple Home.', '14.47'],
+    ['luxout.fyi', '10.58']
+  ])
+})
