@@ -14,11 +14,12 @@ interface Defect {
 }
 
 interface Listed {
-  file   : string | null
-  name   : string
-  run    : (string | { tasks: string[] })[]
-  source : string
-  tools  : Record<string, string>
+  depends : string[]
+  file    : string | null
+  name    : string
+  run     : (string | { tasks: string[] })[]
+  source  : string
+  tools   : Record<string, string>
 }
 
 interface Script extends Spot {
@@ -76,6 +77,10 @@ class Task {
     this.#listed  = listed
     this.#release = release
     this.#spot    = spot
+  }
+
+  get depends(): string[] {
+    return this.#listed.depends
   }
 
   get name(): string {
@@ -173,6 +178,22 @@ export class TaskList {
         ))
       ]
     })
+  }
+
+  /**
+   * Lists the scripts of the task `name` and of each task it runs, through its
+   * `depends` and each `run` entry naming tasks, at any depth.
+   */
+  chain(name: string): Script[] {
+    const names = new Set([name])
+
+    for (const each of names) {
+      const task = this.#tasks.get(each)
+
+      for (const next of [...task?.depends ?? [], ...task?.subtasks ?? []]) names.add(next)
+    }
+
+    return [...names].flatMap((each) => this.#tasks.get(each)?.scripts ?? [])
   }
 
   findings(manifest: PackageManifest): Finding[] {

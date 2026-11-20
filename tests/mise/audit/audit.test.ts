@@ -115,6 +115,25 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   ])
 })
 
+test('prints a file the site build reads that no `deploy.yml` glob matches', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.github/workflows/deploy.yml' : 'on:\n  push:\n    paths:\n      - .github/**\n'
+                                   + '      - .mise/config.toml\n',
+    '.mise/config.toml'            : CONFIG,
+    'package.json'                 : manifest('5.0.3')
+  })
+
+  expect(new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat().filter((line) => line.includes('title=Deploy path'))).toEqual([
+    '::error file=.github/workflows/deploy.yml,line=4,title=Deploy path::`.mise/mise.lock` matches no '
+  + '`on.push.paths` glob, though the press job installs its tools through it, so a push changing it '
+  + 'leaves the site unpublished'
+  ])
+})
+
 test('prints what the rulesets report against the gates of the workflows', async ({ scratch }) => {
   const write = vi.fn<(line: string) => void>()
   const rules = [
