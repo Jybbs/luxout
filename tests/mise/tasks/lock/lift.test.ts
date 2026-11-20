@@ -1,12 +1,12 @@
 /** @module-tag spawns-many */
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
-import { tmpdir }                        from 'node:os'
-import { join }                          from 'node:path'
+import { mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
+import { tmpdir }                                  from 'node:os'
+import { join }                                    from 'node:path'
 
 import { describe } from 'vitest'
 
-import { plant, repository, test } from '../../../common/scratch.js'
-import { type Answer, sync }       from '../../../common/sync.js'
+import { plant, repository, test as base } from '../../../common/scratch.js'
+import { type Answer, sync }               from '../../../common/sync.js'
 
 interface Prerelease {
   lagging : boolean
@@ -69,7 +69,8 @@ const PRERELEASES: Prerelease[]      = [
 ]
 const RELOCK                         = ['mise', 'run', 'lock:sync']
 const VERIFY                         = ['mise', 'run', 'repo:verify']
-const lifted                         = test
+const root                           = join(import.meta.dirname, '..', '..', '..', '..')
+const test                           = base
   .extend('comparisons', { scope: 'file' }, async () => {
     const pin        = (current: string): string => `pkg-${current}`
     const { stdout } = await alone({
@@ -135,7 +136,6 @@ const lifted                         = test
                                                              && args.includes('dist-tags'))
     }
   })
-const root                           = join(import.meta.dirname, '..', '..', '..', '..')
 const CANNED: Record<string, Answer> = {
   'bun audit --cwd site --json'                    : json({}),
   'bun audit --cwd tests/homebridge --json'        : json({}),
@@ -287,7 +287,7 @@ function ago(days: number): string {
  * system's temporary directory, which it removes once the run settles.
  */
 async function alone(setup: Setup) {
-  const scratch = await mkdtemp(join(tmpdir(), 'luxout-'))
+  const scratch = await realpath(await mkdtemp(join(tmpdir(), 'luxout-')))
 
   try {
     return await lift(scratch, setup)
@@ -423,7 +423,7 @@ describe.concurrent('lock:lift', () => {
     }
   )
 
-  lifted.for(COMPARISONS)(
+  test.for(COMPARISONS)(
     'counts $current to $newest as major only where the left-most non-zero part changes',
     ({ current, major }, { comparisons, expect }) => {
       expect(comparisons.row(current)[3]).toBe(major)
@@ -449,7 +449,7 @@ describe.concurrent('lock:lift', () => {
     expect(row(stdout, 'pkg')[4]).toBe('3 days')
   })
 
-  lifted.for(PRERELEASES)(
+  test.for(PRERELEASES)(
     'compares a prerelease pin with the newest dist-tag on its own release where $tags',
     ({ lagging, newest, tags }, { expect, prereleases }) => {
       expect({
