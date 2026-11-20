@@ -276,3 +276,23 @@ test('reports a module the site build imports by its import, though a module spe
   + 'so a push changing it leaves the site unpublished'
   ])
 })
+
+test('reports a page by its page, though a module the site build imports spells its path', async ({
+  scratch
+}) => {
+  const face = 'site/.vitepress/lib/face.ts'
+
+  await plant(scratch, {
+    ...PAGES,
+    [face]     : `${PAGES[face]}export const HOME = '../index.md'\n`,
+    [WORKFLOW] : triggers(['**', '!site/index.md'])
+  })
+
+  const audit    = await staged(scratch)
+  const findings = (await DeployPaths.read(audit)).findings(TaskList.read(audit))
+
+  expect(findings.map(({ message }) => message)).toEqual([
+    '`site/index.md` matches no `on.push.paths` glob, though VitePress builds it as a page, '
+  + 'so a push changing it leaves the site unpublished'
+  ])
+})

@@ -121,6 +121,9 @@ export class DeployPaths {
  * - Each file Git tracks under the site, its suite aside, whose path a string
  *   spells in a module under the site that the config or the theme imports,
  *   since a module reading a file from disk spells the path it reads
+ *
+ * A file the list holds twice keeps its later reason, so a page a module also
+ * spells reads as a page.
  */
 async function inputs(audit: Audit, imports: string[]): Promise<[string, string][]> {
   const { pages, publicDir } = await audit.site(SITE)
@@ -129,17 +132,17 @@ async function inputs(audit: Audit, imports: string[]): Promise<[string, string]
   const spelled              = audit.mentions(SITE, modules, audit.files(SITE, SITE_TESTS))
 
   return [
-    ...[...pages].flatMap(([page, embeds]): [string, string][] => [
-      [page, 'VitePress builds it as a page'],
-      ...embeds.map((file): [string, string] => [file, `the page \`${page}\` embeds it`])
-    ]),
+    ...[...spelled].flatMap(([module, files]) => files.map((file): [string, string] => [
+      file,
+      `\`${module}\`, a module the site build imports, spells its path`
+    ])),
     ...shipped.map((file): [string, string] => [
       file,
       'VitePress copies it from the public directory into the bundle'
     ]),
-    ...[...spelled].flatMap(([module, files]) => files.map((file): [string, string] => [
-      file,
-      `\`${module}\`, a module the site build imports, spells its path`
-    ]))
+    ...[...pages].flatMap(([page, embeds]): [string, string][] => [
+      [page, 'VitePress builds it as a page'],
+      ...embeds.map((file): [string, string] => [file, `the page \`${page}\` embeds it`])
+    ])
   ]
 }
