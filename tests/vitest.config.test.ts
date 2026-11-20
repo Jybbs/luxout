@@ -629,7 +629,8 @@ test.for([
 
 it('keeps each dynamic import naming a string or template literal holding no substitution or escape', () => {
   const text = "import('./a.js')\nimport(\"./b.js\")\nimport(`./c.js`)\nimport(`./$d.js`)\n"
-             + "import(`./${e}.js`)\nimport('./f' + g)\nimport(h)\nimport('./\\x69.js')\n"
+             + "import(`./${e}.js`)\nimport('./f' + g)\nimport(g + './f.js')\nimport(h)\n"
+             + "import('./\\x69.js')\nimport(\"./\\x6a.js\")\nimport(`./\\x6b.js`)\n"
 
   expect(requests(parseSync('x.ts', text).module, text)).toEqual([
     ['./a.js', ['*']], ['./b.js', ['*']], ['./c.js', ['*']], ['./$d.js', ['*']]
