@@ -110,6 +110,10 @@ test('prints the findings of the workflows and the composite actions', async ({ 
   + '`&a` is a YAML anchor or alias, which GitHub rejects in an action manifest',
     '::error file=.github/workflows/ci.yml,line=1,title=Concurrency::The workflow runs on `pull_request` '
   + 'and sets no `concurrency` group, so a superseded pull-request run keeps running',
+    '::error file=.github/workflows/ci.yml,line=1,title=Draft guard::'
+  + '`pull_request` runs on no `ready_for_review` activity, so marking a draft ready runs no job',
+    '::error file=.github/workflows/ci.yml,line=3,title=Draft guard::Job `a` joins no '
+  + '`!github.event.pull_request.draft` to its `if` through `&&`, so it runs on every push to a draft',
     '::error file=.github/workflows/ci.yml,line=3,title=Reading gate::'
   + 'The workflow ends on no `✨ Reading` gate'
   ])
