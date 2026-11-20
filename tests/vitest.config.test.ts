@@ -8,10 +8,10 @@ import type * as Utils        from 'rolldown/utils'
 import { expect, it, vi }     from 'vitest'
 import { defaultExclude }     from 'vitest/config'
 
-import { branch }                       from './common/repository.js'
-import { plant, test }                  from './common/scratch.js'
-import { changedFiles, triggers, vite } from './common/triggers.js'
-import config                           from './vitest.config.js'
+import { branch }                                 from './common/repository.js'
+import { plant, test }                            from './common/scratch.js'
+import { changedFiles, requests, triggers, vite } from './common/triggers.js'
+import config                                     from './vitest.config.js'
 
 const BRANCHES   = { changes: false, deletes: true }
 const PAGED      = ['.vitepress/tests/*.test.ts', 'outside.test.ts']
@@ -36,9 +36,10 @@ const spawning      = sources.filter(({ file }) => derived(file, root))
 /**
  * Plants a repository at `scratch` whose branch changes only `changed` since
  * `origin/main`. Each test file in it spells at most one path or glob,
- * `part.test.ts` beside a part of a template naming `drafts`, `bin/tool` is a
- * program that sources `lib/a.sh`, `lib/a.sh` sources `lib/b.sh`, and
- * `bin/each` reads `logs/` through a glob.
+ * `part.test.ts` beside a part of a template naming `drafts`, and
+ * `load.test.ts` imports `lib/load.ts` through a template holding no
+ * substitution. `bin/tool` is a program that sources `lib/a.sh`, `lib/a.sh`
+ * sources `lib/b.sh`, and `bin/each` reads `logs/` through a glob.
  */
 async function checkout(changed: string, scratch: string): Promise<void> {
   await plant(scratch, {
@@ -55,6 +56,8 @@ async function checkout(changed: string, scratch: string): Promise<void> {
     'glob.test.ts'      : "export const all = '*.md'\n",
     'lib/a.sh'          : '. lib/b.sh\n',
     'lib/b.sh'          : ':\n',
+    'lib/load.ts'       : "export const shared = 'share/a.txt'\n",
+    'load.test.ts'      : 'export const load = import(`./lib/load.js`)\n',
     'logs/a.txt'        : 'a\n',
     'misc.md'           : '# Misc\n',
     'nest.test.ts'      : "export const nest = '*/b.md'\n",
@@ -62,6 +65,7 @@ async function checkout(changed: string, scratch: string): Promise<void> {
     'pages.test.ts'     : "export const pages = ['../pages', '*.md']\n",
     'pages/b.md'        : '# B\n',
     'part.test.ts'      : "export const part = (sep: string): string[] => [`${sep}drafts${sep}`, '*.md']\n",
+    'share/a.txt'       : 'a\n',
     'source.test.ts'    : "import './package.json'\nexport * from '../package.json'\n"
                         + "export { name } from './cfg/package.json'\n"
                         + "export const read = import('./cfg/package.json')\n",
@@ -111,27 +115,6 @@ async function provided(scratch: string, changedSince?: string, include = ['*.te
   })
 
   return files.map((file) => relative(scratch, file))
-}
-
-/**
- * Lists the module each import or re-export of `file` requests, leaving out
- * one of types alone and a dynamic import naming no string literal.
- */
-function requests(file: string): string[] {
-  const text       = readFileSync(file, 'utf8')
-  const { module } = parseSync(file, text)
-
-  return [
-    ...module.staticImports
-      .filter(({ entries }) => !entries.length || entries.some(({ isType }) => !isType))
-      .map(({ moduleRequest }) => moduleRequest.value),
-    ...module.staticExports.flatMap(({ entries }) => entries.flatMap(({ isType, moduleRequest }) =>
-      moduleRequest && !isType ? [moduleRequest.value] : []
-    )),
-    ...module.dynamicImports
-      .filter(({ moduleRequest: { start } }) => /['"`]/.test(text.charAt(start)))
-      .map(({ moduleRequest: { end, start } }) => text.slice(start + 1, end - 1))
-  ]
 }
 
 /**
@@ -237,7 +220,9 @@ async function site(changed: string, modules: string, scratch: string, deleted =
  * into every script outside `node_modules`.
  */
 function spawns(file: string, follows: (path: string) => boolean, seen = new Set([file])): boolean {
-  return requests(file).some((request) => {
+  const text = readFileSync(file, 'utf8')
+
+  return requests(parseSync(file, text).module, text).some(([request]) => {
     if (request === 'node:child_process') {
       return true
     }
@@ -361,6 +346,11 @@ test.for([
   { changed: 'misc.md', name: 'no test for a glob naming no directory alone', selected: [] },
   { changed: 'notes/a.md', name: 'a test spelling it behind a leading $ segment', selected: ['var.test.ts'] },
   { changed: 'pages/b.md', name: 'a test joining a glob to its directory', selected: ['pages.test.ts'] },
+  {
+    changed  : 'share/a.txt',
+    name     : 'a test importing a module spelling it through a template',
+    selected : ['load.test.ts']
+  },
   { changed: 'tasks/labels', name: 'no test for a string of one segment holding no dot', selected: [] }
 ])('selects $name where a branch changes only $changed', async ({ changed, selected }, { scratch }) => {
   await checkout(changed, scratch)
@@ -635,6 +625,16 @@ test.for([
   })
 
   expect(derived(`tests/${file}.test.ts`, scratch)).toBe(runs)
+})
+
+it('keeps each dynamic import naming a string or template literal holding no substitution or escape', () => {
+  const text = "import('./a.js')\nimport(\"./b.js\")\nimport(`./c.js`)\nimport(`./$d.js`)\n"
+             + "import(`./${e}.js`)\nimport('./f' + g)\nimport(g + './f.js')\nimport(h)\n"
+             + "import('./\\x69.js')\nimport(\"./\\x6a.js\")\nimport(`./\\x6b.js`)\n"
+
+  expect(requests(parseSync('x.ts', text).module, text)).toEqual([
+    ['./a.js', ['*']], ['./b.js', ['*']], ['./c.js', ['*']], ['./$d.js', ['*']]
+  ])
 })
 
 it('reads a tag pragma off the first line of a test file alone', () => {
