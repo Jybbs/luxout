@@ -1,6 +1,36 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE depends     = ["site:bake"]
-#MISE description = "Run the site's suite under coverage, failing below the share `COVERAGE_FLOOR` sets for every metric and passing any further arguments to Vitest"
+#MISE description = "Run the site's suite under coverage as two runs started together, one recording the README previews and one running every other case, each passing any further arguments to Vitest, then merge their reports, failing where either run fails or a metric falls below the share `COVERAGE_FLOOR` sets"
 #MISE dir         = "site"
 
-vitest run --config .vitepress/vitest.config.ts --coverage "$@"
+cover=../.cache/site/cover
+blobs=$cover/blobs
+failed=0
+previews=(
+  .vitepress/tests/lib/readme/readme-dark.test.ts
+  .vitepress/tests/lib/readme/readme-light.test.ts
+)
+
+covered() {
+  local name=$1
+  shift
+  COVERAGE_FLOOR=0 vitest run \
+    --config .vitepress/vitest.config.ts \
+    --coverage \
+    --coverage.reportsDirectory "$cover/$name" \
+    --outputFile "$blobs/$name.json" \
+    --reporter blob \
+    "$@"
+}
+
+covered main "${previews[@]/#/--exclude=}" --tagsFilter '!records' "$@" &
+main=$!
+covered records "${previews[@]}" "$@" &
+records=$!
+
+wait "$main" || failed=1
+wait "$records" || failed=1
+
+vitest run --config .vitepress/vitest.config.ts --coverage --merge-reports "$blobs"
+
+exit "$failed"
