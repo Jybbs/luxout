@@ -37,9 +37,9 @@ const spawning      = sources.filter(({ file }) => derived(file, root))
  * Plants a repository at `scratch` whose branch changes only `changed` since
  * `origin/main`. Each test file in it spells at most one path or glob,
  * `part.test.ts` beside a part of a template naming `drafts`, and
- * `load.test.ts` imports `lib/load.ts` through a template naming no path.
- * `bin/tool` is a program that sources `lib/a.sh`, `lib/a.sh` sources
- * `lib/b.sh`, and `bin/each` reads `logs/` through a glob.
+ * `load.test.ts` imports `lib/load.ts` through a template holding no
+ * substitution. `bin/tool` is a program that sources `lib/a.sh`, `lib/a.sh`
+ * sources `lib/b.sh`, and `bin/each` reads `logs/` through a glob.
  */
 async function checkout(changed: string, scratch: string): Promise<void> {
   await plant(scratch, {
@@ -625,6 +625,15 @@ test.for([
   })
 
   expect(derived(`tests/${file}.test.ts`, scratch)).toBe(runs)
+})
+
+it('keeps each dynamic import naming a string or template literal holding no substitution or escape', () => {
+  const text = "import('./a.js')\nimport(\"./b.js\")\nimport(`./c.js`)\nimport(`./$d.js`)\n"
+             + "import(`./${e}.js`)\nimport('./f' + g)\nimport(h)\nimport('./\\x69.js')\n"
+
+  expect(requests(parseSync('x.ts', text).module, text)).toEqual([
+    ['./a.js', ['*']], ['./b.js', ['*']], ['./c.js', ['*']], ['./$d.js', ['*']]
+  ])
 })
 
 it('reads a tag pragma off the first line of a test file alone', () => {

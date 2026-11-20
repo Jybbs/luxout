@@ -757,8 +757,8 @@ export function mentions(files: string[], modules: string[], root: string): Map<
 /**
  * Lists the module each import or re-export of `module` requests with a value,
  * and each dynamic import of `text` naming one string literal or one template
- * literal holding no substitution, beside the bindings it takes from it, per
- * `bound`, a dynamic import taking `ALL`.
+ * literal holding no substitution, either holding no escape, beside the
+ * bindings it takes from it, per `bound`, a dynamic import taking `ALL`.
  */
 export function requests(module: Utils.ParseResult['module'], text: string): [string, string[]][] {
   return [
