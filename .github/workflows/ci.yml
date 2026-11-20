@@ -7,6 +7,7 @@ concurrency:
 jobs:
   check:
     name            : ${{ matrix.name }}
+    if              : ${{ !github.event.pull_request.draft }}
     runs-on         : ubuntu-26.04
     timeout-minutes : 15
 
@@ -117,6 +118,7 @@ jobs:
 
   press:
     name            : ⛓️ Links
+    if              : ${{ !github.event.pull_request.draft }}
     runs-on         : ubuntu-26.04
     timeout-minutes : 15
 
@@ -136,7 +138,7 @@ jobs:
 
   brief:
     name            : ✨ Reading
-    if              : always()
+    if              : always() && !github.event.pull_request.draft
     runs-on         : ubuntu-26.04
     timeout-minutes : 5
 
@@ -162,6 +164,12 @@ jobs:
 
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
   workflow_dispatch:
 
 permissions:
