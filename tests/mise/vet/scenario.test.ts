@@ -6,19 +6,24 @@ import { expect, it, vi } from 'vitest'
 import type { Block }                              from '../../../.mise/vet/homebridge.ts'
 import { Scenario, Shutdown, type Tuning, checks } from '../../../.mise/vet/scenario.ts'
 import schema                                      from '../../../config.schema.json' with { type: 'json' }
-import { type Acts, TUNING, install, stage, test } from '../../common/vet.js'
+import { type Acts, install, stage, test as vet }  from '../../common/vet.js'
 
 const BLOCK = { platform: 'Luxout' }
 
 /**
- * Runs `check` against the stand-in Homebridge installed under `scratch`,
- * acting as `acts` asks.
+ * Extends the stand-in fixtures with `verdict`, which runs a check against the
+ * stand-in Homebridge installed under `scratch`, acting as `acts` asks, on
+ * `waits` over the fixture's `tuning`, and stops a stand-in that never listens
+ * once it prints its startup lines.
  */
-async function verdict(check: Scenario | Shutdown, scratch: string, acts?: Acts, tuning?: Partial<Tuning>) {
-  const homebridge = await install(join(scratch, 'release'))
+const test = vet.extend('verdict', ({ scratch, startup, tuning }) =>
+  async (check: Scenario | Shutdown, acts: Acts = {}, waits?: Partial<Tuning>) => {
+    const homebridge = await install(join(scratch, 'release'))
+    const launch     = await stage(scratch, acts)
+    const start      = acts.mute ? startup(launch.storage) : tuning.start
 
-  return check.run(homebridge, await stage(scratch, acts), { ...TUNING, ...tuning })
-}
+    return check.run(homebridge, launch, { ...tuning, start, ...waits })
+  })
 
 it('builds each run the checks start from the schema, running a repeated block once', () => {
   const block = {
@@ -54,83 +59,81 @@ it('fails every host name lookup in the network resilience run alone', () => {
 
 test.concurrent('passes a block that listens, initializes, and exits in time', async ({
   expect,
-  scratch
+  verdict
 }) => {
-  expect((await verdict(new Scenario('Luxout', 'full config', BLOCK), scratch)).failures).toEqual([])
+  expect((await verdict(new Scenario('Luxout', 'full config', BLOCK))).failures).toEqual([])
 })
 
-test.concurrent('passes no block while the platform never initializes', async ({ expect, scratch }) => {
-  expect((await verdict(new Scenario('Luxout', 'no config'), scratch)).failures).toEqual([])
+test.concurrent('passes no block while the platform never initializes', async ({ expect, verdict }) => {
+  expect((await verdict(new Scenario('Luxout', 'no config'))).failures).toEqual([])
 })
 
-test.concurrent.for<{ acts: Acts, block?: Block, failure: string, tuning?: Partial<Tuning> }>([
-  {
-    acts    : { mute: true },
-    block   : BLOCK,
-    failure : 'never reports its bridge listening',
-    tuning  : { start: 2_000 }
-  },
-  { acts: { exits: true }, block: BLOCK, failure: 'exits before it is stopped', tuning: { observe: 4_000 } },
+test.concurrent.for<{ acts: Acts, block?: Block, failure: string, waits?: Partial<Tuning> }>([
+  { acts: { mute: true }, block: BLOCK, failure: 'never reports its bridge listening' },
+  { acts: { exits: true }, block: BLOCK, failure: 'exits before it is stopped', waits: { observe: 4_000 } },
   { acts: { silent: true }, block: BLOCK, failure: 'never initializes the Luxout platform' },
   { acts: { initializes: true }, failure: 'initializes the Luxout platform with no block' },
   { acts: { logs: 'ReferenceError: x is not defined' }, block: BLOCK, failure: 'logs ReferenceError' }
-])('fails a run that $failure', async ({ acts, block, failure, tuning }, { expect, scratch }) => {
-  const { failures } = await verdict(new Scenario('Luxout', 'run', block), scratch, acts, tuning)
+])('fails a run that $failure', async ({ acts, block, failure, waits }, { expect, verdict }) => {
+  const { failures } = await verdict(new Scenario('Luxout', 'run', block), acts, waits)
 
   expect(failures).toEqual([failure])
 })
 
-test.concurrent('fails a run that writes outside its storage', async ({ expect, outside, scratch }) => {
+test.concurrent('fails a run that writes outside its storage', async ({ expect, outside, verdict }) => {
   const file = join(outside, 'outside.json')
 
-  expect((await verdict(new Scenario('Luxout', 'run', BLOCK), scratch, { writes: file })).failures)
+  expect((await verdict(new Scenario('Luxout', 'run', BLOCK), { writes: file })).failures)
     .toEqual([`writes ${file} outside the storage directory`])
 })
 
-test.concurrent('fails a run that outlasts the grace after SIGTERM', async ({ expect, scratch }) => {
-  const { failures } = await verdict(new Scenario('Luxout', 'run', BLOCK), scratch, { lingers: true }, {
-    grace: 500
-  })
+test.concurrent('fails a run that outlasts the grace after SIGTERM', async ({ expect, verdict }) => {
+  const { failures } = await verdict(new Scenario('Luxout', 'run', BLOCK), { lingers: true }, { grace: 500 })
 
   expect(failures).toEqual(['takes longer than 0.5 seconds to exit after SIGTERM'])
 })
 
-test.concurrent('keeps a run up whose requests all fail as ENOTFOUND', async ({ expect, scratch }) => {
+test.concurrent('keeps a run up whose requests all fail as ENOTFOUND', async ({ expect, verdict }) => {
   const scenario = new Scenario('Luxout', 'network resilience', BLOCK, true)
-  const run      = await verdict(scenario, scratch, { fetches: 'https://api.open-meteo.com/v1/forecast' })
+  const run      = await verdict(scenario, { fetches: 'https://api.open-meteo.com/v1/forecast' })
 
   expect(run).toEqual({ failures: [], output: expect.stringContaining('Fetch failed: ENOTFOUND\n') })
 })
 
 test.concurrent('passes a run that exits in time and starts again on its port', async ({
   expect,
-  scratch
+  verdict
 }) => {
-  expect((await verdict(new Shutdown(BLOCK), scratch)).failures).toEqual([])
+  expect((await verdict(new Shutdown(BLOCK))).failures).toEqual([])
 })
 
-test.concurrent('fails a second start that meets EADDRINUSE', async ({ expect, scratch }) => {
+test.concurrent('fails a second start that meets EADDRINUSE', async ({ expect, scratch, tuning }) => {
   const homebridge = await install(join(scratch, 'release'))
   const launch     = await stage(scratch, { conflicts: true })
 
-  expect((await new Shutdown(BLOCK).run(homebridge, launch, TUNING)).failures)
+  expect((await new Shutdown(BLOCK).run(homebridge, launch, tuning)).failures)
     .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
 })
 
-test.concurrent('fails a second start that meets EADDRINUSE once it listens', async ({ expect, scratch }) => {
+test.concurrent('fails a second start that meets EADDRINUSE once it listens', async ({
+  expect,
+  scratch,
+  tuning
+}) => {
   const homebridge = await install(join(scratch, 'release'))
   const launch     = await stage(scratch, { conflictsLate: true })
 
-  expect((await new Shutdown(BLOCK).run(homebridge, launch, { ...TUNING, settle: 300 })).failures)
+  expect((await new Shutdown(BLOCK).run(homebridge, launch, { ...tuning, settle: 300 })).failures)
     .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
 })
 
-test('stops at a first start that never listens', async ({ scratch }) => {
+test('stops at a first start that never listens', async ({ scratch, startup, tuning }) => {
   const homebridge   = await install(join(scratch, 'release'))
+  const launch       = await stage(scratch, { mute: true })
   const start        = vi.spyOn(homebridge, 'start')
-  const { failures } = await new Shutdown(BLOCK).run(homebridge, await stage(scratch, { mute: true }), {
-    ...TUNING,
-    start: 300
+  const { failures } = await new Shutdown(BLOCK).run(homebridge, launch, {
+    ...tuning,
+    start: startup(launch.storage)
   })
 
   expect({ failures, starts: start.mock.calls.length }).toEqual({
@@ -139,11 +142,8 @@ test('stops at a first start that never listens', async ({ scratch }) => {
   })
 })
 
-test.concurrent('fails each start that outlasts the grace after SIGTERM', async ({ expect, scratch }) => {
-  const { failures } = await verdict(new Shutdown(BLOCK), scratch, { lingers: true }, {
-    ...TUNING,
-    grace: 500
-  })
+test.concurrent('fails each start that outlasts the grace after SIGTERM', async ({ expect, verdict }) => {
+  const { failures } = await verdict(new Shutdown(BLOCK), { lingers: true }, { grace: 500 })
 
   expect(failures).toEqual(Array(2).fill('takes longer than 0.5 seconds to exit after SIGTERM'))
 })

@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { defineConfig } from 'vitest/config'
 
 import { thresholds }                        from './common/coverage.js'
+import { TAGS }                              from './common/tags.js'
 import { changedFiles, lockfiles, triggers } from './common/triggers.js'
 
 const INCLUDE = ['tests/**/*.test.ts']
@@ -38,17 +39,6 @@ export default defineConfig({
              ? ['default', ['github-actions', { jobSummary: { enabled: false } }]]
              : ['default'],
 
-    tags: [
-      {
-        description : 'Runs a task, a wrapper, or a stand-in as a child process',
-        name        : 'spawns',
-        timeout     : 60_000
-      },
-      {
-        description : 'Runs a task that clones a checkout, packs the package, or installs Homebridge',
-        name        : 'spawns-many',
-        timeout     : 180_000
-      }
-    ]
+    tags: Object.entries(TAGS).map(([name, tag]) => ({ name, ...tag }))
   }
 })

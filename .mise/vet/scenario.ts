@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util'
 
-import { type PluginSchema, blocks }           from './blocks.ts'
-import type { Block, Homebridge, Launch, Run } from './homebridge.ts'
+import { type PluginSchema, blocks }                     from './blocks.ts'
+import type { Block, Deadline, Homebridge, Launch, Run } from './homebridge.ts'
 
 /**
  * A run of Homebridge under one block, held to what Homebridge's verification
@@ -21,18 +21,19 @@ export interface Check {
 export type Stage = Omit<Launch, 'block' | 'insecure' | 'offline'>
 
 /**
- * The milliseconds each wait of a check lasts:
+ * How long each wait of a check lasts, in milliseconds:
  *
  * - `grace`, for Homebridge to exit after `SIGTERM`
  * - `observe`, for a run to be watched once it listens
  * - `settle`, for a second start to run before it is stopped
- * - `start`, for a run to report its bridge listening
+ * - `start`, for a run to report its bridge listening, or a signal ending that
+ *   wait once it aborts
  */
 export interface Tuning {
   grace   : number
   observe : number
   settle  : number
-  start   : number
+  start   : Deadline
 }
 
 /**

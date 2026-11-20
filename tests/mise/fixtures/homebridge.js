@@ -36,13 +36,16 @@ for (const name of existsSync(plugins) ? readdirSync(plugins) : []) {
   })
 }
 
-writeFileSync(marker, '')
 setInterval(() => {}, 60_000)
 process.on('SIGTERM', () => acts.lingers || process.exit(0))
 console.log(`Started with ${process.argv.slice(2).join(' ')}`)
 console.log(`Preloaded with ${process.execArgv.join(' ')}`)
 
 if (loaded && ((block && !acts.silent) || acts.initializes)) console.log('Initializing Luxout platform...')
+
+await new Promise((resolve) => process.stdout.write('', resolve))
+writeFileSync(marker, '')
+
 if (acts.logs) console.error(acts.logs)
 if (acts.writes) writeFileSync(acts.writes, '')
 if (acts.fetches) await fetch(acts.fetches).catch(({ cause }) => console.error('Fetch failed:', cause?.code))

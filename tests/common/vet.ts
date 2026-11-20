@@ -1,10 +1,11 @@
+import { watch }                        from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { join }                         from 'node:path'
 
 import getPort from 'get-port'
 
 import { Homebridge }             from '../../.mise/vet/homebridge.ts'
-import type { Stage }             from '../../.mise/vet/scenario.ts'
+import type { Stage, Tuning }     from '../../.mise/vet/scenario.ts'
 import { HELD }                   from '../../.mise/vet/vet.ts'
 import schema                     from '../../config.schema.json' with { type: 'json' }
 import config                     from '../homebridge/config.json' with { type: 'json' }
@@ -37,31 +38,50 @@ export const BUILT = {
 }
 
 /**
- * The waits a case runs on:
+ * The windows a case runs on, beside the `start` the `tuning` fixture sets:
  *
  * - `grace`, for a stand-in to exit after `SIGTERM`
  * - `observe`, long enough for the acts a stand-in takes once it listens
  * - `settle`, for a second start to run before it is stopped
- * - `start`, long enough for a stand-in to listen on a busy machine
  */
-export const TUNING = { grace: 3_000, observe: 200, settle: 100, start: 4_000 }
+export const TUNING = { grace: 3_000, observe: 200, settle: 100 }
 const cache         = join(import.meta.dirname, '..', '..', '.cache')
 const standIn       = join(import.meta.dirname, '..', 'mise', 'fixtures', 'homebridge.js')
 
 /**
- * Extends the scratch fixture with `outside`, a directory under the checkout's
- * `.cache/` removed once the case ends, which lies outside the system temp
- * directory and `/tmp` wherever the checkout does.
+ * Extends the scratch fixture with:
+ *
+ * - `outside`, a directory under the checkout's `.cache/` removed once the case
+ *   ends, which lies outside the system temp directory and `/tmp` wherever the
+ *   checkout does
+ * - `startup`, which returns a signal that aborts once the stand-in starting
+ *   on a storage directory has printed its startup lines and writes the
+ *   `started` marker there, or once the case times out
+ * - `tuning`, the `TUNING` windows beside a `start` that waits until the case
+ *   times out
  */
-export const test = scratch.extend('outside', async ({ onTestFinished }) => {
-  await mkdir(cache, { recursive: true })
+export const test = scratch
+  .extend('outside', async ({ onTestFinished }) => {
+    await mkdir(cache, { recursive: true })
 
-  const outside = await mkdtemp(join(cache, 'vet-'))
+    const outside = await mkdtemp(join(cache, 'vet-'))
 
-  onTestFinished(() => rm(outside, { force: true, recursive: true }))
+    onTestFinished(() => rm(outside, { force: true, recursive: true }))
 
-  return outside
-})
+    return outside
+  })
+  .extend('startup', ({ onTestFinished, signal }) => (storage: string): AbortSignal => {
+    const printed = new AbortController()
+    const ended   = AbortSignal.any([printed.signal, signal])
+
+    watch(storage, { signal: ended }, (_, file) => {
+      if (file === 'started') printed.abort()
+    })
+    onTestFinished(() => printed.abort())
+
+    return ended
+  })
+  .extend('tuning', ({ signal }): Tuning => ({ ...TUNING, start: signal }))
 
 /**
  * Plants under `root` what `Vet.read` reads there beside the releases, meaning

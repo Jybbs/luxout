@@ -117,13 +117,14 @@ async function pack(dir: string, file: string): Promise<void> {
 }
 
 /**
- * Runs `plugin:vet` from `cwd` on the short waits a stand-in starts within,
- * under a TMPDIR reached through a symlink and named to open on the checkout's
- * path, and reads back what the task left in the directory the symlink names
- * and in the storage of the floor's run with the platform block alone, beside
- * the verdict it printed for each release's run with that block.
+ * Runs `plugin:vet` from `cwd` on the short windows a stand-in acts within,
+ * waiting up to `start` milliseconds for each to listen, under a TMPDIR
+ * reached through a symlink and named to open on the checkout's path, and
+ * reads back what the task left in the directory the symlink names and in the
+ * storage of the floor's run with the platform block alone, beside the verdict
+ * it printed for each release's run with that block.
  */
-async function vet(cwd: string, scratch: string) {
+async function vet(cwd: string, scratch: string, start: number) {
   const temp = join(scratch, 'checkout-temp')
 
   await mkdir(temp)
@@ -135,7 +136,7 @@ async function vet(cwd: string, scratch: string) {
       ...scripts,
       BUN_INSTALL_CACHE_DIR : join(scratch, 'cache'),
       PWD                   : cwd,
-      TUNING                : JSON.stringify(TUNING)
+      TUNING                : JSON.stringify({ ...TUNING, start })
     }
   })
 
@@ -151,9 +152,11 @@ async function vet(cwd: string, scratch: string) {
 describe.concurrent('plugin:vet', () => {
   test('passes a plugin importing its dependencies and what both releases export, removing the area', async ({
     expect,
-    scratch
+    scratch,
+    task
   }) => {
-    const { left, status, stored, verdicts } = await vet(await checkout(scratch, CONTROL), scratch)
+    const dir                                = await checkout(scratch, CONTROL)
+    const { left, status, stored, verdicts } = await vet(dir, scratch, task.timeout)
 
     expect({ left, status, stored, verdicts }).toEqual({
       left     : [],
@@ -180,8 +183,9 @@ describe.concurrent('plugin:vet', () => {
     }
   ])(
     'fails a plugin importing $name under each release lacking it, keeping the storage',
-    async ({ floor, message, pinned, source }, { expect, scratch }) => {
-      const { status, stdout, stored, verdicts } = await vet(await checkout(scratch, source), scratch)
+    async ({ floor, message, pinned, source }, { expect, scratch, task }) => {
+      const dir                                  = await checkout(scratch, source)
+      const { status, stdout, stored, verdicts } = await vet(dir, scratch, task.timeout)
 
       expect({ status, stdout, stored, verdicts }).toEqual({
         status   : 1,
@@ -194,12 +198,12 @@ describe.concurrent('plugin:vet', () => {
 
   test(
     'fails before installing where the test area lies inside a checkout reached through a symlink',
-    async ({ expect, scratch }) => {
+    async ({ expect, scratch, task }) => {
       const link = join(scratch, 'link')
 
       await symlink(scratch, link)
 
-      const { left, status, stderr, stdout, temp } = await vet(link, scratch)
+      const { left, status, stderr, stdout, temp } = await vet(link, scratch, task.timeout)
 
       expect({ left, status, stderr: stderr.replace(/\/tmp\.\w+ /, '/tmp.X '), stdout }).toEqual({
         left   : [],
