@@ -125,9 +125,10 @@ const RESOLVING = {
   extensionAlias : { '.js': ['.ts', '.js'] },
   symlinks       : false
 }
-const SCRIPT = /\.[cm]?[jt]sx?$/
-const SITE   = `${sep}.vitepress${sep}`
-const TASK   = /^[\w-]+(?::[\w-]+)+$/
+const SCRIPT    = /\.[cm]?[jt]sx?$/
+const SITE      = `${sep}.vitepress${sep}`
+const SPECIFIER = /^(?:'[^'\\]*'|"[^"\\]*"|`(?:[^`\\$]|\$(?!\{))*`)$/
+const TASK      = /^[\w-]+(?::[\w-]+)+$/
 
 /**
  * Names the binding an import or a re-export takes, `default` for a default
@@ -198,10 +199,8 @@ function git(cwd: string, ...args: string[]): string {
 }
 
 /**
- * Maps each module `module` imports with a value, and each dynamic import
- * naming a string, resolved through `resolver` from the directory of `file`,
- * to the bindings it takes from it, per `bound`, a dynamic import taking
- * `ALL`.
+ * Maps each module `module` requests, per `requests`, resolved through
+ * `resolver` from the directory of `file`, to the bindings it takes from it.
  */
 function imports(
   file     : string,
@@ -209,24 +208,9 @@ function imports(
   resolver : Experimental.ResolverFactory,
   text     : string
 ): Map<string, Set<string>> {
-  const requests: [string, string[]][] = [
-    ...module.staticImports
-      .filter(({ entries }) => !entries.length || entries.some(({ isType }) => !isType))
-      .map(({ entries, moduleRequest }): [string, string[]] => [
-        moduleRequest.value,
-        entries.filter(({ isType }) => !isType).map(({ importName }) => bound(importName))
-      ]),
-    ...module.staticExports.flatMap(({ entries }) => entries.flatMap(
-      ({ importName, isType, moduleRequest }): [string, string[]][] =>
-        moduleRequest && !isType ? [[moduleRequest.value, [bound(importName)]]] : []
-    )),
-    ...module.dynamicImports
-      .filter(({ moduleRequest: { start } }) => /['"]/.test(text.charAt(start)))
-      .map(({ moduleRequest: { end, start } }): [string, string[]] => [text.slice(start + 1, end - 1), [ALL]])
-  ]
   const found = new Map<string, Set<string>>()
 
-  for (const [request, names] of requests) {
+  for (const [request, names] of requests(module, text)) {
     const { path } = resolver.sync(dirname(file), request)
 
     if (path !== undefined) {
@@ -768,6 +752,31 @@ export function mentions(files: string[], modules: string[], root: string): Map<
 
     return found.length ? [[module, found]] : []
   }))
+}
+
+/**
+ * Lists the module each import or re-export of `module` requests with a value,
+ * and each dynamic import of `text` naming one string literal or one template
+ * literal holding no substitution, either holding no escape, beside the
+ * bindings it takes from it, per `bound`, a dynamic import taking `ALL`.
+ */
+export function requests(module: Utils.ParseResult['module'], text: string): [string, string[]][] {
+  return [
+    ...module.staticImports
+      .filter(({ entries }) => !entries.length || entries.some(({ isType }) => !isType))
+      .map(({ entries, moduleRequest }): [string, string[]] => [
+        moduleRequest.value,
+        entries.filter(({ isType }) => !isType).map(({ importName }) => bound(importName))
+      ]),
+    ...module.staticExports.flatMap(({ entries }) => entries.flatMap(
+      ({ importName, isType, moduleRequest }): [string, string[]][] =>
+        moduleRequest && !isType ? [[moduleRequest.value, [bound(importName)]]] : []
+    )),
+    ...module.dynamicImports
+      .map(({ moduleRequest: { end, start } }) => text.slice(start, end))
+      .filter((specifier) => SPECIFIER.test(specifier))
+      .map((specifier): [string, string[]] => [specifier.slice(1, -1), [ALL]])
+  ]
 }
 
 /**
