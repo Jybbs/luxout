@@ -2,7 +2,7 @@ import { execFileSync }                                                 from 'no
 import { existsSync, globSync, readFileSync, realpathSync, statSync }   from 'node:fs'
 import { createRequire, findPackageJSON }                               from 'node:module'
 import { basename, dirname, join, matchesGlob, relative, resolve, sep } from 'node:path'
-import { pathToFileURL }                                                from 'node:url'
+import { fileURLToPath, pathToFileURL }                                 from 'node:url'
 
 import type * as Experimental from 'rolldown/experimental'
 import type * as Utils        from 'rolldown/utils'
@@ -37,9 +37,23 @@ interface Scan {
 }
 
 /**
- * The fields of a resolved VitePress config that place the pages of a site.
+ * The files a VitePress site builds from beside the modules its config and
+ * theme import, per `site`.
+ */
+export interface Site {
+  pages     : Map<string, string[]>
+  publicDir : string
+}
+
+/**
+ * The fields of a resolved VitePress config that place the pages of a site,
+ * its public directory, and the options its Markdown renders under.
  */
 interface SiteConfig {
+  markdown   : unknown
+  pages      : string[]
+  publicDir  : string
+  site       : { base: string }
   srcDir     : string
   userConfig : { srcExclude?: string[] }
 }
@@ -53,6 +67,16 @@ interface Spelling {
   start : number
   text  : string
   whole : boolean
+}
+
+/**
+ * A token of a Markdown page as VitePress's renderer parses it, an inline
+ * token holding the tokens of its text as `children`.
+ */
+interface Token {
+  attrGet  : (name: string) => string | null
+  children : Token[] | null
+  type     : string
 }
 
 /**
@@ -73,10 +97,18 @@ interface Tsconfig {
 }
 
 /**
- * The function of VitePress's node API that resolves the config of a site.
+ * The functions of VitePress's node API that resolve the config of a site and
+ * create the Markdown renderer its pages build through.
  */
 interface VitePress {
-  resolveConfig: (root: string, command: 'build') => Promise<SiteConfig>
+  createMarkdownRenderer : (
+    srcDir    : string,
+    options   : unknown,
+    base      : string,
+    logger    : undefined,
+    publicDir : string
+  ) => Promise<{ parse: (text: string, env: object) => Token[] }>
+  resolveConfig          : (root: string, command: 'build') => Promise<SiteConfig>
 }
 
 const ALL       = '*'
@@ -401,9 +433,7 @@ async function pageChanged(
   resolver : Experimental.ResolverFactory,
   site     : string
 ): Promise<boolean> {
-  const path                   = located(site, 'vitepress', resolver)
-  const { resolveConfig }      = await import(pathToFileURL(path).href) as VitePress
-  const { srcDir, userConfig } = await resolveConfig(site, 'build')
+  const { srcDir, userConfig } = (await resolved(resolver, site)).config
   const excluded               = [...IGNORED, ...userConfig.srcExclude ?? []]
 
   return changed.some((file) => {
@@ -547,6 +577,19 @@ async function readers(changed: string[], include: string[], root: string, top: 
   const kept  = await Promise.all(tests.map(reads))
 
   return tests.filter((_, index) => kept[index])
+}
+
+/**
+ * Loads the `vitepress` that `resolver` finds at the VitePress site `site` and
+ * resolves the config of the site through it.
+ */
+async function resolved(
+  resolver : Experimental.ResolverFactory,
+  site     : string
+): Promise<{ config: SiteConfig, vitepress: VitePress }> {
+  const vitepress = await import(pathToFileURL(located(site, 'vitepress', resolver)).href) as VitePress
+
+  return { config: await vitepress.resolveConfig(site, 'build'), vitepress: vitepress }
 }
 
 /**
@@ -694,6 +737,65 @@ export function lockfiles(root: string): string[] {
     cwd      : root,
     encoding : 'utf8'
   }).split('\n').slice(0, -1).map((dir) => join(dir, 'bun.lock'))
+}
+
+/**
+ * Maps each script of `modules` to the files of `files` whose path a string of
+ * the script spells, per `rooted` and `names`, leaving out a module that is no
+ * script or spells none.
+ *
+ * Args:
+ *   files   : The absolute path of each file a string can name.
+ *   modules : The absolute path of each module to read.
+ *   root    : The directory whose Vite parses the modules, per `vite`.
+ */
+export function mentions(files: string[], modules: string[], root: string): Map<string, string[]> {
+  const { Visitor, parseSync } = vite(root)('rolldown/utils') as typeof Utils
+
+  return new Map(modules.filter((module) => SCRIPT.test(module)).flatMap((module) => {
+    const { program } = parseSync(module, readFileSync(module, 'utf8'))
+    const spellings   = rooted(strings(program, Visitor))
+    const found       = files.filter((file) => spellings.some((spelling) => names(file, spelling)))
+
+    return found.length ? [[module, found]] : []
+  }))
+}
+
+/**
+ * Reads the VitePress site at `dir` through the `vitepress` it installs.
+ *
+ * Returns:
+ *   The absolute path of each page `resolveConfig` lists, beside the files
+ *   its Markdown images embed by a relative path, resolved from the page's
+ *   directory as VitePress's image rule resolves them, and the public
+ *   directory the config names, empty where the config turns it off.
+ */
+export async function site(dir: string): Promise<Site> {
+  const { ResolverFactory }   = vite(dir)('rolldown/experimental') as typeof Experimental
+  const { config, vitepress } = await resolved(new ResolverFactory(RESOLVING), dir)
+  const { publicDir, srcDir } = config
+  const renderer              = await vitepress.createMarkdownRenderer(
+    srcDir,
+    config.markdown,
+    config.site.base,
+    undefined,
+    publicDir
+  )
+
+  const embeds = (path: string, page: string): string[] => renderer
+    .parse(readFileSync(path, 'utf8'), { path: path, relativePath: page })
+    .flatMap(({ children }) => children ?? [])
+    .filter(({ type }) => type === 'image')
+    .flatMap((token) => token.attrGet('src') ?? [])
+    .filter((source) => !source.startsWith('/'))
+    .map((source) => new URL(source, pathToFileURL(path)))
+    .filter(({ protocol }) => protocol === 'file:')
+    .map((url) => fileURLToPath(url))
+
+  return {
+    pages     : new Map(config.pages.map((page) => [join(srcDir, page), embeds(join(srcDir, page), page)])),
+    publicDir : publicDir
+  }
 }
 
 /**
