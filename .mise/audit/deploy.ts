@@ -119,8 +119,9 @@ export class DeployPaths {
  * - Each file Git tracks under the public directory, which VitePress copies
  *   into the bundle as it is
  * - Each file Git tracks under the site, its suite aside, whose path a string
- *   spells in a module under the site that the config or the theme imports,
- *   since a module reading a file from disk spells the path it reads
+ *   naming a directory, or a relative path resolved from the module's own
+ *   directory, spells in a module under the site that the config or the theme
+ *   imports, since a module reading a file from disk spells the path it reads
  *
  * A file the list holds twice keeps its later reason, so a page a module also
  * spells reads as a page.
