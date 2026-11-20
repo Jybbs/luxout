@@ -206,6 +206,18 @@ describe('a workflow on its own', () => {
       title : 'Draft guard'
     },
     {
+      line  : 11,
+      name  : 'a draft guard after a quoted parenthesis',
+      text  : CI.replace(GUARD, `\${{ github.head_ref == '(' || github.actor == ')' && ${DRAFT} }}`),
+      title : 'Draft guard'
+    },
+    {
+      line  : 11,
+      name  : 'a draft guard inside a quoted string',
+      text  : CI.replace(GUARD, `\${{ github.actor == 'x && ${DRAFT} && y' }}`),
+      title : 'Draft guard'
+    },
+    {
       line  : 4,
       name  : 'activity types that leave out `ready_for_review`',
       text  : CI.replace(', ready_for_review', ''),

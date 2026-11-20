@@ -17,6 +17,7 @@ export const GATE = '✨ Reading'
 const GROUP       = /\((?:[^()]|\(\))+\)/g
 const IMAGE       = /^[a-z]+-\d[\w.-]*$/
 const READY       = 'ready_for_review'
+const STRING      = /'(?:[^']|'')*'/g
 const WORKFLOWS   = '.github/workflows/*.{yaml,yml}'
 
 class Job {
@@ -331,12 +332,12 @@ export class Workflows {
 }
 
 /**
- * Splits a condition into the terms `&&` joins outside parentheses, collapsing
- * each parenthesized group to `()` first and returning a condition holding `||`
- * outside them as one term.
+ * Splits a condition into the terms `&&` joins outside parentheses, emptying
+ * each quoted string and collapsing each parenthesized group to `()` first, and
+ * returning a condition holding `||` outside them as one term.
  */
 function conjuncts(value: unknown): string[] {
-  let text = expression(value)
+  let text = expression(value).replaceAll(STRING, "''")
   let last = ''
 
   while (text !== last) {
