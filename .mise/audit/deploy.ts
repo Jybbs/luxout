@@ -9,12 +9,14 @@ import { CONFIG }        from './mise.ts'
 import { scan }          from './shell.ts'
 import type { TaskList } from './tasks.ts'
 
-const BUILD     = 'site:linkcheck'
-const ENTRIES   = { 'site/.vitepress/config.ts': 'config', 'site/.vitepress/theme/index.ts': 'theme' }
-const PROVISION = ['.github/actions/provision/action.yml', CONFIG, '.mise/mise.lock']
-const SITE      = 'site'
-const WORKFLOW  = '.github/workflows/deploy.yml'
-const WRAPPERS  = '.mise/bin/*'
+const BUILD       = 'site:linkcheck'
+const PROVISION   = ['.github/actions/provision/action.yml', CONFIG, '.mise/mise.lock']
+const SITE        = 'site'
+const SITE_CONFIG = 'site/.vitepress/config.ts'
+const SITE_TESTS  = ':!site/.vitepress/tests'
+const ENTRIES     = { [SITE_CONFIG]: 'config', 'site/.vitepress/theme/index.ts': 'theme' }
+const WORKFLOW    = '.github/workflows/deploy.yml'
+const WRAPPERS    = '.mise/bin/*'
 
 /**
  * Holds the `on.push.paths` globs of the workflow deploying the site to every
@@ -23,26 +25,39 @@ const WRAPPERS  = '.mise/bin/*'
 export class DeployPaths {
   readonly #file     : YamlFile
   readonly #imports  : Record<string, string[]>
+  readonly #inputs   : [string, string][]
   readonly #wrappers : string[]
 
   /**
    * Reads the workflow, the wrappers, and the files read to build the site
    * config and the theme, leaving out either entry where the checkout does not
-   * hold it.
+   * hold it. Where the checkout holds the site config, it also reads the files
+   * the build reads without importing them, per `inputs`.
    */
-  static read(audit: Audit): DeployPaths {
+  static async read(audit: Audit): Promise<DeployPaths> {
     const entries = Object.keys(ENTRIES).filter((entry) => audit.exists(entry))
+    const imports = Object.fromEntries(entries.map((entry) => [
+      entry,
+      audit.imports(SITE, relative(SITE, entry))
+    ]))
 
     return new DeployPaths(
       new YamlFile(WORKFLOW, audit.exists(WORKFLOW) ? audit.read(WORKFLOW) : ''),
-      Object.fromEntries(entries.map((entry) => [entry, audit.imports(SITE, relative(SITE, entry))])),
-      Object.keys(audit.readAll(WRAPPERS))
+      imports,
+      Object.keys(audit.readAll(WRAPPERS)),
+      entries.includes(SITE_CONFIG) ? await inputs(audit, Object.values(imports).flat()) : []
     )
   }
 
-  constructor(file: YamlFile, imports: Record<string, string[]>, wrappers: string[]) {
+  constructor(
+    file     : YamlFile,
+    imports  : Record<string, string[]>,
+    wrappers : string[],
+    inputs   : [string, string][] = []
+  ) {
     this.#file     = file
     this.#imports  = imports
+    this.#inputs   = inputs
     this.#wrappers = wrappers
   }
 
@@ -67,6 +82,7 @@ export class DeployPaths {
       matches  : picomatch(glob.replace(/^!/, ''), { dot: true })
     }))
     const reads = new Map([
+      ...this.#inputs,
       ...Object.entries(ENTRIES).flatMap(([entry, role]) => (this.#imports[entry] ?? []).map((file) => [
         file,
         file === entry
@@ -77,7 +93,8 @@ export class DeployPaths {
       ...this.#wrappers
         .filter((file) => programs.has(basename(file)))
         .map((file) => [file, `a task the \`${BUILD}\` chain runs calls it`] as const),
-      ...PROVISION.map((file) => [file, 'the press job installs its tools through it'] as const)
+      ...PROVISION.map((file) => [file, 'the press job installs its tools through it'] as const),
+      [WORKFLOW, 'it sets the jobs that build and publish the site']
     ])
 
     const included = (file: string): boolean =>
@@ -92,4 +109,37 @@ export class DeployPaths {
         'Deploy path'
       ))
   }
+}
+
+/**
+ * Lists the files the site build reads without importing them, each beside
+ * the reason it reads them:
+ *
+ * - Each page VitePress builds and each file a page embeds by a relative path
+ * - Each file Git tracks under the public directory, which VitePress copies
+ *   into the bundle as it is
+ * - Each file Git tracks under the site, its suite aside, whose path a string
+ *   spells in a module under the site that the config or the theme imports,
+ *   since a module reading a file from disk spells the path it reads
+ */
+async function inputs(audit: Audit, imports: string[]): Promise<[string, string][]> {
+  const { pages, publicDir } = await audit.site(SITE)
+  const modules              = imports.filter((file) => file.startsWith(`${SITE}/`))
+  const shipped              = publicDir ? audit.files(publicDir) : []
+  const spelled              = audit.mentions(SITE, modules, audit.files(SITE, SITE_TESTS))
+
+  return [
+    ...[...pages].flatMap(([page, embeds]): [string, string][] => [
+      [page, 'VitePress builds it as a page'],
+      ...embeds.map((file): [string, string] => [file, `the page \`${page}\` embeds it`])
+    ]),
+    ...shipped.map((file): [string, string] => [
+      file,
+      'VitePress copies it from the public directory into the bundle'
+    ]),
+    ...[...spelled].flatMap(([module, files]) => files.map((file): [string, string] => [
+      file,
+      `\`${module}\`, a module the site build imports, spells its path`
+    ]))
+  ]
 }
