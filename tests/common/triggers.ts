@@ -742,10 +742,10 @@ export function lockfiles(root: string): string[] {
 /**
  * Maps each script of `modules` to the files of `files` whose path a string of
  * the script spells, per `rooted` and `names`, leaving out a module that is no
- * script or spells none. A string opening on `./` or `../` names the one file
- * it resolves to from the script's directory, and any other spelling counts
- * only where it names a directory, so a file name alone, such as `index.ts`,
- * names no file.
+ * script or spells none. A spelling counts where it names a directory, so a
+ * file name alone, such as `index.ts`, names no file, and a string opening on
+ * `./` or `../` also names the file it resolves to from the script's
+ * directory.
  *
  * Args:
  *   files   : The absolute path of each file a string can name.

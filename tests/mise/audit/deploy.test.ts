@@ -289,6 +289,14 @@ test.for<{ excluded: string, files: Record<string, string>, name: string }>([
     excluded : 'site/frame.svg',
     files    : { [FACE]: `${PAGES[FACE]}export const FRAME = './frame.svg'\n`, 'site/frame.svg': '<svg/>\n' },
     name     : 'the site that a module names by a path naming no directory'
+  },
+  {
+    excluded : 'site/.vitepress/lib/frame.svg',
+    files    : {
+      [FACE]                          : `${PAGES[FACE]}export const FRAME = 'frame.svg'\n`,
+      'site/.vitepress/lib/frame.svg' : '<svg/>\n'
+    },
+    name     : 'the site that a module names by the file name alone of a file beside it'
   }
 ])('reports no file under $name', async ({ excluded, files }, { scratch }) => {
   await plant(scratch, { ...PAGES, ...files, [WORKFLOW]: triggers(['**', `!${excluded}`]) })
@@ -298,11 +306,14 @@ test.for<{ excluded: string, files: Record<string, string>, name: string }>([
   expect((await DeployPaths.read(audit)).findings(TaskList.read(audit))).toEqual([])
 })
 
-test('reports a file a module the site build imports reads beside itself through a relative URL', async ({
-  scratch
-}) => {
-  const beside = 'site/.vitepress/lib/face.ttf'
-  const reads  = "export const BESIDE = readFileSync(new URL('./face.ttf', import.meta.url))\n"
+test.for([
+  { beside: 'site/.vitepress/lib/face.ttf', spelling: './face.ttf' },
+  { beside: 'site/.vitepress/face.ttf', spelling: '../face.ttf' }
+])('reports $beside, which a module the site build imports reads through the relative URL $spelling', async (
+  { beside, spelling },
+  { scratch }
+) => {
+  const reads = `export const BESIDE = readFileSync(new URL('${spelling}', import.meta.url))\n`
 
   await plant(scratch, {
     ...PAGES,
