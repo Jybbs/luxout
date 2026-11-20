@@ -1,3 +1,3 @@
 import { Audit } from './audit.ts'
 
-process.exitCode = new Audit(process.cwd()).report()
+process.exitCode = await new Audit(process.cwd()).report()
