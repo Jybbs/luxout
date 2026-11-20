@@ -276,6 +276,19 @@ test.for<{ excluded: string, files: Record<string, string>, name: string }>([
       'src/face.ts'                   : "export const SRC = 'fonts/src.ttf'\n"
     },
     name     : 'the site that only a module outside the site spells'
+  },
+  {
+    excluded : 'site/.vitepress/lib/bundle/index.ts',
+    files    : {
+      [FACE]                                : `${PAGES[FACE]}export const SOURCE = 'index.ts'\n`,
+      'site/.vitepress/lib/bundle/index.ts' : ''
+    },
+    name     : 'the site that a module names by its file name alone'
+  },
+  {
+    excluded : 'site/frame.svg',
+    files    : { [FACE]: `${PAGES[FACE]}export const FRAME = './frame.svg'\n`, 'site/frame.svg': '<svg/>\n' },
+    name     : 'the site that a module names by a path naming no directory'
   }
 ])('reports no file under $name', async ({ excluded, files }, { scratch }) => {
   await plant(scratch, { ...PAGES, ...files, [WORKFLOW]: triggers(['**', `!${excluded}`]) })
@@ -308,7 +321,7 @@ test('reports a page by its page, though a module the site build imports spells 
 }) => {
   await plant(scratch, {
     ...PAGES,
-    [FACE]     : `${PAGES[FACE]}export const HOME = '../index.md'\n`,
+    [FACE]     : `${PAGES[FACE]}export const HOME = 'site/index.md'\n`,
     [WORKFLOW] : triggers(['**', '!site/index.md'])
   })
 
