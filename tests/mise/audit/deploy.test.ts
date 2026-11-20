@@ -277,6 +277,27 @@ test.for<{ excluded: string, files: Record<string, string>, name: string }>([
       'src/face.ts'                   : "export const SRC = 'fonts/src.ttf'\n"
     },
     name     : 'the site that only a module outside the site spells'
+  },
+  {
+    excluded : 'site/.vitepress/lib/bundle/index.ts',
+    files    : {
+      [FACE]                                : `${PAGES[FACE]}export const SOURCE = 'index.ts'\n`,
+      'site/.vitepress/lib/bundle/index.ts' : ''
+    },
+    name     : 'the site that a module names by its file name alone'
+  },
+  {
+    excluded : 'site/frame.svg',
+    files    : { [FACE]: `${PAGES[FACE]}export const FRAME = './frame.svg'\n`, 'site/frame.svg': '<svg/>\n' },
+    name     : 'the site that a module names by a path naming no directory'
+  },
+  {
+    excluded : 'site/.vitepress/lib/frame.svg',
+    files    : {
+      [FACE]                          : `${PAGES[FACE]}export const FRAME = 'frame.svg'\n`,
+      'site/.vitepress/lib/frame.svg' : '<svg/>\n'
+    },
+    name     : 'the site that a module names by the file name alone of a file beside it'
   }
 ])('reports no file under $name', async ({ excluded, files }, { scratch }) => {
   await plant(scratch, { ...PAGES, ...files, [WORKFLOW]: triggers(['**', `!${excluded}`]) })
@@ -284,6 +305,31 @@ test.for<{ excluded: string, files: Record<string, string>, name: string }>([
   const audit = await staged(scratch)
 
   expect((await DeployPaths.read(audit)).findings(TaskList.read(audit))).toEqual([])
+})
+
+test.for([
+  { beside: 'site/.vitepress/lib/face.ttf', spelling: './face.ttf' },
+  { beside: 'site/.vitepress/face.ttf', spelling: '../face.ttf' }
+])('reports $beside, which a module the site build imports reads through the relative URL $spelling', async (
+  { beside, spelling },
+  { scratch }
+) => {
+  const reads = `export const BESIDE = readFileSync(new URL('${spelling}', import.meta.url))\n`
+
+  await plant(scratch, {
+    ...PAGES,
+    [FACE]     : `import { readFileSync } from 'node:fs'\n\n${PAGES[FACE]}${reads}`,
+    [beside]   : '',
+    [WORKFLOW] : triggers(['**', `!${beside}`])
+  })
+
+  const audit    = await staged(scratch)
+  const findings = (await DeployPaths.read(audit)).findings(TaskList.read(audit))
+
+  expect(findings.map(({ message }) => message)).toEqual([
+    `\`${beside}\` matches no \`on.push.paths\` glob, though \`${FACE}\`, a module the site build imports, `
+  + 'spells its path, so a push changing it leaves the site unpublished'
+  ])
 })
 
 test('reports a module the site build imports by its import, though a module spells its path', async ({
@@ -309,7 +355,7 @@ test('reports a page by its page, though a module the site build imports spells 
 }) => {
   await plant(scratch, {
     ...PAGES,
-    [FACE]     : `${PAGES[FACE]}export const HOME = '../index.md'\n`,
+    [FACE]     : `${PAGES[FACE]}export const HOME = 'site/index.md'\n`,
     [WORKFLOW] : triggers(['**', '!site/index.md'])
   })
 
