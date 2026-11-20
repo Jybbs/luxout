@@ -5,13 +5,14 @@ import { join }      from 'node:path'
 
 import { expect } from 'vitest'
 
-import { Audit }                   from '../../../.mise/audit/audit.ts'
-import { DeployPaths }             from '../../../.mise/audit/deploy.ts'
-import { YamlFile }                from '../../../.mise/audit/files.ts'
-import type { Finding }            from '../../../.mise/audit/finding.ts'
-import { TaskList }                from '../../../.mise/audit/tasks.ts'
-import { listing, mise }           from '../../common/mise.js'
-import { plant, repository, test } from '../../common/scratch.js'
+import { Audit }        from '../../../.mise/audit/audit.ts'
+import { DeployPaths }   from '../../../.mise/audit/deploy.ts'
+import { YamlFile }      from '../../../.mise/audit/files.ts'
+import type { Finding }  from '../../../.mise/audit/finding.ts'
+import { TaskList }      from '../../../.mise/audit/tasks.ts'
+import { listing, mise } from '../../common/mise.js'
+import { repository }    from '../../common/repository.js'
+import { plant, test }   from '../../common/scratch.js'
 
 const ALL       = ['.github/actions/provision/**', '.github/workflows/deploy.yml', '.mise/**', 'site/**']
 const CONFIG    = 'site/.vitepress/config.ts'

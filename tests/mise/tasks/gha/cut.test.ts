@@ -5,8 +5,9 @@ import { parseEnv } from 'node:util'
 
 import { describe } from 'vitest'
 
-import { plant, repository, test } from '../../../common/scratch.js'
-import { sync }                    from '../../../common/sync.js'
+import { repository }  from '../../../common/repository.js'
+import { plant, test } from '../../../common/scratch.js'
+import { sync }        from '../../../common/sync.js'
 
 interface Conditions {
   event? : string

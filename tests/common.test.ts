@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { chmod } from 'node:fs/promises'
 import { join }  from 'node:path'
 
@@ -28,7 +29,7 @@ test.concurrent(
     vi.stubEnv('XDG_CONFIG_HOME', join(scratch, 'xdg'))
     vi.resetModules()
 
-    const { repository } = await import('./common/scratch.js')
+    const { repository } = await import('./common/repository.js')
     const git            = repository(join(scratch, 'repo'))
 
     git('add', '--all')
