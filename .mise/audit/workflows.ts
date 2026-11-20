@@ -12,8 +12,10 @@ interface Row {
 
 const CANCEL      = "github.event_name=='pull_request'"
 const CONTEXTS    = new Set(['github.workflow', 'github.ref'])
+const DRAFT       = '!github.event.pull_request.draft'
 export const GATE = '✨ Reading'
 const IMAGE       = /^[a-z]+-\d[\w.-]*$/
+const READY       = 'ready_for_review'
 const WORKFLOWS   = '.github/workflows/*.{yaml,yml}'
 
 class Job {
@@ -38,6 +40,10 @@ class Job {
       this.spot,
       'Job timeout'
     )]
+  }
+
+  get guarded(): boolean {
+    return conjuncts(this.condition?.value).includes(DRAFT)
   }
 
   get image(): Entry | undefined {
@@ -98,6 +104,7 @@ class Workflow {
       ...this.#file.errors,
       ...this.#schedule,
       ...this.#concurrency,
+      ...this.#draft,
       ...this.jobs.flatMap((job) => job.findings),
       ...this.#gateFindings
     ]
@@ -154,6 +161,28 @@ class Workflow {
     ]
   }
 
+  get #draft(): Finding[] {
+    const pull = this.pullRequest
+
+    if (!pull) return []
+
+    const types = this.#file.at('on', 'pull_request', 'types')
+
+    return [
+      ...[types?.value].flat().includes(READY) ? [] : [new Finding(
+        `\`pull_request\` runs on no \`${READY}\` activity, so marking a draft ready runs no job`,
+        types ?? pull,
+        'Draft guard'
+      )],
+      ...this.jobs.filter((job) => !job.guarded).map((job) => new Finding(
+        `Job \`${job.id}\` joins no \`${DRAFT}\` to its \`if\` through \`&&\`, `
+      + 'so it runs on every push to a draft',
+        job.condition ?? job.spot,
+        'Draft guard'
+      ))
+    ]
+  }
+
   get #gateFindings(): Finding[] {
     const { gate } = this
 
@@ -168,7 +197,7 @@ class Workflow {
     const others  = this.jobs.filter((job) => job !== gate)
     const waited  = new Set([gate.needs?.value].flat())
     const missing = [...new Set(others.map((job) => job.id)).difference(waited)]
-    const always  = expression(gate.condition?.value) === 'always()'
+    const always  = conjuncts(gate.condition?.value).includes('always()')
 
     return [
       ...always ? [] : [new Finding(
@@ -298,6 +327,16 @@ export class Workflows {
       ]
     })
   }
+}
+
+/**
+ * Splits a condition into the terms `&&` joins, returning a condition holding
+ * `||` as one term.
+ */
+function conjuncts(value: unknown): string[] {
+  const text = expression(value)
+
+  return text.includes('||') ? [text] : text.split('&&')
 }
 
 function expression(value: unknown): string {
