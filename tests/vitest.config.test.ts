@@ -1,3 +1,4 @@
+/** @module-tag spawns */
 import { existsSync, readFileSync }                   from 'node:fs'
 import { appendFile, chmod, glob, readFile, symlink } from 'node:fs/promises'
 import { dirname, join, parse, relative, sep }        from 'node:path'
@@ -113,8 +114,8 @@ async function provided(scratch: string, changedSince?: string, include = ['*.te
 }
 
 /**
- * Lists the module each import of `file` requests, leaving out an import of
- * types alone and a dynamic import naming no string literal.
+ * Lists the module each import or re-export of `file` requests, leaving out
+ * one of types alone and a dynamic import naming no string literal.
  */
 function requests(file: string): string[] {
   const text       = readFileSync(file, 'utf8')
@@ -124,8 +125,11 @@ function requests(file: string): string[] {
     ...module.staticImports
       .filter(({ entries }) => !entries.length || entries.some(({ isType }) => !isType))
       .map(({ moduleRequest }) => moduleRequest.value),
+    ...module.staticExports.flatMap(({ entries }) => entries.flatMap(({ isType, moduleRequest }) =>
+      moduleRequest && !isType ? [moduleRequest.value] : []
+    )),
     ...module.dynamicImports
-      .filter(({ moduleRequest: { start } }) => /['"]/.test(text.charAt(start)))
+      .filter(({ moduleRequest: { start } }) => /['"`]/.test(text.charAt(start)))
       .map(({ moduleRequest: { end, start } }) => text.slice(start + 1, end - 1))
   ]
 }
@@ -358,19 +362,14 @@ test.for([
   { changed: 'notes/a.md', name: 'a test spelling it behind a leading $ segment', selected: ['var.test.ts'] },
   { changed: 'pages/b.md', name: 'a test joining a glob to its directory', selected: ['pages.test.ts'] },
   { changed: 'tasks/labels', name: 'no test for a string of one segment holding no dot', selected: [] }
-])(
-  'selects $name where a branch changes only $changed',
-  { tags: ['spawns'] },
-  async ({ changed, selected }, { scratch }) => {
-    await checkout(changed, scratch)
+])('selects $name where a branch changes only $changed', async ({ changed, selected }, { scratch }) => {
+  await checkout(changed, scratch)
 
-    expect(await provided(scratch, 'origin/main')).toEqual([changed, ...selected])
-  }
-)
+  expect(await provided(scratch, 'origin/main')).toEqual([changed, ...selected])
+})
 
 test(
   'selects the test reading an uncommitted change alone where the run names no commit to start from',
-  { tags: ['spawns'] },
   async ({ scratch }) => {
     await checkout('notes/a.md', scratch)
     await appendFile(join(scratch, 'docs', 'guide', 'a.md'), '\n')
@@ -386,7 +385,6 @@ test.for([
   { changed: 'pages/guide/a.md', name: 'each test under .vitepress reading the pages', selected: PAGE_TESTS }
 ].flatMap((row) => Object.entries(BRANCHES).map(([verb, deleted]) => ({ ...row, deleted, verb }))))(
   'selects $name where a branch $verb only $changed',
-  { tags: ['spawns'] },
   async ({ changed, deleted, selected }, { scratch }) => {
     await site(changed, join(root, 'site', 'node_modules'), scratch, deleted)
 
@@ -394,22 +392,17 @@ test.for([
   }
 )
 
-test(
-  'selects each test reading the pages of a site where a branch adds a page',
-  { tags: ['spawns'] },
-  async ({ scratch }) => {
-    await site('notes.txt', join(root, 'site', 'node_modules'), scratch)
-    await plant(scratch, { 'pages/guide/b.md': '# B\n' })
+test('selects each test reading the pages of a site where a branch adds a page', async ({ scratch }) => {
+  await site('notes.txt', join(root, 'site', 'node_modules'), scratch)
+  await plant(scratch, { 'pages/guide/b.md': '# B\n' })
 
-    expect(new Set(await provided(scratch, 'origin/main', PAGED))).toEqual(new Set([
-      'notes.txt', 'pages/guide/b.md', ...PAGE_TESTS
-    ]))
-  }
-)
+  expect(new Set(await provided(scratch, 'origin/main', PAGED))).toEqual(new Set([
+    'notes.txt', 'pages/guide/b.md', ...PAGE_TESTS
+  ]))
+})
 
 test(
   'selects no test importing only an export of a listing module that lists no page',
-  { tags: ['spawns'] },
   async ({ scratch }) => {
     await site('pages/guide/a.md', join(root, 'site', 'node_modules'), scratch)
 
@@ -425,25 +418,17 @@ test(
   }
 )
 
-test(
-  'fails where no vitepress resolves beside a site test calling resolveConfig',
-  { tags: ['spawns'] },
-  async ({ scratch }) => {
-    await site('pages/guide/a.md', join(root, 'node_modules'), scratch)
+test('fails where no vitepress resolves beside a site test calling resolveConfig', async ({ scratch }) => {
+  await site('pages/guide/a.md', join(root, 'node_modules'), scratch)
 
-    await expect(provided(scratch, 'origin/main', PAGED)).rejects.toThrow(`vitepress in ${scratch}:`)
-  }
-)
+  await expect(provided(scratch, 'origin/main', PAGED)).rejects.toThrow(`vitepress in ${scratch}:`)
+})
 
-test(
-  'resolves no site where a branch changes no Markdown file',
-  { tags: ['spawns'] },
-  async ({ scratch }) => {
-    await site('notes.txt', join(root, 'node_modules'), scratch)
+test('resolves no site where a branch changes no Markdown file', async ({ scratch }) => {
+  await site('notes.txt', join(root, 'node_modules'), scratch)
 
-    expect(await provided(scratch, 'origin/main', PAGED)).toEqual(['notes.txt'])
-  }
-)
+  expect(await provided(scratch, 'origin/main', PAGED)).toEqual(['notes.txt'])
+})
 
 test.for<{ files: Record<string, string>, module: string, name: string, tsconfigs: string[] }>([
   {
@@ -555,30 +540,11 @@ it.each([
   expect(fresh.test?.reporters).toEqual(reporters)
 })
 
-it('runs an untagged case under Vitest’s 5 s default', ({ task }) => {
-  expect(task.timeout).toBe(5000)
+it.each(spawning)('opens $file, which runs a child process, on a tag that sets its limit', ({ text }) => {
+  const pragmas = config.test?.tags?.map(({ name }) => `/** @module-tag ${name} */`)
+
+  expect(text.slice(0, text.indexOf('\n'))).toBeOneOf(pragmas ?? [])
 })
-
-it('runs a case tagged spawns under 60 s', { tags: ['spawns'] }, ({ task }) => {
-  expect(task.timeout).toBe(60_000)
-})
-
-it('runs a case tagged spawns-many under 180 s', { tags: ['spawns-many'] }, ({ task }) => {
-  expect(task.timeout).toBe(180_000)
-})
-
-it.each(spawning)(
-  'opens $file, which runs a child process, on a tag or carries one on its cases',
-  ({ file, text }) => {
-    const first = text.slice(0, text.indexOf('\n'))
-    const tags  = config.test?.tags?.map(({ name }) => name) ?? []
-
-    expect(
-      tags.some((name) => first === `/** @module-tag ${name} */` || text.includes(`{ tags: ['${name}'] }`)),
-      `${file} opens on ${first}`
-    ).toBe(true)
-  }
-)
 
 test.for([
   { file: 'own', name: 'finds a test file importing node:child_process itself', runs: true },
@@ -589,6 +555,11 @@ test.for([
     runs : true
   },
   {
+    file : 'barrel',
+    name : 'finds a test file importing a helper that re-exports one running a child process',
+    runs : true
+  },
+  {
     file : 'cycle',
     name : 'finds no test file importing helpers that import each other and run no child process',
     runs : false
@@ -596,6 +567,11 @@ test.for([
   {
     file : 'dynamic',
     name : 'finds a test file that imports a helper running a child process through a dynamic import',
+    runs : true
+  },
+  {
+    file : 'template',
+    name : 'finds a test file importing that helper through a template literal holding no substitution',
     runs : true
   },
   {
@@ -619,6 +595,11 @@ test.for([
     runs : false
   },
   {
+    file : 'reexport',
+    name : 'finds no test file importing a helper re-exporting only types from one running a child process',
+    runs : false
+  },
+  {
     file : 'vet',
     name : 'finds a test file importing a helper whose import outside tests/common runs a child process',
     runs : true
@@ -632,18 +613,23 @@ test.for([
     'tests/common/a.ts'                 : "import './b.js'\n",
     'tests/common/affected.ts'          : "import './repository.js'\n",
     'tests/common/b.ts'                 : "import './a.js'\n",
+    'tests/common/barrel.ts'            : "export { repository } from './repository.js'\n",
+    'tests/common/kinds.ts'             : "export type { Run } from './repository.js'\n",
     'tests/common/mise.ts'              : "import type { Run } from './repository.js'\n",
     'tests/common/package.ts'           : "import 'spawner'\n",
     'tests/common/repository.ts'        : "import { execFileSync } from 'node:child_process'\n",
     'tests/common/scratch.ts'           : "import { tmpdir } from 'node:os'\n",
     'tests/common/vet.ts'               : "import '../../lib/start.ts'\n",
+    'tests/barrel.test.ts'              : "import { repository } from './common/barrel.js'\n",
     'tests/cycle.test.ts'               : "import './common/a.js'\n",
     'tests/dynamic.test.ts'             : "await import('./common/repository.js')\n",
     'tests/own.test.ts'                 : "import { spawn } from 'node:child_process'\n",
     'tests/package.test.ts'             : "import './common/package.js'\n",
+    'tests/reexport.test.ts'            : "import { Run } from './common/kinds.js'\n",
     'tests/repository.test.ts'          : "import { repository } from './common/repository.js'\n",
     'tests/scratch.test.ts'             : "import { plant } from './common/scratch.js'\n",
     'tests/start.test.ts'               : "import { start } from '../lib/start.ts'\n",
+    'tests/template.test.ts'            : 'await import(`./common/repository.js`)\n',
     'tests/types.test.ts'               : "import { mise } from './common/mise.js'\n",
     'tests/vet.test.ts'                 : "import './common/vet.js'\n"
   })
@@ -660,5 +646,5 @@ it('reads a tag pragma off the first line of a test file alone', () => {
 it('opens no test file but one that runs a child process on a tag', () => {
   const tagged = sources.filter(({ text }) => pragma.test(text.slice(0, text.indexOf('\n'))))
 
-  expect(tagged.filter((source) => !spawning.includes(source)).map(({ file }) => file)).toEqual([])
+  expect(tagged.map(({ file }) => file)).toEqual(spawning.map(({ file }) => file))
 })
