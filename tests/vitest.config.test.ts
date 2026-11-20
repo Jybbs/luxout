@@ -1,12 +1,14 @@
-import { existsSync }                                 from 'node:fs'
+import { existsSync, readFileSync }                   from 'node:fs'
 import { appendFile, chmod, glob, readFile, symlink } from 'node:fs/promises'
-import { dirname, join, parse, relative }             from 'node:path'
+import { dirname, join, parse, relative, sep }        from 'node:path'
 
 import type * as Experimental from 'rolldown/experimental'
+import type * as Utils        from 'rolldown/utils'
 import { expect, it, vi }     from 'vitest'
 import { defaultExclude }     from 'vitest/config'
 
-import { branch, plant, test }          from './common/scratch.js'
+import { branch }                       from './common/repository.js'
+import { plant, test }                  from './common/scratch.js'
 import { changedFiles, triggers, vite } from './common/triggers.js'
 import config                           from './vitest.config.js'
 
@@ -17,15 +19,18 @@ const PAGE_TESTS = [
   '.vitepress/tests/own.test.ts', '.vitepress/tests/read.test.ts', '.vitepress/tests/shelf.test.ts',
   '.vitepress/tests/site.test.ts', '.vitepress/tests/sorted.test.ts', '.vitepress/tests/whole.test.ts'
 ]
+const SCRIPT     = /\.[cm]?[jt]sx?$/
 const pragma     = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
 const root       = dirname(import.meta.dirname)
-const spawns     = /from '(?:node:child_process|[./]+\/common\/(?:affected|sync|vet)\.js)'/
 const files      = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
 const sources    = await Array.fromAsync(files, async (file) => ({
   file : file,
   text : await readFile(join(root, file), 'utf8')
 }))
-const spawning = sources.filter(({ text }) => spawns.test(text))
+const { ResolverFactory, resolveTsconfig } = vite(root)('rolldown/experimental') as typeof Experimental
+const { parseSync } = vite(root)('rolldown/utils') as typeof Utils
+const resolver      = new ResolverFactory({ extensionAlias: { '.js': ['.ts', '.js'] } })
+const spawning      = sources.filter(({ file }) => derived(file, root))
 
 /**
  * Plants a repository at `scratch` whose branch changes only `changed` since
@@ -75,6 +80,24 @@ async function checkout(changed: string, scratch: string): Promise<void> {
 }
 
 /**
+ * Reports whether the test file at `file` under `root` runs a child process,
+ * in that it imports `node:child_process` or a module under `tests/common/`
+ * that does, per `spawns`.
+ */
+function derived(file: string, root: string): boolean {
+  const common = join(root, 'tests', 'common', '')
+
+  return spawns(join(root, file), (path) => path.startsWith(common))
+}
+
+/**
+ * Reports whether `path` names a script outside `node_modules`.
+ */
+function local(path: string): boolean {
+  return SCRIPT.test(path) && !path.includes(`${sep}node_modules${sep}`)
+}
+
+/**
  * Lists, relative to `scratch`, the files `changedFiles` gives a run there
  * that reads each change since `changedSince`, among the test files `include`
  * matches.
@@ -87,6 +110,24 @@ async function provided(scratch: string, changedSince?: string, include = ['*.te
   })
 
   return files.map((file) => relative(scratch, file))
+}
+
+/**
+ * Lists the module each import of `file` requests, leaving out an import of
+ * types alone and a dynamic import naming no string literal.
+ */
+function requests(file: string): string[] {
+  const text       = readFileSync(file, 'utf8')
+  const { module } = parseSync(file, text)
+
+  return [
+    ...module.staticImports
+      .filter(({ entries }) => !entries.length || entries.some(({ isType }) => !isType))
+      .map(({ moduleRequest }) => moduleRequest.value),
+    ...module.dynamicImports
+      .filter(({ moduleRequest: { start } }) => /['"]/.test(text.charAt(start)))
+      .map(({ moduleRequest: { end, start } }) => text.slice(start + 1, end - 1))
+  ]
 }
 
 /**
@@ -186,6 +227,23 @@ async function site(changed: string, modules: string, scratch: string, deleted =
   await branch(changed, scratch, deleted)
 }
 
+/**
+ * Reports whether `file` imports `node:child_process`, or a module that
+ * `follows` accepts and that does, following each import of such a module
+ * into every script outside `node_modules`.
+ */
+function spawns(file: string, follows: (path: string) => boolean, seen = new Set([file])): boolean {
+  return requests(file).some((request) => {
+    if (request === 'node:child_process') {
+      return true
+    }
+
+    const { path } = resolver.sync(dirname(file), request)
+
+    return path !== undefined && follows(path) && !seen.has(path) && spawns(path, local, seen.add(path))
+  })
+}
+
 it('fails a case with no assertion, shuffles the order, and undoes every spy and stub', () => {
   expect(config.test).toMatchObject({
     expect        : { requireAssertions: true },
@@ -231,8 +289,6 @@ it.each(['.', 'site'])(
 )
 
 it('compiles every test file under tests/tsconfig.json in the transform Vite applies', () => {
-  const { resolveTsconfig } = vite(root)('rolldown/experimental') as typeof Experimental
-
   const tsconfig = join(root, 'tests', 'tsconfig.json')
   const stray    = sources.filter(({ file }) =>
     resolveTsconfig(join(root, file))?.tsconfigFilePaths[0] !== tsconfig
@@ -511,23 +567,89 @@ it('runs a case tagged spawns-many under 180 s', { tags: ['spawns-many'] }, ({ t
   expect(task.timeout).toBe(180_000)
 })
 
-it.each(spawning)('opens $file, which runs a child process, on a tag that sets its limit', ({ text }) => {
-  const pragmas = config.test?.tags?.map(({ name }) => `/** @module-tag ${name} */`)
+it.each(spawning)(
+  'opens $file, which runs a child process, on a tag or carries one on its cases',
+  ({ file, text }) => {
+    const first = text.slice(0, text.indexOf('\n'))
+    const tags  = config.test?.tags?.map(({ name }) => name) ?? []
 
-  expect(text.slice(0, text.indexOf('\n'))).toBeOneOf(pragmas ?? [])
-})
-
-it.each([
-  'tests/mise/bin.test.ts',
-  'tests/mise/tasks/lock/sync.test.ts',
-  'tests/mise/tasks/site/affected.test.ts',
-  'tests/mise/vet/vet.test.ts'
-])(
-  'finds %s among the test files importing node:child_process or the affected, sync, or vet helper',
-  (file) => {
-    expect(spawning).toContainEqual(expect.objectContaining({ file }))
+    expect(
+      tags.some((name) => first === `/** @module-tag ${name} */` || text.includes(`{ tags: ['${name}'] }`)),
+      `${file} opens on ${first}`
+    ).toBe(true)
   }
 )
+
+test.for([
+  { file: 'own', name: 'finds a test file importing node:child_process itself', runs: true },
+  { file: 'repository', name: 'finds a test file importing a helper that runs a child process', runs: true },
+  {
+    file : 'affected',
+    name : 'finds a test file importing a helper whose own import runs a child process',
+    runs : true
+  },
+  {
+    file : 'cycle',
+    name : 'finds no test file importing helpers that import each other and run no child process',
+    runs : false
+  },
+  {
+    file : 'dynamic',
+    name : 'finds a test file that imports a helper running a child process through a dynamic import',
+    runs : true
+  },
+  {
+    file : 'package',
+    name : 'finds no test file importing a helper whose package under node_modules runs a child process',
+    runs : false
+  },
+  {
+    file : 'scratch',
+    name : 'finds no test file importing only a helper that runs no child process',
+    runs : false
+  },
+  {
+    file : 'start',
+    name : 'finds no test file importing a module outside tests/common that runs a child process',
+    runs : false
+  },
+  {
+    file : 'types',
+    name : 'finds no test file importing a helper that takes only types from one running a child process',
+    runs : false
+  },
+  {
+    file : 'vet',
+    name : 'finds a test file importing a helper whose import outside tests/common runs a child process',
+    runs : true
+  }
+])('$name', async ({ file, runs }, { scratch }) => {
+  await plant(scratch, {
+    'lib/start.ts'                      : "import { spawn } from 'node:child_process'\n",
+    'node_modules/spawner/index.js'     : "import 'node:child_process'\n",
+    'node_modules/spawner/package.json' : '{ "exports": "./index.js", "name": "spawner" }\n',
+    'tests/affected.test.ts'            : "import './common/affected.js'\n",
+    'tests/common/a.ts'                 : "import './b.js'\n",
+    'tests/common/affected.ts'          : "import './repository.js'\n",
+    'tests/common/b.ts'                 : "import './a.js'\n",
+    'tests/common/mise.ts'              : "import type { Run } from './repository.js'\n",
+    'tests/common/package.ts'           : "import 'spawner'\n",
+    'tests/common/repository.ts'        : "import { execFileSync } from 'node:child_process'\n",
+    'tests/common/scratch.ts'           : "import { tmpdir } from 'node:os'\n",
+    'tests/common/vet.ts'               : "import '../../lib/start.ts'\n",
+    'tests/cycle.test.ts'               : "import './common/a.js'\n",
+    'tests/dynamic.test.ts'             : "await import('./common/repository.js')\n",
+    'tests/own.test.ts'                 : "import { spawn } from 'node:child_process'\n",
+    'tests/package.test.ts'             : "import './common/package.js'\n",
+    'tests/repository.test.ts'          : "import { repository } from './common/repository.js'\n",
+    'tests/scratch.test.ts'             : "import { plant } from './common/scratch.js'\n",
+    'tests/start.test.ts'               : "import { start } from '../lib/start.ts'\n",
+    'tests/types.test.ts'               : "import { mise } from './common/mise.js'\n",
+    'tests/vet.test.ts'                 : "import './common/vet.js'\n"
+  })
+
+  expect(derived(`tests/${file}.test.ts`, scratch)).toBe(runs)
+})
 
 it('reads a tag pragma off the first line of a test file alone', () => {
   const stray = sources.filter(({ text }) => pragma.test(text.slice(text.indexOf('\n'))))
@@ -538,5 +660,5 @@ it('reads a tag pragma off the first line of a test file alone', () => {
 it('opens no test file but one that runs a child process on a tag', () => {
   const tagged = sources.filter(({ text }) => pragma.test(text.slice(0, text.indexOf('\n'))))
 
-  expect(tagged.map(({ file }) => file)).toEqual(spawning.map(({ file }) => file))
+  expect(tagged.filter((source) => !spawning.includes(source)).map(({ file }) => file)).toEqual([])
 })

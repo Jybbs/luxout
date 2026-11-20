@@ -1,7 +1,8 @@
 import { cp, mkdir, symlink } from 'node:fs/promises'
 import { dirname, join }      from 'node:path'
 
-import { branch, plant }     from './scratch.js'
+import { branch }            from './repository.js'
+import { plant }             from './scratch.js'
 import { type SyncRun, sync } from './sync.js'
 
 /**

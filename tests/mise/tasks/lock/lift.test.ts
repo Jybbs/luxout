@@ -4,8 +4,9 @@ import { join }              from 'node:path'
 
 import { describe } from 'vitest'
 
-import { plant, repository, test } from '../../../common/scratch.js'
-import { type Answer, sync }       from '../../../common/sync.js'
+import { repository }        from '../../../common/repository.js'
+import { plant, test }       from '../../../common/scratch.js'
+import { type Answer, sync } from '../../../common/sync.js'
 
 interface Prerelease {
   lagging : [string, string, string][]
