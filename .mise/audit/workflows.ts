@@ -14,6 +14,7 @@ const CANCEL      = "github.event_name=='pull_request'"
 const CONTEXTS    = new Set(['github.workflow', 'github.ref'])
 const DRAFT       = '!github.event.pull_request.draft'
 export const GATE = '✨ Reading'
+const GROUP       = /\((?:[^()]|\(\))+\)/g
 const IMAGE       = /^[a-z]+-\d[\w.-]*$/
 const READY       = 'ready_for_review'
 const WORKFLOWS   = '.github/workflows/*.{yaml,yml}'
@@ -40,10 +41,6 @@ class Job {
       this.spot,
       'Job timeout'
     )]
-  }
-
-  get guarded(): boolean {
-    return conjuncts(this.condition?.value).includes(DRAFT)
   }
 
   get image(): Entry | undefined {
@@ -83,6 +80,10 @@ class Job {
 
   get uses(): Entry | undefined {
     return this.#at('uses')
+  }
+
+  joins(term: string): boolean {
+    return conjuncts(this.condition?.value).includes(term)
   }
 
   #at(...path: Key[]): Entry | undefined {
@@ -174,7 +175,7 @@ class Workflow {
         types ?? pull,
         'Draft guard'
       )],
-      ...this.jobs.filter((job) => !job.guarded).map((job) => new Finding(
+      ...this.jobs.filter((job) => !job.joins(DRAFT)).map((job) => new Finding(
         `Job \`${job.id}\` joins no \`${DRAFT}\` to its \`if\` through \`&&\`, `
       + 'so it runs on every push to a draft',
         job.condition ?? job.spot,
@@ -197,7 +198,7 @@ class Workflow {
     const others  = this.jobs.filter((job) => job !== gate)
     const waited  = new Set([gate.needs?.value].flat())
     const missing = [...new Set(others.map((job) => job.id)).difference(waited)]
-    const always  = conjuncts(gate.condition?.value).includes('always()')
+    const always  = gate.joins('always()')
 
     return [
       ...always ? [] : [new Finding(
@@ -330,11 +331,18 @@ export class Workflows {
 }
 
 /**
- * Splits a condition into the terms `&&` joins, returning a condition holding
- * `||` as one term.
+ * Splits a condition into the terms `&&` joins outside parentheses, collapsing
+ * each parenthesized group to `()` first and returning a condition holding `||`
+ * outside them as one term.
  */
 function conjuncts(value: unknown): string[] {
-  const text = expression(value)
+  let text = expression(value)
+  let last = ''
+
+  while (text !== last) {
+    last = text
+    text = text.replaceAll(GROUP, '()')
+  }
 
   return text.includes('||') ? [text] : text.split('&&')
 }

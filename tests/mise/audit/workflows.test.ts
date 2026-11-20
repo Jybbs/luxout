@@ -12,9 +12,12 @@ import { plant, test } from '../../common/scratch.js'
 const COMMIT    = '3d3c42e5aac5ba805825da76410c181273ba90b1'
 const DRAFT     = '!github.event.pull_request.draft'
 const FILE      = '.github/workflows/ci.yml'
+const GUARD     = `\${{ ${DRAFT} }}`
 const OTHER     = '2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca'
 const PROVISION = 'inputs:\n  tools:\n    required: true\nruns:\n  using: composite\n'
+const PULL      = / {2}pull_request:\n.*\n/
 const TASKS     = '["repo:verify"]\n\n["plugin:cover"]\n\n["plugin:lint"]\n\n["plugin:test:22"]\n'
+const TRIGGERS  = /on:\n[\s\S]*?workflow_dispatch:/
 const CI        = [
   'name: 🔆 CI',
   'on:',
@@ -26,7 +29,7 @@ const CI        = [
   '  group: ${{ github.workflow }}-${{ github.ref }}',
   'jobs:',
   '  check:',
-  `    if: \${{ ${DRAFT} }}`,
+  `    if: ${GUARD}`,
   '    runs-on: ubuntu-26.04',
   '    timeout-minutes: 15',
   '    strategy:',
@@ -85,13 +88,13 @@ describe('a workflow on its own', () => {
     {
       line  : 2,
       name  : 'a `schedule` trigger in a list',
-      text  : CI.replace(/on:\n[\s\S]*?workflow_dispatch:/, 'on: [push, schedule]'),
+      text  : CI.replace(TRIGGERS, 'on: [push, schedule]'),
       title : 'Schedule trigger'
     },
     {
       line  : 2,
       name  : 'a `schedule` trigger written as a bare string',
-      text  : CI.replace(/on:\n[\s\S]*?workflow_dispatch:/, 'on: schedule'),
+      text  : CI.replace(TRIGGERS, 'on: schedule'),
       title : 'Schedule trigger'
     },
     {
@@ -181,7 +184,7 @@ describe('a workflow on its own', () => {
     {
       line  : 10,
       name  : 'a job of a `pull_request` workflow with no draft guard',
-      text  : CI.replace(`    if: \${{ ${DRAFT} }}\n`, ''),
+      text  : CI.replace(`    if: ${GUARD}\n`, ''),
       title : 'Draft guard'
     },
     {
@@ -193,7 +196,13 @@ describe('a workflow on its own', () => {
     {
       line  : 11,
       name  : 'a draft guard `||` joins to another condition',
-      text  : CI.replace(`\${{ ${DRAFT} }}`, `\${{ ${DRAFT} || github.actor == 'x' }}`),
+      text  : CI.replace(GUARD, `\${{ ${DRAFT} && success() || github.actor == 'x' }}`),
+      title : 'Draft guard'
+    },
+    {
+      line  : 11,
+      name  : 'a draft guard inside a negated group',
+      text  : CI.replace(GUARD, `\${{ !(github.actor == 'x' && ${DRAFT} && success()) }}`),
       title : 'Draft guard'
     },
     {
@@ -211,7 +220,7 @@ describe('a workflow on its own', () => {
     {
       line  : 2,
       name  : 'a `pull_request` trigger in a list',
-      text  : CI.replace(/on:\n[\s\S]*?workflow_dispatch:/, 'on: [pull_request, workflow_dispatch]'),
+      text  : CI.replace(TRIGGERS, 'on: [pull_request, workflow_dispatch]'),
       title : 'Draft guard'
     }
   ])('reports $name', async ({ line, text, title }, { scratch }) => {
@@ -228,23 +237,28 @@ describe('a workflow on its own', () => {
   test.for([
     {
       name : 'a workflow `pull_request` does not trigger, with no `concurrency` key',
-      text : CI.replace(/ {2}pull_request:\n.*\n/, '').replace(/concurrency:\n.*\n.*\n/, '')
+      text : CI.replace(PULL, '').replace(/concurrency:\n.*\n.*\n/, '')
     },
     {
       name : 'a workflow `pull_request` does not trigger, whose jobs carry no draft guard',
       text : CI
-        .replace(/ {2}pull_request:\n.*\n/, '')
-        .replace(`    if: \${{ ${DRAFT} }}\n`, '')
+        .replace(PULL, '')
+        .replace(`    if: ${GUARD}\n`, '')
         .replace(` && ${DRAFT}`, '')
     },
     {
       name : 'a draft guard `&&` joins to another condition',
-      text : CI.replace(`\${{ ${DRAFT} }}`, `\${{ github.actor != 'x' && ${DRAFT} }}`)
+      text : CI.replace(GUARD, `\${{ github.actor != 'x' && ${DRAFT} }}`)
+    },
+    {
+      name : 'a draft guard `&&` joins to a group holding `||` and a call',
+      text : CI.replace(GUARD, `\${{ (contains(github.event.pull_request.labels.*.name, 'ci') `
+                             + `|| github.actor == 'x') && ${DRAFT} }}`)
     },
     {
       name : 'a workflow `pull_request` does not trigger, whose `cancel-in-progress` is `false`',
       text : CI
-        .replace(/ {2}pull_request:\n.*\n/, '')
+        .replace(PULL, '')
         .replace("${{ github.event_name == 'pull_request' }}", 'false')
     },
     {
@@ -258,7 +272,7 @@ describe('a workflow on its own', () => {
     {
       name : 'a job calling a reusable workflow, which takes no `timeout-minutes`',
       text : CI
-        .replace('  brief:', `  call:\n    if: \${{ ${DRAFT} }}\n`
+        .replace('  brief:', `  call:\n    if: ${GUARD}\n`
                            + `    uses: o/r/.github/workflows/x.yml@${COMMIT}\n  brief:`)
         .replace('[check]', '[call, check]')
     },
