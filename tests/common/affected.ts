@@ -32,11 +32,11 @@ const root         = join(import.meta.dirname, '..', '..')
  * `changed`, or deletes it where `deleted` is set, since it left `origin/main`.
  *
  * The repository at `repo` holds the `planted` files and a copy of each
- * `copied` file, `tests/common/coverage.ts`, and `tests/common/triggers.ts`,
- * taken from the repository the suite runs in at the same path. A link at each
- * `linked` path names its target, beside a link to the `node_modules` of the
- * repository the suite runs in. The task runs under the `COVERAGE_FLOOR` the
- * suite runs under.
+ * `copied` file, `tests/common/coverage.ts`, `tests/common/tags.ts`, and
+ * `tests/common/triggers.ts`, taken from the repository the suite runs in at
+ * the same path. A link at each `linked` path names its target, beside a link
+ * to the `node_modules` of the repository the suite runs in. The task runs
+ * under the `COVERAGE_FLOOR` the suite runs under.
  *
  * Returns:
  *   Whether Vitest reported one test passing, beside the task's exit status.
@@ -47,7 +47,7 @@ export async function affected(
 ): Promise<{ ran: boolean, status: number | null }> {
   await plant(repo, planted)
   await Promise.all([
-    ...[...copied, 'tests/common/coverage.ts', 'tests/common/triggers.ts']
+    ...[...copied, 'tests/common/coverage.ts', 'tests/common/tags.ts', 'tests/common/triggers.ts']
       .map((file) => cp(join(root, file), join(repo, file))),
     cp(join(fixtures, 'mise.sh'), join(scratch, 'bin', 'mise')),
     ...Object.entries({ ...linked, node_modules: join(root, 'node_modules') }).map(async ([link, target]) => {

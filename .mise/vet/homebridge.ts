@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process'
-import { once }                     from 'node:events'
 import { readFile, writeFile }      from 'node:fs/promises'
 import { join }                     from 'node:path'
+import { aborted }                  from 'node:util'
 
 import { OUTSIDE } from './monitor.ts'
 
@@ -9,6 +9,12 @@ import { OUTSIDE } from './monitor.ts'
  * The plugin's block, which a run's `config.json` lists under `platforms`.
  */
 export type Block = Record<string, unknown>
+
+/**
+ * When a wait ends, as a count of milliseconds or a signal that ends it once it
+ * aborts.
+ */
+export type Deadline = number | AbortSignal
 
 /**
  * What one start of Homebridge runs against.
@@ -99,7 +105,7 @@ export class Run {
 
   constructor(child: ChildProcess) {
     this.#child     = child
-    this.#exit      = new Promise((resolve) => child.once('exit', resolve))
+    this.#exit      = new Promise((resolve) => child.once('close', resolve))
     this.#listening = Promise.withResolvers()
     this.#output    = ''
 
@@ -160,12 +166,12 @@ export class Run {
   }
 
   /**
-   * Waits up to `timeout` milliseconds for Homebridge to report its bridge
-   * listening, then watches it for `duration` milliseconds more or until it
-   * exits, resolving whether it listened.
+   * Waits until `deadline` for Homebridge to report its bridge listening, then
+   * watches it for `duration` milliseconds more or until it exits, resolving
+   * whether it listened.
    */
-  async listens(timeout: number, duration: number): Promise<boolean> {
-    const started = await this.started(timeout)
+  async listens(deadline: Deadline, duration: number): Promise<boolean> {
+    const started = await this.started(deadline)
 
     if (started) await this.wait(duration)
 
@@ -174,10 +180,10 @@ export class Run {
 
   /**
    * Waits for Homebridge to report its bridge listening on its port, resolving
-   * false where it exits or `timeout` milliseconds pass first.
+   * false where it exits or `deadline` passes first.
    */
-  async started(timeout: number): Promise<boolean> {
-    return Promise.race([this.#listening.promise, this.wait(timeout).then(() => false)])
+  async started(deadline: Deadline): Promise<boolean> {
+    return Promise.race([this.#listening.promise, this.wait(deadline).then(() => false)])
   }
 
   /**
@@ -196,10 +202,12 @@ export class Run {
   }
 
   /**
-   * Waits until `duration` milliseconds pass or Homebridge exits.
+   * Waits until `deadline` passes or Homebridge exits and closes its output.
    */
-  async wait(duration: number): Promise<void> {
-    await Promise.race([this.#exit, once(AbortSignal.timeout(duration), 'abort')])
+  async wait(deadline: Deadline): Promise<void> {
+    const signal = typeof deadline === 'number' ? AbortSignal.timeout(deadline) : deadline
+
+    await Promise.race([this.#exit, aborted(signal, this)])
   }
 
   #print(chunk: string): void {

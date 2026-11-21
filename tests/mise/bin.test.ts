@@ -8,12 +8,14 @@ import { fc, test }                        from '@fast-check/vitest'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { parse }                           from 'yaml'
 
+import { TAGS }      from '../common/tags.js'
 import { lockfiles } from '../common/triggers.js'
 
 interface Lockfile {
   packages: Record<string, [string, string, { bin?: Record<string, string> | string }?]>
 }
 
+const RUNS      = 20
 const fixture   = join(import.meta.dirname, 'fixtures', 'args.sh')
 const root      = join(import.meta.dirname, '..', '..')
 const scratch   = await realpath(await mkdtemp(join(tmpdir(), 'luxout-bin-')))
@@ -74,9 +76,9 @@ it.each(names)('runs the %s that the node_modules/.bin of the directory it start
 
 test.prop([fc.constantFrom(...names), fc.array(fc.string())], {
   examples : names.map((name): [string, string[]] => [name, ['holds a space', '', '*', '$HOME']]),
-  numRuns  : 20
+  numRuns  : RUNS
 })('passes every argument from outside the checkout to the program of its name', (name, args) => {
   const received = execFileSync(join(copies, name), args, { cwd: tmpdir(), encoding: 'utf8' })
 
   expect(received.split('\0').slice(0, -1)).toEqual([program(scratch, name), ...args])
-})
+}, TAGS.spawns.timeout * RUNS)

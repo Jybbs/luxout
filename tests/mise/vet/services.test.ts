@@ -10,12 +10,12 @@ import { Characteristics, Services as Types } from '@homebridge/hap-client/hap-t
 import * as hap                               from '@homebridge/hap-nodejs'
 import { expect, it, vi }                     from 'vitest'
 
-import type { Tuning }                            from '../../../.mise/vet/scenario.ts'
-import * as services                              from '../../../.mise/vet/services.ts'
-import { Settings }                               from '../../../src/config/settings.js'
-import { OUTSIDE }                                from '../../../src/sensor/outside.js'
-import { plant }                                  from '../../common/scratch.js'
-import { type Acts, TUNING, install, stage, test } from '../../common/vet.js'
+import type { Tuning }                     from '../../../.mise/vet/scenario.ts'
+import * as services                       from '../../../.mise/vet/services.ts'
+import { Settings }                        from '../../../src/config/settings.js'
+import { OUTSIDE }                         from '../../../src/sensor/outside.js'
+import { plant }                           from '../../common/scratch.js'
+import { type Acts, install, stage, test } from '../../common/vet.js'
 
 /**
  * One characteristic HAP-NodeJS sends, named by the key `Characteristics`
@@ -231,7 +231,7 @@ test('reads the manifest, the Outside accessory, and the parser off the plugin b
   })
 })
 
-test.concurrent.for<{ acts: Acts, bridge: string, failures: string[], tuning?: Partial<Tuning> }>([
+test.concurrent.for<{ acts: Acts, bridge: string, failures: string[], waits?: Partial<Tuning> }>([
   {
     acts     : { accessories: [outside(38609), sensor(3, 'Dark Outside', 0)] },
     bridge   : 'exposes every accessory the platform registers',
@@ -246,41 +246,39 @@ test.concurrent.for<{ acts: Acts, bridge: string, failures: string[], tuning?: P
     acts     : { exits: true },
     bridge   : 'exits once it listens',
     failures : ['never exposes its accessories over HAP'],
-    tuning   : { observe: 4_000 }
+    waits    : { observe: 4_000 }
   },
   {
     acts     : { mute: true },
     bridge   : 'never listens',
-    failures : ['never exposes its accessories over HAP'],
-    tuning   : { start: 2_000 }
+    failures : ['never exposes its accessories over HAP']
   },
   {
     acts     : { accessories: [outside(38609), sensor(3, 'Dark Outside', 0)], logs: 'TypeError: x' },
     bridge   : 'logs a TypeError',
     failures : ['logs TypeError']
   }
-])('reads a bridge it starts insecure and offline, which $bridge', async ({ acts, failures, tuning }, {
+])('reads a bridge it starts insecure and offline, which $bridge', async ({ acts, failures, waits }, {
   expect,
-  scratch
+  verdict
 }) => {
-  const check      = new services.Services(BLOCK, PLUGIN)
-  const homebridge = await install(join(scratch, 'release'))
-  const verdict    = await check.run(homebridge, await stage(scratch, acts), { ...TUNING, ...tuning })
+  const run = await verdict(new services.Services(BLOCK, PLUGIN), acts, waits)
 
   expect({
-    failures : verdict.failures,
-    insecure : verdict.output.includes('--strict-plugin-resolution -I'),
-    offline  : verdict.output.includes('offline.ts')
+    failures : run.failures,
+    insecure : run.output.includes('--strict-plugin-resolution -I'),
+    offline  : run.output.includes('offline.ts')
   }).toEqual({ failures, insecure: true, offline: true })
 })
 
 test.concurrent('fails a run config holding no Luxout block, starting no bridge', async ({
   expect,
-  scratch
+  scratch,
+  tuning
 }) => {
   const homebridge = await install(join(scratch, 'release'))
   const launch     = await stage(scratch)
-  const verdict    = await new services.Services(undefined, PLUGIN).run(homebridge, launch, TUNING)
+  const verdict    = await new services.Services(undefined, PLUGIN).run(homebridge, launch, tuning)
 
   expect({ files: await readdir(launch.storage), verdict }).toEqual({
     files   : ['acts.json'],
@@ -288,22 +286,23 @@ test.concurrent('fails a run config holding no Luxout block, starting no bridge'
   })
 })
 
-test.concurrent('refuses a read of a bridge started without -I', async ({ expect, scratch }) => {
+test.concurrent('refuses a read of a bridge started without -I', async ({ expect, scratch, tuning }) => {
   const homebridge = await install(join(scratch, 'release'))
   const launch     = await stage(scratch, { accessories: [outside(38609)] })
   const run        = await homebridge.start({ ...launch, block: BLOCK, offline: true })
 
-  await run.started(TUNING.start)
+  await run.started(tuning.start)
 
   const read = await services.Exposure.read(launch.port).then(() => 'reads', ({ message }: Error) => message)
 
-  await run.stop(TUNING.grace)
+  await run.stop(tuning.grace)
 
   expect(read).toBe('the bridge answers /accessories with 470')
 })
 
 test('fails a bridge whose read stops on an mDNS socket that fails to bind, naming the error', async ({
-  scratch
+  scratch,
+  tuning
 }) => {
   const create     = dgram.createSocket
   const homebridge = await install(join(scratch, 'release'))
@@ -316,7 +315,7 @@ test('fails a bridge whose read stops on an mDNS socket that fails to bind, nami
     return Object.assign(socket, { bind: () => process.nextTick(() => socket.emit('error', error)) })
   })
 
-  const { failures } = await new services.Services(BLOCK, PLUGIN).run(homebridge, launch, TUNING)
+  const { failures } = await new services.Services(BLOCK, PLUGIN).run(homebridge, launch, tuning)
 
   expect(failures).toEqual([
     "reads none of its accessories over HAP, because HapClient's mDNS socket fails with "
