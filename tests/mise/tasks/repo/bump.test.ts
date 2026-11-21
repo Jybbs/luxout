@@ -24,7 +24,11 @@ async function bump(scratch: string, args: string[] = []) {
 
   const { status, stderr, stdout } = await sync(scratch, 'repo:bump', {
     args : args,
-    env  : { NPM_CONFIG_CACHE: join(scratch, 'tmp', 'npm') }
+    env  : {
+      npm_config_cache           : join(scratch, 'tmp', 'npm'),
+      npm_config_offline         : 'true',
+      npm_config_update_notifier : 'false'
+    }
   })
   const { version } = JSON.parse(await readFile(join(scratch, 'package.json'), 'utf8'))
 
