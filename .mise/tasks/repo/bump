@@ -7,7 +7,8 @@ case "$*" in
   --major) part=major ;;
   --patch) part=patch ;;
   *)
-    echo "\`$*\` is no flag \`repo:bump\` takes, which are \`--major\` and \`--patch\`" >&2
+    echo "\`$*\` is no flag \`repo:bump\` takes, which are \`--major\`" \
+         "and \`--patch\`" >&2
     exit 2
     ;;
 esac

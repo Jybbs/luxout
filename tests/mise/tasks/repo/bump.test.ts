@@ -8,6 +8,8 @@ import { repository }  from '../../../common/repository.js'
 import { plant, test } from '../../../common/scratch.js'
 import { info, sync }  from '../../../common/sync.js'
 
+const MANIFEST = `${JSON.stringify({ name: 'luxout', version: '0.1.0' }, null, 2)}\n`
+
 /**
  * Runs the task with `args` in `scratch`, a repository whose one commit holds a
  * `package.json` declaring `0.1.0`, and reads back the version it leaves, the
@@ -16,7 +18,7 @@ import { info, sync }  from '../../../common/sync.js'
 async function bump(scratch: string, args: string[] = []) {
   const git = repository(scratch)
 
-  await plant(scratch, { 'package.json': `${JSON.stringify({ name: 'luxout', version: '0.1.0' }, null, 2)}\n` })
+  await plant(scratch, { 'package.json': MANIFEST })
   git('add', 'package.json')
   git('commit', '--message', '0.1.0', '--quiet')
 

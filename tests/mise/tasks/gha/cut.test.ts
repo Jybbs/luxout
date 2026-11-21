@@ -83,6 +83,18 @@ describe.concurrent('gha:cut', () => {
     }
   )
 
+  test('creates a draft beside a draft of another version, leaving that draft as it stands', async ({
+    expect,
+    scratch
+  }) => {
+    const { calls, outputs } = await cut(scratch, { pages: [[release(true, '0.1.0')]] })
+
+    expect({ calls, outputs }).toEqual({
+      calls   : [LISTING, CREATE],
+      outputs : { state: 'created', url: ADDRESS, version: VERSION }
+    })
+  })
+
   test('replaces the notes of a draft carrying the version with the ones generated against main', async ({
     expect,
     scratch
@@ -129,21 +141,18 @@ describe.concurrent('gha:cut', () => {
   })
 
   test.for([
-    { calls: [LISTING], fail: ENDPOINT, name: 'reading the releases' },
-    { calls: [LISTING, CREATE], fail: 'create', name: 'creating the draft', pages: [[]] },
-    { calls: [LISTING, GENERATE], fail: GENERATOR, name: 'generating the notes' },
-    { calls: [LISTING, GENERATE, EDIT], fail: 'edit', name: 'replacing the notes' }
-  ])('fails without reporting a state where $name fails', async ({ calls, fail, pages }, {
+    { fail: ENDPOINT, made: [LISTING], name: 'reading the releases' },
+    { fail: 'create', made: [LISTING, CREATE], name: 'creating the draft', pages: [[]] },
+    { fail: GENERATOR, made: [LISTING, GENERATE], name: 'generating the notes' },
+    { fail: 'edit', made: [LISTING, GENERATE, EDIT], name: 'replacing the notes' }
+  ])('fails without reporting a state where $name fails', async ({ fail, made, pages }, {
     expect,
     scratch
   }) => {
-    const run = await cut(scratch, { fail, pages: pages ?? [[release(true, VERSION)]] })
+    const draft                      = [[release(true, VERSION)]]
+    const { calls, outputs, status } = await cut(scratch, { fail, pages: pages ?? draft })
 
-    expect({ calls: run.calls, outputs: run.outputs, status: run.status }).toEqual({
-      calls   : calls,
-      outputs : { version: VERSION },
-      status  : 1
-    })
+    expect({ calls, outputs, status }).toEqual({ calls: made, outputs: { version: VERSION }, status: 1 })
   })
 
   test('fails before reading a release on a run from a branch other than main', async ({
