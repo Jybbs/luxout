@@ -22,10 +22,10 @@ function run(scratch: string, failing?: string[]): Promise<SyncRun> {
 }
 
 describe.concurrent('repo:check', () => {
-  test('runs the type and lint checks of the plugin and the site before its own body', async ({ expect }) => {
+  test('runs the audit and every type and lint check before its own body', async ({ expect }) => {
     expect(await info('repo:check')).toMatchObject({
       aliases : ['check'],
-      depends : ['plugin:lint', 'plugin:typecheck', 'site:lint', 'site:typecheck']
+      depends : ['plugin:lint', 'plugin:typecheck', 'repo:audit', 'site:lint', 'site:typecheck']
     })
   })
 
