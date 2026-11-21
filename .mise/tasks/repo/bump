@@ -1,0 +1,16 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "bump"
+#MISE description = "Move the `version` in `package.json` to the next minor release through `npm version`, making no commit or tag, or to the next patch under `--patch` or the next major under `--major`"
+
+case "$*" in
+  "")      part=minor ;;
+  --major) part=major ;;
+  --patch) part=patch ;;
+  *)
+    echo "\`$*\` is no flag \`repo:bump\` takes, which are \`--major\`" \
+         "and \`--patch\`" >&2
+    exit 2
+    ;;
+esac
+
+npm --no-git-tag-version version "$part"
