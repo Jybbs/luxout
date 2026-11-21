@@ -27,6 +27,10 @@ As soon as `cd` runs, mise puts the `.mise/bin` wrappers on the path beside the 
 
 Open `http://localhost:8581` once the log shows the UI listening, create the UI's account in the setup wizard it opens on, and add the bridge in the Home app with the setup code the UI shows. Homebridge logs at debug level and keeps the accessories it cached when the plugin throws as it loads, so a load failure leaves the sensors' rooms and automations in the Home app as they were. A build that fails to compile stops the task before Homebridge starts. `mise run plugin:watch` runs the same bridge and restarts it each time a source `plugin:build` declares changes.
 
+## Releasing
+
+The repository holds one draft release for the next version, whose notes fill in as pull requests land. Each push to `main` runs `🔆 Draft`, which also runs by hand from `main` through `workflow_dispatch`, and reads the `version` in `package.json`. Where no release carries that version, the workflow creates the draft with [generated notes](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes), grouped by the categories in `.github/release.yml`. Where only the draft carries it, the workflow writes the notes GitHub generates now onto the draft, and where a published release already carries it, the run fails with an annotation naming `mise bump`, so no change lands under a version already released. Each draft records `main` as the place its tag is written, so publishing it tags the commit `main` holds at that moment, and once a release publishes, `mise bump` moves `version` in `package.json` to the next minor release, or `mise bump -- --patch` and `mise bump -- --major` to the next patch or major, making no commit or tag. `.github/settings.toml` turns on [immutable releases](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/immutable-releases), so a published release's tag and files never change.
+
 ## Opening an Issue
 
 Open a new issue from the Spec template and fill it in as its comments ask.

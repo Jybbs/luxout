@@ -1,5 +1,5 @@
 #!/usr/bin/env -S bash -euo pipefail
-#MISE description = "Create a draft release with generated notes where the `version` in `package.json` moved since `HEAD~1` or the run was dispatched, unless a release already carries it"
+#MISE description = "Keep one draft release for the `version` in `package.json`, creating it with generated notes where no release carries the version, replacing its notes with the ones GitHub generates against `main` where only a draft does, and failing where a published release does"
 
 if [[ "$GITHUB_REF_NAME" != main ]]; then
   echo "A cut from $GITHUB_REF_NAME fails, since the draft's tag lands on main" >&2
@@ -8,16 +8,6 @@ fi
 
 version=$(jq --raw-output .version package.json)
 echo "version=$version" >>"$GITHUB_OUTPUT"
-
-if [[ "$GITHUB_EVENT_NAME" != workflow_dispatch ]]; then
-  previous=$(git show HEAD~1:package.json | jq --raw-output .version)
-
-  if [[ "$previous" == "$version" ]]; then
-    echo "Version $version did not move since HEAD~1, so no draft is cut"
-    echo "state=unmoved" >>"$GITHUB_OUTPUT"
-    exit 0
-  fi
-fi
 
 release=$(
   gh api --paginate --slurp 'repos/{owner}/{repo}/releases' \
@@ -31,9 +21,21 @@ release=$(
 read -r state url <<<"$release"
 
 case "$state" in
-  draft) echo "Version $version already has a draft at $url, so no draft is cut" ;;
+  draft)
+    notes=$(
+      gh api \
+        --jq .body \
+        --raw-field tag_name="$version" \
+        --raw-field target_commitish=main \
+        'repos/{owner}/{repo}/releases/generate-notes'
+    )
+    url=$(gh release edit --notes "$notes" "$version")
+    state=refreshed
+    echo "Replaced the notes of the draft release for version $version at $url"
+    ;;
   published)
-    echo "::warning::Version $version is already published, so no draft is cut"
+    echo "::error::Version $version is already published, so run \`mise bump\`" \
+         "to move \`version\` in \`package.json\` to the next release"
     ;;
   *)
     url=$(
@@ -50,3 +52,4 @@ case "$state" in
 esac
 
 printf 'state=%s\nurl=%s\n' "$state" "$url" >>"$GITHUB_OUTPUT"
+[[ "$state" != published ]]

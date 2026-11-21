@@ -19,18 +19,17 @@ jobs:
       contents: write
 
     steps:
-      - name : Check out the last two commits
+      - name : Check out the repository
         uses : actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          fetch-depth         : 2
-          persist-credentials : false
+          persist-credentials: false
 
       - name : Provision the job's tools
         uses : $/.github/actions/provision
         with:
           tools: gh jq
 
-      - name : Cut a draft where the version moved
+      - name : Keep the draft for the declared version
         id   : cut
         run  : mise run gha:cut
         env:
@@ -65,9 +64,6 @@ on:
   push:
     branches:
       - main
-
-    paths:
-      - package.json
 
   workflow_dispatch:
 
