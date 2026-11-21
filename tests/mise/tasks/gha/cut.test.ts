@@ -5,13 +5,12 @@ import { parseEnv } from 'node:util'
 
 import { describe } from 'vitest'
 
-import { repository }  from '../../../common/repository.js'
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
 
 interface Conditions {
   event? : string
-  fail?  : 'api' | 'release'
+  fail?  : string
   pages? : Release[][]
   ref?   : string
 }
@@ -24,35 +23,34 @@ interface Release {
 
 const ADDRESS  = 'https://github.com/Jybbs/luxout/releases/tag/untagged-5f0c2a'
 const ENDPOINT = 'repos/{owner}/{repo}/releases'
-const LISTING  = ['api', '--paginate', '--slurp', ENDPOINT]
-
-const create = (version: string) => [
-  'release', 'create', '--draft', '--generate-notes', '--target', 'main', '--title', version, version
+const NOTES    = '## What Changed\n\n* Keep the draft current by @Jybbs in #2'
+const VERSION  = '0.2.0'
+const CREATE   = [
+  'release', 'create', '--draft', '--generate-notes', '--target', 'main', '--title', VERSION,
+  VERSION
+]
+const EDIT      = ['release', 'edit', '--notes', NOTES, VERSION]
+const GENERATOR = `${ENDPOINT}/generate-notes`
+const LISTING   = ['api', '--paginate', '--slurp', ENDPOINT]
+const GENERATE  = [
+  'api', '--jq', '.body', '--raw-field', `tag_name=${VERSION}`, '--raw-field', 'target_commitish=main',
+  GENERATOR
 ]
 
 /**
- * Commits each of `versions` in turn as the `version` in `package.json`, then
- * runs the task in `scratch` under a stand-in `gh` that answers the releases
- * listing with `pages` and fails each call to the command `fail` names.
+ * Runs the task in `scratch` with `VERSION` as the `version` in `package.json`,
+ * under a stand-in `gh` that answers the releases listing with `pages`, answers
+ * the notes GitHub generates with `NOTES`, and fails each call naming `fail`.
  */
 async function cut(
-  scratch  : string,
-  versions : string[],
+  scratch : string,
   { event = 'push', fail, pages = [[]], ref = 'main' } : Conditions = {}
 ) {
-  await plant(scratch, { output: '' })
-
-  const git = repository(scratch)
-
-  for (const version of versions) {
-    await plant(scratch, { 'package.json': JSON.stringify({ version }) })
-    git('add', 'package.json')
-    git('commit', '--allow-empty', '--message', version, '--quiet')
-  }
+  await plant(scratch, { 'output': '', 'package.json': JSON.stringify({ version: VERSION }) })
 
   const { requests, status, stderr, stdout } = await sync(scratch, 'gha:cut', {
     fail : fail,
-    live : { [ENDPOINT]: pages },
+    live : { [ENDPOINT]: pages, [GENERATOR]: { body: NOTES, name: VERSION } },
     env  : {
       GH_CREATED        : ADDRESS,
       GITHUB_EVENT_NAME : event,
@@ -72,62 +70,46 @@ const release = (draft: boolean, tag: string) => ({
 })
 
 describe.concurrent('gha:cut', () => {
-  test('cuts nothing where a push leaves the version where HEAD~1 had it', async ({ expect, scratch }) => {
-    expect(await cut(scratch, ['0.1.0', '0.1.0'])).toEqual({
-      calls   : [],
-      outputs : { state: 'unmoved', version: '0.1.0' },
-      status  : 0,
-      stderr  : '',
-      stdout  : 'Version 0.1.0 did not move since HEAD~1, so no draft is cut\n'
-    })
-  })
+  test.for(['push', 'workflow_dispatch'])(
+    'creates a draft on a %s run where no release carries the version',
+    async (event, { expect, scratch }) => {
+      expect(await cut(scratch, { event, pages: [[release(false, '0.1.0')]] })).toEqual({
+        calls   : [LISTING, CREATE],
+        outputs : { state: 'created', url: ADDRESS, version: VERSION },
+        status  : 0,
+        stderr  : '',
+        stdout  : `Created a draft release for version ${VERSION} at ${ADDRESS}\n`
+      })
+    }
+  )
 
-  test('creates a draft where the version moved and no release carries it', async ({ expect, scratch }) => {
-    expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages: [[release(false, '0.1.0')]] })).toEqual({
-      calls   : [LISTING, create('0.2.0')],
-      outputs : { state: 'created', url: ADDRESS, version: '0.2.0' },
-      status  : 0,
-      stderr  : '',
-      stdout  : `Created a draft release for version 0.2.0 at ${ADDRESS}\n`
-    })
-  })
-
-  test('creates a draft on a dispatched run whose version did not move', async ({ expect, scratch }) => {
-    const { calls, outputs } = await cut(scratch, ['0.1.0', '0.1.0'], { event: 'workflow_dispatch' })
-
-    expect({ calls, outputs }).toEqual({
-      calls   : [LISTING, create('0.1.0')],
-      outputs : { state: 'created', url: ADDRESS, version: '0.1.0' }
-    })
-  })
-
-  test('leaves a draft already carrying the version untouched and reports its address', async ({
+  test('replaces the notes of a draft carrying the version with the ones generated against main', async ({
     expect,
     scratch
   }) => {
-    const draft = release(true, '0.2.0')
-
-    expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages: [[release(false, '0.1.0'), draft]] })).toEqual({
-      calls   : [LISTING],
-      outputs : { state: 'draft', url: draft.html_url, version: '0.2.0' },
+    expect(await cut(scratch, { pages: [[release(false, '0.1.0'), release(true, VERSION)]] })).toEqual({
+      calls   : [LISTING, GENERATE, EDIT],
+      outputs : { state: 'refreshed', url: ADDRESS, version: VERSION },
       status  : 0,
       stderr  : '',
-      stdout  : `Version 0.2.0 already has a draft at ${draft.html_url}, so no draft is cut\n`
+      stdout  : `Replaced the notes of the draft release for version ${VERSION} at ${ADDRESS}\n`
     })
   })
 
   test.for([
-    { order: 'after', pages: [[release(true, '0.2.0'), release(false, '0.2.0')]] },
-    { order: 'before', pages: [[release(false, '0.2.0'), release(true, '0.2.0')]] }
+    { order: 'after a draft', pages: [[release(true, VERSION), release(false, VERSION)]] },
+    { order: 'before a draft', pages: [[release(false, VERSION), release(true, VERSION)]] },
+    { order: 'with no draft', pages: [[release(false, VERSION)]] }
   ])(
-    'skips the cut with a warning where a release listed $order a draft is published',
+    'fails naming `mise bump` where a published release carrying the version is listed $order',
     async ({ pages }, { expect, scratch }) => {
-      expect(await cut(scratch, ['0.1.0', '0.2.0'], { pages })).toEqual({
+      expect(await cut(scratch, { pages })).toEqual({
         calls   : [LISTING],
-        outputs : { state: 'published', url: release(false, '0.2.0').html_url, version: '0.2.0' },
-        status  : 0,
+        outputs : { state: 'published', url: release(false, VERSION).html_url, version: VERSION },
+        status  : 1,
         stderr  : '',
-        stdout  : '::warning::Version 0.2.0 is already published, so no draft is cut\n'
+        stdout  : `::error::Version ${VERSION} is already published, so run \`mise bump\` to move`
+          + ' `version` in `package.json` to the next release\n'
       })
     }
   )
@@ -136,44 +118,31 @@ describe.concurrent('gha:cut', () => {
     expect,
     scratch
   }) => {
-    const draft = release(true, '0.2.0')
-
-    const { calls, outputs } = await cut(scratch, ['0.1.0', '0.2.0'], {
-      pages: [[release(false, '0.1.1')], [release(false, '0.1.0'), draft]]
+    const { calls, outputs } = await cut(scratch, {
+      pages: [[release(false, '0.1.1')], [release(false, '0.1.0'), release(true, VERSION)]]
     })
 
     expect({ calls, outputs }).toEqual({
-      calls   : [LISTING],
-      outputs : { state: 'draft', url: draft.html_url, version: '0.2.0' }
+      calls   : [LISTING, GENERATE, EDIT],
+      outputs : { state: 'refreshed', url: ADDRESS, version: VERSION }
     })
   })
 
-  test('fails without creating a draft where reading the releases fails', async ({ expect, scratch }) => {
-    const { calls, outputs, status } = await cut(scratch, ['0.1.0', '0.2.0'], { fail: 'api' })
-
-    expect({ calls, outputs, status }).toEqual({ calls: [LISTING], outputs: { version: '0.2.0' }, status: 1 })
-  })
-
-  test('fails without reporting a state where creating the draft fails', async ({ expect, scratch }) => {
-    const { calls, outputs, status } = await cut(scratch, ['0.1.0', '0.2.0'], { fail: 'release' })
-
-    expect({ calls, outputs, status }).toEqual({
-      calls   : [LISTING, create('0.2.0')],
-      outputs : { version: '0.2.0' },
-      status  : 1
-    })
-  })
-
-  test('fails before reading a release where the checkout has no HEAD~1 to compare', async ({
+  test.for([
+    { calls: [LISTING], fail: ENDPOINT, name: 'reading the releases' },
+    { calls: [LISTING, CREATE], fail: 'create', name: 'creating the draft', pages: [[]] },
+    { calls: [LISTING, GENERATE], fail: GENERATOR, name: 'generating the notes' },
+    { calls: [LISTING, GENERATE, EDIT], fail: 'edit', name: 'replacing the notes' }
+  ])('fails without reporting a state where $name fails', async ({ calls, fail, pages }, {
     expect,
     scratch
   }) => {
-    const { calls, outputs, status } = await cut(scratch, ['0.1.0'])
+    const run = await cut(scratch, { fail, pages: pages ?? [[release(true, VERSION)]] })
 
-    expect({ calls, failed: status !== 0, outputs }).toEqual({
-      calls   : [],
-      failed  : true,
-      outputs : { version: '0.1.0' }
+    expect({ calls: run.calls, outputs: run.outputs, status: run.status }).toEqual({
+      calls   : calls,
+      outputs : { version: VERSION },
+      status  : 1
     })
   })
 
@@ -181,7 +150,7 @@ describe.concurrent('gha:cut', () => {
     expect,
     scratch
   }) => {
-    expect(await cut(scratch, ['0.1.0', '0.2.0'], { event: 'workflow_dispatch', ref: 'next' })).toEqual({
+    expect(await cut(scratch, { event: 'workflow_dispatch', ref: 'next' })).toEqual({
       calls   : [],
       outputs : {},
       status  : 1,
