@@ -1,32 +1,22 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "lockfile"
-#MISE description = "Verify `.mise/mise.lock` and the `bun.lock` of each package `.mise/lib/lock.sh` lists are in sync with their manifests"
+#MISE description = "Verify the `bun.lock` of each package `.mise/lib/lock.sh` lists against its manifest, and `.mise/mise.lock` against `.mise/config.toml` through `mise lock --check`, failing on a locked tool the config no longer declares"
 
 source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
-
-restore() {
-  cmp -s "$snapshot" .mise/mise.lock || mv -f "$snapshot" .mise/mise.lock
-  rm -f "$snapshot"
-}
 
 for dir in $(bun_packages); do
   bun install --cwd "$dir" --dry-run --frozen-lockfile
 done
 
-snapshot=$(mktemp)
-cp -p .mise/mise.lock "$snapshot"
-trap restore EXIT
+mise lock --check
 
-status=0
-log=$(mise lock 2>&1) || status=$?
-printf '%s\n' "$log" >&2
+stale=$(
+  mise lock --dry-run --json \
+    | jq --raw-output '[.[] | select(.new_versions == []) | .name] | join(", ")'
+)
 
-if grep -qi 'failed to resolve' <<<"$log"; then
-  echo "mise lock failed to resolve a tool, so .mise/mise.lock is incomplete" >&2
+if [[ -n "$stale" ]]; then
+  echo ".mise/mise.lock locks $stale, which .mise/config.toml no longer declares," \
+       "so run \`mise relock\`" >&2
   exit 1
 fi
-
-(( status == 0 )) || exit "$status"
-diff -u "$snapshot" .mise/mise.lock >&2
-
-MISE_LOCKED_SCOPES=project mise install --dry-run --force --locked

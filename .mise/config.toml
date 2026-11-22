@@ -1,4 +1,4 @@
-min_version = "2026.11.9"
+min_version = "2026.11.10"
 
 [doctor.checks.tools]
 description = "Every tool `.mise/config.toml` pins is installed, since a task otherwise runs whatever release of that tool the machine's `PATH` holds"
