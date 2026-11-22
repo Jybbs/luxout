@@ -2,7 +2,7 @@
   "name": "homebridge-luxout",
   "displayName": "Luxout",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.1.1",
   "description": "A Homebridge light sensor that tells Apple Home how bright it is outside, from the sun's position and Open-Meteo's forecast of sunlight.",
   "author": "Jybbs",
   "license": "MIT",

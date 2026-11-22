@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "lockfile"
-#MISE description = "Verify the `bun.lock` of each package `.mise/lib/lock.sh` lists against its manifest, and `.mise/mise.lock` against `.mise/config.toml` through `mise lock --check`, failing on a locked tool the config no longer declares"
+#MISE description = "Verify the `bun.lock` of each package `.mise/lib/lock.sh` lists against its manifest, and `.mise/mise.lock` against `.mise/config.toml` through `mise lock --check`, failing on a locked version that nothing in `.mise/` declares any longer"
 
 source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
 
@@ -12,11 +12,12 @@ mise lock --check
 
 stale=$(
   mise lock --dry-run --json \
-    | jq --raw-output 'map(select(.new_versions == []).name) | join(", ")'
+    | jq --raw-output \
+        'map(.name + "@" + (.old_versions - .new_versions)[]) | join(", ")'
 )
 
 if [[ -n "$stale" ]]; then
-  echo ".mise/mise.lock locks $stale, which .mise/config.toml no longer declares," \
+  echo ".mise/mise.lock locks $stale, which nothing in .mise/ declares any longer," \
        "so run \`mise relock\`" >&2
   exit 1
 fi

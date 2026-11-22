@@ -10,40 +10,46 @@ import { type Answer, type SyncRun, sync } from '../../../common/sync.js'
 
 interface Drift {
   config? : (text: string) => string
+  lines?  : (text: string) => string
   lock?   : (text: string) => string
 }
 
 const BUN      = PACKAGES.map((dir) => ['bun', 'install', '--cwd', dir, '--dry-run', '--frozen-lockfile'])
 const CHECK    = ['mise', 'lock', '--check']
 const DRY      = ['mise', 'lock', '--dry-run', '--json']
-const PIN      = (tool: string): RegExp => new RegExp(`^${tool}\\s*=\\s*"[^"]+"\\n`, 'm')
+const LINE     = /^tools\s*=\s*\{ node = "(?<release>[^"]+)" \}\n/m
+const PIN      = (tool: string): RegExp => new RegExp(`^${tool}\\s*=\\s*"(?<release>[^"]+)"\\n`, 'm')
 const PLATFORM = /^\[tools\.watchexec\."platforms\.linux-x64"\]\n(?:.+\n)+\n/m
 const root     = join(import.meta.dirname, '..', '..', '..', '..')
 
+const read    = (file: string): Promise<string> => readFile(join(root, '.mise', file), 'utf8')
+const release = (text: string, pin: RegExp): string | undefined => pin.exec(text)?.groups?.release
+
+const [CONFIG, LINES] = await Promise.all([read('config.toml'), read('tasks/plugin/lines.toml')])
+
 /**
- * Runs the task over scratch copies of `.mise/config.toml` and
- * `.mise/mise.lock` once `config` and `lock` edit them, beside a copy of
- * `.mise/tasks/` so the dry run counts each tool a task declares, where the
- * real `mise lock --check` reads both copies offline, and the real
- * `mise lock --dry-run --json` runs offline unless a stand-in answers it with
- * `dry`.
+ * Runs the task over scratch copies of `.mise/config.toml`, `.mise/mise.lock`,
+ * and `.mise/tasks/`, where `config`, `lock`, and `lines` edit the config, the
+ * lockfile, and `.mise/tasks/plugin/lines.toml`, so the dry run counts each
+ * tool a task declares. The real `mise lock --check` reads the copies offline,
+ * and the real `mise lock --dry-run --json` runs offline unless a stand-in
+ * answers it with `dry`.
  *
  * Returns:
  *   The run, whose `commands` hold each call the stand-ins received, in order.
  */
 async function check(
-  scratch                            : string,
-  { config = String, lock = String } : Drift,
-  dry                                : Answer | null = null
+  scratch : string,
+  { config = String, lines = String, lock = String } : Drift,
+  dry     : Answer | null = null
 ): Promise<SyncRun> {
-  const read = (file: string): Promise<string> => readFile(join(root, '.mise', file), 'utf8')
-
+  await cp(join(root, '.mise', 'tasks'), join(scratch, '.mise', 'tasks'), { recursive: true })
   await plant(scratch, {
     ...VET,
-    '.mise/config.toml' : config(await read('config.toml')),
-    '.mise/mise.lock'   : lock(await read('mise.lock'))
+    '.mise/config.toml'             : config(CONFIG),
+    '.mise/mise.lock'               : lock(await read('mise.lock')),
+    '.mise/tasks/plugin/lines.toml' : lines(LINES)
   })
-  await cp(join(root, '.mise', 'tasks'), join(scratch, '.mise', 'tasks'), { recursive: true })
 
   return sync(scratch, 'lock:check', {
     canned : { ...Object.fromEntries(BUN.map((call) => [call.join(' '), {}])), [DRY.join(' ')]: dry },
@@ -64,10 +70,10 @@ describe.concurrent('lock:check', () => {
     expect(await check(scratch, {})).toMatchObject({ commands: [...BUN, CHECK, DRY], status: 0 })
   })
 
-  test('passes where the dry run lists a tool only for a new version', async ({ expect, scratch }) => {
-    const bumped = [{ name: 'node', new_versions: ['26.13.2'], old_versions: ['26.13.1'] }]
+  test('passes where the dry run adds a version and drops none', async ({ expect, scratch }) => {
+    const added = [{ name: 'node', new_versions: ['26.13.1', '26.13.2'], old_versions: ['26.13.1'] }]
 
-    expect(await check(scratch, {}, { stdout: JSON.stringify(bumped) })).toMatchObject({
+    expect(await check(scratch, {}, { stdout: JSON.stringify(added) })).toMatchObject({
       commands : [...BUN, CHECK, DRY],
       status   : 0
     })
@@ -92,17 +98,23 @@ describe.concurrent('lock:check', () => {
     })
   })
 
-  test('fails naming each tool the lockfile keeps once the config no longer declares it', async ({
-    expect,
-    scratch
-  }) => {
-    const drift = { config: (text: string) => text.replace(PIN('watchexec'), '').replace(PIN('zizmor'), '') }
-
+  test.for([
+    {
+      drift : { config: (text: string) => text.replace(PIN('watchexec'), '').replace(PIN('zizmor'), '') },
+      kind  : 'each version of a tool the config no longer declares',
+      stale : ['watchexec', 'zizmor'].map((tool) => `${tool}@${release(CONFIG, PIN(tool))}`)
+    },
+    {
+      drift : { lines: (text: string) => text.replace(LINE, '') },
+      kind  : 'a version left once a task drops its tools table',
+      stale : [`node@${release(LINES, LINE)}`]
+    }
+  ])('fails naming $kind', async ({ drift, stale }, { expect, scratch }) => {
     expect(await check(scratch, drift)).toMatchObject({
       commands : [...BUN, CHECK, DRY],
       status   : 1,
-      stderr   : '.mise/mise.lock locks watchexec, zizmor, which .mise/config.toml no longer declares, '
-               + 'so run `mise relock`\n'
+      stderr   : `.mise/mise.lock locks ${stale.join(', ')}, which nothing in .mise/ declares any `
+               + 'longer, so run `mise relock`\n'
     })
   })
 
