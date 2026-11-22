@@ -17,7 +17,7 @@ interface Drift {
 const BUN      = PACKAGES.map((dir) => ['bun', 'install', '--cwd', dir, '--dry-run', '--frozen-lockfile'])
 const CHECK    = ['mise', 'lock', '--check']
 const DRY      = ['mise', 'lock', '--dry-run', '--json']
-const LINE     = /^tools\s*=\s*\{ node = "(?<release>[^"]+)" \}\n/m
+const LINE     = /^tools\s*=\s*\{ node = "(?<release>[^"]+)" \}\n/gm
 const PIN      = (tool: string): RegExp => new RegExp(`^${tool}\\s*=\\s*"(?<release>[^"]+)"\\n`, 'm')
 const PLATFORM = /^\[tools\.watchexec\."platforms\.linux-x64"\]\n(?:.+\n)+\n/m
 const root     = join(import.meta.dirname, '..', '..', '..', '..')
@@ -106,18 +106,18 @@ describe.concurrent('lock:check', () => {
       stale : ['watchexec', 'zizmor'].map((tool) => `${tool}@${release(CONFIG, PIN(tool))}`)
     },
     {
-      drift : { lines: (text: string) => text.replace(LINE, '') },
+      drift : { lines: (text: string) => text.replaceAll(LINE, '') },
       dry   : null,
-      kind  : 'a version left once a task drops its tools table',
-      stale : [`node@${release(LINES, LINE)}`]
+      kind  : 'each version left once the tasks drop their tools tables',
+      stale : [...LINES.matchAll(LINE)].map(({ groups }) => `node@${groups?.release}`)
     },
     {
       drift : {},
+      kind  : 'a version the dry run replaces with another',
+      stale : ['node@26.13.1'],
       dry   : {
         stdout: JSON.stringify([{ name: 'node', new_versions: ['26.13.2'], old_versions: ['26.13.1'] }])
-      },
-      kind  : 'a version the dry run replaces with another',
-      stale : ['node@26.13.1']
+      }
     }
   ])('fails naming $kind', async ({ drift, dry, stale }, { expect, scratch }) => {
     expect(await check(scratch, drift, dry)).toMatchObject({
