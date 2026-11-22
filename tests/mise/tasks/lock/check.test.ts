@@ -23,8 +23,8 @@ const root     = join(import.meta.dirname, '..', '..', '..', '..')
 /**
  * Runs the task over scratch copies of `.mise/config.toml` and
  * `.mise/mise.lock` once `drift` edits them, where the real `mise lock --check`
- * reads both copies offline and a stand-in answers `mise lock --dry-run --json`
- * with `dry`.
+ * reads both copies offline, and the real `mise lock --dry-run --json` runs
+ * offline unless a stand-in answers it with `dry`.
  *
  * Returns:
  *   The run, whose `commands` hold each call the stand-ins received, in order.
@@ -32,7 +32,7 @@ const root     = join(import.meta.dirname, '..', '..', '..', '..')
 async function check(
   scratch                            : string,
   { config = String, lock = String } : Drift,
-  dry                                : Answer = { stdout: '[]' }
+  dry                                : Answer | null = null
 ): Promise<SyncRun> {
   const read = (file: string): Promise<string> => readFile(join(root, '.mise', file), 'utf8')
 
@@ -44,7 +44,11 @@ async function check(
 
   return sync(scratch, 'lock:check', {
     canned : { ...Object.fromEntries(BUN.map((call) => [call.join(' '), {}])), [DRY.join(' ')]: dry },
-    env    : { MISE_CONFIG_DIR: join(scratch, 'tmp', 'mise', 'config'), MISE_TRUSTED_CONFIG_PATHS: scratch }
+    env    : {
+      MISE_CONFIG_DIR           : join(scratch, 'tmp', 'mise', 'config'),
+      MISE_OFFLINE              : '1',
+      MISE_TRUSTED_CONFIG_PATHS : scratch
+    }
   })
 }
 
@@ -88,17 +92,15 @@ describe.concurrent('lock:check', () => {
     expect,
     scratch
   }) => {
-    const stale = [
-      { name: 'watchexec', new_versions: [], old_versions: ['2.8.0'] },
-      { name: 'zizmor', new_versions: [], old_versions: ['1.32.0'] }
-    ]
     const drift = { config: (text: string) => text.replace(PIN('watchexec'), '').replace(PIN('zizmor'), '') }
 
-    expect(await check(scratch, drift, { stdout: JSON.stringify(stale) })).toMatchObject({
+    expect(await check(scratch, drift)).toMatchObject({
       commands : [...BUN, CHECK, DRY],
       status   : 1,
-      stderr   : '.mise/mise.lock locks watchexec, zizmor, which .mise/config.toml no longer declares,'
-               + ' so run `mise relock`\n'
+      stderr   : expect.stringContaining(
+        '.mise/mise.lock locks watchexec, zizmor, which .mise/config.toml no longer declares,'
+        + ' so run `mise relock`\n'
+      )
     })
   })
 
