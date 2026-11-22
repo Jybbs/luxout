@@ -26,7 +26,7 @@ In the [Homebridge UI](https://www.npmjs.com/package/homebridge-config-ui-x), se
 sudo hb-service add homebridge-luxout
 ```
 
-[Installing *Luxout*](https://luxout.fyi/install/installing) gives the command for a Homebridge installed through npm and the versions each release runs on, and [Finding Your Place](https://luxout.fyi/install/place) takes you through setting the location the plugin reads.
+[Installing *Luxout*](https://luxout.fyi/install/installing) gives the command for a Homebridge installed with `npm install -g` and the versions each release runs on, and [Finding Your Place](https://luxout.fyi/install/place) takes you through setting the location the plugin reads.
 
 ## 📗 Where to Start
 
