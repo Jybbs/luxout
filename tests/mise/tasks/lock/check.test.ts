@@ -29,11 +29,11 @@ const [CONFIG, LINES] = await Promise.all([read('config.toml'), read('tasks/plug
 
 /**
  * Runs the task over scratch copies of `.mise/config.toml`, `.mise/mise.lock`,
- * and `.mise/tasks/`, where `config`, `lock`, and `lines` edit the config, the
- * lockfile, and `.mise/tasks/plugin/lines.toml`, so the dry run counts each
- * tool a task declares. The real `mise lock --check` reads the copies offline,
- * and the real `mise lock --dry-run --json` runs offline unless a stand-in
- * answers it with `dry`.
+ * and `.mise/tasks/`, the last so the dry run counts each tool a task declares,
+ * where `config`, `lock`, and `lines` edit the config, the lockfile, and
+ * `.mise/tasks/plugin/lines.toml`. The real `mise lock --check` reads the
+ * copies offline, and the real `mise lock --dry-run --json` runs offline unless
+ * a stand-in answers it with `dry`.
  *
  * Returns:
  *   The run, whose `commands` hold each call the stand-ins received, in order.
@@ -63,7 +63,7 @@ async function check(
 }
 
 describe.concurrent('lock:check', () => {
-  test('passes where each lockfile matches its manifest and the dry run drops no tool', async ({
+  test('passes where each lockfile matches its manifest and the dry run drops no version', async ({
     expect,
     scratch
   }) => {
@@ -101,16 +101,26 @@ describe.concurrent('lock:check', () => {
   test.for([
     {
       drift : { config: (text: string) => text.replace(PIN('watchexec'), '').replace(PIN('zizmor'), '') },
+      dry   : null,
       kind  : 'each version of a tool the config no longer declares',
       stale : ['watchexec', 'zizmor'].map((tool) => `${tool}@${release(CONFIG, PIN(tool))}`)
     },
     {
       drift : { lines: (text: string) => text.replace(LINE, '') },
+      dry   : null,
       kind  : 'a version left once a task drops its tools table',
       stale : [`node@${release(LINES, LINE)}`]
+    },
+    {
+      drift : {},
+      dry   : {
+        stdout: JSON.stringify([{ name: 'node', new_versions: ['26.13.2'], old_versions: ['26.13.1'] }])
+      },
+      kind  : 'a version the dry run replaces with another',
+      stale : ['node@26.13.1']
     }
-  ])('fails naming $kind', async ({ drift, stale }, { expect, scratch }) => {
-    expect(await check(scratch, drift)).toMatchObject({
+  ])('fails naming $kind', async ({ drift, dry, stale }, { expect, scratch }) => {
+    expect(await check(scratch, drift, dry)).toMatchObject({
       commands : [...BUN, CHECK, DRY],
       status   : 1,
       stderr   : `.mise/mise.lock locks ${stale.join(', ')}, which nothing in .mise/ declares any `
