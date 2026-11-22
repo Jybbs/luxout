@@ -1,6 +1,6 @@
 /** @module-tag spawns */
-import { readFile } from 'node:fs/promises'
-import { join }     from 'node:path'
+import { cp, readFile } from 'node:fs/promises'
+import { join }         from 'node:path'
 
 import { describe } from 'vitest'
 
@@ -22,9 +22,11 @@ const root     = join(import.meta.dirname, '..', '..', '..', '..')
 
 /**
  * Runs the task over scratch copies of `.mise/config.toml` and
- * `.mise/mise.lock` once `drift` edits them, where the real `mise lock --check`
- * reads both copies offline, and the real `mise lock --dry-run --json` runs
- * offline unless a stand-in answers it with `dry`.
+ * `.mise/mise.lock` once `drift` edits them, beside a copy of `.mise/tasks/`
+ * so the dry run counts each tool a task declares, where the real
+ * `mise lock --check` reads both copies offline, and the real
+ * `mise lock --dry-run --json` runs offline unless a stand-in answers it with
+ * `dry`.
  *
  * Returns:
  *   The run, whose `commands` hold each call the stand-ins received, in order.
@@ -41,12 +43,14 @@ async function check(
     '.mise/config.toml' : config(await read('config.toml')),
     '.mise/mise.lock'   : lock(await read('mise.lock'))
   })
+  await cp(join(root, '.mise', 'tasks'), join(scratch, '.mise', 'tasks'), { recursive: true })
 
   return sync(scratch, 'lock:check', {
     canned : { ...Object.fromEntries(BUN.map((call) => [call.join(' '), {}])), [DRY.join(' ')]: dry },
     env    : {
       MISE_CONFIG_DIR           : join(scratch, 'tmp', 'mise', 'config'),
       MISE_OFFLINE              : '1',
+      MISE_QUIET                : '1',
       MISE_TRUSTED_CONFIG_PATHS : scratch
     }
   })
@@ -97,10 +101,8 @@ describe.concurrent('lock:check', () => {
     expect(await check(scratch, drift)).toMatchObject({
       commands : [...BUN, CHECK, DRY],
       status   : 1,
-      stderr   : expect.stringContaining(
-        '.mise/mise.lock locks watchexec, zizmor, which .mise/config.toml no longer declares,'
-        + ' so run `mise relock`\n'
-      )
+      stderr   : '.mise/mise.lock locks watchexec, zizmor, which .mise/config.toml no longer declares, '
+               + 'so run `mise relock`\n'
     })
   })
 

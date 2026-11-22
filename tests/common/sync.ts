@@ -140,8 +140,8 @@ export async function spawned(
  * `fail`. A canned stand-in takes the place of each program that opens a
  * `canned` key, answering each call a key names with that key's `Answer` and
  * passing any other call, or one whose key holds `null`, on to the program
- * further along the path, logging each call either way. The run
- * points mise's directories and the temporary directory under `scratch`.
+ * further along the path, logging each call either way. The run points mise's
+ * directories and the temporary directory under `scratch`.
  */
 export async function sync(
   scratch : string,
