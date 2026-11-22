@@ -12,7 +12,7 @@ mise lock --check
 
 stale=$(
   mise lock --dry-run --json \
-    | jq --raw-output '[.[] | select(.new_versions == []) | .name] | join(", ")'
+    | jq --raw-output 'map(select(.new_versions == []).name) | join(", ")'
 )
 
 if [[ -n "$stale" ]]; then

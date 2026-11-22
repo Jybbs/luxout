@@ -4,6 +4,7 @@ import { join }     from 'node:path'
 
 import { describe } from 'vitest'
 
+import { PACKAGES, VET }                   from '../../../common/mise.js'
 import { plant, test }                     from '../../../common/scratch.js'
 import { type Answer, type SyncRun, sync } from '../../../common/sync.js'
 
@@ -12,19 +13,18 @@ interface Drift {
   lock?   : (text: string) => string
 }
 
-const BUN = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
-  .map((dir) => ['bun', 'install', '--cwd', dir, '--dry-run', '--frozen-lockfile'])
+const BUN      = PACKAGES.map((dir) => ['bun', 'install', '--cwd', dir, '--dry-run', '--frozen-lockfile'])
 const CHECK    = ['mise', 'lock', '--check']
 const DRY      = ['mise', 'lock', '--dry-run', '--json']
-const PIN      = /^watchexec\s*=\s*"[^"]+"\n/m
+const PIN      = (tool: string): RegExp => new RegExp(`^${tool}\\s*=\\s*"[^"]+"\\n`, 'm')
 const PLATFORM = /^\[tools\.watchexec\."platforms\.linux-x64"\]\n(?:.+\n)+\n/m
-const VET      = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }
 const root     = join(import.meta.dirname, '..', '..', '..', '..')
 
 /**
- * Runs the task over scratch copies of `.mise/config.toml` and `.mise/mise.lock`
- * once `drift` edits them, where the real `mise lock --check` reads both copies
- * offline and a stand-in answers `mise lock --dry-run --json` with `dry`.
+ * Runs the task over scratch copies of `.mise/config.toml` and
+ * `.mise/mise.lock` once `drift` edits them, where the real `mise lock --check`
+ * reads both copies offline and a stand-in answers `mise lock --dry-run --json`
+ * with `dry`.
  *
  * Returns:
  *   The run, whose `commands` hold each call the stand-ins received, in order.
@@ -56,9 +56,18 @@ describe.concurrent('lock:check', () => {
     expect(await check(scratch, {})).toMatchObject({ commands: [...BUN, CHECK, DRY], status: 0 })
   })
 
+  test('passes where the dry run lists a tool only for a new version', async ({ expect, scratch }) => {
+    const bumped = [{ name: 'node', new_versions: ['26.13.2'], old_versions: ['26.13.1'] }]
+
+    expect(await check(scratch, {}, { stdout: JSON.stringify(bumped) })).toMatchObject({
+      commands : [...BUN, CHECK, DRY],
+      status   : 0
+    })
+  })
+
   test.for([
     {
-      drift  : { config: (text: string) => text.replace(PIN, 'watchexec = "0.0.1"\n') },
+      drift  : { config: (text: string) => text.replace(PIN('watchexec'), 'watchexec = "0.0.1"\n') },
       kind   : 'a pin in .mise/config.toml changed with no lockfile change',
       reason : 'watchexec@0.0.1 is not in the lockfile'
     },
@@ -83,7 +92,7 @@ describe.concurrent('lock:check', () => {
       { name: 'watchexec', new_versions: [], old_versions: ['2.8.0'] },
       { name: 'zizmor', new_versions: [], old_versions: ['1.32.0'] }
     ]
-    const drift = { config: (text: string) => text.replace(PIN, '').replace(/^zizmor\s*=.*\n/m, '') }
+    const drift = { config: (text: string) => text.replace(PIN('watchexec'), '').replace(PIN('zizmor'), '') }
 
     expect(await check(scratch, drift, { stdout: JSON.stringify(stale) })).toMatchObject({
       commands : [...BUN, CHECK, DRY],
