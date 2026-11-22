@@ -107,7 +107,8 @@ describe('the README', () => {
     expect(readme).not.toContain('img.shields.io/node/')
   })
 
-  it('gives the install command for the package the manifest names', () => {
+  it('gives the search and the install command for the package the manifest names', () => {
+    expect(readme).toContain(`search the plugins for \`${manifest.name}\``)
     expect(readme).toContain(`\nsudo hb-service add ${manifest.name}\n`)
   })
 
