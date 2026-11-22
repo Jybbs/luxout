@@ -1,13 +1,12 @@
 /** @module-tag spawns */
 import { describe } from 'vitest'
 
+import { PACKAGES, VET }      from '../../../common/mise.js'
 import { plant, test }        from '../../../common/scratch.js'
 import { type SyncRun, sync } from '../../../common/sync.js'
 
-const BAKE = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
-  .map((dir) => ['bun', 'install', '--cwd', dir, '--lockfile-only'])
+const BAKE    = PACKAGES.map((dir) => ['bun', 'install', '--cwd', dir, '--lockfile-only'])
 const MISSING = ['mise', 'ls', '--json', '--missing', '--no-global']
-const VET     = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }
 const LOCK    = [['mise', 'lock'], MISSING]
 
 /**

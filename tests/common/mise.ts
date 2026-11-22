@@ -16,7 +16,17 @@ interface Declared {
   tools?   : Record<string, string>
 }
 
-const PACKAGES = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
+/**
+ * The directories `bun_packages` in `.mise/lib/lock.sh` lists, one per Bun
+ * package.
+ */
+export const PACKAGES = ['.', 'site', 'tests/homebridge', 'tests/vet/floor', 'tests/vet/pinned']
+
+/**
+ * An empty manifest in each directory under `tests/vet/`, so the glob in
+ * `bun_packages` lists those directories in a scratch checkout.
+ */
+export const VET = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/package.json': '{}\n' }
 
 /**
  * Lists `tasks` as `mise tasks ls --json` prints them for the checkout at
