@@ -22,9 +22,9 @@ const root     = join(import.meta.dirname, '..', '..', '..', '..')
 
 /**
  * Runs the task over scratch copies of `.mise/config.toml` and
- * `.mise/mise.lock` once `drift` edits them, beside a copy of `.mise/tasks/` so
- * the dry run counts each tool a task declares, where the real
- * `mise lock --check` reads both copies offline, and the real
+ * `.mise/mise.lock` once `config` and `lock` edit them, beside a copy of
+ * `.mise/tasks/` so the dry run counts each tool a task declares, where the
+ * real `mise lock --check` reads both copies offline, and the real
  * `mise lock --dry-run --json` runs offline unless a stand-in answers it with
  * `dry`.
  *
