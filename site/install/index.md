@@ -2,7 +2,7 @@
 
 How do I install *Luxout* and point it at my place? This section takes you from installing the plugin through the [Homebridge UI](https://www.npmjs.com/package/homebridge-config-ui-x) to the *Outside* sensor in the Home app.
 
-- [Installing *Luxout*](./installing.md) names the versions each release runs on.
+- [Installing *Luxout*](./installing.md) names the versions each release runs on and the ways to add the plugin, from the Homebridge UI or a terminal.
 - [Finding Your Place](./place.md) replays the search on the settings page that turns a zip code into the place the plugin stores.
 - [The *Outside* Sensor in Home](./home.md) says what appears in the Home app once the settings are saved.
 
