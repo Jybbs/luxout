@@ -18,21 +18,15 @@
   <img alt="The Day Estimate dial sweeping once around the sample day in Boston beside the threshold sensor Dark Out switching off at 06:48 as the dawn passes 662 lux and on at 18:49 as the dusk falls to 2.99 lux, and the forecast’s 28 quarter-hour steps of sunlight at the ground from 06:15 to 13:00, the step in use lit, its sunlight divided by the clear sky’s to give the factor, which holds at 1 where the forecast runs past a clear sky, and a step with the sun under 5° taking the mean factor of the 4 nearest daylight steps." src="https://luxout.fyi/readme/day-estimate-light.gif" width="100%">
 </picture>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://luxout.fyi/readme/credit-dark.svg">
-    <img alt="Credits. The forecast behind every reading, and the terms it is shared under. Weather data by Open-Meteo.com, Patrick Zippenfenig, Zenodo, 2024, CC BY 4.0." src="https://luxout.fyi/readme/credit-light.svg" width="296">
-  </picture>
-</p>
+## ⌨️ Quickstart
 
-<p align="center">
-  <code>DATA</code>&nbsp;<a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a><br>
-  <code>DOI</code>&nbsp;<a href="https://doi.org/10.5281/zenodo.7970649">10.5281/zenodo.7970649</a><br>
-  <code>CREATORS</code>&nbsp;Patrick Zippenfenig<br>
-  <code>PUBLISHED</code>&nbsp;Zenodo, 2024<br>
-  <code>LICENSE</code>&nbsp;<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a><br>
-  <code>CHANGED</code>&nbsp;<code>shortwave_radiation_instant</code> ÷ clear sky
-</p>
+In the [Homebridge UI](https://www.npmjs.com/package/homebridge-config-ui-x), search the plugins for `homebridge-luxout` and install it. On the Raspberry Pi image or the Debian or Ubuntu package, the same install runs from a terminal:
+
+```sh
+sudo hb-service add homebridge-luxout
+```
+
+[Installing *Luxout*](https://luxout.fyi/install/installing) gives the command for a Homebridge installed through npm and the versions each release runs on, and [Finding Your Place](https://luxout.fyi/install/place) sets the location the plugin reads.
 
 ## 📗 Where to Start
 
@@ -48,3 +42,21 @@
 - [The location](https://luxout.fyi/settings/location) and [the threshold levels](https://luxout.fyi/settings/thresholds) the settings take
 - [What the plugin sends](https://luxout.fyi/privacy/sends) and [the rounded place](https://luxout.fyi/privacy/sends#the-place-each-request-carries) it stores
 - [Building an automation](https://luxout.fyi/sensors/thresholds#automations) on a threshold sensor in the Home app
+
+## ©️ Credits
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://luxout.fyi/readme/credit-dark.svg">
+    <img alt="Credits. The forecast behind every reading, and the terms it is shared under. Weather data by Open-Meteo.com, Patrick Zippenfenig, Zenodo, 2024, CC BY 4.0." src="https://luxout.fyi/readme/credit-light.svg" width="296">
+  </picture>
+</p>
+
+<p align="center">
+  <code>DATA</code>&nbsp;<a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a><br>
+  <code>DOI</code>&nbsp;<a href="https://doi.org/10.5281/zenodo.7970649">10.5281/zenodo.7970649</a><br>
+  <code>CREATORS</code>&nbsp;Patrick Zippenfenig<br>
+  <code>PUBLISHED</code>&nbsp;Zenodo, 2024<br>
+  <code>LICENSE</code>&nbsp;<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a><br>
+  <code>CHANGED</code>&nbsp;<code>shortwave_radiation_instant</code> ÷ clear sky
+</p>
