@@ -10,7 +10,7 @@ The Homebridge host reaches Open-Meteo over HTTPS once an hour for the forecast,
 
 ## Adding the Plugin
 
-In the Homebridge UI, search the plugins for `homebridge-luxout` and install it. From a terminal, the command follows how Homebridge itself was installed, as the Homebridge wiki's [plugin versions page](https://github.com/homebridge/homebridge/wiki/How-to-Install-Alternate-Plugin-Versions) sets out.
+In the Homebridge UI, search the plugins for `homebridge-luxout` and install it. From a terminal, the command depends on how Homebridge itself was installed, as the Homebridge wiki's [How to Install Alternate Plugin Versions](https://github.com/homebridge/homebridge/wiki/How-to-Install-Alternate-Plugin-Versions) sets out.
 
 On the Raspberry Pi image, the Debian or Ubuntu `apt` package, or the Synology package, [`hb-service`](https://github.com/homebridge/homebridge-config-ui-x/wiki/Homebridge-Service-Command) adds it:
 
@@ -24,4 +24,4 @@ Where Homebridge was installed with `npm install -g`, as on macOS, [npm installs
 sudo npm install -g homebridge-luxout
 ```
 
-Homebridge loads the plugin once it restarts. Until its settings hold a location, the plugin starts nothing, and [Finding Your Place](./place.md) takes you through setting one.
+Until its settings hold a location, the plugin starts nothing, and [Finding Your Place](./place.md) takes you through setting one.
