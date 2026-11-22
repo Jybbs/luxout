@@ -18,7 +18,7 @@ On the Raspberry Pi image, the Debian or Ubuntu `apt` package, or the Synology p
 sudo hb-service add homebridge-luxout
 ```
 
-Where Homebridge was installed with `npm install -g`, as on macOS, [npm installs it globally](https://docs.npmjs.com/downloading-and-installing-packages-globally) beside Homebridge:
+Where Homebridge was installed with `npm install -g`, as in a native install on macOS, [npm installs it globally](https://docs.npmjs.com/downloading-and-installing-packages-globally) beside Homebridge:
 
 ```sh
 sudo npm install -g homebridge-luxout

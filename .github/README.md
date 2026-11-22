@@ -20,7 +20,7 @@
 
 ## ⌨️ Quickstart
 
-In the [Homebridge UI](https://www.npmjs.com/package/homebridge-config-ui-x), search the plugins for `homebridge-luxout` and install it. On the Raspberry Pi image or the Debian or Ubuntu package, the same install runs from a terminal:
+In the [Homebridge UI](https://www.npmjs.com/package/homebridge-config-ui-x), search the plugins for `homebridge-luxout` and install it. On the Raspberry Pi image, the Debian or Ubuntu `apt` package, or the Synology package, the same install runs from a terminal:
 
 ```sh
 sudo hb-service add homebridge-luxout
