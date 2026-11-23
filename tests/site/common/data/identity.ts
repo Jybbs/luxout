@@ -6,4 +6,4 @@ import { readIdentity } from '../../../../site/.vitepress/lib/identity/identity.
  * What `identity.data.ts` yields under a build, for a case to mock it with,
  * since only VitePress runs a loader.
  */
-export const data = await readIdentity(pathToFileURL(`${import.meta.dirname}/../../../`))
+export const data = await readIdentity(pathToFileURL(`${import.meta.dirname}/../../../../site/.vitepress/`))

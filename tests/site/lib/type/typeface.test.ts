@@ -112,7 +112,7 @@ it.each(Object.entries(typeface.FONT_FILES).map(([name, file]) => ({ file, name 
     const id             = basename(dirname(file))
     const style          = file.endsWith('-italic.ttf') ? 'italic' : 'normal'
     const [kept, served] = await Promise.all([
-      readFile(new URL(`../../../${file}`, import.meta.url)),
+      readFile(new URL(`../../../../site/.vitepress/${file}`, import.meta.url)),
       readFile(new URL(import.meta.resolve(
         `@fontsource-variable/${id}/files/${id}-latin-wght-${style}.woff2`
       )))

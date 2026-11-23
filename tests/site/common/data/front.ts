@@ -7,7 +7,7 @@ import { Logo }         from '../../../../site/.vitepress/lib/logo/logo.ts'
 import recording        from '../../../../site/.vitepress/lib/search/recording.json' with { type: 'json' }
 import { Tokens }       from '../../../../site/.vitepress/lib/theme/tokens.ts'
 
-const root                         = pathToFileURL(`${import.meta.dirname}/../../../`)
+const root                         = pathToFileURL(`${import.meta.dirname}/../../../../site/.vitepress/`)
 const [bibliography, logo, tokens] = await Promise.all([
   Bibliography.read(root), Logo.read(root), Tokens.read(root)
 ])

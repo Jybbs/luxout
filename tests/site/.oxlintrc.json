@@ -1,4 +1,4 @@
 {
-  "$schema": "../../site/node_modules/oxlint/configuration_schema.json",
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": ["../../site/.vitepress/.oxlintrc.json"]
 }

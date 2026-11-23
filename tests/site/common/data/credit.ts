@@ -8,4 +8,4 @@ import { Seal } from '../../../../site/.vitepress/lib/credit/seal.ts'
  * directory, because Vite rewrites a URL built on `import.meta.url` to an
  * address on its server in a DOM environment.
  */
-export const data = (await Seal.read(pathToFileURL(`${import.meta.dirname}/../../../`))).marks
+export const data = (await Seal.read(pathToFileURL(`${import.meta.dirname}/../../../../site/.vitepress/`))).marks

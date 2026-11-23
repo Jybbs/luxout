@@ -94,6 +94,6 @@ it('says how many of the recorded fields the server script reads', () => {
 })
 
 it('lists the schema and the recording as the files the loaders watch', () => {
-  expect(replay.replaySources.map((file) => relative(join(import.meta.dirname, '../../../../..'), file)))
+  expect(replay.replaySources.map((file) => relative(join(import.meta.dirname, '../../../..'), file)))
     .toEqual(['config.schema.json', 'site/.vitepress/lib/search/recording.json'])
 })
