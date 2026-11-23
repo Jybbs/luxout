@@ -3,10 +3,10 @@ import { dirname, join } from 'node:path'
 import vueJsx           from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitest/config'
 
-import { thresholds }             from '../../tests/common/coverage.ts'
-import { changedFiles, triggers } from '../../tests/common/triggers.ts'
+import { thresholds }             from '../../tests/plugin/common/coverage.ts'
+import { changedFiles, triggers } from '../../tests/plugin/common/triggers.ts'
 
-const INCLUDE = ['.vitepress/tests/**/*.test.ts']
+const INCLUDE = ['../tests/site/**/*.test.ts']
 const PATHS   = ['.mise/config.toml', '.mise/mise.lock']
 const root    = dirname(import.meta.dirname)
 const read    = PATHS.map((file) => join(dirname(root), file))
@@ -15,6 +15,7 @@ export default defineConfig({
   cacheDir : '../.cache/site/vite',
   plugins  : [vueJsx({ tsTransform: 'built-in' })],
   root     : root,
+  server   : { fs: { allow: ['.', '../tests/site'] } },
   test     : {
     expect              : { requireAssertions: true },
     experimental        : { vcsProvider: changedFiles(INCLUDE) },

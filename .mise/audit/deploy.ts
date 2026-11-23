@@ -13,7 +13,6 @@ const BUILD       = 'site:linkcheck'
 const PROVISION   = ['.github/actions/provision/action.yml', CONFIG, '.mise/mise.lock']
 const SITE        = 'site'
 const SITE_CONFIG = 'site/.vitepress/config.ts'
-const SITE_TESTS  = ':!site/.vitepress/tests'
 const ENTRIES     = { [SITE_CONFIG]: 'config', 'site/.vitepress/theme/index.ts': 'theme' }
 const WORKFLOW    = '.github/workflows/deploy.yml'
 const WRAPPERS    = '.mise/bin/*'
@@ -118,10 +117,10 @@ export class DeployPaths {
  * - Each page VitePress builds and each file a page embeds by a relative path
  * - Each file Git tracks under the public directory, which VitePress copies
  *   into the bundle as it is
- * - Each file Git tracks under the site, its suite aside, whose path a string
- *   naming a directory, or a relative path resolved from the module's own
- *   directory, spells in a module under the site that the config or the theme
- *   imports, since a module reading a file from disk spells the path it reads
+ * - Each file Git tracks under the site whose path a string naming a
+ *   directory, or a relative path resolved from the module's own directory,
+ *   spells in a module under the site that the config or the theme imports,
+ *   since a module reading a file from disk spells the path it reads
  *
  * A file the list holds twice keeps its later reason, so a page a module also
  * spells reads as a page.
@@ -130,7 +129,7 @@ async function inputs(audit: Audit, imports: string[]): Promise<[string, string]
   const { pages, publicDir } = await audit.site(SITE)
   const modules              = imports.filter((file) => file.startsWith(`${SITE}/`))
   const shipped              = publicDir ? audit.files(publicDir) : []
-  const spelled              = audit.mentions(SITE, modules, audit.files(SITE, SITE_TESTS))
+  const spelled              = audit.mentions(SITE, modules, audit.files(SITE))
 
   return [
     ...[...spelled].flatMap(([module, files]) => files.map((file): [string, string] => [
