@@ -28,7 +28,7 @@ export class Vet {
   /**
    * Builds the checks from the `config.schema.json` under `root`, beside the
    * services check run under the plugin's block in
-   * `tests/homebridge/config.json`. Reads the release installed into each
+   * `tests/plugin/homebridge/config.json`. Reads the release installed into each
    * directory `args` names, resolved against `root`.
    */
   static async read(args: string[], root: string, tuning?: scenario.Tuning, write?: Write): Promise<Vet> {
@@ -37,7 +37,7 @@ export class Vet {
     const [releases, schema, config] = await Promise.all([
       Promise.all(args.map((arg) => Homebridge.read(resolve(root, arg)))),
       json('config.schema.json'),
-      json('tests', 'homebridge', 'config.json')
+      json('tests', 'plugin', 'homebridge', 'config.json')
     ])
     const block: Block | undefined = config.platforms.find(({ platform }: Block) =>
       platform === schema.pluginAlias)

@@ -1,0 +1,922 @@
+/** @module-tag spawns-many */
+import { mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
+import { tmpdir }                                  from 'node:os'
+import { join }                                    from 'node:path'
+
+import { describe } from 'vitest'
+
+import { repository }          from '../../../common/repository.js'
+import { plant, test as base } from '../../../common/scratch.js'
+import { type Answer, sync }   from '../../../common/sync.js'
+
+interface Prerelease {
+  lagging : boolean
+  latest  : string
+  newest  : string[]
+  next    : string
+  tags    : string
+}
+
+interface Setup {
+  args?   : string[]
+  canned? : Record<string, Answer>
+  edits?  : Record<string, string>
+  env?    : NodeJS.ProcessEnv
+  fail?   : string
+  files?  : Record<string, string>
+  live?   : Record<string, unknown>
+  staged? : boolean
+}
+
+const ADVISORIES = {
+  vitest: [
+    { id: 2, url: 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc', vulnerable_versions: '<5.0.4' },
+    { id: 3, url: 'https://github.com/advisories/GHSA-dddd-eeee-ffff', vulnerable_versions: '<5.0.6' },
+    { id: 1, url: 'https://github.com/advisories/GHSA-gggg-hhhh-iiii', vulnerable_versions: '<5.0.1' }
+  ]
+}
+const CHECKOUT                        = '1'.repeat(40)
+const COMPARISONS                     = [
+  { current: '0.33.1', major: 'yes', newest: '0.34.0' },
+  { current: '0.0.3', major: 'yes', newest: '0.0.4' },
+  { current: '7.0.2003', major: 'no', newest: '7.0.2004' },
+  { current: '2026.9.18', major: 'no', newest: '2026.10.8' }
+]
+const CURRENT: Record<string, Answer> = {
+  'bun audit --cwd . --json'                : json({}),
+  'bun outdated --cwd .'                    : outdated(),
+  'bun outdated --cwd site'                 : outdated(),
+  'mise latest node@24'                     : { stdout: '24.21.0\n' },
+  'mise latest node@26'                     : { stdout: '26.10.0\n' },
+  'mise outdated --bump --json --no-global' : json({}),
+  'mise version --json': json({ latest: '2026.9.18', version: '2026.10.12 macos-arm64 (2026-10-16)' })
+}
+const IGNORED                        = ['GHSA-fc5q-39xc-vjpf', 'GHSA-jjjj-kkkk-llll']
+const LIFTED                         = '2'.repeat(40)
+const NOW                            = Date.parse('2026-10-20T12:00:00Z')
+const PINNED                         = '3'.repeat(40)
+const PRERELEASES: Prerelease[]      = [
+  {
+    lagging : false,
+    latest  : '2.0.0-alpha.20',
+    newest  : ['2.0.0-alpha.22', 'no'],
+    next    : '2.0.0-alpha.22',
+    tags    : 'next leads'
+  },
+  { lagging: false, latest: '1.6.4', newest: [], next: '2.0.0-alpha.21', tags: 'next stands at the pin' },
+  { lagging: false, latest: '1.6.4', newest: [], next: '1.6.4', tags: 'no dist-tag holds its release' },
+  { lagging: false, latest: '1.6.4', newest: ['2.0.0', 'no'], next: '2.0.0', tags: 'next holds the release' },
+  { lagging: true, latest: '2.0.0', newest: ['2.0.0', 'no'], next: '2.0.0-alpha.21', tags: 'latest leads' }
+]
+const RELOCK                         = ['mise', 'run', 'lock:sync']
+const VERIFY                         = ['mise', 'run', 'repo:verify']
+const root                           = join(import.meta.dirname, '..', '..', '..', '..', '..')
+const test                           = base
+  .extend('comparisons', { scope: 'file' }, async () => {
+    const pin        = (current: string): string => `pkg-${current}`
+    const { stdout } = await alone({
+      live: SETTLED,
+
+      canned: {
+        ...CURRENT,
+        ...Object.fromEntries(COMPARISONS.map(({ current, newest }) => [
+          `bun info --json ${pin(current)} time`,
+          json({ [newest]: ago(1) })
+        ])),
+        'bun outdated --cwd .': outdated(...COMPARISONS
+          .map(({ current, newest }): [string, string, string] => [`${pin(current)} (dev)`, current, newest]))
+      },
+
+      files: {
+        'package.json': JSON.stringify({
+          devDependencies: Object.fromEntries(COMPARISONS.map(({ current }) => [pin(current), current]))
+        })
+      }
+    })
+
+    return { row: (current: string): string[] => row(stdout, pin(current)) }
+  })
+  .extend('prereleases', { scope: 'file' }, async () => {
+    const current                      = '2.0.0-alpha.21'
+    const pin                          = (tags: string): string => tags.replaceAll(' ', '-')
+    const { commands, status, stdout } = await alone({
+      live: SETTLED,
+
+      canned: {
+        ...CURRENT,
+        ...Object.fromEntries(PRERELEASES.flatMap(({ latest, next, tags }) => [
+          [`bun info --json ${pin(tags)} time`, json({ '2.0.0': ago(1), '2.0.0-alpha.22': ago(2) })],
+          [`bun info --json ${pin(tags)} dist-tags time`, json({
+            'dist-tags' : { canary: '2.1.0-canary.1', latest, next },
+            time        : {
+              '1.6.4'          : ago(40),
+              '2.0.0'          : ago(1),
+              '2.0.0-alpha.20' : ago(12),
+              '2.0.0-alpha.21' : ago(9),
+              '2.0.0-alpha.22' : ago(2),
+              '2.1.0-canary.1' : ago(1)
+            }
+          })]
+        ])),
+        'bun outdated --cwd .': outdated(...PRERELEASES
+          .filter(({ lagging }) => lagging)
+          .map(({ latest, tags }): [string, string, string] => [`${pin(tags)} (dev)`, current, latest]))
+      },
+
+      files: {
+        'package.json': JSON.stringify({
+          devDependencies: Object.fromEntries(PRERELEASES.map(({ tags }) => [pin(tags), current]))
+        })
+      }
+    })
+
+    return {
+      row    : (tags: string): string[] => row(stdout, pin(tags)).slice(2, 4),
+      status : status,
+      read   : (tags: string): boolean => commands.some((args) => args.includes(pin(tags))
+                                                             && args.includes('dist-tags'))
+    }
+  })
+const CANNED: Record<string, Answer> = {
+  'bun audit --cwd site --json'                    : json({}),
+  'bun audit --cwd tests/plugin/homebridge --json'        : json({}),
+  'bun audit --cwd tests/plugin/vet/pinned --json'        : json({}),
+  'bun info --json @types/node time'               : json({ '26.6.5': ago(8) }),
+  'bun info --json unbash time'                    : json({ '6.0.0': ago(1) }),
+  'bun info --json vitest time'                    : json({ '5.0.5': ago(2) }),
+  'bun outdated --cwd site'                        : outdated(['vitest (dev)', '5.0.3', '5.0.5']),
+  'bun outdated --cwd tests/plugin/homebridge'            : outdated(),
+  'bun outdated --cwd tests/plugin/vet/pinned'            : outdated(),
+  'mise config get --file .mise/config.toml min_version': { stdout: '2026.9.18\n' },
+  'mise config get --file .mise/config.toml tools.node': { stdout: '26.10.0\n' },
+  'mise latest node@22'                            : { stdout: '22.23.3\n' },
+  'mise latest node@24'                            : { stdout: '24.22.0\n' },
+  'mise latest node@26'                            : { stdout: '26.12.0\n' },
+  'mise ls-remote --json aqua:jdx/mise 2026.10.12' : release(1, '2026.10.12'),
+  'mise ls-remote --json bun 1.4.3': json([{ created_at: ago(7), version: '1.4.3' }, { version: '1.4.30' }]),
+  'mise ls-remote --json node 24.22.0'             : release(3, '24.22.0'),
+  'mise ls-remote --json node 26.12.0'             : release(3, '26.12.0'),
+  'mise ls-remote --json zizmor 1.31.1'            : json([{ version: '1.31.1' }]),
+  'mise run lock:sync'                             : {},
+  'mise run repo:verify'                           : {},
+  'bun audit --cwd . --json'                       : json(ADVISORIES, 1),
+  'mise version --json': json({ latest: '2026.10.12', version: '2026.10.12 macos-arm64 (2026-10-16)' }),
+
+  'bun outdated --cwd .': outdated(
+    ['@types/node (dev)', '22.20.5', '26.6.5'],
+    ['unbash (dev)', '5.0.0', '6.0.0'],
+    ['vitest (dev)', '5.0.3', '5.0.5']
+  ),
+
+  'mise outdated --bump --json --no-global': json({
+    bun: {
+      latest    : '1.4.3',
+      name      : 'bun',
+      requested : '1.4.2',
+      source    : { path: `${root}/.mise/config.toml` }
+    },
+
+    node: {
+      latest    : '27.0.0',
+      name      : 'node',
+      requested : '26.10.0',
+      source    : { path: `${root}/.mise/config.toml` }
+    },
+
+    zizmor: {
+      latest    : '1.31.1',
+      name      : 'zizmor',
+      requested : '1.30.1',
+      source    : { path: `${root}/.mise/config.toml` }
+    }
+  }),
+
+  'mise tasks ls --hidden --json --no-global': json([
+    { name: 'plugin:test', source: `${root}/.mise/tasks/plugin/test`, tools: {} },
+    { name: 'plugin:test:22', source: `${root}/.mise/tasks/plugin/lines.toml`, tools: { node: '22.23.3' } },
+    { name: 'plugin:test:24', source: `${root}/.mise/tasks/plugin/lines.toml`, tools: { node: '24.21.0' } }
+  ])
+}
+const FILES = {
+  '.github/actions/provision/action.yml' : `runs:\n  steps:\n    - uses : jdx/mise-action@${PINNED}\n`,
+  '.github/workflows/release.yml'        : 'jobs:\n  publish:\n    steps:\n'
+                                         + `      - uses : actions/checkout@${CHECKOUT}\n`,
+  '.gitignore'                           : '/*.log\n/.cache/\n/bin/\n/tmp/\n',
+  '.mise/holds.toml'                     : '["@homebridge/hap-nodejs"]\nfollows = "homebridge"\n\n'
+                                         + '["@types/node"]\nreason = "Stays on the 22 line"\n',
+  '.mise/tasks/plugin/lines.toml'        : '["plugin:test:22"]\ntools = { node = "22.23.3" }\n\n'
+                                         + '["plugin:test:24"]\ntools = { node = "24.21.0" }\n',
+  'site/package.json': JSON.stringify({ devDependencies: { vitest: '5.0.3' } }, null, 2) + '\n',
+
+  'tests/plugin/homebridge/package.json': JSON.stringify({
+    dependencies: { 'homebridge-config-ui-x': '5.29.0' }
+  }, null, 2) + '\n',
+  'tests/plugin/vet/pinned/package.json': JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2) + '\n',
+
+  '.github/workflows/ci.yml': [
+    'jobs:',
+    '  check:',
+    '    steps:',
+    `      - uses : actions/checkout@${CHECKOUT}`,
+    '',
+    '    strategy:',
+    '      matrix:',
+    '        include:',
+    '          - task  : plugin:test:22',
+    '            tools : bun jq node@22.23.3',
+    '',
+    '          - task  : plugin:test:24',
+    '            tools : bun jq node@24.21.0',
+    ''
+  ].join('\n'),
+
+  '.mise/config.toml': [
+    'min_version = "2026.9.18"',
+    '',
+    '[tools]',
+    'bun    = "1.4.2"',
+    'node   = "26.10.0"',
+    'zizmor = "1.30.1"',
+    ''
+  ].join('\n'),
+
+  'package.json': JSON.stringify({
+    devDependencies : { '@types/node': '22.20.5', unbash: '5.0.0', vitest: '5.0.3' },
+    engines         : { node: '^22.23.3 || ^24.21.0 || ^26.10.0' }
+  }, null, 2) + '\n'
+}
+const LIVE: Record<string, unknown> = {
+  'repos/actions/checkout/commits/v6.0.0'    : { sha: LIFTED },
+  'repos/actions/checkout/releases/latest'   : { published_at: ago(3), tag_name: 'v6.0.0' },
+  'repos/jdx/mise-action/commits/v5.1.1'     : { sha: PINNED },
+  'repos/jdx/mise-action/releases/latest'    : { published_at: ago(9), tag_name: 'v5.1.1' },
+  'repos/actions/checkout/tags?per_page=100' : [[
+    { commit: { sha: CHECKOUT }, name: 'v5' },
+    { commit: { sha: LIFTED }, name: 'v6.0.0' },
+    { commit: { sha: CHECKOUT }, name: 'v5.1.0' }
+  ]]
+}
+const LIFT = {
+  ...FILES,
+  '.mise/config.toml'             : 'min_version = "2026.10.12"\n\n[tools]\n'
+                                  + 'bun    = "1.4.3"\nnode   = "26.12.0"\nzizmor = "1.31.1"\n',
+  '.github/workflows/release.yml' : FILES['.github/workflows/release.yml'].replace(CHECKOUT, LIFTED),
+  '.mise/tasks/plugin/lines.toml' : FILES['.mise/tasks/plugin/lines.toml'].replace('24.21.0', '24.22.0'),
+  'site/package.json'             : JSON.stringify({ devDependencies: { vitest: '5.0.5' } }, null, 2) + '\n',
+
+  '.github/workflows/ci.yml': FILES['.github/workflows/ci.yml']
+    .replace(CHECKOUT, LIFTED)
+    .replace('node@24.21.0', 'node@24.22.0'),
+
+  'package.json': JSON.stringify({
+    devDependencies : { '@types/node': '22.20.5', unbash: '6.0.0', vitest: '5.0.5' },
+    engines         : { node: '^22.23.3 || ^24.22.0 || ^26.12.0' }
+  }, null, 2) + '\n'
+}
+const SETTLED: Record<string, unknown> = {
+  ...LIVE,
+  'repos/actions/checkout/commits/v5.1.0'  : { sha: CHECKOUT },
+  'repos/actions/checkout/releases/latest' : { published_at: ago(30), tag_name: 'v5.1.0' }
+}
+
+function ago(days: number): string {
+  return new Date(NOW - days * 86_400_000).toISOString()
+}
+
+/**
+ * Runs the task as `lift` does with `setup`, in a checkout of its own under the
+ * system's temporary directory, which it removes once the run settles.
+ */
+async function alone(setup: Setup) {
+  const scratch = await realpath(await mkdtemp(join(tmpdir(), 'luxout-')))
+
+  try {
+    return await lift(scratch, setup)
+  } finally {
+    await rm(scratch, { force: true, recursive: true })
+  }
+}
+
+function json(value: unknown, status = 0): Answer {
+  return { status, stdout: JSON.stringify(value) }
+}
+
+/**
+ * Commits `files` over the fixture checkout in `scratch` and writes `edits`
+ * over it uncommitted, then runs the task there with `args`.
+ *
+ * Stand-ins for `mise` and `bun` answer each call `canned` keys, and a
+ * stand-in `gh` answers each endpoint `live` keys.
+ *
+ * Returns:
+ *   The run, beside each task it runs through `mise run`, led by whether it
+ *   ran in the checkout or in a clone, and whether `git status` changed.
+ */
+async function lift(
+  scratch                                                                                        : string,
+  { args = [], canned = {}, edits = {}, env = {}, fail, files = {}, live = LIVE, staged = false } : Setup = {}
+) {
+  await plant(scratch, { ...FILES, ...files })
+
+  const git = repository(scratch)
+
+  git('add', '--all')
+  git('commit', '--message', 'Fixture', '--quiet')
+  await plant(scratch, edits)
+
+  if (staged) git('add', '--all')
+
+  const before = git('status', '--porcelain')
+
+  const { commands, invoked, requests, status, stderr, stdout } = await sync(scratch, 'lock:lift', {
+    args   : args,
+    canned : { ...CANNED, ...canned },
+    env    : { LIFT_NOW: String(NOW / 1000), ...env },
+    fail   : fail,
+    live   : live
+  })
+
+  return {
+    commands : commands,
+    moved    : before !== git('status', '--porcelain'),
+    requests : requests,
+    status   : status,
+    stderr   : stderr,
+    stdout   : stdout,
+    steps    : invoked
+      .filter(({ args: [program, verb] }) => program === 'mise' && verb === 'run')
+      .map(({ args, cwd }) => [cwd === scratch ? 'checkout' : 'clone', ...args])
+  }
+}
+
+function outdated(...rows: [string, string, string][]): Answer {
+  return {
+    stdout: [
+      'bun outdated v1.4.2 (744846f84)',
+      '|--------------------------------------|',
+      '| Package | Current | Update | Latest |',
+      '|---------|---------|--------|--------|',
+      ...rows
+        .map(([name, current, latest]) => `| ${name} | ${current} | ${current} | ${latest} |`)
+        .flatMap((line, index) => index === 0 ? [line] : ['|---------|---------|--------|--------|', line]),
+      '|--------------------------------------|',
+      ''
+    ].join('\n')
+  }
+}
+
+async function read(scratch: string): Promise<Record<string, string>> {
+  return Object.fromEntries(await Promise.all(Object.keys(FILES).map(async (file) => [
+    file,
+    await readFile(join(scratch, file), 'utf8')
+  ])))
+}
+
+function release(days: number, version: string): Answer {
+  return json([{ created_at: ago(days), version }])
+}
+
+function row(stdout: string, pin: string): string[] {
+  return stdout.split('\n')
+    .find((line) => line.startsWith(`| ${pin} `))
+    ?.split('|')
+    .slice(1, -1)
+    .map((cell) => cell.trim()) ?? []
+}
+
+describe.concurrent('lock:lift', () => {
+  test('prints every pin behind its newest release as one Markdown table', async ({ expect, scratch }) => {
+    const { status, steps, stdout } = await lift(scratch)
+
+    expect({ status, steps }).toEqual({ status: 0, steps: [] })
+    expect(stdout).toMatchInlineSnapshot(`
+      "| **Pin**          | **Current** | **Newest** | **Major** | **Age** | **Clears**          | **Held** |
+      | ---------------- | ----------- | ---------- | --------- | ------- | ------------------- | -------- |
+      | @types/node      | 22.20.5     | 26.6.5     | yes       | 8 days  |                     | yes      |
+      | actions/checkout | v5.1.0      | v6.0.0     | yes       | 3 days  |                     |          |
+      | bun              | 1.4.2       | 1.4.3      | no        | 7 days  |                     |          |
+      | min_version      | 2026.9.18   | 2026.10.12 | no        | 1 day   |                     |          |
+      | node             | 26.10.0     | 26.12.0    | no        | 3 days  |                     |          |
+      | plugin:test:24   | 24.21.0     | 24.22.0    | no        | 3 days  |                     |          |
+      | unbash           | 5.0.0       | 6.0.0      | yes       | 1 day   |                     |          |
+      | vitest           | 5.0.3       | 5.0.5      | no        | 2 days  | GHSA-aaaa-bbbb-cccc |          |
+      | zizmor           | 1.30.1      | 1.31.1     | no        |         |                     |          |
+      "
+    `)
+  })
+
+  test('decides every version comparison the run makes in one Bun process', async ({ expect, scratch }) => {
+    const { commands } = await lift(scratch, { args: ['--try'] })
+
+    expect(commands.filter((args) => args.some((arg) => arg.includes('Bun.semver')))).toHaveLength(1)
+  })
+
+  test.for([{ args: [] }, { args: ['--try', '--write'] }])(
+    'prints only that every pin stands at its newest release where none lags, given $args',
+    async ({ args }, { expect, scratch }) => {
+      const { status, steps, stdout } = await lift(scratch, { args, canned: CURRENT, live: SETTLED })
+
+      expect({ status, steps, stdout }).toEqual({
+        status : 0,
+        steps  : [],
+        stdout : 'Every pin stands at its newest release\n'
+      })
+    }
+  )
+
+  test.for(COMPARISONS)(
+    'counts $current to $newest as major only where the left-most non-zero part changes',
+    ({ current, major }, { comparisons, expect }) => {
+      expect(comparisons.row(current)[3]).toBe(major)
+    }
+  )
+
+  test('counts a release’s age from the running clock where the caller names no instant', async ({
+    expect,
+    scratch
+  }) => {
+    const released   = new Date(Date.now() - 3.5 * 86_400_000).toISOString()
+    const { stdout } = await lift(scratch, {
+      env    : { LIFT_NOW: undefined },
+      files  : { 'package.json': JSON.stringify({ devDependencies: { pkg: '1.0.0' } }) },
+      live   : SETTLED,
+      canned : {
+        ...CURRENT,
+        'bun info --json pkg time' : json({ '1.0.1': released }),
+        'bun outdated --cwd .'     : outdated(['pkg (dev)', '1.0.0', '1.0.1'])
+      }
+    })
+
+    expect(row(stdout, 'pkg')[4]).toBe('3 days')
+  })
+
+  test.for(PRERELEASES)(
+    'compares a prerelease pin with the newest dist-tag on its own release where $tags',
+    ({ lagging, newest, tags }, { expect, prereleases }) => {
+      expect({
+        read   : prereleases.read(tags),
+        row    : prereleases.row(tags),
+        status : prereleases.status
+      }).toEqual({ read: !lagging, row: newest, status: 0 })
+    }
+  )
+
+  test('shows an untagged action pin by its short commit and counts its lift as major', async ({
+    expect,
+    scratch
+  }) => {
+    const { stdout } = await lift(scratch, {
+      live: { ...LIVE, 'repos/actions/checkout/tags?per_page=100': [[]] }
+    })
+
+    expect(row(stdout, 'actions/checkout').slice(0, 4)).toEqual([
+      'actions/checkout', '1111111', 'v6.0.0', 'yes'
+    ])
+  })
+
+  test.for([
+    { args: ['--hold'], message: '`--hold` takes the name of a pin the table lists\n' },
+    {
+      args    : ['--frobnicate'],
+      message : '`--frobnicate` is no flag `lock:lift` takes, '
+              + 'which are `--hold <pin>`, `--try`, and `--write`\n'
+    }
+  ])('exits 2 on the arguments $args before reading any pin', async ({ args, message }, {
+    expect,
+    scratch
+  }) => {
+    const { commands, status, stderr } = await lift(scratch, { args })
+
+    expect({ commands, status, stderr }).toEqual({ commands: [], status: 2, stderr: message })
+  })
+
+  test('exits 2 on a --hold naming no pin the table lists, before any trial or write', async ({
+    expect,
+    scratch
+  }) => {
+    const { moved, status, stderr, steps, stdout } = await lift(scratch, {
+      args: ['--hold', 'unbash', '--hold', 'leftpad', '--try', '--write']
+    })
+
+    expect({ moved, status, stderr, steps, table: stdout.startsWith('| **Pin**') }).toEqual({
+      moved  : false,
+      status : 2,
+      stderr : '`--hold` names `leftpad`, which no row of the table lists\n',
+      steps  : [],
+      table  : true
+    })
+  })
+
+  test('writes every pin into its manifest in place, then relocks in the checkout', async ({
+    expect,
+    scratch
+  }) => {
+    const { status, steps } = await lift(scratch, { args: ['--write'] })
+
+    expect({ files: await read(scratch), status, steps }).toEqual({
+      files  : LIFT,
+      status : 0,
+      steps  : [['checkout', ...RELOCK]]
+    })
+  })
+
+  test('holds a pin --hold names where it stands and marks it held', async ({ expect, scratch }) => {
+    const { stdout } = await lift(scratch, { args: ['--hold', 'unbash', '--write'] })
+    const manifest   = JSON.parse((await read(scratch))['package.json'] ?? '{}')
+
+    expect({ held: row(stdout, 'unbash')[6], unbash: manifest.devDependencies.unbash }).toEqual({
+      held   : 'yes',
+      unbash : '5.0.0'
+    })
+  })
+
+  test('trials the lift in a scratch clone, leaving the checkout as it was', async ({ expect, scratch }) => {
+    const { moved, status, steps, stdout } = await lift(scratch, { args: ['--try'] })
+    const log                              = await readFile(join(scratch, '.cache/lift/whole.log'), 'utf8')
+
+    expect({ files: await read(scratch), log, moved, status, steps, stdout }).toEqual({
+      files  : FILES,
+      log    : 'Lifting actions/checkout, bun, min_version, node, plugin:test:24, unbash, vitest, zizmor\n',
+      moved  : false,
+      status : 0,
+      steps  : [['clone', ...RELOCK], ['clone', ...VERIFY]],
+      stdout : expect.stringContaining('The whole lift passes `mise ci`, logged at .cache/lift/whole.log')
+    })
+  })
+
+  test.for<{ edits: Record<string, string>, kind: string, staged: boolean }>([
+    { edits: { 'notes.txt': 'carried\n' }, kind: 'untracked', staged: false },
+    {
+      edits  : { '.mise/holds.toml': '["@types/node"]\nreason = "carried"\n' },
+      kind   : 'uncommitted',
+      staged : false
+    },
+    {
+      edits  : { '.mise/holds.toml': '["@types/node"]\nreason = "carried"\n' },
+      kind   : 'staged',
+      staged : true
+    }
+  ])('carries the checkout’s $kind files into the clone it trials', async ({ edits, staged }, {
+    expect,
+    scratch
+  }) => {
+    const { status, steps, stdout } = await lift(scratch, {
+      args   : ['--try'],
+      canned : { 'mise run repo:verify': { breaks: 'carried' } },
+      edits  : edits,
+      staged : staged
+    })
+
+    expect({ status, steps, stdout }).toEqual({
+      status : 1,
+      steps  : expect.arrayContaining([['clone', ...VERIFY]]),
+      stdout : expect.stringContaining('The whole lift fails `mise ci`')
+    })
+  })
+
+  test('names the major lift that breaks the tree by holding back each in turn', async ({
+    expect,
+    scratch
+  }) => {
+    const { status, stdout } = await lift(scratch, {
+      args   : ['--try'],
+      canned : { 'mise run repo:verify': { breaks: '"unbash": "6.0.0"' } }
+    })
+    const logs = await readdir(join(scratch, '.cache', 'lift'))
+
+    expect({ logs: logs.toSorted(), status, verdict: stdout.split('\n').slice(-4, -1) }).toEqual({
+      logs    : ['whole.log', 'without-actions-checkout.log', 'without-unbash.log'],
+      status  : 1,
+      verdict : [
+        'The whole lift fails `mise ci`, logged at .cache/lift/whole.log',
+        'Holding back `actions/checkout` still fails `mise ci`, logged at '
+      + '.cache/lift/without-actions-checkout.log',
+        'Holding back `unbash` passes `mise ci`, so lifting `unbash` breaks the tree, logged at '
+      + '.cache/lift/without-unbash.log'
+      ]
+    })
+  })
+
+  test('reports that no single major lift accounts for a failure no hold-back clears', async ({
+    expect,
+    scratch
+  }) => {
+    const { status, stderr } = await lift(scratch, {
+      args   : ['--try'],
+      canned : { 'mise run repo:verify': { breaks: '"vitest": "5.0.5"' } }
+    })
+
+    expect({ status, stderr }).toEqual({
+      status : 1,
+      stderr : 'No single major lift accounts for the failure, whose logs sit under .cache/lift/\n'
+    })
+  })
+
+  test.for([
+    { breaks: undefined, files: LIFT, outcome: 'writes after a passing trial' },
+    { breaks: '"unbash": "6.0.0"', files: FILES, outcome: 'writes nothing after a failing trial' }
+  ])('$outcome when given both --try and --write', async ({ breaks, files }, { expect, scratch }) => {
+    await lift(scratch, { args: ['--try', '--write'], canned: { 'mise run repo:verify': { breaks } } })
+
+    expect(await read(scratch)).toEqual(files)
+  })
+
+  test('stops before any trial or write where min_version would pass the running mise', async ({
+    expect,
+    scratch
+  }) => {
+    const { moved, status, stderr, steps } = await lift(scratch, {
+      args   : ['--try', '--write'],
+      canned : {
+        'mise version --json': json({ latest: '2026.10.12', version: '2026.10.11 macos-arm64 (2026-10-15)' })
+      }
+    })
+
+    expect({ moved, status, stderr, steps }).toEqual({
+      moved  : false,
+      status : 1,
+      stderr : 'Lifting `min_version` to 2026.10.12 needs mise 2026.10.12 or later, '
+             + 'whereas mise 2026.10.11 runs here, so update mise or hold `min_version`\n',
+      steps  : []
+    })
+  })
+
+  test('lifts nothing where every pin the table lists is held', async ({ expect, scratch }) => {
+    const { status, steps, stdout } = await lift(scratch, {
+      args   : ['--write'],
+      canned : { ...CURRENT, 'bun outdated --cwd .': outdated(['@types/node (dev)', '22.20.5', '26.6.5']) },
+      live   : SETTLED
+    })
+
+    expect({ last: stdout.split('\n').at(-2), status, steps }).toEqual({
+      last   : 'Nothing is lifted, since every pin the table lists is held',
+      status : 0,
+      steps  : []
+    })
+  })
+
+  test('stops before printing a table where bun audit fails without a report', async ({
+    expect,
+    scratch
+  }) => {
+    const { status, stdout } = await lift(scratch, {
+      canned: { 'bun audit --cwd . --json': { status: 1, stdout: 'error: the registry timed out\n' } }
+    })
+
+    expect({ failed: status !== 0, stdout }).toEqual({ failed: true, stdout: '' })
+  })
+
+  test('lists no min_version row where mise reports no newest release', async ({ expect, scratch }) => {
+    const { commands, stdout } = await lift(scratch, {
+      canned: { 'mise version --json': json({ version: '2026.10.12 macos-arm64 (2026-10-16)' }) }
+    })
+
+    const dated = commands.some((args) => args.includes('aqua:jdx/mise'))
+
+    expect({ dated, row: row(stdout, 'min_version') }).toEqual({ dated: false, row: [] })
+  })
+
+  test('lifts the rest under an older mise where min_version is held', async ({ expect, scratch }) => {
+    const { status, steps } = await lift(scratch, {
+      args   : ['--hold', 'min_version', '--write'],
+      canned : {
+        'mise version --json': json({ latest: '2026.10.12', version: '2026.10.11 macos-arm64 (2026-10-15)' })
+      }
+    })
+
+    expect({ config: (await read(scratch))['.mise/config.toml'], status, steps }).toEqual({
+      config : LIFT['.mise/config.toml'].replace('2026.10.12', '2026.9.18'),
+      status : 0,
+      steps  : [['checkout', ...RELOCK]]
+    })
+  })
+
+  test('clears the logs an earlier trial left before trialing again', async ({ expect, scratch }) => {
+    await lift(scratch, { args: ['--try'], files: { '.cache/lift/without-bun.log': 'stale\n' } })
+
+    expect(await readdir(join(scratch, '.cache', 'lift'))).toEqual(['whole.log'])
+  })
+
+  test('moves only the pin each edit names where another pin in its manifest shares the release', async ({
+    expect,
+    scratch
+  }) => {
+    const shared     = { '@vitest/coverage-v8': '5.0.3', vitest: '5.0.3' }
+    const { status } = await lift(scratch, {
+      args   : ['--hold', 'vitest', '--write'],
+      files  : { 'package.json': JSON.stringify({ devDependencies: shared }, null, 2) + '\n' },
+      canned : {
+        'bun info --json @vitest/coverage-v8 time' : json({ '5.0.5': ago(2) }),
+        'bun outdated --cwd .'                     : outdated(
+          ['@vitest/coverage-v8 (dev)', '5.0.3', '5.0.5'],
+          ['vitest (dev)', '5.0.3', '5.0.5']
+        )
+      }
+    })
+    const manifest = JSON.parse((await read(scratch))['package.json'] ?? '{}')
+
+    expect({ pins: manifest.devDependencies, status }).toEqual({
+      pins   : { '@vitest/coverage-v8': '5.0.5', vitest: '5.0.3' },
+      status : 0
+    })
+  })
+
+  test('moves the pinned Homebridge with the devDependency, leaving the floor out of the walk', async ({
+    expect,
+    scratch
+  }) => {
+    const floor    = JSON.stringify({ dependencies: { homebridge: '1.8.5' } }, null, 2) + '\n'
+    const manifest = JSON.stringify({ devDependencies: { homebridge: '2.4.0' } }, null, 2) + '\n'
+    const { commands, status, stdout } = await lift(scratch, {
+      args   : ['--write'],
+      files  : { 'package.json': manifest, 'tests/plugin/vet/floor/package.json': floor },
+      live   : SETTLED,
+      canned : {
+        ...CURRENT,
+        'bun info --json homebridge time'     : json({ '2.5.0': ago(2) }),
+        'bun info --json homebridge@2.5.0'    : json({}),
+        'bun outdated --cwd .'                : outdated(['homebridge (dev)', '2.4.0', '2.5.0']),
+        'bun outdated --cwd tests/plugin/vet/pinned' : outdated(['homebridge', '2.4.0', '2.5.0'])
+      }
+    })
+    const files = await read(scratch)
+    const pins  = (file: string) => JSON.parse(files[file] ?? '{}')
+
+    expect({
+      floor  : await readFile(join(scratch, 'tests', 'plugin', 'vet', 'floor', 'package.json'), 'utf8'),
+      pinned : pins('tests/plugin/vet/pinned/package.json').dependencies,
+      root   : pins('package.json').devDependencies,
+      row    : row(stdout, 'homebridge').slice(0, 3),
+      status : status,
+      walked : commands.some((args) => args.includes('tests/plugin/vet/floor'))
+    }).toEqual({
+      floor  : floor,
+      pinned : { homebridge: '2.5.0' },
+      root   : { homebridge: '2.5.0' },
+      row    : ['homebridge', '2.4.0', '2.5.0'],
+      status : 0,
+      walked : false
+    })
+  })
+
+  test('lists an advisory two Bun packages report once in the row it clears', async ({ expect, scratch }) => {
+    const { stdout } = await lift(scratch, { canned: { 'bun audit --cwd site --json': json(ADVISORIES, 1) } })
+
+    expect(row(stdout, 'vitest')[5]).toBe('GHSA-aaaa-bbbb-cccc')
+  })
+
+  test('lifts a pin the Homebridge UI package holds into its own manifest', async ({ expect, scratch }) => {
+    const { status, stdout } = await lift(scratch, {
+      args   : ['--write'],
+      live   : SETTLED,
+      canned : {
+        ...CURRENT,
+        'bun info --json homebridge-config-ui-x time' : json({ '5.30.0': ago(4) }),
+        'bun outdated --cwd tests/plugin/homebridge'         : outdated(
+          ['homebridge-config-ui-x', '5.29.0', '5.30.0']
+        )
+      }
+    })
+    const manifest = JSON.parse((await read(scratch))['tests/plugin/homebridge/package.json'] ?? '{}')
+
+    expect({ pins: manifest.dependencies, row: row(stdout, 'homebridge-config-ui-x').slice(0, 4), status })
+      .toEqual({
+        pins   : { 'homebridge-config-ui-x': '5.30.0' },
+        row    : ['homebridge-config-ui-x', '5.29.0', '5.30.0', 'no'],
+        status : 0
+      })
+  })
+
+  test.for<{
+    args       : string[]
+    hap        : string
+    homebridge : string
+    leading    : [string, string, string][]
+    leads      : string
+  }>([
+    {
+      args       : ['--write'],
+      hap        : '2.2.3',
+      homebridge : '2.5.0',
+      leading    : [['homebridge (dev)', '2.4.0', '2.5.0']],
+      leads      : 'lifts'
+    },
+    {
+      args       : ['--hold', 'homebridge', '--write'],
+      hap        : '2.2.2',
+      homebridge : '2.4.0',
+      leading    : [['homebridge (dev)', '2.4.0', '2.5.0']],
+      leads      : 'is held'
+    },
+    { args: ['--write'], hap: '2.2.2', homebridge: '2.4.0', leading: [], leads: 'stands' }
+  ])(
+      'puts a pin that follows another at the release its leader names, '
+    + 'with no row of its own, where the leader $leads',
+    async ({ args, hap, homebridge, leading }, { expect, scratch }) => {
+      const pins       = { '@homebridge/hap-nodejs': '2.2.2', homebridge: '2.4.0' }
+      const { stdout } = await lift(scratch, {
+        args   : args,
+        files  : { 'package.json': JSON.stringify({ devDependencies: pins }, null, 2) + '\n' },
+        canned : {
+          'bun info --json @homebridge/hap-nodejs@^2.2.3 version' : json('2.2.3'),
+          'bun info --json homebridge time'                      : json({ '2.5.0': ago(2) }),
+          'bun info --json homebridge@2.5.0'                     : json({
+            dependencies: { '@homebridge/hap-nodejs': '^2.2.3' }
+          }),
+          'bun outdated --cwd .': outdated(['@homebridge/hap-nodejs (dev)', '2.2.2', '2.2.4'], ...leading)
+        }
+      })
+      const manifest = JSON.parse((await read(scratch))['package.json'] ?? '{}')
+
+      expect({ hap: row(stdout, '@homebridge/hap-nodejs'), pins: manifest.devDependencies }).toEqual({
+        hap  : [],
+        pins : { '@homebridge/hap-nodejs': hap, homebridge }
+      })
+    }
+  )
+
+  test.for<{ audits: boolean, ignore: string, message: string, patched: string | null, suffix: string }>([
+    { audits: true, ignore: '', message: '', patched: null, suffix: '' },
+    {
+      audits  : true,
+      ignore  : IGNORED.join(' '),
+      message : '',
+      patched : null,
+      suffix  : IGNORED.map((id) => ` --ignore=${id}`).join('')
+    },
+    {
+      audits  : false,
+      ignore  : IGNORED.join(' '),
+      message : `\`${IGNORED[1]}\` has a patched release, so delete it from \`AUDIT_IGNORE\` `
+              + 'in .mise/config.toml and lift to `picomatch` 4.0.8\n',
+      patched : '4.0.8',
+      suffix  : ''
+    }
+  ])(
+    'passes each AUDIT_IGNORE entry to bun audit until a release patches it, given "$ignore" and $patched',
+    async ({ audits, ignore, message, patched, suffix }, { expect, scratch }) => {
+      const calls    = Object.keys(CANNED).filter((call) => call.startsWith('bun audit ')).toSorted()
+      const ignoring = (call: string): string => call.replace(/ --json$/, `${suffix} --json`)
+      const advisory = (fixed: string | null): unknown => ({
+        vulnerabilities: [
+          { first_patched_version: null, package: { name: 'micromatch' } },
+          { first_patched_version: fixed, package: { name: 'picomatch' } }
+        ]
+      })
+      const { commands, requests, status, stderr } = await lift(scratch, {
+        canned : Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
+        env    : { AUDIT_IGNORE: ignore },
+        live   : {
+          ...LIVE,
+          [`advisories/${IGNORED[0]}`] : advisory(null),
+          [`advisories/${IGNORED[1]}`] : advisory(patched)
+        }
+      })
+
+      expect({
+        audited : commands.filter(([program, verb]) => program === 'bun' && verb === 'audit'),
+        looked  : requests.map((args) => args.at(-1))
+          .filter((endpoint) => endpoint?.startsWith('advisories/')),
+        status  : status,
+        stderr  : stderr
+      }).toEqual({
+        audited : audits ? calls.map((call) => ignoring(call).split(' ')) : [],
+        looked  : ignore.split(' ').filter(Boolean).map((id) => `advisories/${id}`),
+        status  : audits ? 0 : 1,
+        stderr  : message
+      })
+    }
+  )
+
+  test('stops before any audit where gh cannot read an AUDIT_IGNORE entry', async ({ expect, scratch }) => {
+    const { commands, status } = await lift(scratch, {
+      env  : { AUDIT_IGNORE: IGNORED.join(' ') },
+      fail : `advisories/${IGNORED[1]}`
+    })
+
+    expect({
+      audited : commands.filter(([program, verb]) => program === 'bun' && verb === 'audit'),
+      status  : status
+    }).toEqual({ audited: [], status: 1 })
+  })
+
+  test('lists no advisory AUDIT_IGNORE sets aside in the row it would clear', async ({ expect, scratch }) => {
+    const ids        = ['GHSA-dddd-eeee-ffff', 'GHSA-aaaa-bbbb-cccc']
+    const calls      = Object.keys(CANNED).filter((call) => call.startsWith('bun audit '))
+    const suffix     = ids.map((id) => ` --ignore=${id}`).join('')
+    const ignoring   = (call: string): string => call.replace(/ --json$/, `${suffix} --json`)
+    const { stdout } = await lift(scratch, {
+      env    : { AUDIT_IGNORE: ` ${ids.join('   ')} ` },
+      live   : {
+        ...LIVE,
+        ...Object.fromEntries(ids.map((id) => [`advisories/${id}`, { vulnerabilities: [] }]))
+      },
+      canned : {
+        ...Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
+        [ignoring('bun audit --cwd site --json')]: json(ADVISORIES, 1)
+      }
+    })
+
+    expect(row(stdout, 'vitest')[5]).toBe('')
+  })
+})
