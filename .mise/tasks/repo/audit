@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "audit"
-#MISE depends     = ["site:bake"]
+#MISE depends     = ["plugin:bake"]
 #MISE description = "Audit the cross-config pins, every task, every TypeScript line's length, and the paths that redeploy the site, printing each finding as a GitHub error annotation"
 
 node .mise/audit/index.ts

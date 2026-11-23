@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "draw"
-#MISE depends     = ["site:bake"]
+#MISE depends     = ["plugin:bake"]
 #MISE description = "Draw the light and dark forms of the logo and the README's lockup again from the logo's construction, rewriting the files under `site/public/logo/` that the site's suite pins"
 #MISE dir         = "site"
 
