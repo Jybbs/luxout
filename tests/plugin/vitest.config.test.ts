@@ -22,7 +22,7 @@ const PAGE_TESTS = [
 ]
 const SCRIPT     = /\.[cm]?[jt]sx?$/
 const pragma     = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
-const root       = dirname(import.meta.dirname)
+const root       = dirname(dirname(import.meta.dirname))
 const files      = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
 const sources    = await Array.fromAsync(files, async (file) => ({
   file : file,
