@@ -217,6 +217,7 @@ describe('an alias a task declares', () => {
   const PRINTS = {
     banner  : HELP.replace('Commands:', `Commands:${' '.repeat(68)}▝▄ ▀▄▀ ▄▘`),
     colored : HELP.replaceAll(/^Commands:$|(?<=^ {2})\S+/gm, (word) => `\x1b[1;33m${word}\x1b[0m`),
+    split   : HELP.replace('[aliases: b,', '[aliases:\n                b,'),
     wide    : HELP.replaceAll(/\n {16}/g, ' '),
     wrapped : HELP
   }
@@ -229,6 +230,7 @@ describe('an alias a task declares', () => {
     { alias: 'backend-list', flagged: true, print: 'wide' },
     { alias: 'audit', flagged: true, print: 'colored' },
     { alias: 'audit', flagged: true, print: 'banner' },
+    { alias: 'b', flagged: true, print: 'split' },
     { alias: 'survey', flagged: false, print: 'wrapped' },
     { alias: 'interactive', flagged: false, print: 'wrapped' },
     { alias: 'backends,', flagged: false, print: 'wrapped' },

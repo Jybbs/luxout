@@ -27,7 +27,7 @@ interface Script extends Spot {
   text: string
 }
 
-const COMMANDS = /(?<=^ {2})\S+|(?<=\[aliases: [^\]]*)[^\s,\]]+/gm
+const COMMANDS = /(?<=^ {2})\S+|(?<=\[aliases:\s[^\]]*)[^\s,\]]+/gm
 const INSTALL  = new Set(['i', 'install'])
 const LIBRARY  = '.mise/lib/*.sh'
 const LISTING  = { file: CONFIG, line: 1 }
@@ -222,7 +222,8 @@ export class TaskList {
 /**
  * Lists each command and command alias under `Commands:` in `help`, the text
  * `mise --help` prints, at whatever width and in whatever color it prints,
- * its banner running onto the header line included.
+ * including where its banner runs onto the `Commands:` line or a wrap falls
+ * after `[aliases:`.
  */
 function commandsOf(help: string): Set<string> {
   const [, section = ''] = stripVTControlCharacters(help).split(/^Commands:.*$/m)
