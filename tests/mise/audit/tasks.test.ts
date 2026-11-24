@@ -1,12 +1,10 @@
-import { join } from 'node:path'
-
 import { describe, expect, vi } from 'vitest'
 
-import { Audit, type Run } from '../../../.mise/audit/audit.ts'
-import { PackageManifest } from '../../../.mise/audit/package.ts'
-import { TaskList }        from '../../../.mise/audit/tasks.ts'
-import { listing, mise }   from '../../common/mise.js'
-import { plant, test }     from '../../common/scratch.js'
+import { Audit, type Run }     from '../../../.mise/audit/audit.ts'
+import { PackageManifest }     from '../../../.mise/audit/package.ts'
+import { TaskList }            from '../../../.mise/audit/tasks.ts'
+import { HELP, listing, mise } from '../../common/mise.js'
+import { plant, test }         from '../../common/scratch.js'
 
 const FRONTMATTER = '#!/usr/bin/env -S bash -euo pipefail\n#MISE description = "Install"\n\n'
 const manifest    = new PackageManifest('{}')
@@ -49,16 +47,10 @@ describe('a bun install a task runs', () => {
       '.mise/tasks/plugin/test'       : FRONTMATTER + 'bun install\n'
     })
 
-    const audit = new Audit(scratch, mise([
-      ...listing(scratch, [{ file: true, name: 'plugin:test', source: '.mise/tasks/plugin/test' }]),
-      {
-        file   : '.mise/tasks/plugin/test',
-        name   : 'plugin:test:22',
-        run    : [],
-        source : join(scratch, '.mise/tasks/plugin/lines.toml'),
-        tools  : {}
-      }
-    ]))
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { file: true, name: 'plugin:test', source: '.mise/tasks/plugin/test' },
+      { file: '.mise/tasks/plugin/test', name: 'plugin:test:22', source: '.mise/tasks/plugin/lines.toml' }
+    ])))
 
     expect(TaskList.read(audit).findings(manifest))
       .toMatchObject([{ spot: { file: '.mise/tasks/plugin/test', line: 4 }, title: 'Unfrozen install' }])
@@ -93,13 +85,9 @@ describe('a bun install a task runs', () => {
       'scripts/sync.sh'            : FRONTMATTER + 'bun install\n'
     })
 
-    const audit = new Audit(scratch, mise([{
-      file   : 'scripts/sync.sh',
-      name   : 'repo:sync',
-      run    : [],
-      source : join(scratch, '.mise/tasks/repo/sync.toml'),
-      tools  : {}
-    }], [{ message: "Dependency 'nope' not found", task: 'repo:sync' }]))
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { file: 'scripts/sync.sh', name: 'repo:sync', source: '.mise/tasks/repo/sync.toml' }
+    ]), [{ message: "Dependency 'nope' not found", task: 'repo:sync' }]))
 
     expect(TaskList.read(audit).findings(manifest)).toMatchObject([
       { spot: { file: 'scripts/sync.sh', line: 4 }, title: 'Unfrozen install' },
@@ -110,13 +98,9 @@ describe('a bun install a task runs', () => {
   test('reports a file that names no script as mise’s defect rather than throwing', async ({ scratch }) => {
     await plant(scratch, { '.mise/tasks/repo/sync.toml': '["repo:sync"]\nfile = "scripts/missing.sh"\n' })
 
-    const audit = new Audit(scratch, mise([{
-      file   : 'scripts/missing.sh',
-      name   : 'repo:sync',
-      run    : [],
-      source : join(scratch, '.mise/tasks/repo/sync.toml'),
-      tools  : {}
-    }], [{ message: 'Task file not found: scripts/missing.sh', task: 'repo:sync' }]))
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { file: 'scripts/missing.sh', name: 'repo:sync', source: '.mise/tasks/repo/sync.toml' }
+    ]), [{ message: 'Task file not found: scripts/missing.sh', task: 'repo:sync' }]))
 
     expect(TaskList.read(audit).findings(manifest)).toMatchObject([{
       message : 'Task file not found: scripts/missing.sh',
@@ -214,7 +198,8 @@ test('lists every task the checkout declares through mise, hidden ones included'
 
   expect(vi.mocked(run).mock.calls.map(([, args]) => args)).toEqual([
     ['tasks', 'validate', '--json'],
-    ['tasks', 'ls', '--hidden', '--json', '--no-global']
+    ['tasks', 'ls', '--hidden', '--json', '--no-global'],
+    ['--help']
   ])
 })
 
@@ -226,6 +211,87 @@ test('reports what mise printed where it lists no task rather than throwing', ({
     spot    : { file: '.mise/config.toml', line: 1 },
     title   : 'Task listing'
   }])
+})
+
+describe('an alias a task declares', () => {
+  const PRINTS = {
+    banner  : HELP.replace('Commands:', `Commands:${' '.repeat(68)}▝▄ ▀▄▀ ▄▘`),
+    colored : HELP.replaceAll(/^Commands:$|(?<=^ {2})\S+/gm, (word) => `\x1b[1;33m${word}\x1b[0m`),
+    split   : HELP.replace('[aliases: b,', '[aliases:\n                b,'),
+    wide    : HELP.replaceAll(/\n {16}/g, ' '),
+    wrapped : HELP
+  }
+
+  test.for([
+    { alias: 'audit', flagged: true, print: 'wrapped' },
+    { alias: 'r', flagged: true, print: 'wrapped' },
+    { alias: 'b', flagged: true, print: 'wrapped' },
+    { alias: 'backend-list', flagged: true, print: 'wrapped' },
+    { alias: 'backend-list', flagged: true, print: 'wide' },
+    { alias: 'audit', flagged: true, print: 'colored' },
+    { alias: 'audit', flagged: true, print: 'banner' },
+    { alias: 'b', flagged: true, print: 'split' },
+    { alias: 'survey', flagged: false, print: 'wrapped' },
+    { alias: 'interactive', flagged: false, print: 'wrapped' },
+    { alias: 'backends,', flagged: false, print: 'wrapped' },
+    { alias: '[TASK]', flagged: false, print: 'wrapped' },
+    { alias: 'mise', flagged: false, print: 'wrapped' }
+  ] as const)('reports `$alias` in the $print help as taken by mise: $flagged', async ({
+    alias,
+    flagged,
+    print
+  }, { scratch }) => {
+    await plant(scratch, { '.mise/tasks/repo/audit': FRONTMATTER + 'node .mise/audit/index.ts\n' })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { aliases: ['vet', alias], file: true, name: 'repo:audit', source: '.mise/tasks/repo/audit' }
+    ]), [], '', undefined, PRINTS[print]))
+
+    expect(TaskList.read(audit).findings(manifest)).toEqual(flagged ? [expect.objectContaining({
+      message : `\`mise ${alias}\` runs mise's own command rather than \`repo:audit\`, since `
+              + `\`mise --help\` lists the alias \`${alias}\` as a command or command alias`,
+      spot    : { file: '.mise/tasks/repo/audit', line: 1 },
+      title   : 'Task defect'
+    })] : [])
+  })
+
+  test('reports each alias mise takes after the defects mise reports for the task', async ({ scratch }) => {
+    await plant(scratch, { '.mise/tasks/repo/audit': FRONTMATTER + 'node .mise/audit/index.ts\n' })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [{
+      aliases : ['run', 'survey', 'audit'],
+      file    : true,
+      name    : 'repo:audit',
+      source  : '.mise/tasks/repo/audit'
+    }]), [{ message: 'Not formatted', task: 'repo:audit' }]))
+
+    expect(TaskList.read(audit).findings(manifest).map(({ message }) => message.split(',')[0])).toEqual([
+      'Not formatted',
+      "`mise run` runs mise's own command rather than `repo:audit`",
+      "`mise audit` runs mise's own command rather than `repo:audit`"
+    ])
+  })
+
+  test('lands on the table declaring the task in its TOML file', async ({ scratch }) => {
+    await plant(scratch, { '.mise/tasks/x.toml': '\n["x:a"]\nalias = "run"\nrun = "true"\n' })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { aliases: ['run'], name: 'x:a', run: ['true'], source: '.mise/tasks/x.toml' }
+    ])))
+
+    expect(TaskList.read(audit).findings(manifest))
+      .toMatchObject([{ spot: { file: '.mise/tasks/x.toml', line: 2 }, title: 'Task defect' }])
+  })
+
+  test('reports a help text listing no command rather than passing every alias', ({ scratch }) => {
+    const audit = new Audit(scratch, mise([], [], '', undefined, 'Usage: mise [OPTIONS]\n'))
+
+    expect(TaskList.read(audit).findings(manifest)).toMatchObject([{
+      message : 'Error: `mise --help` lists no command under `Commands:`',
+      spot    : { file: '.mise/config.toml', line: 1 },
+      title   : 'Task listing'
+    }])
+  })
 })
 
 test('reports the line a task script stops parsing on', async ({ scratch }) => {
@@ -267,13 +333,12 @@ describe('a Node release a task declares', () => {
       '.mise/tasks/plugin/test'       : FRONTMATTER + 'vitest run\n'
     })
 
-    const audit = new Audit(scratch, mise([{
+    const audit = new Audit(scratch, mise(listing(scratch, [{
       file   : '.mise/tasks/plugin/test',
       name   : 'plugin:test:22',
-      run    : [],
-      source : join(scratch, '.mise/tasks/plugin/lines.toml'),
+      source : '.mise/tasks/plugin/lines.toml',
       tools  : { node }
-    }]))
+    }])))
 
     expect(TaskList.read(audit).findings(engines)).toMatchObject(expected)
   })
