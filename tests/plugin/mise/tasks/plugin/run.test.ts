@@ -29,8 +29,8 @@ async function read(directory: string, ...files: string[]): Promise<string[]> {
 
 /**
  * Runs the task with `args` in `scratch`, a checkout holding the seed under
- * `tests/plugin/homebridge` beside the files `planted` adds, under stand-ins for `bun`
- * and `hb-service`, where `bun` fails instead where `failing` is set.
+ * `tests/plugin/homebridge` beside the files `planted` adds, under stand-ins
+ * for `bun` and `hb-service`, where `bun` fails instead where `failing` is set.
  *
  * Returns:
  *   The run, whose `commands` hold each program the task ran with its

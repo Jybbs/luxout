@@ -15,7 +15,8 @@ import * as typeface from '../../../../site/.vitepress/lib/type/typeface.ts'
 const KNOWN  = { glyf: 10, head: 1, loca: 11 }
 const UPEM   = 2000  // Bodoni Moda's font units to the em, at which a pixel is one unit
 const axes   = { opsz: 36, wght: 600 }
-const bodoni = await readFile(new URL('../../../../site/.vitepress/fonts/bodoni-moda/bodoni-moda.ttf', import.meta.url))
+const fonts  = new URL('../../../../site/.vitepress/fonts/', import.meta.url)
+const bodoni = await readFile(new URL('bodoni-moda/bodoni-moda.ttf', fonts))
 const face   = new typeface.Typeface(bodoni)
 
 /**

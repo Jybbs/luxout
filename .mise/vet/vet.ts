@@ -28,8 +28,8 @@ export class Vet {
   /**
    * Builds the checks from the `config.schema.json` under `root`, beside the
    * services check run under the plugin's block in
-   * `tests/plugin/homebridge/config.json`. Reads the release installed into each
-   * directory `args` names, resolved against `root`.
+   * `tests/plugin/homebridge/config.json`. Reads the release installed into
+   * each directory `args` names, resolved against `root`.
    */
   static async read(args: string[], root: string, tuning?: scenario.Tuning, write?: Write): Promise<Vet> {
     const json = async (...path: string[]) =>

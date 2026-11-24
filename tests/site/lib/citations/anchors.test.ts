@@ -5,7 +5,7 @@ import { expect, it }             from 'vitest'
 
 import config from '../../../../site/.vitepress/config.ts'
 
-const md = await createMarkdownRenderer(join(import.meta.dirname, '..', '..', '..', '..', 'site'), config.markdown)
+const md = await createMarkdownRenderer(join(import.meta.dirname, '../../../../site'), config.markdown)
 
 it('names a note, its marker, and its back link for the key the marker cites', () => {
   expect(md.render('Bright[^reda2008].\n\n[^reda2008]: Reda and Andreas.\n')).toMatchSnapshot()

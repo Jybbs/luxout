@@ -108,5 +108,17 @@
     "vitest": "5.1.0",
     "vue": "3.5.45",
     "yaml": "2.9.1"
+  },
+  "knip": {
+    "entry": [
+      ".mise/*/index.ts", "site/.vitepress/lib/**/*-frame.css", "site/.vitepress/lib/**/*.data.ts",
+      "site/.vitepress/lib/bundle/index.ts", "src/ui/public/index.ts", "src/ui/server.ts"
+    ],
+    "ignoreBinaries": ["mise"],
+    "ignoreDependencies": ["oxlint", "oxlint-tsgolint", "publint"],
+    "project": [".mise/**/*.ts", "site/.vitepress/**/*.{css,ts,tsx}", "src/**/*.ts", "tests/**/*.ts"],
+    "vitepress": { "entry": ["site/.vitepress/config.ts", "site/.vitepress/theme/index.ts"] },
+    "vitest": { "config": ["site/.vitepress/vitest.config.ts", "tests/plugin/vitest.config.ts"] },
+    "vue": false
   }
 }

@@ -10,7 +10,7 @@ const BASE = { fold: 'As a table', heading: 'The Section', widget: 'TheGap' } as
 const BODY = '# Page\n\n## The Section\n\nThe words.\n\n![Frame](./frame.svg)\n\n'
            + '| A |\n|---|\n| b |\n\nAfter.\n\n## Next\n\nNext.\n'
 const NO_TABLE = '## The Section\n\nWords.\n\n## Next\n\n| A |\n|---|\n| b |\n'
-const md = await createMarkdownRenderer(join(import.meta.dirname, '..', '..', '..', '..', 'site'), config.markdown)
+const md = await createMarkdownRenderer(join(import.meta.dirname, '../../../../site'), config.markdown)
 
 placeWidgets(md, [
   { ...BASE, page: 'plain.md' },

@@ -10,8 +10,8 @@ const manifest = new PackageManifest(JSON.stringify({
 }))
 
 /**
- * Holds a manifest under `tests/plugin/vet/<role>` pinning each release `pins` names,
- * with the pin on line 3.
+ * Holds a manifest under `tests/plugin/vet/<role>` pinning each release `pins`
+ * names, with the pin on line 3.
  */
 const vet = (pins: Record<string, string | undefined>): VetManifests => new VetManifests(Object.fromEntries(
   Object.entries(pins).map(([role, pin]) => [

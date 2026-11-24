@@ -328,19 +328,19 @@ test('lists the scripts of a task and each task its `depends` or a `run` entry r
   scratch
 }) => {
   await plant(scratch, {
-    '.mise/tasks/site/bake'  : 'bun install --frozen-lockfile\n',
-    '.mise/tasks/site/check' : 'lychee dist\n',
-    '.mise/tasks/site/press' : 'vitepress build\n',
-    '.mise/tasks/site/serve' : 'vitepress dev\n'
+    '.mise/tasks/plugin/bake' : 'bun install --frozen-lockfile\n',
+    '.mise/tasks/site/check'  : 'lychee dist\n',
+    '.mise/tasks/site/press'  : 'vitepress build\n',
+    '.mise/tasks/site/serve'  : 'vitepress dev\n'
   })
 
   const tasks = TaskList.read(new Audit(scratch, mise(listing(scratch, [
     { depends: ['site:press'], file: true, name: 'site:check', source: '.mise/tasks/site/check' },
-    { file: true, name: 'site:press', run: [{ tasks: ['site:bake'] }], source: '.mise/tasks/site/press' },
-    { depends: ['site:check'], file: true, name: 'site:bake', source: '.mise/tasks/site/bake' },
+    { file: true, name: 'site:press', run: [{ tasks: ['plugin:bake'] }], source: '.mise/tasks/site/press' },
+    { depends: ['site:check'], file: true, name: 'plugin:bake', source: '.mise/tasks/plugin/bake' },
     { file: true, name: 'site:serve', source: '.mise/tasks/site/serve' }
   ]))))
 
   expect(tasks.chain('site:check').map(({ file }) => file))
-    .toEqual(['.mise/tasks/site/check', '.mise/tasks/site/press', '.mise/tasks/site/bake'])
+    .toEqual(['.mise/tasks/site/check', '.mise/tasks/site/press', '.mise/tasks/plugin/bake'])
 })

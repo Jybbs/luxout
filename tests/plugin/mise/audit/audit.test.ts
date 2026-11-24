@@ -3,11 +3,10 @@ import { join } from 'node:path'
 import { expect, vi } from 'vitest'
 
 import { Audit, type Run } from '../../../../.mise/audit/audit.ts'
-import { mise }            from '../../common/mise.js'
+import { VET, mise }       from '../../common/mise.js'
 import { plant, test }     from '../../common/scratch.js'
 
 const CONFIG = '[tools]\nnode = "26.10.0"\n'
-const VET    = { 'tests/plugin/vet/floor/package.json': '{}', 'tests/plugin/vet/pinned/package.json': '{}' }
 
 const manifest = (coverage: string): string => JSON.stringify(
   { devDependencies: { '@vitest/coverage-v8': coverage, vitest: '5.0.3' }, engines: { node: '^26.10.0' } },
@@ -34,21 +33,21 @@ test.for([
   expect(write.mock.calls.flat()).toEqual(written)
 })
 
-test('prints a finding against the site’s manifest where the checkout holds one', async ({ scratch }) => {
+test('prints a finding against each manifest beside the root', async ({ scratch }) => {
   const write = vi.fn<(line: string) => void>()
 
   await plant(scratch, {
     ...VET,
-    '.mise/config.toml' : CONFIG,
-    'package.json'      : manifest('5.0.3'),
-    'site/package.json' : manifest('5.0.4')
+    '.mise/config.toml'                    : CONFIG,
+    'package.json'                         : manifest('5.0.3'),
+    'tests/plugin/homebridge/package.json' : manifest('5.0.4')
   })
 
   await new Audit(scratch, mise([]), write).report()
 
   expect(write.mock.calls.flat()).toEqual([
-    '::error file=site/package.json,line=3,title=Coverage pin::`@vitest/coverage-v8` pins 5.0.4, '
-  + 'whereas `vitest`, the release it runs under, pins 5.0.3'
+    '::error file=tests/plugin/homebridge/package.json,line=3,title=Coverage pin::`@vitest/coverage-v8` pins '
+  + '5.0.4, whereas `vitest`, the release it runs under, pins 5.0.3'
   ])
 })
 
@@ -189,7 +188,9 @@ test('prints what the manifests of the releases the vet installs report', async 
     ...VET,
     '.mise/config.toml'                    : CONFIG,
     'package.json'                         : manifest('5.0.3'),
-    'tests/plugin/vet/pinned/package.json' : JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2)
+    'tests/plugin/vet/pinned/package.json' : JSON.stringify({
+      dependencies: { homebridge: '2.4.0' }
+    }, null, 2)
   })
 
   expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
@@ -235,9 +236,13 @@ test.for([
 })
 
 test('lists each package directory `bun_packages` prints', ({ scratch }) => {
-  const run = vi.fn<Run>(() => ({ stderr: '', stdout: '.\ntests/plugin/homebridge\ntests/plugin/vet/floor\n' }))
+  const run = vi.fn<Run>(() => ({
+    stderr : '',
+    stdout : '.\ntests/plugin/homebridge\ntests/plugin/vet/floor\n'
+  }))
 
-  expect(new Audit(scratch, run).packages()).toEqual(['.', 'tests/plugin/homebridge', 'tests/plugin/vet/floor'])
+  expect(new Audit(scratch, run).packages())
+    .toEqual(['.', 'tests/plugin/homebridge', 'tests/plugin/vet/floor'])
   expect(run).toHaveBeenCalledExactlyOnceWith('bash', ['-c', 'source .mise/lib/lock.sh && bun_packages'], {
     cwd      : scratch,
     encoding : 'utf8'

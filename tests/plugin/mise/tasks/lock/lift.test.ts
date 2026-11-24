@@ -45,7 +45,6 @@ const COMPARISONS                     = [
 const CURRENT: Record<string, Answer> = {
   'bun audit --cwd . --json'                : json({}),
   'bun outdated --cwd .'                    : outdated(),
-  'bun outdated --cwd site'                 : outdated(),
   'mise latest node@24'                     : { stdout: '24.21.0\n' },
   'mise latest node@26'                     : { stdout: '26.10.0\n' },
   'mise outdated --bump --json --no-global' : json({}),
@@ -138,15 +137,13 @@ const test                           = base
     }
   })
 const CANNED: Record<string, Answer> = {
-  'bun audit --cwd site --json'                    : json({}),
-  'bun audit --cwd tests/plugin/homebridge --json'        : json({}),
-  'bun audit --cwd tests/plugin/vet/pinned --json'        : json({}),
+  'bun audit --cwd tests/plugin/homebridge --json' : json({}),
+  'bun audit --cwd tests/plugin/vet/pinned --json' : json({}),
   'bun info --json @types/node time'               : json({ '26.6.5': ago(8) }),
   'bun info --json unbash time'                    : json({ '6.0.0': ago(1) }),
   'bun info --json vitest time'                    : json({ '5.0.5': ago(2) }),
-  'bun outdated --cwd site'                        : outdated(['vitest (dev)', '5.0.3', '5.0.5']),
-  'bun outdated --cwd tests/plugin/homebridge'            : outdated(),
-  'bun outdated --cwd tests/plugin/vet/pinned'            : outdated(),
+  'bun outdated --cwd tests/plugin/homebridge'     : outdated(),
+  'bun outdated --cwd tests/plugin/vet/pinned'     : outdated(),
   'mise config get --file .mise/config.toml min_version': { stdout: '2026.9.18\n' },
   'mise config get --file .mise/config.toml tools.node': { stdout: '26.10.0\n' },
   'mise latest node@22'                            : { stdout: '22.23.3\n' },
@@ -206,12 +203,13 @@ const FILES = {
                                          + '["@types/node"]\nreason = "Stays on the 22 line"\n',
   '.mise/tasks/plugin/lines.toml'        : '["plugin:test:22"]\ntools = { node = "22.23.3" }\n\n'
                                          + '["plugin:test:24"]\ntools = { node = "24.21.0" }\n',
-  'site/package.json': JSON.stringify({ devDependencies: { vitest: '5.0.3' } }, null, 2) + '\n',
 
   'tests/plugin/homebridge/package.json': JSON.stringify({
     dependencies: { 'homebridge-config-ui-x': '5.29.0' }
   }, null, 2) + '\n',
-  'tests/plugin/vet/pinned/package.json': JSON.stringify({ dependencies: { homebridge: '2.4.0' } }, null, 2) + '\n',
+  'tests/plugin/vet/pinned/package.json': JSON.stringify({
+    dependencies: { homebridge: '2.4.0' }
+  }, null, 2) + '\n',
 
   '.github/workflows/ci.yml': [
     'jobs:',
@@ -262,7 +260,6 @@ const LIFT = {
                                   + 'bun    = "1.4.3"\nnode   = "26.12.0"\nzizmor = "1.31.1"\n',
   '.github/workflows/release.yml' : FILES['.github/workflows/release.yml'].replace(CHECKOUT, LIFTED),
   '.mise/tasks/plugin/lines.toml' : FILES['.mise/tasks/plugin/lines.toml'].replace('24.21.0', '24.22.0'),
-  'site/package.json'             : JSON.stringify({ devDependencies: { vitest: '5.0.5' } }, null, 2) + '\n',
 
   '.github/workflows/ci.yml': FILES['.github/workflows/ci.yml']
     .replace(CHECKOUT, LIFTED)
@@ -760,7 +757,9 @@ describe.concurrent('lock:lift', () => {
   })
 
   test('lists an advisory two Bun packages report once in the row it clears', async ({ expect, scratch }) => {
-    const { stdout } = await lift(scratch, { canned: { 'bun audit --cwd site --json': json(ADVISORIES, 1) } })
+    const { stdout } = await lift(scratch, {
+      canned: { 'bun audit --cwd tests/plugin/homebridge --json': json(ADVISORIES, 1) }
+    })
 
     expect(row(stdout, 'vitest')[5]).toBe('GHSA-aaaa-bbbb-cccc')
   })
@@ -913,7 +912,7 @@ describe.concurrent('lock:lift', () => {
       },
       canned : {
         ...Object.fromEntries(calls.map((call) => [ignoring(call), CANNED[call] ?? {}])),
-        [ignoring('bun audit --cwd site --json')]: json(ADVISORIES, 1)
+        [ignoring('bun audit --cwd tests/plugin/homebridge --json')]: json(ADVISORIES, 1)
       }
     })
 

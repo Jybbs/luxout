@@ -15,7 +15,8 @@ it('fails to load where COVERAGE_FLOOR is unset', async () => {
   vi.stubEnv('COVERAGE_FLOOR', undefined)
   vi.resetModules()
 
-  await expect(import('../../site/.vitepress/vitest.config.ts')).rejects.toThrow('COVERAGE_FLOOR holds nothing')
+  await expect(import('../../site/.vitepress/vitest.config.ts'))
+    .rejects.toThrow('COVERAGE_FLOOR holds nothing')
 })
 
 it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to Vite’s own transform', () => {
@@ -32,8 +33,8 @@ it('reruns every test after a change to the runtime pins or a file read beside t
 
   expect(new Set(triggers)).toEqual(new Set([
     '.mise/config.toml', '.mise/mise.lock', 'bun.lock', 'package.json', 'site/.vitepress/tsconfig.json',
-    'site/.vitepress/vitest.config.ts', 'site/bun.lock', 'site/package.json', 'src/tsconfig.json',
-    'src/ui/public/tsconfig.json', 'tests/common/triggers.ts', 'tests/tsconfig.json'
+    'site/.vitepress/vitest.config.ts', 'src/tsconfig.json', 'src/ui/public/tsconfig.json',
+    'tests/plugin/common/triggers.ts', 'tests/plugin/tsconfig.json', 'tests/site/tsconfig.json'
   ]))
 })
 

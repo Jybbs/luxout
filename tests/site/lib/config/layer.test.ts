@@ -6,7 +6,7 @@ import { expect, it }           from 'vitest'
 import { LAYER, layerTheme } from '../../../../site/.vitepress/lib/config/layer.ts'
 
 const SHEET  = '.a { color: red }\n.b { color: blue }'
-const THEME  = '/site/node_modules/vitepress/dist/client/theme-default'
+const THEME  = '/node_modules/vitepress/dist/client/theme-default'
 const plugin = layerTheme()
 const wrap   = plugin.transform as (code: string, id: string) => TransformResult | undefined
 
@@ -36,7 +36,7 @@ it.each([
   '/site/.vitepress/theme/styles/tokens.css',
   `${THEME}/components/VPNav.vue`,
   `${THEME}/components/VPNav.vue?vue&type=script&setup=true&lang.ts`,
-  '/site/node_modules/tailwindcss/theme.css'
+  '/node_modules/tailwindcss/theme.css'
 ])('leaves %s as it is', (id) => {
   expect(wrap(SHEET, id)).toBeUndefined()
 })

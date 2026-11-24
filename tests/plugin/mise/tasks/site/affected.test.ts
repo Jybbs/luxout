@@ -44,7 +44,6 @@ const RESOLVED_PAGES = {
                             + "'utf8'))).not.toContain('')\n})\n"
 }
 const SITE = ['mise', 'run', 'site:test', '--', '--changed', BASE, ...ARGS]
-const root = join(import.meta.dirname, '..', '..', '..', '..', '..')
 
 /**
  * Runs the task from the site of a repository at `folder` under `scratch`

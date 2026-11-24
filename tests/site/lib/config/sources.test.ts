@@ -5,7 +5,8 @@ import { expect, it } from 'vitest'
 import { Bibliography } from '../../../../site/.vitepress/lib/citations/bibliography.ts'
 import { sourcesFrom }  from '../../../../site/.vitepress/lib/config/sources.ts'
 
-const bibliography = await Bibliography.read(pathToFileURL(`${import.meta.dirname}/../../../../site/.vitepress/`))
+const root         = pathToFileURL(`${import.meta.dirname}/../../../../site/.vitepress/`)
+const bibliography = await Bibliography.read(root)
 
 it('links each source to the address its bibliography entry gives, keeping the rest as listed', () => {
   expect(Object.fromEntries(sourcesFrom(bibliography).map(({ link, name }) => [name, link]))).toEqual({

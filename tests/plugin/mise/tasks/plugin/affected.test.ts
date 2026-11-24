@@ -73,9 +73,7 @@ function selected(
     'package.json'                     : '{ "type": "module" }\n',
     'site/.vitepress/tsconfig.json'    : '{}\n',
     'site/.vitepress/vitest.config.ts' : '{}\n',
-    'site/bun.lock'                    : '{}\n',
     'site/index.md'                    : '# Luxout\n',
-    'site/package.json'                : '{}\n',
     'src/a.ts'                         : "export const a = 1\nexport { page } from './ui/public/index.ts'\n",
     'src/b.ts'                         : 'export const b = 2\n',
     'src/package.json'                 : '{}\n',
@@ -93,6 +91,9 @@ function selected(
     'tests/plugin/homebridge/bun.lock' : '{}\n',
     'tests/plugin/tsconfig.json'       : '{}\n',
     'tests/plugin/vet/floor/bun.lock'  : '{}\n',
+    'tests/site/a.test.ts'             : "import { expect, test } from 'vitest'\n\n"
+                                       + "test('reads nothing', () => {\n  expect(1).toBe(1)\n})\n",
+    'tests/site/tsconfig.json'         : '{}\n',
     'tsconfig.json'                    : '{}\n',
 
     '.mise/node_modules/@luxout/plain/package.json'  : '{}\n',
@@ -171,9 +172,9 @@ describe.concurrent('plugin:affected', () => {
     { changed: '.mise/vet/shared.json', name: 'runs no plugin test', ran: false },
     { changed: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
     { changed: 'site/index.md', name: 'runs no plugin test', ran: false },
-    { changed: 'site/bun.lock', name: 'runs no plugin test', ran: false },
-    { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
     { changed: 'src/b.ts', name: 'runs no plugin test', ran: false },
+    { changed: 'tests/site/a.test.ts', name: 'runs no plugin test', ran: false },
+    { changed: 'tests/site/tsconfig.json', name: 'runs no plugin test', ran: false },
     { changed: 'tsconfig.json', name: 'runs no plugin test', ran: false },
     { changed: 'src/a.ts', name: 'runs the plugin test', ran: true },
     { changed: '.mise/bun.lock', name: 'runs every plugin test', ran: true },
@@ -207,7 +208,7 @@ describe.concurrent('plugin:affected', () => {
 
   test.for([
     { deleted: 'site/.vitepress/tsconfig.json', name: 'runs no plugin test', ran: false },
-    { deleted: 'site/package.json', name: 'runs no plugin test', ran: false },
+    { deleted: 'tests/site/tsconfig.json', name: 'runs no plugin test', ran: false },
     { deleted: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },
     { deleted: 'src/package.json', name: 'runs every plugin test', ran: true },
     { deleted: 'src/ui/public/tsconfig.json', name: 'runs every plugin test', ran: true },
@@ -233,8 +234,8 @@ describe.concurrent('plugin:affected', () => {
   )
 
   test.for([
-    { changed: 'site/bun.lock', name: 'runs no plugin test', ran: false },
-    { changed: 'site/package.json', name: 'runs no plugin test', ran: false },
+    { changed: 'tests/site/a.test.ts', name: 'runs no plugin test', ran: false },
+    { changed: 'tests/site/tsconfig.json', name: 'runs no plugin test', ran: false },
     { changed: '.mise/config.toml', name: 'runs every plugin test', ran: true },
     { changed: '.mise/mise.lock', name: 'runs every plugin test', ran: true },
     { changed: '.mise/vet/tsconfig.json', name: 'runs every plugin test', ran: true },

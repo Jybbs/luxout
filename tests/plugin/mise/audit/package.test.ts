@@ -32,8 +32,10 @@ it.each([
 })
 
 it('reports a coverage pin against the file the manifest was read from', () => {
-  expect(manifest({ '@vitest/coverage-v8': '5.0.4', vitest: '5.0.3' }, 'site/package.json').findings)
-    .toMatchObject([{ spot: { file: 'site/package.json', line: 3 }, title: 'Coverage pin' }])
+  const file = 'tests/plugin/homebridge/package.json'
+
+  expect(manifest({ '@vitest/coverage-v8': '5.0.4', vitest: '5.0.3' }, file).findings)
+    .toMatchObject([{ spot: { file, line: 3 }, title: 'Coverage pin' }])
 })
 
 it.each([

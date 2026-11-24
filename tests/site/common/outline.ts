@@ -17,7 +17,9 @@ const SETTINGS = new Set([
   'text-transform'
 ])
 const TEXT     = /<text ([^>]*)>([^<]*)<\/text>/g
-const typeface = new Typeface(await readFile(new URL(`../../../site/.vitepress/${FONT_FILES.mono}`, import.meta.url)))
+const typeface = new Typeface(
+  await readFile(new URL(`../../../site/.vitepress/${FONT_FILES.mono}`, import.meta.url))
+)
 
 /**
  * Reads the declarations the top-level rules of `root` give the class `name`,

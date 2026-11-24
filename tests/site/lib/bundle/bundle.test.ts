@@ -20,7 +20,7 @@ const CLEAN = {
 }
 const FOLDS = '.vitepress/theme/styles/dim.css: the minifier folds color-mix(in srgb,red 30%,black) into a '
             + 'fixed color'
-const entry = join(import.meta.dirname, '..', '..', '..', '..', 'site', '.vitepress', 'lib', 'bundle', 'index.ts')
+const entry = join(import.meta.dirname, '../../../../site/.vitepress/lib/bundle/index.ts')
 const test  = scratch
   .extend('root', async ({ scratch: root }) => {
     await plant(root, CLEAN)

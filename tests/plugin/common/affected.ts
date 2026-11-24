@@ -32,11 +32,12 @@ const root         = join(import.meta.dirname, '..', '..', '..')
  * `changed`, or deletes it where `deleted` is set, since it left `origin/main`.
  *
  * The repository at `repo` holds the `planted` files and a copy of each
- * `copied` file, `tests/plugin/common/coverage.ts`, `tests/plugin/common/tags.ts`, and
- * `tests/plugin/common/triggers.ts`, taken from the repository the suite runs in at
- * the same path. A link at each `linked` path names its target, beside a link
- * to the `node_modules` of the repository the suite runs in. The task runs
- * under the `COVERAGE_FLOOR` the suite runs under.
+ * `copied` file, `tests/plugin/common/coverage.ts`,
+ * `tests/plugin/common/tags.ts`, and `tests/plugin/common/triggers.ts`, taken
+ * from the repository the suite runs in at the same path. A link at each
+ * `linked` path names its target, beside a link to the `node_modules` of the
+ * repository the suite runs in. The task runs under the `COVERAGE_FLOOR` the
+ * suite runs under.
  *
  * Returns:
  *   Whether Vitest reported one test passing, beside the task's exit status.

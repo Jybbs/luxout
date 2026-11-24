@@ -5,7 +5,7 @@ import { join }      from 'node:path'
 
 import { expect } from 'vitest'
 
-import { Audit }        from '../../../../.mise/audit/audit.ts'
+import { Audit }         from '../../../../.mise/audit/audit.ts'
 import { DeployPaths }   from '../../../../.mise/audit/deploy.ts'
 import { YamlFile }      from '../../../../.mise/audit/files.ts'
 import type { Finding }  from '../../../../.mise/audit/finding.ts'
@@ -24,11 +24,11 @@ const WORKFLOW  = '.github/workflows/deploy.yml'
 const root      = join(import.meta.dirname, '../../../..')
 
 const PAGES = {
+  'package.json'                   : '{ "type": "module" }\n',
   'site/.vitepress/config.ts'      : "import { FACE } from './lib/face.ts'\n\nexport default { FACE }\n",
   'site/.vitepress/fonts/face.ttf' : '',
   'site/.vitepress/lib/face.ts'    : "export const FACE = 'fonts/face.ttf'\n",
   'site/index.md'                  : '![The sun](./sun.svg)\n',
-  'site/package.json'              : '{ "type": "module" }\n',
   'site/public/logo.svg'           : '<svg/>\n',
   'site/sun.svg'                   : '<svg/>\n'
 }
@@ -138,48 +138,47 @@ test('reads the modules the site config imports and the files read to install th
   await plant(scratch, {
     '.github/workflows/deploy.yml' : ['on:', '  push:', '    paths:', '      - site/**'].join('\n'),
     'data.json'                    : '{}\n',
-    'package.json'                 : '{}\n',
+    'package.json'                 : '{ "type": "module" }\n',
     'site/.vitepress/config.ts'    : "import data from '../../data.json' with { type: 'json' }\n"
                                    + "import { a } from './lib/a.ts'\n\nexport default { a, data }\n",
-    'site/.vitepress/lib/a.ts'     : 'export const a = 1\n',
-    'site/package.json'            : '{ "type": "module" }\n'
+    'site/.vitepress/lib/a.ts'     : 'export const a = 1\n'
   })
   const audit = await staged(scratch)
 
   expect(audit.imports('site', '.vitepress/config.ts')).toEqual(expect.arrayContaining([
-    'data.json', 'site/.vitepress/config.ts', 'site/.vitepress/lib/a.ts', 'site/package.json'
+    'data.json', 'package.json', 'site/.vitepress/config.ts', 'site/.vitepress/lib/a.ts'
   ]))
   expect(named((await DeployPaths.read(audit)).findings(TaskList.read(audit))))
-    .toEqual(['data.json', 'tsconfig.json', ...PROVISION, WORKFLOW])
+    .toEqual(['data.json', 'tsconfig.json', 'package.json', ...PROVISION, WORKFLOW])
 })
 
 test('reads the modules the site theme imports beside those of the site config', async ({ scratch }) => {
   await plant(scratch, {
     '.github/workflows/deploy.yml'   : ['on:', '  push:', '    paths:', '      - site/**'].join('\n'),
     'config.schema.json'             : '{}\n',
+    'package.json'                   : '{ "type": "module" }\n',
     'site/.vitepress/config.ts'      : 'export default {}\n',
     'site/.vitepress/theme/index.ts' : "import data from '../../../config.schema.json' with { type: 'json' }"
-                                     + '\n\nexport default { data }\n',
-    'site/package.json'              : '{ "type": "module" }\n'
+                                     + '\n\nexport default { data }\n'
   })
   const audit = await staged(scratch)
 
   expect(named((await DeployPaths.read(audit)).findings(TaskList.read(audit))))
-    .toEqual(['tsconfig.json', 'config.schema.json', ...PROVISION, WORKFLOW])
+    .toEqual(['tsconfig.json', 'package.json', 'config.schema.json', ...PROVISION, WORKFLOW])
 })
 
 test('reads the modules the site theme imports in a checkout with no site config', async ({ scratch }) => {
   await plant(scratch, {
     '.github/workflows/deploy.yml'   : ['on:', '  push:', '    paths:', '      - site/**'].join('\n'),
     'config.schema.json'             : '{}\n',
+    'package.json'                   : '{ "type": "module" }\n',
     'site/.vitepress/theme/index.ts' : "import data from '../../../config.schema.json' with { type: 'json' }"
-                                     + '\n\nexport default { data }\n',
-    'site/package.json'              : '{ "type": "module" }\n'
+                                     + '\n\nexport default { data }\n'
   })
   const audit = await staged(scratch)
 
   expect(named((await DeployPaths.read(audit)).findings(TaskList.read(audit))))
-    .toEqual(['config.schema.json', 'tsconfig.json', ...PROVISION, WORKFLOW])
+    .toEqual(['config.schema.json', 'tsconfig.json', 'package.json', ...PROVISION, WORKFLOW])
 })
 
 test.for<{ files: Record<string, string>, name: string, reported: string[] }>([
@@ -227,9 +226,9 @@ test('reads each file a page embeds by a relative path, resolved as VitePress re
   const images = ['./a%20b.svg', 'sun.svg?raw#top', '../up.svg', '/logo.svg', 'https://example.com/a.png']
 
   await plant(scratch, {
+    'package.json'              : '{ "type": "module" }\n',
     'site/.vitepress/config.ts' : 'export default {}\n',
-    'site/guide/index.md'       : images.map((image) => `![An image](${image})\n`).join('\n'),
-    'site/package.json'         : '{ "type": "module" }\n'
+    'site/guide/index.md'       : images.map((image) => `![An image](${image})\n`).join('\n')
   })
 
   expect(await (await staged(scratch)).site('site')).toEqual({
@@ -244,11 +243,11 @@ test('reads each page under the config’s `srcDir` that no `srcExclude` glob ma
   scratch
 }) => {
   await plant(scratch, {
+    'package.json'              : '{ "type": "module" }\n',
     'site/.vitepress/config.ts' : "export default { srcDir: 'docs', srcExclude: ['drafts/**'] }\n",
     'site/docs/drafts/a.md'     : '# A draft\n',
     'site/docs/index.md'        : '# Home\n',
-    'site/index.md'             : '# Outside the source directory\n',
-    'site/package.json'         : '{ "type": "module" }\n'
+    'site/index.md'             : '# Outside the source directory\n'
   })
 
   expect(await (await staged(scratch)).site('site')).toEqual({

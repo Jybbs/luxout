@@ -90,7 +90,10 @@ async function checkout(scratch: string, source: string): Promise<string> {
   await plant(dir, {
     ...Object.fromEntries(seeds),
     ...BUILT,
-    'config.schema.json'                  : JSON.stringify({ pluginAlias: 'Luxout', schema: { properties: {} } }),
+    'config.schema.json'                  : JSON.stringify({
+      pluginAlias : 'Luxout',
+      schema      : { properties: {} }
+    }),
     'package.json'                        : manifest,
     'packed/package/index.js'             : source,
     'packed/package/package.json'         : manifest,

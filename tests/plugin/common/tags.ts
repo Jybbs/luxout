@@ -1,6 +1,6 @@
 /**
- * The tags `tests/plugin/vitest.config.ts` declares, by name, each lifting Vitest's
- * 5-second limit for a case that runs child processes.
+ * The tags `tests/plugin/vitest.config.ts` declares, by name, each lifting
+ * Vitest's 5-second limit for a case that runs child processes.
  */
 export const TAGS = {
   'spawns'      : {

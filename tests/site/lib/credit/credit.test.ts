@@ -4,9 +4,10 @@ import { expect, it } from 'vitest'
 
 import * as credit from '../../../../site/.vitepress/lib/credit/credit.ts'
 
-const bib    = await readFile(new URL('../../../../site/.vitepress/lib/citations/references.bib', import.meta.url), 'utf8')
-const page   = await readFile(new URL('../../../../site/estimate/bibliography.md', import.meta.url), 'utf8')
-const client = await readFile(new URL('../../../../src/weather/client.ts', import.meta.url), 'utf8')
+const root   = new URL('../../../../', import.meta.url)
+const bib    = await readFile(new URL('site/.vitepress/lib/citations/references.bib', root), 'utf8')
+const page   = await readFile(new URL('site/estimate/bibliography.md', root), 'utf8')
+const client = await readFile(new URL('src/weather/client.ts', root), 'utf8')
 
 it('holds the Bibliography page’s Credits section to the record', () => {
   const rows = credit.creditRows().map(({ code, detail, href, label, value }) =>

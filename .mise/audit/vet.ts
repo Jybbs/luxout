@@ -11,8 +11,8 @@ const conjunction = new Intl.ListFormat('en', { type: 'conjunction' })
 
 /**
  * Holds the manifest of each Homebridge release `plugin:vet` installs, each in
- * a directory under `tests/plugin/vet` named for the source its `homebridge` pin
- * follows.
+ * a directory under `tests/plugin/vet` named for the source its `homebridge`
+ * pin follows.
  */
 export class VetManifests {
   readonly #files: YamlFile[]
@@ -26,10 +26,10 @@ export class VetManifests {
   }
 
   /**
-   * Holds the `homebridge` pin under `tests/plugin/vet/floor` to the floor of the
-   * oldest line `engines.homebridge` admits, and the one under
-   * `tests/plugin/vet/pinned` to the release the `homebridge` devDependency pins,
-   * reporting either manifest missing.
+   * Holds the `homebridge` pin under `tests/plugin/vet/floor` to the floor of
+   * the oldest line `engines.homebridge` admits, and the one under
+   * `tests/plugin/vet/pinned` to the release the `homebridge` devDependency
+   * pins, reporting either manifest missing.
    */
   findings(manifest: PackageManifest): Finding[] {
     const sources = new Map([

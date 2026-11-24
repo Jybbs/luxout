@@ -1,6 +1,0 @@
-#!/usr/bin/env -S bash -euo pipefail
-#MISE depends     = ["plugin:bake"]
-#MISE description = "Report the site's unused files, exports, and dependencies, passing any further arguments to knip"
-#MISE dir         = "site"
-
-knip "$@"
