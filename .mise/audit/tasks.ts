@@ -27,14 +27,13 @@ interface Script extends Spot {
   text: string
 }
 
-const ALIASES = /(?<=\[aliases: )[^\]]+/g
-const COMMAND = /(?<=^ {2})\S+/gm
-const INSTALL = new Set(['i', 'install'])
-const LIBRARY = '.mise/lib/*.sh'
-const LISTING = { file: CONFIG, line: 1 }
-const LOCKED  = new Set(['frozen-lockfile', 'lockfile-only'])
-const OPTIONS = { cwd: { type: 'string' } } as const
-const VERIFY  = 'repo:verify'
+const COMMANDS = /(?<=^ {2})\S+|(?<=\[aliases: [^\]]*)[^\s,\]]+/gm
+const INSTALL  = new Set(['i', 'install'])
+const LIBRARY  = '.mise/lib/*.sh'
+const LISTING  = { file: CONFIG, line: 1 }
+const LOCKED   = new Set(['frozen-lockfile', 'lockfile-only'])
+const OPTIONS  = { cwd: { type: 'string' } } as const
+const VERIFY   = 'repo:verify'
 
 class Task {
   readonly scripts  : Script[]
@@ -98,14 +97,8 @@ class Task {
     return this.#listed.tools
   }
 
-  findings(manifest: PackageManifest, commands: Set<string>): Finding[] {
+  findings(manifest: PackageManifest): Finding[] {
     return [
-      ...this.#listed.aliases.filter((alias) => commands.has(alias)).map((alias) => new Finding(
-        `\`mise ${alias}\` runs mise's own command rather than \`${this.name}\`, whose alias \`${alias}\` `
-        + '`mise --help` lists as a command or command alias',
-        this.#spot,
-        'Task alias'
-      )),
       ...this.#defects.map(({ details, message }) => new Finding(
         [message, details].filter(Boolean).join('. '),
         this.#spot,
@@ -135,10 +128,9 @@ class Task {
 }
 
 export class TaskList {
-  readonly #commands : Set<string>
-  readonly #errors   : Finding[]
-  readonly #library  : Script[]
-  readonly #tasks    : Map<string, Task>
+  readonly #errors  : Finding[]
+  readonly #library : Script[]
+  readonly #tasks   : Map<string, Task>
 
   static read(audit: Audit): TaskList {
     let commands : Set<string>
@@ -154,17 +146,22 @@ export class TaskList {
     }
 
     const library  = Object.entries(audit.readAll(LIBRARY)).map(([file, text]) => ({ file, line: 1, text }))
-    const reported = Map.groupBy(defects, (defect) => defect.task)
+    const shadowed = listed.flatMap(({ aliases, name }) => aliases.filter((alias) => commands.has(alias))
+      .map((alias) => ({
+        message : `\`mise ${alias}\` runs mise's own command rather than \`${name}\`, since \`mise --help\` `
+                + `lists the alias \`${alias}\` as a command or command alias`,
+        task    : name
+      })))
+    const reported = Map.groupBy([...defects, ...shadowed], (defect) => defect.task)
     const tasks    = listed.map((task) => Task.read(audit, reported.get(task.name) ?? [], task))
 
-    return new TaskList([], tasks, library, commands)
+    return new TaskList([], tasks, library)
   }
 
-  constructor(errors: Finding[], tasks: Task[], library: Script[] = [], commands = new Set<string>()) {
-    this.#commands = commands
-    this.#errors   = errors
-    this.#library  = library
-    this.#tasks    = new Map(tasks.map((task) => [task.name, task]))
+  constructor(errors: Finding[], tasks: Task[], library: Script[] = []) {
+    this.#errors  = errors
+    this.#library = library
+    this.#tasks   = new Map(tasks.map((task) => [task.name, task]))
   }
 
   get listed(): boolean {
@@ -213,7 +210,7 @@ export class TaskList {
     return [
       ...this.#errors,
       ...this.#shell,
-      ...this.#tasks.values().flatMap((task) => task.findings(manifest, this.#commands))
+      ...this.#tasks.values().flatMap((task) => task.findings(manifest))
     ]
   }
 
@@ -229,11 +226,11 @@ export class TaskList {
 function commandsOf(help: string): Set<string> {
   const [, section = ''] = stripVTControlCharacters(help).split(/^Commands:$/m)
   const [commands = '']  = section.split('\n\n')
-  const names            = new Set(commands.matchAll(COMMAND).map(([name]) => name))
+  const names            = commands.match(COMMANDS)
 
-  if (names.size === 0) throw new Error('`mise --help` lists no command under `Commands:`')
+  if (names === null) throw new Error('`mise --help` lists no command under `Commands:`')
 
-  return names.union(new Set(commands.matchAll(ALIASES).flatMap(([list]) => list.split(/,\s+/))))
+  return new Set(names)
 }
 
 function unfrozen({ words: [program, ...args] }: Invocation): boolean {

@@ -9,10 +9,10 @@ import type { Run } from '../../.mise/audit/audit.ts'
  */
 interface Declared {
   name     : string
-  aliases? : string[]
   source   : string
+  aliases? : string[]
   depends? : string[]
-  file?    : boolean
+  file?    : boolean | string
   run?     : (string | { tasks: string[] })[]
   tools?   : Record<string, string>
 }
@@ -52,13 +52,14 @@ export const VET = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/p
 
 /**
  * Lists `tasks` as `mise tasks ls --json` prints them for the checkout at
- * `root`, where `file` marks a task whose script is its own file.
+ * `root`, where `file` marks a task whose script is its own file or names the
+ * script a TOML task runs, relative to the checkout.
  */
 export const listing = (root: string, tasks: Declared[]): object[] =>
   tasks.map(({ aliases = [], depends = [], file = false, name, run = [], source, tools = {} }) => ({
     aliases : aliases,
     depends : depends,
-    file    : file ? join(root, source) : null,
+    file    : file === false ? null : join(root, file === true ? source : file),
     name    : name,
     run     : run,
     source  : join(root, source),

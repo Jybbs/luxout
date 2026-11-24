@@ -1,5 +1,3 @@
-import { join } from 'node:path'
-
 import { describe, expect, vi } from 'vitest'
 
 import { Audit, type Run }     from '../../../.mise/audit/audit.ts'
@@ -49,17 +47,10 @@ describe('a bun install a task runs', () => {
       '.mise/tasks/plugin/test'       : FRONTMATTER + 'bun install\n'
     })
 
-    const audit = new Audit(scratch, mise([
-      ...listing(scratch, [{ file: true, name: 'plugin:test', source: '.mise/tasks/plugin/test' }]),
-      {
-        aliases : [],
-        file   : '.mise/tasks/plugin/test',
-        name   : 'plugin:test:22',
-        run    : [],
-        source : join(scratch, '.mise/tasks/plugin/lines.toml'),
-        tools  : {}
-      }
-    ]))
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { file: true, name: 'plugin:test', source: '.mise/tasks/plugin/test' },
+      { file: '.mise/tasks/plugin/test', name: 'plugin:test:22', source: '.mise/tasks/plugin/lines.toml' }
+    ])))
 
     expect(TaskList.read(audit).findings(manifest))
       .toMatchObject([{ spot: { file: '.mise/tasks/plugin/test', line: 4 }, title: 'Unfrozen install' }])
@@ -94,14 +85,9 @@ describe('a bun install a task runs', () => {
       'scripts/sync.sh'            : FRONTMATTER + 'bun install\n'
     })
 
-    const audit = new Audit(scratch, mise([{
-      aliases : [],
-      file   : 'scripts/sync.sh',
-      name   : 'repo:sync',
-      run    : [],
-      source : join(scratch, '.mise/tasks/repo/sync.toml'),
-      tools  : {}
-    }], [{ message: "Dependency 'nope' not found", task: 'repo:sync' }]))
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { file: 'scripts/sync.sh', name: 'repo:sync', source: '.mise/tasks/repo/sync.toml' }
+    ]), [{ message: "Dependency 'nope' not found", task: 'repo:sync' }]))
 
     expect(TaskList.read(audit).findings(manifest)).toMatchObject([
       { spot: { file: 'scripts/sync.sh', line: 4 }, title: 'Unfrozen install' },
@@ -112,14 +98,9 @@ describe('a bun install a task runs', () => {
   test('reports a file that names no script as mise’s defect rather than throwing', async ({ scratch }) => {
     await plant(scratch, { '.mise/tasks/repo/sync.toml': '["repo:sync"]\nfile = "scripts/missing.sh"\n' })
 
-    const audit = new Audit(scratch, mise([{
-      aliases : [],
-      file   : 'scripts/missing.sh',
-      name   : 'repo:sync',
-      run    : [],
-      source : join(scratch, '.mise/tasks/repo/sync.toml'),
-      tools  : {}
-    }], [{ message: 'Task file not found: scripts/missing.sh', task: 'repo:sync' }]))
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { file: 'scripts/missing.sh', name: 'repo:sync', source: '.mise/tasks/repo/sync.toml' }
+    ]), [{ message: 'Task file not found: scripts/missing.sh', task: 'repo:sync' }]))
 
     expect(TaskList.read(audit).findings(manifest)).toMatchObject([{
       message : 'Task file not found: scripts/missing.sh',
@@ -233,8 +214,8 @@ test('reports what mise printed where it lists no task rather than throwing', ({
 })
 
 describe('an alias a task declares', () => {
-  const COLORED = HELP.replaceAll(/^(Commands:)$|^ {2}(\S+)/gm, (line) => `\x1b[1;33m${line}\x1b[0m`)
-  const WIDE    = HELP.replaceAll(/,?\n {16}/g, (gap) => gap.startsWith(',') ? ', ' : ' ')
+  const COLORED = HELP.replaceAll(/^Commands:$|(?<=^ {2})\S+/gm, (word) => `\x1b[1;33m${word}\x1b[0m`)
+  const WIDE    = HELP.replaceAll(/\n {16}/g, ' ')
 
   test.for([
     { alias: 'audit', flagged: true, help: HELP },
@@ -256,11 +237,28 @@ describe('an alias a task declares', () => {
     ]), [], '', undefined, help))
 
     expect(TaskList.read(audit).findings(manifest)).toEqual(flagged ? [expect.objectContaining({
-      message : `\`mise ${alias}\` runs mise's own command rather than \`repo:audit\`, whose alias `
-              + `\`${alias}\` \`mise --help\` lists as a command or command alias`,
+      message : `\`mise ${alias}\` runs mise's own command rather than \`repo:audit\`, since `
+              + `\`mise --help\` lists the alias \`${alias}\` as a command or command alias`,
       spot    : { file: '.mise/tasks/repo/audit', line: 1 },
-      title   : 'Task alias'
+      title   : 'Task defect'
     })] : [])
+  })
+
+  test('reports each alias mise takes after the defects mise reports for the task', async ({ scratch }) => {
+    await plant(scratch, { '.mise/tasks/repo/audit': FRONTMATTER + 'node .mise/audit/index.ts\n' })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [{
+      aliases : ['run', 'survey', 'audit'],
+      file    : true,
+      name    : 'repo:audit',
+      source  : '.mise/tasks/repo/audit'
+    }]), [{ message: 'Not formatted', task: 'repo:audit' }]))
+
+    expect(TaskList.read(audit).findings(manifest).map(({ message }) => message.split(',')[0])).toEqual([
+      'Not formatted',
+      "`mise run` runs mise's own command rather than `repo:audit`",
+      "`mise audit` runs mise's own command rather than `repo:audit`"
+    ])
   })
 
   test('lands on the table declaring the task in its TOML file', async ({ scratch }) => {
@@ -271,7 +269,7 @@ describe('an alias a task declares', () => {
     ])))
 
     expect(TaskList.read(audit).findings(manifest))
-      .toMatchObject([{ spot: { file: '.mise/tasks/x.toml', line: 2 }, title: 'Task alias' }])
+      .toMatchObject([{ spot: { file: '.mise/tasks/x.toml', line: 2 }, title: 'Task defect' }])
   })
 
   test('reports a help text listing no command rather than passing every alias', ({ scratch }) => {
@@ -324,14 +322,12 @@ describe('a Node release a task declares', () => {
       '.mise/tasks/plugin/test'       : FRONTMATTER + 'vitest run\n'
     })
 
-    const audit = new Audit(scratch, mise([{
-      aliases : [],
+    const audit = new Audit(scratch, mise(listing(scratch, [{
       file   : '.mise/tasks/plugin/test',
       name   : 'plugin:test:22',
-      run    : [],
-      source : join(scratch, '.mise/tasks/plugin/lines.toml'),
+      source : '.mise/tasks/plugin/lines.toml',
       tools  : { node }
-    }]))
+    }])))
 
     expect(TaskList.read(audit).findings(engines)).toMatchObject(expected)
   })
