@@ -43,7 +43,7 @@ async function bump(scratch: string, args: string[] = []) {
 }
 
 describe.concurrent('repo:bump', () => {
-  test('runs as `mise bump`', async ({ expect }) => {
+  test('runs as `mise run bump`', async ({ expect }) => {
     expect(await info('repo:bump')).toMatchObject({ aliases: ['bump'] })
   })
 

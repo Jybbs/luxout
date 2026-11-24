@@ -124,7 +124,7 @@ describe.concurrent('lock:check', () => {
       commands : [...BUN, CHECK, DRY],
       status   : 1,
       stderr   : `.mise/mise.lock locks ${stale.join(', ')}, which nothing in .mise/ declares any `
-               + 'longer, so run `mise relock`\n'
+               + 'longer, so run `mise run relock`\n'
     })
   })
 
