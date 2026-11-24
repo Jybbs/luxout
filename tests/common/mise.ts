@@ -9,12 +9,34 @@ import type { Run } from '../../.mise/audit/audit.ts'
  */
 interface Declared {
   name     : string
+  aliases? : string[]
   source   : string
   depends? : string[]
   file?    : boolean
   run?     : (string | { tasks: string[] })[]
   tools?   : Record<string, string>
 }
+
+/**
+ * The `Commands:` section of `mise --help` and the sections around it, wrapped
+ * at the width mise prints to a pipe, with an alias list and a description
+ * each running onto a second line.
+ */
+export const HELP = [
+  'mise installs the development tools your projects need.',
+  '',
+  'Commands:',
+  '  activate      Print the script to activate mise in an',
+  '                interactive shell',
+  '  audit         Check tool versions for known vulnerabilities',
+  '  backends      Manage backends [aliases: b, backend,',
+  '                backend-list]',
+  '  run           Run tasks and their dependencies [aliases: r]',
+  '',
+  'Arguments:',
+  '  [TASK]  Task to run',
+  ''
+].join('\n')
 
 /**
  * The directories `bun_packages` in `.mise/lib/lock.sh` lists, one per Bun
@@ -33,7 +55,8 @@ export const VET = { 'tests/vet/floor/package.json': '{}\n', 'tests/vet/pinned/p
  * `root`, where `file` marks a task whose script is its own file.
  */
 export const listing = (root: string, tasks: Declared[]): object[] =>
-  tasks.map(({ depends = [], file = false, name, run = [], source, tools = {} }) => ({
+  tasks.map(({ aliases = [], depends = [], file = false, name, run = [], source, tools = {} }) => ({
+    aliases : aliases,
     depends : depends,
     file    : file ? join(root, source) : null,
     name    : name,
@@ -44,15 +67,25 @@ export const listing = (root: string, tasks: Declared[]): object[] =>
 
 /**
  * Stands in for the commands an audit runs, answering `mise tasks ls` with
- * `listed`, any other mise call with `issues`, `git ls-files` with `tracked`,
- * and `bun_packages` with one directory per row of `packages`.
+ * `listed`, `mise tasks validate` with `issues`, `mise --help` with `help`,
+ * `git ls-files` with `tracked`, and `bun_packages` with one directory per row
+ * of `packages`, and printing nothing for any other mise call.
  */
-export const mise = (listed: object[], issues: object[] = [], tracked = '', packages = PACKAGES): Run =>
-  vi.fn<Run>((command, [, verb]) => ({
+export const mise = (
+  listed   : object[],
+  issues   : object[] = [],
+  tracked  : string   = '',
+  packages : string[] = PACKAGES,
+  help     : string   = HELP
+): Run =>
+  vi.fn<Run>((command, [first, verb]) => ({
     stderr : '',
     stdout : {
       bash : packages.map((dir) => `${dir}\n`).join(''),
       git  : tracked,
-      mise : JSON.stringify(verb === 'ls' ? listed : { issues })
+      mise : first === '--help' ? help : {
+        ls       : JSON.stringify(listed),
+        validate : JSON.stringify({ issues })
+      }[verb ?? ''] ?? ''
     }[command] ?? ''
   }))

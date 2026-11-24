@@ -2,11 +2,11 @@ import { join } from 'node:path'
 
 import { describe, expect, vi } from 'vitest'
 
-import { Audit, type Run } from '../../../.mise/audit/audit.ts'
-import { PackageManifest } from '../../../.mise/audit/package.ts'
-import { TaskList }        from '../../../.mise/audit/tasks.ts'
-import { listing, mise }   from '../../common/mise.js'
-import { plant, test }     from '../../common/scratch.js'
+import { Audit, type Run }     from '../../../.mise/audit/audit.ts'
+import { PackageManifest }     from '../../../.mise/audit/package.ts'
+import { TaskList }            from '../../../.mise/audit/tasks.ts'
+import { HELP, listing, mise } from '../../common/mise.js'
+import { plant, test }         from '../../common/scratch.js'
 
 const FRONTMATTER = '#!/usr/bin/env -S bash -euo pipefail\n#MISE description = "Install"\n\n'
 const manifest    = new PackageManifest('{}')
@@ -52,6 +52,7 @@ describe('a bun install a task runs', () => {
     const audit = new Audit(scratch, mise([
       ...listing(scratch, [{ file: true, name: 'plugin:test', source: '.mise/tasks/plugin/test' }]),
       {
+        aliases : [],
         file   : '.mise/tasks/plugin/test',
         name   : 'plugin:test:22',
         run    : [],
@@ -94,6 +95,7 @@ describe('a bun install a task runs', () => {
     })
 
     const audit = new Audit(scratch, mise([{
+      aliases : [],
       file   : 'scripts/sync.sh',
       name   : 'repo:sync',
       run    : [],
@@ -111,6 +113,7 @@ describe('a bun install a task runs', () => {
     await plant(scratch, { '.mise/tasks/repo/sync.toml': '["repo:sync"]\nfile = "scripts/missing.sh"\n' })
 
     const audit = new Audit(scratch, mise([{
+      aliases : [],
       file   : 'scripts/missing.sh',
       name   : 'repo:sync',
       run    : [],
@@ -214,7 +217,8 @@ test('lists every task the checkout declares through mise, hidden ones included'
 
   expect(vi.mocked(run).mock.calls.map(([, args]) => args)).toEqual([
     ['tasks', 'validate', '--json'],
-    ['tasks', 'ls', '--hidden', '--json', '--no-global']
+    ['tasks', 'ls', '--hidden', '--json', '--no-global'],
+    ['--help']
   ])
 })
 
@@ -226,6 +230,59 @@ test('reports what mise printed where it lists no task rather than throwing', ({
     spot    : { file: '.mise/config.toml', line: 1 },
     title   : 'Task listing'
   }])
+})
+
+describe('an alias a task declares', () => {
+  const COLORED = HELP.replaceAll(/^(Commands:)$|^ {2}(\S+)/gm, (line) => `\x1b[1;33m${line}\x1b[0m`)
+  const WIDE    = HELP.replaceAll(/,?\n {16}/g, (gap) => gap.startsWith(',') ? ', ' : ' ')
+
+  test.for([
+    { alias: 'audit', flagged: true, help: HELP },
+    { alias: 'r', flagged: true, help: HELP },
+    { alias: 'b', flagged: true, help: HELP },
+    { alias: 'backend-list', flagged: true, help: HELP },
+    { alias: 'backend-list', flagged: true, help: WIDE },
+    { alias: 'audit', flagged: true, help: COLORED },
+    { alias: 'survey', flagged: false, help: HELP },
+    { alias: 'interactive', flagged: false, help: HELP },
+    { alias: 'backends,', flagged: false, help: HELP },
+    { alias: '[TASK]', flagged: false, help: HELP },
+    { alias: 'mise', flagged: false, help: HELP }
+  ])('reports `$alias` as taken by mise: $flagged', async ({ alias, flagged, help }, { scratch }) => {
+    await plant(scratch, { '.mise/tasks/repo/audit': FRONTMATTER + 'node .mise/audit/index.ts\n' })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { aliases: ['vet', alias], file: true, name: 'repo:audit', source: '.mise/tasks/repo/audit' }
+    ]), [], '', undefined, help))
+
+    expect(TaskList.read(audit).findings(manifest)).toEqual(flagged ? [expect.objectContaining({
+      message : `\`mise ${alias}\` runs mise's own command rather than \`repo:audit\`, whose alias `
+              + `\`${alias}\` \`mise --help\` lists as a command or command alias`,
+      spot    : { file: '.mise/tasks/repo/audit', line: 1 },
+      title   : 'Task alias'
+    })] : [])
+  })
+
+  test('lands on the table declaring the task in its TOML file', async ({ scratch }) => {
+    await plant(scratch, { '.mise/tasks/x.toml': '\n["x:a"]\nalias = "run"\nrun = "true"\n' })
+
+    const audit = new Audit(scratch, mise(listing(scratch, [
+      { aliases: ['run'], name: 'x:a', run: ['true'], source: '.mise/tasks/x.toml' }
+    ])))
+
+    expect(TaskList.read(audit).findings(manifest))
+      .toMatchObject([{ spot: { file: '.mise/tasks/x.toml', line: 2 }, title: 'Task alias' }])
+  })
+
+  test('reports a help text listing no command rather than passing every alias', ({ scratch }) => {
+    const audit = new Audit(scratch, mise([], [], '', undefined, 'Usage: mise [OPTIONS]\n'))
+
+    expect(TaskList.read(audit).findings(manifest)).toMatchObject([{
+      message : 'Error: `mise --help` lists no command under `Commands:`',
+      spot    : { file: '.mise/config.toml', line: 1 },
+      title   : 'Task listing'
+    }])
+  })
 })
 
 test('reports the line a task script stops parsing on', async ({ scratch }) => {
@@ -268,6 +325,7 @@ describe('a Node release a task declares', () => {
     })
 
     const audit = new Audit(scratch, mise([{
+      aliases : [],
       file   : '.mise/tasks/plugin/test',
       name   : 'plugin:test:22',
       run    : [],
