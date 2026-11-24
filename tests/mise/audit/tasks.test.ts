@@ -214,27 +214,36 @@ test('reports what mise printed where it lists no task rather than throwing', ({
 })
 
 describe('an alias a task declares', () => {
-  const COLORED = HELP.replaceAll(/^Commands:$|(?<=^ {2})\S+/gm, (word) => `\x1b[1;33m${word}\x1b[0m`)
-  const WIDE    = HELP.replaceAll(/\n {16}/g, ' ')
+  const PRINTS = {
+    banner  : HELP.replace('Commands:', `Commands:${' '.repeat(68)}▝▄ ▀▄▀ ▄▘`),
+    colored : HELP.replaceAll(/^Commands:$|(?<=^ {2})\S+/gm, (word) => `\x1b[1;33m${word}\x1b[0m`),
+    wide    : HELP.replaceAll(/\n {16}/g, ' '),
+    wrapped : HELP
+  }
 
   test.for([
-    { alias: 'audit', flagged: true, help: HELP },
-    { alias: 'r', flagged: true, help: HELP },
-    { alias: 'b', flagged: true, help: HELP },
-    { alias: 'backend-list', flagged: true, help: HELP },
-    { alias: 'backend-list', flagged: true, help: WIDE },
-    { alias: 'audit', flagged: true, help: COLORED },
-    { alias: 'survey', flagged: false, help: HELP },
-    { alias: 'interactive', flagged: false, help: HELP },
-    { alias: 'backends,', flagged: false, help: HELP },
-    { alias: '[TASK]', flagged: false, help: HELP },
-    { alias: 'mise', flagged: false, help: HELP }
-  ])('reports `$alias` as taken by mise: $flagged', async ({ alias, flagged, help }, { scratch }) => {
+    { alias: 'audit', flagged: true, print: 'wrapped' },
+    { alias: 'r', flagged: true, print: 'wrapped' },
+    { alias: 'b', flagged: true, print: 'wrapped' },
+    { alias: 'backend-list', flagged: true, print: 'wrapped' },
+    { alias: 'backend-list', flagged: true, print: 'wide' },
+    { alias: 'audit', flagged: true, print: 'colored' },
+    { alias: 'audit', flagged: true, print: 'banner' },
+    { alias: 'survey', flagged: false, print: 'wrapped' },
+    { alias: 'interactive', flagged: false, print: 'wrapped' },
+    { alias: 'backends,', flagged: false, print: 'wrapped' },
+    { alias: '[TASK]', flagged: false, print: 'wrapped' },
+    { alias: 'mise', flagged: false, print: 'wrapped' }
+  ] as const)('reports `$alias` in the $print help as taken by mise: $flagged', async ({
+    alias,
+    flagged,
+    print
+  }, { scratch }) => {
     await plant(scratch, { '.mise/tasks/repo/audit': FRONTMATTER + 'node .mise/audit/index.ts\n' })
 
     const audit = new Audit(scratch, mise(listing(scratch, [
       { aliases: ['vet', alias], file: true, name: 'repo:audit', source: '.mise/tasks/repo/audit' }
-    ]), [], '', undefined, help))
+    ]), [], '', undefined, PRINTS[print]))
 
     expect(TaskList.read(audit).findings(manifest)).toEqual(flagged ? [expect.objectContaining({
       message : `\`mise ${alias}\` runs mise's own command rather than \`repo:audit\`, since `

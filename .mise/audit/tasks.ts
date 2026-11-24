@@ -221,10 +221,11 @@ export class TaskList {
 
 /**
  * Lists each command and command alias under `Commands:` in `help`, the text
- * `mise --help` prints, at whatever width and in whatever color it prints.
+ * `mise --help` prints, at whatever width and in whatever color it prints,
+ * its banner running onto the header line included.
  */
 function commandsOf(help: string): Set<string> {
-  const [, section = ''] = stripVTControlCharacters(help).split(/^Commands:$/m)
+  const [, section = ''] = stripVTControlCharacters(help).split(/^Commands:.*$/m)
   const [commands = '']  = section.split('\n\n')
   const names            = commands.match(COMMANDS)
 
