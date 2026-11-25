@@ -1,3 +1,5 @@
+import { join }                 from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 import type { VNode }           from 'vue'
 import { renderToString }       from 'vue/server-renderer'
@@ -10,7 +12,7 @@ import {
   groundedAddressOf
 } from '../../../../site/.vitepress/lib/logo/logo.ts'
 import { SCHEMES, Tokens } from '../../../../site/.vitepress/lib/theme/tokens.ts'
-import { vitepress }       from '../../common/paths.ts'
+import { site, vitepress } from '../../common/paths.ts'
 
 const forms    = ASSETS.flatMap((asset) => SCHEMES.map((scheme) => ({ asset, scheme })))
 const grounded = FORMS.flatMap((form) => SCHEMES.map((scheme) => ({ form, scheme })))
@@ -22,7 +24,7 @@ describe('the tracked logo files', () => {
     'hold the $scheme $asset as the construction draws it',
     async ({ asset, scheme }, { expect }) => {
       await expect(`${await renderToString(logo[asset](scheme))}\n`)
-        .toMatchFileSnapshot(`../../../../public${addressOf(asset, scheme)}`)
+        .toMatchFileSnapshot(join(site, 'public', addressOf(asset, scheme)))
     }
   )
 
@@ -30,7 +32,7 @@ describe('the tracked logo files', () => {
     'hold the $scheme $form drawn on its ground',
     async ({ form, scheme }, { expect }) => {
       await expect(`${await renderToString(logo.grounded(form, scheme))}\n`)
-        .toMatchFileSnapshot(`../../../../public${groundedAddressOf(form, scheme)}`)
+        .toMatchFileSnapshot(join(site, 'public', groundedAddressOf(form, scheme)))
     }
   )
 })
