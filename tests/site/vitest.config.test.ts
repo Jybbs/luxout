@@ -1,10 +1,11 @@
-import { existsSync }     from 'node:fs'
-import { join, relative } from 'node:path'
+import { existsSync } from 'node:fs'
+import { relative }   from 'node:path'
 
 import type { Plugin, UserConfig } from 'vite'
 import { expect, it, vi }          from 'vitest'
 
 import { thresholds } from '../plugin/common/coverage.ts'
+import { root }       from '../plugin/common/paths.ts'
 import config         from '../../site/.vitepress/vitest.config.ts'
 
 it('holds the site to the coverage floor the plugin suite reads', () => {
@@ -28,7 +29,6 @@ it('compiles the theme’s TSX through Vue’s JSX plugin, leaving its types to 
 })
 
 it('reruns every test after a change to the runtime pins or a file read beside the imported modules', () => {
-  const root     = join(import.meta.dirname, '..', '..')
   const triggers = config.test?.forceRerunTriggers?.filter(existsSync).map((file) => relative(root, file))
 
   expect(new Set(triggers)).toEqual(new Set([

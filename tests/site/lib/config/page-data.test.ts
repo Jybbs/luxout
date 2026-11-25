@@ -7,6 +7,7 @@ import manifest          from '../../../../package.json' with { type: 'json' }
 import { transformPage } from '../../../../site/.vitepress/lib/config/page-data.ts'
 import { SECTIONS }      from '../../../../site/.vitepress/lib/config/sections.ts'
 import { luxRange }      from '../../../../site/.vitepress/lib/daylight/homekit.ts'
+import { site }          from '../../common/paths.ts'
 
 const context = { siteConfig: { srcDir: join(import.meta.dirname, 'fixtures') } }
 const front   = {
@@ -21,7 +22,6 @@ const setup   = {
   relativePath : 'setup.md',
   title        : 'Setup'
 }
-const site      = join(import.meta.dirname, '..', '..', '..', '..', 'site')
 const transform = transformPage(manifest, luxRange, site, SECTIONS)
 
 it('sets the engines, the version, and the lux range on a page, beside its own keys', () => {

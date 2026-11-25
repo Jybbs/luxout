@@ -4,8 +4,9 @@ import { creditRim } from '../../../../site/.vitepress/lib/credit/credit.ts'
 import { SEAL }      from '../../../../site/.vitepress/lib/credit/seal-drawing.ts'
 import { Seal }      from '../../../../site/.vitepress/lib/credit/seal.ts'
 import { SampleDay } from '../../../../site/.vitepress/lib/daylight/sample-day.ts'
+import { vitepress } from '../../common/paths.ts'
 
-const { marks } = await Seal.read(new URL('../../../../site/.vitepress/', import.meta.url))
+const { marks } = await Seal.read(vitepress)
 const steps     = SampleDay.record().window.irradiances
 const rotations = marks.rim.map(({ transform }) => Number(/rotate\((-?[\d.]+)\)/.exec(transform)![1]))
 

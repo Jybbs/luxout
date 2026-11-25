@@ -4,8 +4,7 @@ import { join }     from 'node:path'
 import { expect, it } from 'vitest'
 
 import { SECTIONS } from '../../../../site/.vitepress/lib/config/sections.ts'
-
-const site = join(import.meta.dirname, '..', '..', '..', '..', 'site')
+import { site }     from '../../common/paths.ts'
 
 it.each(SECTIONS)('opens the $slug overview on the words the registry holds', async (section) => {
   const { asks, holds, label, slug } = section

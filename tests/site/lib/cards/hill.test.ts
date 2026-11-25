@@ -4,18 +4,18 @@ import { join }     from 'node:path'
 
 import { expect, it } from 'vitest'
 
-import { Faces }       from '../../../../site/.vitepress/lib/cards/faces.ts'
-import { hillCard }    from '../../../../site/.vitepress/lib/cards/hill.ts'
-import { readPalette } from '../../../../site/.vitepress/lib/cards/palette.ts'
-import { SampleDay }   from '../../../../site/.vitepress/lib/daylight/sample-day.ts'
-import { Logo }        from '../../../../site/.vitepress/lib/logo/logo.ts'
+import { Faces }           from '../../../../site/.vitepress/lib/cards/faces.ts'
+import { hillCard }        from '../../../../site/.vitepress/lib/cards/hill.ts'
+import { readPalette }     from '../../../../site/.vitepress/lib/cards/palette.ts'
+import { SampleDay }       from '../../../../site/.vitepress/lib/daylight/sample-day.ts'
+import { Logo }            from '../../../../site/.vitepress/lib/logo/logo.ts'
+import { site, vitepress } from '../../common/paths.ts'
 
-const root = new URL('../../../../site/.vitepress/', import.meta.url)
 const card = hillCard(
   SampleDay.record(),
-  await Faces.read(root),
-  await Logo.read(root),
-  await readPalette(root)
+  await Faces.read(vitepress),
+  await Logo.read(vitepress),
+  await readPalette(vitepress)
 )
 
 it('sets the site’s card in three lines of words at 4.5:1', async () => {
@@ -27,7 +27,6 @@ it('sets the site’s card in three lines of words at 4.5:1', async () => {
 
 it('sets the tagline the front page opens on', async () => {
   const [first, second] = card.said
-  const site            = join(import.meta.dirname, '..', '..', '..', '..', 'site')
 
   expect(await readFile(join(site, 'index.md'), 'utf8')).toContain(`*${first} ${second}*`)
 })

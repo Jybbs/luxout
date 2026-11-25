@@ -8,6 +8,7 @@ import type * as Utils        from 'rolldown/utils'
 import { expect, it, vi }     from 'vitest'
 import { defaultExclude }     from 'vitest/config'
 
+import { root }                                   from './common/paths.js'
 import { branch }                                 from './common/repository.js'
 import { plant, test }                            from './common/scratch.js'
 import { changedFiles, requests, triggers, vite } from './common/triggers.js'
@@ -22,7 +23,6 @@ const PAGE_TESTS = [
 ]
 const SCRIPT     = /\.[cm]?[jt]sx?$/
 const pragma     = /(?:\/\/|\*)\s*@module-tag\s+[\w\-/]+/
-const root       = dirname(dirname(import.meta.dirname))
 const files      = glob(config.test?.include ?? [], { cwd: root, exclude: defaultExclude })
 const sources    = await Array.fromAsync(files, async (file) => ({
   file : file,

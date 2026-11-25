@@ -6,6 +6,7 @@ import { sum }        from 'd3-array'
 import { expect, it } from 'vitest'
 
 import * as typeface from '../../../../site/.vitepress/lib/type/typeface.ts'
+import { vitepress } from '../../common/paths.ts'
 
 /**
  * The index a WOFF2 table directory gives each table it names by number rather
@@ -15,7 +16,7 @@ import * as typeface from '../../../../site/.vitepress/lib/type/typeface.ts'
 const KNOWN  = { glyf: 10, head: 1, loca: 11 }
 const UPEM   = 2000  // Bodoni Moda's font units to the em, at which a pixel is one unit
 const axes   = { opsz: 36, wght: 600 }
-const fonts  = new URL('../../../../site/.vitepress/fonts/', import.meta.url)
+const fonts  = new URL('fonts/', vitepress)
 const bodoni = await readFile(new URL('bodoni-moda/bodoni-moda.ttf', fonts))
 const face   = new typeface.Typeface(bodoni)
 

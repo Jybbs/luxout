@@ -9,8 +9,9 @@ import { expect, it, vi } from 'vitest'
 
 import * as monitor from '../../../../.mise/vet/monitor.ts'
 import { test }     from '../../common/vet.js'
+import { root }     from '../../common/paths.js'
 
-const vet = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'vet')
+const vet = join(root, '.mise', 'vet')
 
 /**
  * Builds a stand-in for `dns` whose lookups resolve every host to 127.0.0.1,

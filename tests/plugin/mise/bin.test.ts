@@ -10,6 +10,7 @@ import { parse }                           from 'yaml'
 
 import { TAGS }      from '../common/tags.js'
 import { lockfiles } from '../common/triggers.js'
+import { root }      from '../common/paths.js'
 
 interface Lockfile {
   packages: Record<string, [string, string, { bin?: Record<string, string> | string }?]>
@@ -17,7 +18,6 @@ interface Lockfile {
 
 const RUNS      = 20
 const fixture   = join(import.meta.dirname, 'fixtures', 'args.sh')
-const root      = join(import.meta.dirname, '..', '..', '..')
 const scratch   = await realpath(await mkdtemp(join(tmpdir(), 'luxout-bin-')))
 const bin       = join(root, '.mise', 'bin')
 const copies    = join(scratch, '.mise', 'bin')

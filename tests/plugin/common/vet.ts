@@ -10,6 +10,7 @@ import { HELD }                      from '../../../.mise/vet/vet.ts'
 import schema                        from '../../../config.schema.json' with { type: 'json' }
 import config                        from '../homebridge/config.json' with { type: 'json' }
 import { plant, test as scratch }    from './scratch.js'
+import { root }                      from './paths.js'
 
 /**
  * How the stand-in Homebridge acts, each act off where unset.
@@ -46,7 +47,7 @@ export const BUILT = {
  * - `settle`, for a second start to run before it is stopped
  */
 export const TUNING = { grace: 3_000, observe: 200, settle: 100 }
-const cache         = join(import.meta.dirname, '..', '..', '..', '.cache')
+const cache         = join(root, '.cache')
 const standIn       = join(import.meta.dirname, '..', 'mise', 'fixtures', 'homebridge.js')
 
 /**

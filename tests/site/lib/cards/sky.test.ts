@@ -4,8 +4,9 @@ import { expect, it }   from 'vitest'
 import { readPalette } from '../../../../site/.vitepress/lib/cards/palette.ts'
 import * as sky        from '../../../../site/.vitepress/lib/cards/sky.ts'
 import { luxRange }    from '../../../../site/.vitepress/lib/daylight/homekit.ts'
+import { vitepress }   from '../../common/paths.ts'
 
-const palette = await readPalette(new URL('../../../../site/.vitepress/', import.meta.url))
+const palette = await readPalette(vitepress)
 
 it('reads the sky’s two ends at the two ends of HomeKit’s range', () => {
   expect([luxRange.min, luxRange.max, 0].map(sky.colorAt)).toEqual(['#1b1d31', '#f6e7a6', '#1b1d31'])

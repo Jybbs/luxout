@@ -1,10 +1,11 @@
 import { expect, it } from 'vitest'
 
-import { Card }  from '../../../../site/.vitepress/lib/cards/card.ts'
-import { Faces } from '../../../../site/.vitepress/lib/cards/faces.ts'
-import * as room from '../../../../site/.vitepress/lib/cards/room.ts'
+import { Card }      from '../../../../site/.vitepress/lib/cards/card.ts'
+import { Faces }     from '../../../../site/.vitepress/lib/cards/faces.ts'
+import * as room     from '../../../../site/.vitepress/lib/cards/room.ts'
+import { vitepress } from '../../common/paths.ts'
 
-const faces = await Faces.read(new URL('../../../../site/.vitepress/', import.meta.url))
+const faces = await Faces.read(vitepress)
 const scene = new room.Room(new Card(faces, '#1a1a1a'), '#1a1a1a', '#f2f1ee')
 
 it('projects a nearer point further from the middle of the view', () => {

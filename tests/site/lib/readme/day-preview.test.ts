@@ -5,8 +5,9 @@ import { SampleDay }     from '../../../../site/.vitepress/lib/daylight/sample-d
 import { DayPreview }    from '../../../../site/.vitepress/lib/readme/day-preview.ts'
 import { ForecastSteps } from '../../../../site/.vitepress/lib/readme/lanes.ts'
 import { dialDrawing }   from '../../../../site/.vitepress/theme/components/daylight/dial-drawing.tsx'
+import { vitepress }     from '../../common/paths.ts'
 
-const preview = await DayPreview.read(new URL('../../../../site/.vitepress/', import.meta.url), dialDrawing)
+const preview = await DayPreview.read(vitepress, dialDrawing)
 const step    = new ForecastSteps(SampleDay.record()).steps.find(({ borrowed, held }) => !borrowed && !held)!
 
 it('sets the forecast lane’s words in capitals, each W/m² keeping its own case', () => {

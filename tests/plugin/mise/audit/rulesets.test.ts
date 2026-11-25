@@ -1,11 +1,10 @@
-import { join } from 'node:path'
-
 import { expect } from 'vitest'
 
 import { Audit }           from '../../../../.mise/audit/audit.ts'
 import { Rulesets }        from '../../../../.mise/audit/rulesets.ts'
 import { GATE, Workflows } from '../../../../.mise/audit/workflows.ts'
 import { plant, test }     from '../../common/scratch.js'
+import { root }            from '../../common/paths.js'
 
 const FILE = '.github/rulesets/main.json'
 
@@ -116,7 +115,7 @@ test('reports a ruleset that fails to parse rather than throwing', () => {
 })
 
 test('reports nothing on the repository’s own rulesets and the workflows they protect', () => {
-  const checkout = new Audit(join(import.meta.dirname, '..', '..', '..', '..'))
+  const checkout = new Audit(root)
 
   expect(Rulesets.read(checkout).findings(Workflows.read(checkout))).toEqual([])
 })

@@ -4,14 +4,13 @@ import { join }              from 'node:path'
 
 import { expect } from 'vitest'
 
-import { renderCards } from '../../../../site/.vitepress/lib/cards/render.ts'
-import { SECTIONS }    from '../../../../site/.vitepress/lib/config/sections.ts'
-import { test }        from '../../common/scratch.ts'
+import { renderCards }     from '../../../../site/.vitepress/lib/cards/render.ts'
+import { SECTIONS }        from '../../../../site/.vitepress/lib/config/sections.ts'
+import { test }            from '../../common/scratch.ts'
+import { site, vitepress } from '../../common/paths.ts'
 
-const root   = new URL('../../../../site/.vitepress/', import.meta.url)
-const site   = join(import.meta.dirname, '..', '..', '..', '..', 'site')
 const render = (pages: string[], outDir: string) =>
-  renderCards(root, SECTIONS)({ outDir, pages, srcDir: site })
+  renderCards(vitepress, SECTIONS)({ outDir, pages, srcDir: site })
 
 test('writes the site’s card and each page’s card as PNGs in the output directory', async ({ scratch }) => {
   await render(['index.md', 'install/home.md'], scratch)

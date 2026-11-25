@@ -9,11 +9,11 @@ import * as identity         from '../../../../site/.vitepress/lib/identity/iden
 import { CONSTRUCTION }      from '../../../../site/.vitepress/lib/logo/construction.ts'
 import { ASSETS, addressOf } from '../../../../site/.vitepress/lib/logo/logo.ts'
 import { SCHEMES, Tokens }   from '../../../../site/.vitepress/lib/theme/tokens.ts'
+import { vitepress }         from '../../common/paths.ts'
 
-const root   = new URL('../../../../site/.vitepress/', import.meta.url)
-const site   = await identity.readIdentity(root)
-const load   = createRequire(root)
-const tokens = await Tokens.read(root)
+const site   = await identity.readIdentity(vitepress)
+const load   = createRequire(vitepress)
+const tokens = await Tokens.read(vitepress)
 
 describe('the palette', () => {
   it.for([
@@ -125,7 +125,7 @@ describe('the logo, the tagline, and the byline', () => {
     'reads the $scheme $asset the site serves',
     async ({ asset, scheme }, { expect }) => {
       expect(site.logo.svgs[asset][scheme])
-        .toBe(await readFile(new URL(`../public${addressOf(asset, scheme)}`, root), 'utf8'))
+        .toBe(await readFile(new URL(`../public${addressOf(asset, scheme)}`, vitepress), 'utf8'))
     }
   )
 

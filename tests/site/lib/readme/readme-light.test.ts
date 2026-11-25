@@ -3,12 +3,12 @@ import { expect, it } from 'vitest'
 
 import { DayPreview, previewAddress } from '../../../../site/.vitepress/lib/readme/day-preview.ts'
 import { dialDrawing } from '../../../../site/.vitepress/theme/components/daylight/dial-drawing.tsx'
+import { vitepress }                  from '../../common/paths.ts'
 import '../../common/bytes.ts'
 
-const root    = new URL('../../../../site/.vitepress/', import.meta.url)
-const preview = await DayPreview.read(root, dialDrawing)
+const preview = await DayPreview.read(vitepress, dialDrawing)
 
 it('holds the light preview in the tracked README files as the site records it', async () => {
   await expect(await preview.record('light'))
-    .toMatchFileBytes(new URL(`../public${previewAddress('light')}`, root))
+    .toMatchFileBytes(new URL(`../public${previewAddress('light')}`, vitepress))
 })

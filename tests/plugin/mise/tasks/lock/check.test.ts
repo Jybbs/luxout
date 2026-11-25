@@ -7,6 +7,7 @@ import { describe } from 'vitest'
 import { PACKAGES, VET }                   from '../../../common/mise.js'
 import { plant, test }                     from '../../../common/scratch.js'
 import { type Answer, type SyncRun, sync } from '../../../common/sync.js'
+import { root }                            from '../../../common/paths.js'
 
 interface Drift {
   config? : (text: string) => string
@@ -20,7 +21,6 @@ const DRY      = ['mise', 'lock', '--dry-run', '--json']
 const LINE     = /^tools\s*=\s*\{ node = "(?<release>[^"]+)" \}\n/gm
 const PIN      = (tool: string): RegExp => new RegExp(`^${tool}\\s*=\\s*"(?<release>[^"]+)"\\n`, 'm')
 const PLATFORM = /^\[tools\.watchexec\."platforms\.linux-x64"\]\n(?:.+\n)+\n/m
-const root     = join(import.meta.dirname, '..', '..', '..', '..', '..')
 
 const read    = (file: string): Promise<string> => readFile(join(root, '.mise', file), 'utf8')
 const release = (text: string, pin: RegExp): string | undefined => pin.exec(text)?.groups?.release

@@ -6,8 +6,7 @@ import { describe } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
 import { sync }        from '../../../common/sync.js'
-
-const root = join(import.meta.dirname, '..', '..', '..', '..', '..')
+import { root }        from '../../../common/paths.js'
 
 describe.concurrent('plugin:build', () => {
   test('bundles the settings page’s script with its packages beside the page', async ({

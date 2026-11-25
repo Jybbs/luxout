@@ -7,11 +7,10 @@ import { Faces }                   from '../../../../site/.vitepress/lib/cards/f
 import { pageTitle, sectionPages } from '../../../../site/.vitepress/lib/config/pages.ts'
 import { SECTIONS }                from '../../../../site/.vitepress/lib/config/sections.ts'
 import { FONT_FILES, Typeface }    from '../../../../site/.vitepress/lib/type/typeface.ts'
+import { site, vitepress }         from '../../common/paths.ts'
 
-const root   = new URL('../../../../site/.vitepress/', import.meta.url)
-const site   = join(import.meta.dirname, '..', '..', '..', '..', 'site')
-const bodoni = new Typeface(await readFile(new URL(FONT_FILES.display, root)))
-const faces  = await Faces.read(root)
+const bodoni = new Typeface(await readFile(new URL(FONT_FILES.display, vitepress)))
+const faces  = await Faces.read(vitepress)
 const titles = SECTIONS.flatMap((section) => [
   pageTitle(join(site, section.slug, 'index.md')),
   ...sectionPages(site, section).map(({ text }) => text)

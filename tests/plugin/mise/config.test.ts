@@ -4,8 +4,7 @@ import { join } from 'node:path'
 import { expect, it } from 'vitest'
 
 import { spawned } from '../common/sync.js'
-
-const root   = join(import.meta.dirname, '..', '..', '..')
+import { root }    from '../common/paths.js'
 const config = join(root, '.mise', 'config.toml')
 
 it('runs the tools check under mise doctor project, read from .mise/config.toml', async () => {

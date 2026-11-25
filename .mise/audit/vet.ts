@@ -5,7 +5,8 @@ import { YamlFile }             from './files.ts'
 import { Finding }              from './finding.ts'
 import type { PackageManifest } from './package.ts'
 
-const MANIFESTS   = 'tests/plugin/vet/*/package.json'
+const DIRECTORY   = 'tests/plugin/vet'
+const MANIFESTS   = `${DIRECTORY}/*/package.json`
 const TITLE       = 'Vet pin'
 const conjunction = new Intl.ListFormat('en', { type: 'conjunction' })
 
@@ -40,9 +41,9 @@ export class VetManifests {
     const missing = sources.entries()
       .filter(([role]) => !roles.has(role))
       .map(([role, held]) => new Finding(
-        `\`tests/plugin/vet/${role}/package.json\` is missing, `
+        `\`${DIRECTORY}/${role}/package.json\` is missing, `
       + `whereas ${held.source} ${held.release ?? 'nothing'}`,
-        { file: `tests/plugin/vet/${role}/package.json`, line: 1 },
+        { file: `${DIRECTORY}/${role}/package.json`, line: 1 },
         TITLE
       ))
       .toArray()
@@ -55,7 +56,7 @@ export class VetManifests {
 
       if (!held) {
         return [new Finding(
-          `\`tests/plugin/vet/${role}\` names no source its \`homebridge\` pin follows, `
+          `\`${DIRECTORY}/${role}\` names no source its \`homebridge\` pin follows, `
         + `since only ${conjunction.format(sources.keys().map((name) => `\`${name}\``))} name one`,
           file.start,
           TITLE

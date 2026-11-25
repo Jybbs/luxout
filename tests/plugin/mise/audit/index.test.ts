@@ -5,10 +5,11 @@ import { join }      from 'node:path'
 
 import { expect } from 'vitest'
 
+import { root }        from '../../common/paths.js'
 import { repository }  from '../../common/repository.js'
 import { plant, test } from '../../common/scratch.js'
 
-const entry = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'audit', 'index.ts')
+const entry = join(root, '.mise', 'audit', 'index.ts')
 
 test('runs under Node’s type stripping and exits 1 on the annotations it prints', async ({ scratch }) => {
   await plant(scratch, {

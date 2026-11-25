@@ -23,11 +23,11 @@ import { plotDrawing }              from '../../../../site/.vitepress/theme/cont
 import { data }                     from '../../common/data/daylight.ts'
 import { frameSheet }               from '../../common/frames.ts'
 import { framed }                   from '../../common/outline.ts'
+import { site }                     from '../../common/paths.ts'
 
 const day     = SampleDay.record()
 const { gap } = data
 const placed  = PLACEMENTS.filter(({ frame }) => frame)
-const site    = join(import.meta.dirname, '..', '..', '..', '..', 'site')
 const bridge  = twilightBridge(day.sky)
 const dial    = dayDial(day)
 const year    = sunYear(day)

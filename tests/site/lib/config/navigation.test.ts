@@ -6,8 +6,7 @@ import { expect, it } from 'vitest'
 import { buildNavigation } from '../../../../site/.vitepress/lib/config/navigation.ts'
 import { sectionPages }    from '../../../../site/.vitepress/lib/config/pages.ts'
 import { SECTIONS }        from '../../../../site/.vitepress/lib/config/sections.ts'
-
-const site       = join(import.meta.dirname, '..', '..', '..', '..', 'site')
+import { site }            from '../../common/paths.ts'
 const navigation = buildNavigation(site, SECTIONS)
 
 it('links each section from the navigation bar, active on every page beneath its route', () => {

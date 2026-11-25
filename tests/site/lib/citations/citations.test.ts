@@ -4,11 +4,10 @@ import { join }     from 'node:path'
 import { resolveConfig } from 'vitepress'
 import { expect, it }    from 'vitest'
 
-import { Bibliography } from '../../../../site/.vitepress/lib/citations/bibliography.ts'
-
-const site              = join(import.meta.dirname, '..', '..', '..', '..', 'site')
+import { Bibliography }    from '../../../../site/.vitepress/lib/citations/bibliography.ts'
+import { site, vitepress } from '../../common/paths.ts'
 const { pages, srcDir } = await resolveConfig(site, 'build', 'production')
-const references        = new URL('../../../../site/.vitepress/lib/citations/references.bib', import.meta.url)
+const references        = new URL('lib/citations/references.bib', vitepress)
 const bib               = await readFile(references, 'utf8')
 const bibliography      = Bibliography.parse(bib)
 

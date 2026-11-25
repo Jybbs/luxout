@@ -4,6 +4,7 @@ import { delimiter, join }                               from 'node:path'
 import { promisify }                                     from 'node:util'
 
 import { plant } from './scratch.js'
+import { root }  from './paths.js'
 
 /**
  * The reply a canned stand-in gives one call, which exits 1 instead wherever a
@@ -66,7 +67,6 @@ interface SyncSetup {
 
 const exec     = promisify(execFile)
 const fixtures = join(import.meta.dirname, '..', 'mise', 'fixtures')
-const root     = join(import.meta.dirname, '..', '..', '..')
 const path     = execFileSync('mise', ['x', '--', 'printenv', 'PATH'], { cwd: root, encoding: 'utf8' }).trim()
 
 const source = (task: string): string => join('.mise', 'tasks', ...task.split(':'))

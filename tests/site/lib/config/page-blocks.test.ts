@@ -23,11 +23,11 @@ import { data as line }              from '../../common/data/debug-line.ts'
 import { data as front }             from '../../common/data/front.ts'
 import { data as identity }          from '../../common/data/identity.ts'
 import { data as privacy }           from '../../common/data/privacy.ts'
+import { site }                      from '../../common/paths.ts'
 
 const day               = SampleDay.record()
 const { gap, luxScale } = data
 const rows              = await settingRows()
-const site              = join(import.meta.dirname, '..', '..', '..', '..', 'site')
 const dial              = dayDial(day)
 const md                = await createMarkdownRenderer(site, config.markdown)
 const year              = sunYear(day)

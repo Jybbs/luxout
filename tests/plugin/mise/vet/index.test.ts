@@ -6,8 +6,9 @@ import { expect } from 'vitest'
 
 import { plant, test }       from '../../common/scratch.js'
 import { checkout, install } from '../../common/vet.js'
+import { root }              from '../../common/paths.js'
 
-const entry = join(import.meta.dirname, '..', '..', '..', '..', '.mise', 'vet', 'index.ts')
+const entry = join(root, '.mise', 'vet', 'index.ts')
 
 test('runs under Node’s type stripping and exits 0 with no release to start', async ({ scratch }) => {
   await checkout(scratch)

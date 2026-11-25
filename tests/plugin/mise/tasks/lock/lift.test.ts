@@ -5,6 +5,7 @@ import { join }                                    from 'node:path'
 
 import { describe } from 'vitest'
 
+import { root }                from '../../../common/paths.js'
 import { repository }          from '../../../common/repository.js'
 import { plant, test as base } from '../../../common/scratch.js'
 import { type Answer, sync }   from '../../../common/sync.js'
@@ -69,7 +70,6 @@ const PRERELEASES: Prerelease[]      = [
 ]
 const RELOCK                         = ['mise', 'run', 'lock:sync']
 const VERIFY                         = ['mise', 'run', 'repo:verify']
-const root                           = join(import.meta.dirname, '..', '..', '..', '..', '..')
 const test                           = base
   .extend('comparisons', { scope: 'file' }, async () => {
     const pin        = (current: string): string => `pkg-${current}`

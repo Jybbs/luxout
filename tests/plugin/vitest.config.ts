@@ -1,14 +1,14 @@
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 
 import { defineConfig } from 'vitest/config'
 
 import { thresholds }                        from './common/coverage.js'
+import { root }                              from './common/paths.js'
 import { TAGS }                              from './common/tags.js'
 import { changedFiles, lockfiles, triggers } from './common/triggers.js'
 
 const INCLUDE = ['tests/plugin/**/*.test.ts']
 const PATHS   = ['.mise/config.toml', '.mise/mise.lock', 'site/.vitepress/vitest.config.ts']
-const root    = dirname(dirname(import.meta.dirname))
 const read    = [...PATHS, ...lockfiles(root)].map((file) => join(root, file))
 
 export default defineConfig({

@@ -13,6 +13,7 @@ import { SECTIONS }        from '../../site/.vitepress/lib/config/sections.ts'
 import { luxRange }        from '../../site/.vitepress/lib/daylight/homekit.ts'
 import { Logo }            from '../../site/.vitepress/lib/logo/logo.ts'
 import { test }            from './common/scratch.ts'
+import { site, vitepress } from './common/paths.ts'
 
 const front: PageData = {
   description  : '',
@@ -22,7 +23,6 @@ const front: PageData = {
   relativePath : 'index.md',
   title        : 'Luxout'
 }
-const site   = join(import.meta.dirname, '..', '..', 'site')
 const config = await resolveConfig(site, 'build', 'production')
 
 it('caches under the .cache directory at the root of the checkout', () => {
@@ -68,7 +68,7 @@ it('sets the front page hero to the title and the tagline the page opens on', as
 
 it('sets one tagline on the hero and beneath the title in the logo lockup', async () => {
   const data = await config.transformPageData?.(front, { siteConfig: config })
-  const logo = await Logo.read(new URL('../../site/.vitepress/', import.meta.url))
+  const logo = await Logo.read(vitepress)
 
   expect(logo.lockup('light').props?.['aria-label']).toBe(`Luxout. ${data?.frontmatter.hero.tagline}`)
 })

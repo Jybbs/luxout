@@ -2,6 +2,7 @@ import { blend, wcagContrast }  from 'culori'
 import { describe, expect, it } from 'vitest'
 
 import { SCHEMES, type Scheme, Tokens } from '../../../../site/.vitepress/lib/theme/tokens.ts'
+import { vitepress }                    from '../../common/paths.ts'
 
 /**
  * A text color the theme sets, beside the ground it sits on and each
@@ -21,7 +22,7 @@ const TEXTS   = ['--vp-c-brand-1', '--vp-c-text-1', '--vp-c-text-2', '--vp-c-tex
  * The contrast WCAG 2.2 sets for body text under Success Criterion 1.4.3.
  */
 const WCAG_AA       = 4.5
-const tokens        = await Tokens.read(new URL('../../../../site/.vitepress/', import.meta.url))
+const tokens        = await Tokens.read(vitepress)
 const pairs: Pair[] = SCHEMES.flatMap((scheme) => [
   ...GROUNDS.flatMap((ground) => TEXTS.map((text) => ({ ground, scheme, text, tints: [] }))),
   ...GROUNDS.map((ground) => ({ ground, scheme, text: '--vp-c-brand-1', tints: ['--vp-code-bg'] })),

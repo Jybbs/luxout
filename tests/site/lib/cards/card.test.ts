@@ -5,10 +5,10 @@ import { expect, it } from 'vitest'
 import { Card }        from '../../../../site/.vitepress/lib/cards/card.ts'
 import { Faces }       from '../../../../site/.vitepress/lib/cards/faces.ts'
 import { readPalette } from '../../../../site/.vitepress/lib/cards/palette.ts'
+import { vitepress }   from '../../common/paths.ts'
 
-const root    = new URL('../../../../site/.vitepress/', import.meta.url)
-const faces   = await Faces.read(root)
-const palette = await readPalette(root)
+const faces   = await Faces.read(vitepress)
+const palette = await readPalette(vitepress)
 
 it('draws a card at 1200 by 630', async () => {
   const { channels, height, width } = decode(await new Card(faces, palette.ground).png())

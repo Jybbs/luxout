@@ -6,6 +6,7 @@ import { describe } from 'vitest'
 
 import { plant, test } from '../../../common/scratch.js'
 import { spawned }     from '../../../common/sync.js'
+import { root }        from '../../../common/paths.js'
 
 const MANIFEST = {
   files   : ['config.schema.json', 'dist/'],
@@ -15,7 +16,6 @@ const MANIFEST = {
   type    : 'module',
   version : '1.2.3'
 }
-const root    = join(import.meta.dirname, '..', '..', '..', '..', '..')
 const PACKAGE = {
   '.github/README.md'         : '# Fixture\n',
   'config.schema.json'        : JSON.stringify({ customUiPath: './dist/ui' }),

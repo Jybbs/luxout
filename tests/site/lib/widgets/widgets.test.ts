@@ -15,6 +15,7 @@ import { type Scheme, Tokens }      from '../../../../site/.vitepress/lib/theme/
 import { PLACEMENTS, WIDGET_NAMES } from '../../../../site/.vitepress/lib/widgets/placements.ts'
 import theme                        from '../../../../site/.vitepress/theme/index.ts'
 import { frameSheet }               from '../../common/frames.ts'
+import { vitepress }                from '../../common/paths.ts'
 
 vi.mock('vitepress', () => ({ inBrowser: false }))
 vi.mock('vitepress/theme-without-fonts', () => ({ default: { Layout: 'Layout' } }))
@@ -88,7 +89,7 @@ const FRAME_MARKS = {
  * and the dark one inside its media query.
  */
 const SCHEMES: Scheme[] = ['light', 'dark']
-const STYLES            = new URL('../../../../site/.vitepress/theme/styles/', import.meta.url)
+const STYLES            = new URL('theme/styles/', vitepress)
 const source            = await readFile(new URL('tokens.css', STYLES), 'utf8')
 const tokens            = Tokens.parse(source)
 const frameInks         = Object.entries(FRAME_MARKS).flatMap(([name, { fills, strokes }]) => [

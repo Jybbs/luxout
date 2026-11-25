@@ -3,10 +3,11 @@ import { join }           from 'node:path'
 
 import { AtRule, type Root, parse } from 'postcss'
 
-import { DARK, Tokens } from '../../../site/.vitepress/lib/theme/tokens.ts'
+import { DARK, Tokens }    from '../../../site/.vitepress/lib/theme/tokens.ts'
+import { site, vitepress } from './paths.ts'
 
-const lib    = join(import.meta.dirname, '..', '..', '..', 'site', '.vitepress', 'lib')
-const tokens = await Tokens.read(new URL('../../../site/.vitepress/', import.meta.url))
+const lib    = join(site, '.vitepress', 'lib')
+const tokens = await Tokens.read(vitepress)
 
 /**
  * Reads the sheet that styles the frame `name` opens on, writing each value as

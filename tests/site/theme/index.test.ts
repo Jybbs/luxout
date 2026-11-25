@@ -13,6 +13,7 @@ import { Tokens }       from '../../../site/.vitepress/lib/theme/tokens.ts'
 import { WIDGET_NAMES } from '../../../site/.vitepress/lib/widgets/placements.ts'
 import { PauseSwitch }  from '../../../site/.vitepress/theme/controls/pause-switch.tsx'
 import theme            from '../../../site/.vitepress/theme/index.ts'
+import { site }         from '../common/paths.ts'
 
 const vitepress = vi.hoisted(() => ({
   get inBrowser() {
@@ -28,9 +29,8 @@ vi.mock('../../../site/.vitepress/lib/front/front.data.ts', () => import('../com
 vi.mock('../../../site/.vitepress/lib/search/search.data.ts', () => import('../common/data/search.ts'))
 vi.mock('../../../site/.vitepress/lib/settings/settings.data.ts', () => import('../common/data/settings.ts'))
 
-const site    = join(import.meta.dirname, '..', '..', '..', 'site', '.vitepress')
-const source  = await readFile(join(site, 'theme', 'index.ts'), 'utf8')
-const tokens  = await Tokens.read(pathToFileURL(`${site}/`))
+const source  = await readFile(join(site, '.vitepress', 'theme', 'index.ts'), 'utf8')
+const tokens  = await Tokens.read(pathToFileURL(`${site}/.vitepress/`))
 const sheets  = await Promise.all(source.matchAll(/^import '(@fontsource-variable\/[^']+)'$/gm)
   .map(([, name]) => readFile(fileURLToPath(import.meta.resolve(name!)), 'utf8')))
 const faces   = sheets.flatMap((sheet) => parse(sheet).nodes

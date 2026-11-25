@@ -17,16 +17,16 @@ import { DayPreview, previewAddress } from '../../../../site/.vitepress/lib/read
 import * as startCards                from '../../../../site/.vitepress/lib/readme/start-cards.ts'
 import { SCHEMES }                    from '../../../../site/.vitepress/lib/theme/tokens.ts'
 import { dialDrawing } from '../../../../site/.vitepress/theme/components/daylight/dial-drawing.tsx'
+import { vitepress }                  from '../../common/paths.ts'
 
 const forms   = startCards.START_CARDS.flatMap((card) => SCHEMES.map((scheme) => ({ card, scheme })))
-const root    = new URL('../../../../site/.vitepress/', import.meta.url)
-const cards   = await startCards.StartCards.read(root)
-const md      = await createMarkdownRenderer(fileURLToPath(new URL('../', root)), config.markdown)
-const preview = await DayPreview.read(root, dialDrawing)
-const seal    = await Seal.read(root)
-const logo    = await Logo.read(root)
-const readme  = await readFile(new URL('../../.github/README.md', root), 'utf8')
-const site    = (address: string) => new URL(`../public${address}`, root)
+const cards   = await startCards.StartCards.read(vitepress)
+const md      = await createMarkdownRenderer(fileURLToPath(new URL('../', vitepress)), config.markdown)
+const preview = await DayPreview.read(vitepress, dialDrawing)
+const seal    = await Seal.read(vitepress)
+const logo    = await Logo.read(vitepress)
+const readme  = await readFile(new URL('../../.github/README.md', vitepress), 'utf8')
+const site    = (address: string) => new URL(`../public${address}`, vitepress)
 const pages   = new Set(readme.matchAll(/(?:href="|\]\()(https:\/\/luxout\.fyi\/[^")]+)/g)
   .map(([, link]) => link!)
   .filter((link) => !/\.\w+$/.test(new URL(link).pathname)))
@@ -132,7 +132,7 @@ describe('the README', () => {
   it.for([...pages])('links %s to a page the site holds and any heading its fragment names', async (link) => {
     const { hash, pathname } = new URL(link)
     const page               = [`.${pathname}.md`, `.${pathname}index.md`]
-      .map((file) => new URL(file, new URL('../', root)))
+      .map((file) => new URL(file, new URL('../', vitepress)))
       .find(existsSync)
 
     expect(page).toBeDefined()

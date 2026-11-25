@@ -6,11 +6,11 @@ import { readPalette }        from '../../../../site/.vitepress/lib/cards/palett
 import { HOURS, sectionCard } from '../../../../site/.vitepress/lib/cards/section.ts'
 import { SECTIONS }           from '../../../../site/.vitepress/lib/config/sections.ts'
 import { SampleDay }          from '../../../../site/.vitepress/lib/daylight/sample-day.ts'
+import { vitepress }          from '../../common/paths.ts'
 
 const day     = SampleDay.record()
-const root    = new URL('../../../../site/.vitepress/', import.meta.url)
-const faces   = await Faces.read(root)
-const palette = await readPalette(root)
+const faces   = await Faces.read(vitepress)
+const palette = await readPalette(vitepress)
 const card    = (index: number, title = 'The Outside Sensor in Home') => sectionCard(day, faces, palette, {
   count : SECTIONS.length,
   index : index,

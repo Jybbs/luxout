@@ -1,8 +1,9 @@
 import { cp, mkdir, symlink } from 'node:fs/promises'
 import { dirname, join }      from 'node:path'
 
-import { branch }            from './repository.js'
-import { plant }             from './scratch.js'
+import { root }               from './paths.js'
+import { branch }             from './repository.js'
+import { plant }              from './scratch.js'
 import { type SyncRun, sync } from './sync.js'
 
 /**
@@ -24,7 +25,6 @@ export const ARGS  = ['--bail', '1']
 export const BASE  = '5cb3ee2'
 export const MERGE = ['git', 'merge-base', 'origin/main', 'HEAD']
 const fixtures     = join(import.meta.dirname, '..', 'mise', 'fixtures')
-const root         = join(import.meta.dirname, '..', '..', '..')
 
 /**
  * Runs `task` from `cwd`, which defaults to `repo`, under a stand-in `mise`
@@ -33,11 +33,11 @@ const root         = join(import.meta.dirname, '..', '..', '..')
  *
  * The repository at `repo` holds the `planted` files and a copy of each
  * `copied` file, `tests/plugin/common/coverage.ts`,
- * `tests/plugin/common/tags.ts`, and `tests/plugin/common/triggers.ts`, taken
- * from the repository the suite runs in at the same path. A link at each
- * `linked` path names its target, beside a link to the `node_modules` of the
- * repository the suite runs in. The task runs under the `COVERAGE_FLOOR` the
- * suite runs under.
+ * `tests/plugin/common/paths.ts`, `tests/plugin/common/tags.ts`, and
+ * `tests/plugin/common/triggers.ts`, taken from the repository the suite runs
+ * in at the same path. A link at each `linked` path names its target, beside a
+ * link to the `node_modules` of the repository the suite runs in. The task
+ * runs under the `COVERAGE_FLOOR` the suite runs under.
  *
  * Returns:
  *   Whether Vitest reported one test passing, beside the task's exit status.
@@ -51,6 +51,7 @@ export async function affected(
     ...[
       ...copied,
       'tests/plugin/common/coverage.ts',
+      'tests/plugin/common/paths.ts',
       'tests/plugin/common/tags.ts',
       'tests/plugin/common/triggers.ts'
     ].map((file) => cp(join(root, file), join(repo, file))),

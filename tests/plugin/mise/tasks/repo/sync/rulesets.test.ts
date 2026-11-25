@@ -6,6 +6,7 @@ import { describe } from 'vitest'
 
 import { type Call, type SyncRun, confirm, sync } from '../../../../common/sync.js'
 import { plant, test }                            from '../../../../common/scratch.js'
+import { root }                                   from '../../../../common/paths.js'
 
 const MANIFEST = JSON.stringify({
   description : 'A light sensor',
@@ -251,7 +252,6 @@ test('sends the repository’s own rulesets and settings, each to its endpoint',
   expect,
   scratch
 }) => {
-  const root  = join(import.meta.dirname, '..', '..', '..', '..', '..', '..')
   const files = await Promise.all(OWN.map(async (file) => [file, await readFile(join(root, file), 'utf8')]))
 
   const { requests, status } = await rulesets(Object.fromEntries(files), scratch, {

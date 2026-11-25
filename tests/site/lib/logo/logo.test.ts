@@ -10,12 +10,12 @@ import {
   groundedAddressOf
 } from '../../../../site/.vitepress/lib/logo/logo.ts'
 import { SCHEMES, Tokens } from '../../../../site/.vitepress/lib/theme/tokens.ts'
+import { vitepress }       from '../../common/paths.ts'
 
-const root     = new URL('../../../../site/.vitepress/', import.meta.url)
 const forms    = ASSETS.flatMap((asset) => SCHEMES.map((scheme) => ({ asset, scheme })))
 const grounded = FORMS.flatMap((form) => SCHEMES.map((scheme) => ({ form, scheme })))
-const logo     = await Logo.read(root)
-const tokens   = await Tokens.read(root)
+const logo     = await Logo.read(vitepress)
+const tokens   = await Tokens.read(vitepress)
 
 describe('the tracked logo files', () => {
   it.for(forms)(
