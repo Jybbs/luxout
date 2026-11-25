@@ -4,8 +4,8 @@ import { join }         from 'node:path'
 
 import { describe } from 'vitest'
 
-import { plant, test }   from '../../../common/scratch.js'
-import { info, spawned } from '../../../common/sync.js'
+import { plant, test } from '../../../common/scratch.js'
+import { info, mised } from '../../../common/sync.js'
 
 interface Listed {
   run: [{ tasks: string[] }]
@@ -33,17 +33,7 @@ async function ci(scratch: string, failing: string[], doctor = 'true') {
   })
   await cp(join(root, FILE), join(scratch, FILE))
 
-  const run = await spawned('mise', ['run', 'ci'], {
-    cwd : scratch,
-    env : {
-      HOME                      : process.env.HOME,
-      MISE_CONFIG_DIR           : join(scratch, 'tmp', 'mise', 'config'),
-      MISE_JOBS                 : '1',
-      MISE_STATE_DIR            : join(scratch, 'tmp', 'mise', 'state'),
-      MISE_TRUSTED_CONFIG_PATHS : scratch,
-      PATH                      : process.env.PATH
-    }
-  })
+  const run = await mised(scratch, ['run', 'ci'], { MISE_JOBS: '1' })
   const ran = (await readFile(join(scratch, 'ran.log'), 'utf8')).split('\n').filter(Boolean).toSorted()
 
   return { ...run, ran }

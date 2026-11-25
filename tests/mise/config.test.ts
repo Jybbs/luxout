@@ -31,11 +31,12 @@ test('runs the tools check through mise ls --no-global, never the deprecated --l
 })
 
 test.for([
-  { release: '2.27.9', status: 'fail' },
-  { release: '2.28.0', status: 'pass' },
-  { release: '2.54.0', status: 'pass' }
-])('reads Git $release as $status', async ({ release, status }, { expect, scratch }) => {
-  await plant(scratch, { 'bin/git': `#!/bin/sh\necho 'git version ${release} (Fixture)'\n` })
+  { name: 'Git 2.27.9', script: "echo 'git version 2.27.9 (Fixture)'", status: 'fail' },
+  { name: 'Git 2.28.0', script: "echo 'git version 2.28.0 (Fixture)'", status: 'pass' },
+  { name: 'Git 2.100.0', script: "echo 'git version 2.100.0 (Fixture)'", status: 'pass' },
+  { name: 'a git printing no version', script: 'exit 1', status: 'fail' }
+])('reads $name as $status', async ({ script, status }, { expect, scratch }) => {
+  await plant(scratch, { 'bin/git': `#!/bin/sh\n${script}\n` })
   await chmod(join(scratch, 'bin', 'git'), 0o755)
 
   const env        = { ...process.env, PATH: join(scratch, 'bin') + delimiter + process.env.PATH }

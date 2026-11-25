@@ -4,8 +4,8 @@ import { join } from 'node:path'
 
 import { describe } from 'vitest'
 
-import { plant, test }   from '../../../common/scratch.js'
-import { spawned, sync } from '../../../common/sync.js'
+import { plant, test } from '../../../common/scratch.js'
+import { mised, sync } from '../../../common/sync.js'
 
 const LATER = new Date('2030-01-01T00:00:00Z')
 const root  = join(import.meta.dirname, '..', '..', '..', '..')
@@ -17,7 +17,7 @@ const root  = join(import.meta.dirname, '..', '..', '..', '..')
  *
  * Returns:
  *   A runner that builds the checkout again through `mise run`, skipping
- *   `plugin:bake`, under mise directories of the scratch's own.
+ *   `plugin:bake`.
  */
 async function checkout(scratch: string): Promise<() => Promise<string>> {
   await plant(scratch, {
@@ -35,15 +35,7 @@ async function checkout(scratch: string): Promise<() => Promise<string>> {
   ])
 
   const build = async (): Promise<string> => {
-    const { status, stderr } = await spawned('mise', ['run', '--skip-deps', 'plugin:build'], {
-      cwd : scratch,
-      env : {
-        ...process.env,
-        MISE_CONFIG_DIR           : join(scratch, 'tmp', 'mise', 'config'),
-        MISE_STATE_DIR            : join(scratch, 'tmp', 'mise', 'state'),
-        MISE_TRUSTED_CONFIG_PATHS : scratch
-      }
-    })
+    const { status, stderr } = await mised(scratch, ['run', '--skip-deps', 'plugin:build'])
 
     if (status !== 0) throw new Error(stderr)
 

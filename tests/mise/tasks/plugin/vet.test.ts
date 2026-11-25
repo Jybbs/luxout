@@ -122,9 +122,10 @@ async function pack(dir: string, file: string): Promise<void> {
  * waiting up to `start` milliseconds for each to listen, under a TMPDIR
  * reached through a symlink and named to open on the checkout's path and with
  * `NPM_CONFIG_IGNORE_SCRIPTS` off, so only the task's own flags skip the packed
- * plugin's failing `postinstall`, and reads back what the task left in the directory the symlink names and in the
- * storage of the floor's run with the platform block alone, beside the verdict
- * it printed for each release's run with that block.
+ * plugin's failing `postinstall`, and reads back what the task left in the
+ * directory the symlink names and in the storage of the floor's run with the
+ * platform block alone, beside the verdict it printed for each release's run
+ * with that block.
  */
 async function vet(cwd: string, scratch: string, start: number) {
   const temp = join(scratch, 'checkout-temp')

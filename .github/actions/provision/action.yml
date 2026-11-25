@@ -27,7 +27,7 @@ runs:
     - name  : Run each readiness check but `tools`, which a job installing only the tools it reads fails
       shell : bash
       run   : |
-        mise doctor project --json > "$RUNNER_TEMP/doctor.json" || true
+        mise doctor project --json > "$RUNNER_TEMP/doctor.json" || test -s "$RUNNER_TEMP/doctor.json"
         jq --raw-output \
           '[.errors[], (.checks[] | select(.name != "tools" and .status != "pass" and .status != "skipped")
             | "\(.name): \(.hint)")]
