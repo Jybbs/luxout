@@ -34,7 +34,7 @@ case "$state" in
     echo "Replaced the notes of the draft release for version $version at $url"
     ;;
   published)
-    echo "::error::Version $version is already published, so run \`mise bump\`" \
+    echo "::error::Version $version is already published, so run \`mise run bump\`" \
          "to move \`version\` in \`package.json\` to the next release"
     ;;
   *)
