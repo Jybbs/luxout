@@ -46,7 +46,7 @@ export function repository(root: string): (...args: string[]) => string {
  * Starts a Git repository in `root` through `repository`, commits every file
  * under it, and returns the runner.
  */
-export function start(root: string): (...args: string[]) => string {
+export function start(root: string): ReturnType<typeof repository> {
   const git = repository(root)
 
   git('add', '--all')

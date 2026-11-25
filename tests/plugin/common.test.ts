@@ -20,6 +20,7 @@ test.concurrent(
     await plant(scratch, {
       'home/.gitconfig'           : config,
       'repo/a.txt'                : 'a\n',
+      'repo/b/c.txt'              : 'c\n',
       'template/hooks/pre-commit' : '#!/bin/sh\nexit 1\n',
       'xdg/git/config'            : config
     })
@@ -33,9 +34,11 @@ test.concurrent(
     const git       = start(join(scratch, 'repo'))
 
     expect({
+      files  : git('ls-tree', '-r', '--name-only', 'HEAD'),
       global : git('var', 'GIT_CONFIG_GLOBAL'),
       log    : git('log', '--format=%D, %an <%ae>, %cn <%ce>')
     }).toEqual({
+      files  : 'a.txt\nb/c.txt\n',
       global : '/dev/null\n',
       log    : `HEAD -> main, ${LUXOUT}, ${LUXOUT}\n`
     })
