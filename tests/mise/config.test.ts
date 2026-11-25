@@ -1,12 +1,35 @@
 /** @module-tag spawns */
-import { chmod }           from 'node:fs/promises'
+import { chmod, readFile } from 'node:fs/promises'
 import { delimiter, join } from 'node:path'
+
+import { parse } from 'yaml'
 
 import { plant, test } from '../common/scratch.js'
 import { spawned }     from '../common/sync.js'
 
-const root   = join(import.meta.dirname, '..', '..')
-const config = join(root, '.mise', 'config.toml')
+interface Action {
+  runs: { steps: { run?: string }[] }
+}
+
+const root      = join(import.meta.dirname, '..', '..')
+const config    = join(root, '.mise', 'config.toml')
+const provision = join(root, '.github', 'actions', 'provision', 'action.yml')
+const ready     = (parse(await readFile(provision, 'utf8')) as Action).runs.steps.at(-1)?.run ?? ''
+
+/**
+ * Runs the provision action's readiness step as a `shell: bash` step runs it,
+ * with `scratch` as `RUNNER_TEMP`, under a stand-in `mise` that prints `report`
+ * and exits 1.
+ */
+async function readiness(scratch: string, report: string) {
+  await plant(scratch, { 'bin/mise': `#!/bin/sh\nprintf '%s' '${report}'\nexit 1\n` })
+  await chmod(join(scratch, 'bin', 'mise'), 0o755)
+
+  return spawned('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', ready], {
+    cwd : scratch,
+    env : { ...process.env, PATH: join(scratch, 'bin') + delimiter + process.env.PATH, RUNNER_TEMP: scratch }
+  })
+}
 
 test('runs each readiness check under mise doctor project, read from .mise/config.toml', async ({
   expect
@@ -43,4 +66,26 @@ test.for([
   const { stdout } = await spawned('mise', ['doctor', 'project', '--json'], { cwd: root, env })
 
   expect(JSON.parse(stdout).checks).toContainEqual(expect.objectContaining({ name: 'git', status }))
+})
+
+test.for([{ name: 'bash' }, { name: 'tar' }])('runs the $name check through command -v', async ({ name }, {
+  expect
+}) => {
+  const args = ['config', 'get', '--file', config, `doctor.checks.${name}.run`]
+
+  expect(await spawned('mise', args, { cwd: root, env: process.env }))
+    .toMatchObject({ status: 0, stdout: `command -v ${name}\n` })
+})
+
+test.for([
+  { failing: 'git', name: 'a failing git check', status: 1 },
+  { failing: 'tools', name: 'a failing tools check alone', status: 0 }
+])('provisions a job to exit $status on $name', async ({ failing, status }, { expect, scratch }) => {
+  const report = JSON.stringify({ checks: [{ hint: 'Install it.', name: failing, status: 'fail' }], errors: [] })
+
+  expect(await readiness(scratch, report)).toMatchObject({ status })
+})
+
+test('fails a provisioned job where mise writes no readiness report', async ({ expect, scratch }) => {
+  expect((await readiness(scratch, '')).status).not.toBe(0)
 })
