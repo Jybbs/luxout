@@ -2,7 +2,7 @@ import { type SpawnSyncReturns, spawnSync }   from 'node:child_process'
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import { join, relative, resolve }            from 'node:path'
 
-import { mentions, site, type Site, traced } from '../../tests/common/triggers.ts'
+import { mentions, site, type Site, traced } from '../../tests/plugin/common/triggers.ts'
 import { Actions }                           from './actions.ts'
 import { DeployPaths }                       from './deploy.ts'
 import type { Finding }                      from './finding.ts'

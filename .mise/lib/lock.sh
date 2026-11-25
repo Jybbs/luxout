@@ -1,5 +1,5 @@
 bun_packages() {
-  printf '%s\n' . site tests/homebridge tests/vet/*
+  printf '%s\n' . tests/plugin/homebridge tests/plugin/vet/*
 }
 
 install_seed() {
@@ -11,5 +11,5 @@ install_seed() {
 }
 
 lifted_packages() {
-  bun_packages | grep --fixed-strings --invert-match --line-regexp tests/vet/floor
+  bun_packages | grep --fixed-strings --invert-match --line-regexp tests/plugin/vet/floor
 }

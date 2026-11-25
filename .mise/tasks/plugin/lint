@@ -6,4 +6,4 @@
 format=default
 [[ -z "${GITHUB_ACTIONS:-}" ]] || format=github
 
-oxlint --format "$format" --type-aware "$@" .mise/audit .mise/vet src tests
+oxlint --format "$format" --type-aware "$@" .mise/audit .mise/vet src tests/plugin

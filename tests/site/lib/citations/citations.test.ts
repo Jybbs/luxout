@@ -1,0 +1,25 @@
+import { readFile } from 'node:fs/promises'
+import { join }     from 'node:path'
+
+import { resolveConfig } from 'vitepress'
+import { expect, it }    from 'vitest'
+
+import { Bibliography }    from '../../../../site/.vitepress/lib/citations/bibliography.ts'
+import { site, vitepress } from '../../common/paths.ts'
+const { pages, srcDir } = await resolveConfig(site, 'build', 'production')
+const references        = new URL('lib/citations/references.bib', vitepress)
+const bib               = await readFile(references, 'utf8')
+const bibliography      = Bibliography.parse(bib)
+
+it.each(pages)('%s carries the footnote text site:cite writes from references.bib', async (page) => {
+  const path = join(srcDir, page)
+
+  await expect(bibliography.cite(await readFile(path, 'utf8'))).toMatchFileSnapshot(path)
+})
+
+it('cites every work on the bibliography page', async () => {
+  const page = await readFile(join(srcDir, 'estimate', 'bibliography.md'), 'utf8')
+  const keys = bib.matchAll(/^@\w+\{(\w+),$/gm)
+
+  expect(keys.filter(([, key]) => !page.includes(`[^${key!}]`)).toArray()).toEqual([])
+})

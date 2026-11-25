@@ -1,0 +1,306 @@
+import { join } from 'node:path'
+
+import { expect, vi } from 'vitest'
+
+import { Audit, type Run } from '../../../../.mise/audit/audit.ts'
+import { VET, mise }       from '../../common/mise.js'
+import { plant, test }     from '../../common/scratch.js'
+
+const CONFIG = '[tools]\nnode = "26.10.0"\n'
+
+const manifest = (coverage: string): string => JSON.stringify(
+  { devDependencies: { '@vitest/coverage-v8': coverage, vitest: '5.0.3' }, engines: { node: '^26.10.0' } },
+  null,
+  2
+)
+
+test.for([
+  { coverage: '5.0.3', status: 0, written: [] },
+  {
+    coverage : '5.0.4',
+    status   : 1,
+    written  : [
+      '::error file=package.json,line=3,title=Coverage pin::`@vitest/coverage-v8` pins 5.0.4, '
+    + 'whereas `vitest`, the release it runs under, pins 5.0.3'
+    ]
+  }
+])('prints each finding and exits $status', async ({ coverage, status, written }, { scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, { ...VET, '.mise/config.toml': CONFIG, 'package.json': manifest(coverage) })
+
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(status)
+  expect(write.mock.calls.flat()).toEqual(written)
+})
+
+test('prints a finding against each manifest beside the root', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.mise/config.toml'                    : CONFIG,
+    'package.json'                         : manifest('5.0.3'),
+    'tests/plugin/homebridge/package.json' : manifest('5.0.4')
+  })
+
+  await new Audit(scratch, mise([]), write).report()
+
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=tests/plugin/homebridge/package.json,line=3,title=Coverage pin::`@vitest/coverage-v8` pins '
+  + '5.0.4, whereas `vitest`, the release it runs under, pins 5.0.3'
+  ])
+})
+
+test('prints a range and a parse error from each manifest Bun installs from, once each', async ({
+  scratch
+}) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    '.mise/config.toml'                    : CONFIG,
+    'package.json'                         : manifest('5.0.3'),
+    'tests/plugin/homebridge/package.json' : '{\n  "dependencies": { "homebridge-config-ui-x": "^5.30.1" }\n'
+                                           + '}\n',
+    'tests/plugin/vet/floor/package.json'  : '{ "dependencies": ',
+    'tests/plugin/vet/pinned/package.json' : '{}'
+  })
+
+  await new Audit(scratch, mise([]), write).report()
+
+  expect(write.mock.calls.flat().filter((line) => /title=(?:Exact pin|Parse error)/.test(line))).toEqual([
+    '::error file=tests/plugin/homebridge/package.json,line=2,title=Exact pin::`homebridge-config-ui-x` pins '
+  + '"^5.30.1" under `dependencies`, which names no exact release',
+    expect.stringMatching(/^::error file=tests\/plugin\/vet\/floor\/package\.json,line=1,title=Parse error::/)
+  ])
+})
+
+test('prints a range from each package `bun_packages` names', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.mise/config.toml'     : CONFIG,
+    'extra/package.json'    : '{\n  "devDependencies": { "vitest": "~5.0.3" }\n}\n',
+    'package.json'          : manifest('5.0.3'),
+    'unlisted/package.json' : '{\n  "devDependencies": { "vitest": "~5.0.3" }\n}\n'
+  })
+
+  await new Audit(scratch, mise([], [], '', ['.', 'extra']), write).report()
+
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=extra/package.json,line=2,title=Exact pin::`vitest` pins "~5.0.3" under '
+  + '`devDependencies`, which names no exact release'
+  ])
+})
+
+test('prints the findings of the workflows and the composite actions', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.github/actions/a/action.yml' : 'runs:\n  steps:\n    - &a\n      run: x\n',
+    '.github/workflows/ci.yml'     : 'on: pull_request\njobs:\n  a:\n    timeout-minutes: 1\n',
+    '.mise/config.toml'            : CONFIG,
+    'package.json'                 : manifest('5.0.3')
+  })
+
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=.github/actions/a/action.yml,line=4,title=YAML anchor::'
+  + '`&a` is a YAML anchor or alias, which GitHub rejects in an action manifest',
+    '::error file=.github/workflows/ci.yml,line=1,title=Concurrency::The workflow runs on `pull_request` '
+  + 'and sets no `concurrency` group, so a superseded pull-request run keeps running',
+    '::error file=.github/workflows/ci.yml,line=1,title=Draft guard::'
+  + '`pull_request` runs on no `ready_for_review` activity, so marking a draft ready runs no job',
+    '::error file=.github/workflows/ci.yml,line=3,title=Draft guard::Job `a` joins no '
+  + '`!github.event.pull_request.draft` to its `if` through `&&`, so it runs on every push to a draft',
+    '::error file=.github/workflows/ci.yml,line=3,title=Reading gate::'
+  + 'The workflow ends on no `✨ Reading` gate'
+  ])
+})
+
+test('prints a file the site build reads that no `deploy.yml` glob matches', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.github/workflows/deploy.yml' : 'on:\n  push:\n    paths:\n      - .github/**\n'
+                                   + '      - .mise/config.toml\n',
+    '.mise/config.toml'            : CONFIG,
+    'package.json'                 : manifest('5.0.3')
+  })
+
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat().filter((line) => line.includes('title=Deploy path'))).toEqual([
+    '::error file=.github/workflows/deploy.yml,line=4,title=Deploy path::`.mise/mise.lock` matches no '
+  + '`on.push.paths` glob, though the press job installs its tools through it, so a push changing it '
+  + 'leaves the site unpublished'
+  ])
+})
+
+test('prints what the rulesets report against the gates of the workflows', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+  const rules = [
+    { parameters: { required_status_checks: [{ context: 'build' }] }, type: 'required_status_checks' }
+  ]
+
+  await plant(scratch, {
+    ...VET,
+    '.github/rulesets/main.json' : JSON.stringify({ name: 'main', rules }),
+    '.mise/config.toml'          : CONFIG,
+    'package.json'               : manifest('5.0.3')
+  })
+
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=.github/rulesets/main.json,line=1,title=Required check::'
+  + '`main` requires the check `build`, which is not the gate of any workflow that runs on `pull_request`'
+  ])
+})
+
+test('prints what the label registry and the files naming its labels report', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.github/ISSUE_TEMPLATE/spec.md' : '---\nlabels: 🦖 rex\n---\n',
+    '.github/labels.toml'            : '["🐞 bug"]\ncolor = "c62d42"\ndescription = "A defect."\n',
+    '.github/release.yml'            : 'changelog:\n  categories: []\n',
+    '.mise/config.toml'              : CONFIG,
+    'package.json'                   : manifest('5.0.3')
+  })
+
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=.github/labels.toml,line=3,title=Label description::'
+  + 'The description of `🐞 bug` ends on a period',
+    '::error file=.github/labels.toml,line=1,title=Release category::'
+  + '`🐞 bug` sits in no category of `.github/release.yml`',
+    '::error file=.github/ISSUE_TEMPLATE/spec.md,line=2,title=Unknown label::'
+  + '`.github/labels.toml` declares no label `🦖 rex`'
+  ])
+})
+
+test('prints what the manifests of the releases the vet installs report', async ({ scratch }) => {
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.mise/config.toml'                    : CONFIG,
+    'package.json'                         : manifest('5.0.3'),
+    'tests/plugin/vet/pinned/package.json' : JSON.stringify({
+      dependencies: { homebridge: '2.4.0' }
+    }, null, 2)
+  })
+
+  expect(await new Audit(scratch, mise([]), write).report()).toBe(1)
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=tests/plugin/vet/pinned/package.json,line=3,title=Vet pin::`homebridge` pins 2.4.0, '
+  + 'whereas the `homebridge` devDependency pins nothing'
+  ])
+})
+
+test('reads every file matching a pattern, keyed by its path in sorted order', async ({ scratch }) => {
+  await plant(scratch, { 'a/x.yml': 'ax', 'a/y.yaml': 'ay', 'b/x.yml': 'bx', 'c.txt': 'c' })
+
+  const files = new Audit(scratch).readAll('*/*.yml', '*/*.yaml')
+
+  expect(Object.entries(files)).toEqual([['a/x.yml', 'ax'], ['a/y.yaml', 'ay'], ['b/x.yml', 'bx']])
+})
+
+test('runs mise in the checkout and returns what it prints whatever its exit status', ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: 'mise ERROR 1 error', stdout: '{ "issues": [] }' }))
+
+  expect(new Audit(scratch, run).mise('tasks', 'validate', '--json')).toBe('{ "issues": [] }')
+  expect(run).toHaveBeenCalledExactlyOnceWith('mise', ['tasks', 'validate', '--json'], {
+    cwd      : scratch,
+    encoding : 'utf8'
+  })
+})
+
+test('throws what mise printed to standard error where it prints nothing else', ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: 'mise ERROR Error parsing task file\n', stdout: '' }))
+
+  expect(() => new Audit(scratch, run).mise('tasks', 'ls'))
+    .toThrow(new Error('mise ERROR Error parsing task file'))
+})
+
+test.for([
+  { call: (audit: Audit) => audit.packages(), command: 'bash' },
+  { call: (audit: Audit) => audit.tracked('*.ts'), command: 'git' },
+  { call: (audit: Audit) => audit.mise('tasks', 'ls'), command: 'mise' }
+])('throws the error starting $command raised', ({ call, command }, { scratch }) => {
+  const error = new Error(`spawnSync ${command} ENOENT`)
+
+  expect(() => call(new Audit(scratch, () => ({ error, stderr: '', stdout: '' })))).toThrow(error)
+})
+
+test('lists each package directory `bun_packages` prints', ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({
+    stderr : '',
+    stdout : '.\ntests/plugin/homebridge\ntests/plugin/vet/floor\n'
+  }))
+
+  expect(new Audit(scratch, run).packages())
+    .toEqual(['.', 'tests/plugin/homebridge', 'tests/plugin/vet/floor'])
+  expect(run).toHaveBeenCalledExactlyOnceWith('bash', ['-c', 'source .mise/lib/lock.sh && bun_packages'], {
+    cwd      : scratch,
+    encoding : 'utf8'
+  })
+})
+
+test('throws what bash printed to standard error reading `bun_packages`', ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: 'bash: lock.sh: No such file or directory\n', stdout: '' }))
+
+  expect(() => new Audit(scratch, run).packages())
+    .toThrow(new Error('bash: lock.sh: No such file or directory'))
+})
+
+test('reads each file git tracks that the working tree still holds', async ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: '', stdout: 'a.ts\0gone.ts\0src/b.tsx\0' }))
+
+  await plant(scratch, { 'a.ts': 'a', 'c.ts': 'c', 'src/b.tsx': 'b' })
+
+  expect(new Audit(scratch, run).tracked('*.ts', '*.tsx')).toEqual({ 'a.ts': 'a', 'src/b.tsx': 'b' })
+  expect(run).toHaveBeenCalledExactlyOnceWith('git', ['ls-files', '-z', '--', '*.ts', '*.tsx'], {
+    cwd      : scratch,
+    encoding : 'utf8'
+  })
+})
+
+test('throws what git printed to standard error', ({ scratch }) => {
+  const run = vi.fn<Run>(() => ({ stderr: 'fatal: not a git repository\n', stdout: '' }))
+
+  expect(() => new Audit(scratch, run).tracked('*.ts')).toThrow(new Error('fatal: not a git repository'))
+})
+
+test('prints each tracked TypeScript line past the budget', async ({ scratch }) => {
+  const run   = mise([], [], 'src/a.ts\0')
+  const write = vi.fn<(line: string) => void>()
+
+  await plant(scratch, {
+    ...VET,
+    '.mise/config.toml' : CONFIG,
+    'package.json'      : manifest('5.0.3'),
+    'src/a.ts'          : `${'a'.repeat(111)}\n`
+  })
+
+  expect(await new Audit(scratch, run, write).report()).toBe(1)
+  expect(run).toHaveBeenCalledWith('git', ['ls-files', '-z', '--', '*.cts', '*.mts', '*.ts', '*.tsx'], {
+    cwd      : scratch,
+    encoding : 'utf8'
+  })
+  expect(write.mock.calls.flat()).toEqual([
+    '::error file=src/a.ts,line=1,title=Line length::'
+  + 'The line runs 111 characters, past the 110-character budget'
+  ])
+})
+
+test('reads a file and names a path relative to the checkout', async ({ scratch }) => {
+  const audit = new Audit(scratch)
+
+  await plant(scratch, { 'package.json': '{}' })
+
+  expect([audit.read('package.json'), audit.relative(join(scratch, '.mise', 'tasks'))])
+    .toEqual(['{}', '.mise/tasks'])
+})

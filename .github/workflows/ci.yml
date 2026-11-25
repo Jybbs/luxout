@@ -68,10 +68,6 @@ jobs:
             task  : plugin:pack
             tools : bun jq node
 
-          - name  : 🕸️ Unused
-            task  : plugin:scour
-            tools : bun node
-
           - name  : 🕯️ Node 22
             task  : plugin:test:22
             tools : bun jq node@22.23.5
@@ -96,6 +92,10 @@ jobs:
             task  : repo:lint:workflows
             tools : zizmor
 
+          - name  : 🕸️ Unused
+            task  : repo:scour
+            tools : bun node
+
           - name  : ☂️ Coverage
             task  : site:cover
             tools : bun node
@@ -106,10 +106,6 @@ jobs:
 
           - name  : 🧶 Lint
             task  : site:lint
-            tools : bun node
-
-          - name  : 🍂 Cruft
-            task  : site:scour
             tools : bun node
 
           - name  : 🚩 Types

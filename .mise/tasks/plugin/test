@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "test"
-#MISE depends     = ["plugin:bake", "site:bake"]
+#MISE depends     = ["plugin:bake"]
 #MISE description = "Run the plugin's suites, passing any further arguments to Vitest"
 
 release=$(mise tasks info --json "$MISE_TASK_NAME" | jq -r '.tools.node // empty')
@@ -10,4 +10,4 @@ if [[ -n "$release" && "$(node --version)" != "v$release" ]]; then
   exit 1
 fi
 
-vitest run --config tests/vitest.config.ts "$@"
+vitest run --config tests/plugin/vitest.config.ts "$@"
