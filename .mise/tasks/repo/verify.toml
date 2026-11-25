@@ -27,16 +27,15 @@ run         = [
     "plugin:cover",
     "plugin:lint",
     "plugin:pack",
-    "plugin:scour",
     "plugin:typecheck",
     "plugin:vet",
     "repo:audit",
     "repo:lint:workflows",
+    "repo:scour",
     "site:cover",
     "site:inspect",
     "site:linkcheck",
     "site:lint",
-    "site:scour",
     "site:typecheck"
   ] }
 ]

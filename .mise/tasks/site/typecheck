@@ -1,6 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
-#MISE depends     = ["site:bake"]
-#MISE description = "Typecheck the site's TypeScript and its suite under `site/.vitepress/tsconfig.json`"
+#MISE depends     = ["plugin:bake"]
+#MISE description = "Typecheck the site's TypeScript and its suite under `tests/site`, each under its own `tsconfig.json`"
 #MISE dir         = "site"
 
 tsc -p .vitepress
+tsc -p ../tests/site

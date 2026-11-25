@@ -1,0 +1,4 @@
+{
+  "extends": "../../site/.vitepress/tsconfig.json",
+  "include": ["**/*", "../../site/.vitepress/**/*.d.ts"]
+}

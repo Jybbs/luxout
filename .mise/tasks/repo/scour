@@ -1,0 +1,6 @@
+#!/usr/bin/env -S bash -euo pipefail
+#MISE alias       = "scour"
+#MISE depends     = ["plugin:bake"]
+#MISE description = "Report the unused files, exports, and dependencies of the plugin, the site, and both suites, passing any further arguments to knip"
+
+knip "$@"
