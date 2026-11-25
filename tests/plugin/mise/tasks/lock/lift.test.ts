@@ -6,7 +6,7 @@ import { join }                                    from 'node:path'
 import { describe } from 'vitest'
 
 import { root }                from '../../../common/paths.js'
-import { repository }          from '../../../common/repository.js'
+import { start }               from '../../../common/repository.js'
 import { plant, test as base } from '../../../common/scratch.js'
 import { type Answer, sync }   from '../../../common/sync.js'
 
@@ -315,10 +315,8 @@ async function lift(
 ) {
   await plant(scratch, { ...FILES, ...files })
 
-  const git = repository(scratch)
+  const git = start(scratch)
 
-  git('add', '--all')
-  git('commit', '--message', 'Fixture', '--quiet')
   await plant(scratch, edits)
 
   if (staged) git('add', '--all')
