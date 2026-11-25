@@ -40,6 +40,14 @@ async function ci(scratch: string, failing: string[], doctor = 'true') {
 }
 
 describe.concurrent('repo:verify', () => {
+  test('runs its checks through mise run --continue-on-error --report-file', async ({ expect }) => {
+    expect(await info('repo:verify')).toMatchObject({
+      run: [
+        expect.stringContaining('mise run --continue-on-error --report-file "$report" repo:verify:checks')
+      ]
+    })
+  })
+
   test('runs every check and passes where each passes', async ({ expect, scratch }) => {
     expect(await ci(scratch, [])).toMatchObject({ ran: CHECKS.toSorted(), status: 0 })
   })

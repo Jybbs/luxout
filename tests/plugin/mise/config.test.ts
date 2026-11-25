@@ -54,8 +54,8 @@ test('runs the tools check through mise ls --no-global, never the deprecated --l
 })
 
 test.for([
-  { name: 'Git 2.27.9', script: "echo 'git version 2.27.9 (Fixture)'", status: 'fail' },
-  { name: 'Git 2.28.0', script: "echo 'git version 2.28.0 (Fixture)'", status: 'pass' },
+  { name: 'Git 2.34.9', script: "echo 'git version 2.34.9 (Fixture)'", status: 'fail' },
+  { name: 'Git 2.35.0', script: "echo 'git version 2.35.0 (Fixture)'", status: 'pass' },
   { name: 'Git 2.100.0', script: "echo 'git version 2.100.0 (Fixture)'", status: 'pass' },
   { name: 'a git printing no version', script: 'exit 1', status: 'fail' }
 ])('reads $name as $status', async ({ script, status }, { expect, scratch }) => {

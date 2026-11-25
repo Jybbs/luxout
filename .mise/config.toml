@@ -6,9 +6,9 @@ hint        = "Install Bash through the system's package manager, such as `sudo 
 run         = "command -v bash"
 
 [doctor.checks.git]
-description = "`git` is on the path at release 2.28 or later, the first whose `git init` takes the `--initial-branch` the suites' scratch repositories start on, since `.mise/config.toml` pins no release of it"
-hint        = "Install Git 2.28 or later, through `xcode-select --install` on macOS or the system's package manager on Linux, such as `sudo apt-get install git`."
-run         = 'printf "2.28\n%s\n" "$(git --version | cut -d " " -f 3)" | sort -C -V'
+description = "`git` is on the path at release 2.35 or later, the first whose `git apply` takes the `--allow-empty` that `lock:lift` passes it, since `.mise/config.toml` pins no release of it"
+hint        = "Install Git 2.35 or later, through `xcode-select --install` on macOS or the system's package manager on Linux, such as `sudo apt-get install git`."
+run         = 'printf "2.35\n%s\n" "$(git --version | cut -d " " -f 3)" | sort -C -V'
 
 [doctor.checks.tar]
 description = "`tar` is on the path, since the suite packs the verification's stand-in tarball through it and `.mise/config.toml` pins no release of it"
