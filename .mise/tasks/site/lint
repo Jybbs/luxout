@@ -1,9 +1,8 @@
 #!/usr/bin/env -S bash -euo pipefail
-#MISE depends     = ["site:bake"]
-#MISE description = "Lint the site's TypeScript and its suite with type information, passing any further arguments to oxlint"
-#MISE dir         = "site"
+#MISE depends     = ["plugin:bake"]
+#MISE description = "Lint the site's TypeScript and its suite under `tests/site` with type information, passing any further arguments to oxlint"
 
 format=default
 [[ -z "${GITHUB_ACTIONS:-}" ]] || format=github
 
-oxlint --format "$format" --type-aware "$@" .vitepress
+oxlint --format "$format" --type-aware "$@" site/.vitepress tests/site

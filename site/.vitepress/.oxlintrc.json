@@ -1,10 +1,8 @@
 {
-  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": ["../../src/.oxlintrc.json"],
-  "plugins": ["vitest"],
   "rules": {
     "eslint/no-restricted-imports": "off",
-    "typescript/no-import-type-side-effects": "error",
-    "vitest/no-standalone-expect": ["error", { "additionalTestBlockFunctions": ["test", "test.for"] }]
+    "typescript/no-import-type-side-effects": "error"
   }
 }

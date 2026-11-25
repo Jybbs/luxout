@@ -1,0 +1,177 @@
+/** @module-tag spawns */
+import { readFile, readdir, readlink } from 'node:fs/promises'
+import { basename, join }              from 'node:path'
+
+import { describe } from 'vitest'
+
+import { plant, test }              from '../../../common/scratch.js'
+import { type SyncRun, info, sync } from '../../../common/sync.js'
+
+interface Setup {
+  args?    : string[]
+  failing? : boolean
+  planted? : Record<string, string>
+}
+
+const CACHE = '.cache/homebridge'
+const SEED  = {
+  'tests/plugin/homebridge/bun.lock'     : 'lockfile\n',
+  'tests/plugin/homebridge/config.json'  : 'config\n',
+  'tests/plugin/homebridge/package.json' : 'manifest\n',
+  'tests/plugin/homebridge/startup.json' : 'startup\n'
+}
+const config  = `${CACHE}/storage/config.json`
+const startup = `${CACHE}/storage/.uix-hb-service-homebridge-startup.json`
+
+async function read(directory: string, ...files: string[]): Promise<string[]> {
+  return Promise.all(files.map((file) => readFile(join(directory, file), 'utf8')))
+}
+
+/**
+ * Runs the task with `args` in `scratch`, a checkout holding the seed under
+ * `tests/plugin/homebridge` beside the files `planted` adds, under stand-ins
+ * for `bun` and `hb-service`, where `bun` fails instead where `failing` is set.
+ *
+ * Returns:
+ *   The run, whose `commands` hold each program the task ran with its
+ *   arguments, in order.
+ */
+async function run(
+  scratch                                      : string,
+  { args = [], failing = false, planted = {} } : Setup = {}
+): Promise<SyncRun> {
+  const cache = join(scratch, CACHE)
+  const start = [
+    'hb-service', 'run', '--plugin-path', join(cache, 'plugins'), '--stdout', '--strict-plugin-resolution',
+    '--user-storage-path', join(cache, 'storage'), ...args
+  ]
+
+  await plant(scratch, { ...SEED, ...planted })
+
+  return sync(scratch, 'plugin:run', {
+    args   : args,
+    canned : {
+      [`bun install --cwd ${cache} --frozen-lockfile`] : failing ? { status: 1 } : {},
+      [start.join(' ')]                                : {}
+    }
+  })
+}
+
+describe.concurrent('plugin:run', () => {
+  test.for<{ planted: Record<string, string>, what: string }>([
+    { planted: {},                                             what: 'neither' },
+    { planted: { [config]: 'paired\n' },                       what: 'a config' },
+    { planted: { [startup]: 'edited\n' },                      what: 'startup options' },
+    { planted: { [config]: 'paired\n', [startup]: 'edited\n' }, what: 'both' }
+  ])('copies only the seed files missing from storage that holds $what', async ({ planted }, {
+    expect,
+    scratch
+  }) => {
+    await run(scratch, { planted })
+
+    expect(await read(scratch, config, startup)).toEqual([
+      planted[config] ?? SEED['tests/plugin/homebridge/config.json'],
+      planted[startup] ?? SEED['tests/plugin/homebridge/startup.json']
+    ])
+  })
+
+  test(
+    'installs the UI, then runs hb-service with the links, the storage, and every further argument',
+    async ({ expect, scratch }) => {
+      const cache   = join(scratch, CACHE)
+      const plugins = join(cache, 'plugins')
+      const storage = join(cache, 'storage')
+
+      expect(await run(scratch, { args: ['-T', 'holds a space'] })).toMatchObject({
+        status   : 0,
+        commands : [
+          ['bun', 'install', '--cwd', cache, '--frozen-lockfile'],
+          [
+            'hb-service', 'run', '--plugin-path', plugins, '--stdout', '--strict-plugin-resolution',
+            '--user-storage-path', storage, '-T', 'holds a space'
+          ]
+        ]
+      })
+    }
+  )
+
+  test('installs from fresh copies of the manifest and the lockfile on every run', async ({
+    expect,
+    scratch
+  }) => {
+    await run(scratch, { planted: { [`${CACHE}/bun.lock`]: 'stale\n' } })
+
+    expect(await read(join(scratch, CACHE), 'bun.lock', 'package.json')).toEqual(['lockfile\n', 'manifest\n'])
+  })
+
+  test('unsets NPM_CONFIG_IGNORE_SCRIPTS, so the UI install runs each install script it trusts', async ({
+    expect
+  }) => {
+    expect(await info('plugin:run'))
+      .toMatchObject({ env: expect.arrayContaining(['unset NPM_CONFIG_IGNORE_SCRIPTS']) })
+  })
+
+  test('links the checkout, its Homebridge, and the installed UI as the only plugins', async ({
+    expect,
+    scratch
+  }) => {
+    const plugins = join(scratch, CACHE, 'plugins')
+
+    await run(scratch)
+
+    const links = await Promise.all((await readdir(plugins)).map(async (name) => {
+      return [name, await readlink(join(plugins, name))] as const
+    }))
+
+    expect(Object.fromEntries(links)).toEqual({
+      'homebridge'             : join(scratch, 'node_modules', 'homebridge'),
+      'homebridge-config-ui-x' : join('..', 'node_modules', 'homebridge-config-ui-x'),
+      'homebridge-luxout'      : scratch
+    })
+  })
+
+  test('replaces each link on a later run rather than writing a link inside the checkout', async ({
+    expect,
+    scratch
+  }) => {
+    await run(scratch)
+    await run(scratch)
+
+    expect({
+      checkout : await readdir(scratch),
+      luxout   : await readlink(join(scratch, CACHE, 'plugins', 'homebridge-luxout'))
+    }).toEqual({ checkout: expect.not.arrayContaining([basename(scratch)]), luxout: scratch })
+  })
+
+  test('passes a checkout path holding a space whole to bun, hb-service, and the plugin link', async ({
+    expect,
+    scratch
+  }) => {
+    const checkout = join(scratch, 'holds a space')
+    const cache    = join(checkout, CACHE)
+    const plugins  = join(cache, 'plugins')
+    const result   = await run(checkout)
+    const luxout   = await readlink(join(plugins, 'homebridge-luxout'))
+
+    expect({ luxout, result }).toMatchObject({
+      luxout : checkout,
+      result : {
+        status   : 0,
+        commands : [
+          ['bun', 'install', '--cwd', cache, '--frozen-lockfile'],
+          [
+            'hb-service', 'run', '--plugin-path', plugins, '--stdout', '--strict-plugin-resolution',
+            '--user-storage-path', join(cache, 'storage')
+          ]
+        ]
+      }
+    })
+  })
+
+  test('starts no Homebridge where the UI fails to install', async ({ expect, scratch }) => {
+    const { commands, status } = await run(scratch, { failing: true })
+
+    expect({ programs: commands.map(([program]) => program), status })
+      .toEqual({ programs: ['bun'], status: 1 })
+  })
+})

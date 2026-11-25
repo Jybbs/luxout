@@ -1,5 +1,5 @@
 #!/usr/bin/env -S bash -euo pipefail
-#MISE depends     = ["site:bake"]
+#MISE depends     = ["plugin:bake"]
 #MISE description = "Run the site's suite under coverage as two runs started together, one recording the README previews and one running every other case, each passing any further arguments to Vitest, then merge their reports, failing where either run fails or a metric falls below the share `COVERAGE_FLOOR` sets"
 #MISE dir         = "site"
 
@@ -7,8 +7,8 @@ cover=../.cache/site/cover
 blobs=$cover/blobs
 failed=0
 previews=(
-  .vitepress/tests/lib/readme/readme-dark.test.ts
-  .vitepress/tests/lib/readme/readme-light.test.ts
+  ../tests/site/lib/readme/readme-dark.test.ts
+  ../tests/site/lib/readme/readme-light.test.ts
 )
 
 covered() {

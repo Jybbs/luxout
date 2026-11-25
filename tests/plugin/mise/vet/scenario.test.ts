@@ -1,0 +1,132 @@
+/** @module-tag spawns */
+import { join } from 'node:path'
+
+import { expect, it, vi } from 'vitest'
+
+import type { Block }                              from '../../../../.mise/vet/homebridge.ts'
+import { Scenario, Shutdown, type Tuning, checks } from '../../../../.mise/vet/scenario.ts'
+import schema                                      from '../../../../config.schema.json' with { type: 'json' }
+import { type Acts, install, stage, test }         from '../../common/vet.js'
+
+const BLOCK = { platform: 'Luxout' }
+
+it('builds each run the checks start from the schema, running a repeated block once', () => {
+  const block = {
+    latitude   : -90,
+    longitude  : -180,
+    name       : 'test-value',
+    place      : { country: 'test-value', name: 'test-value', region: 'test-value' },
+    platform   : 'Luxout',
+    thresholds : [{ name: 'test-value', offLux: 0.0001, onLux: 0.0001 }]
+  }
+
+  expect(checks(schema).map(({ block, name }) => ({ block, name }))).toEqual([
+    { block: undefined, name: 'no config' },
+    { block: BLOCK, name: 'platform only' },
+    { block: block, name: 'full config' },
+    { block: block, name: 'network resilience' },
+    { block: block, name: 'shutdown and restart' }
+  ])
+})
+
+it('runs the minimal block where it differs from the platform alone', () => {
+  const plugin = { pluginAlias: 'Luxout', schema: { ...schema.schema, required: ['latitude'] } }
+
+  expect(checks(plugin).find(({ name }) => name === 'minimal required')?.block)
+    .toEqual({ latitude: -90, platform: 'Luxout' })
+})
+
+it('fails every host name lookup in the network resilience run alone', () => {
+  const offline = checks(schema).filter((check) => check instanceof Scenario && check.offline)
+
+  expect(offline.map(({ name }) => name)).toEqual(['network resilience'])
+})
+
+test.concurrent('passes a block that listens, initializes, and exits in time', async ({
+  expect,
+  verdict
+}) => {
+  expect((await verdict(new Scenario('Luxout', 'full config', BLOCK))).failures).toEqual([])
+})
+
+test.concurrent('passes no block while the platform never initializes', async ({ expect, verdict }) => {
+  expect((await verdict(new Scenario('Luxout', 'no config'))).failures).toEqual([])
+})
+
+test.concurrent.for<{ acts: Acts, block?: Block, failure: string, waits?: Partial<Tuning> }>([
+  { acts: { mute: true }, block: BLOCK, failure: 'never reports its bridge listening' },
+  { acts: { exits: true }, block: BLOCK, failure: 'exits before it is stopped', waits: { observe: 4_000 } },
+  { acts: { silent: true }, block: BLOCK, failure: 'never initializes the Luxout platform' },
+  { acts: { initializes: true }, failure: 'initializes the Luxout platform with no block' },
+  { acts: { logs: 'ReferenceError: x is not defined' }, block: BLOCK, failure: 'logs ReferenceError' }
+])('fails a run that $failure', async ({ acts, block, failure, waits }, { expect, verdict }) => {
+  const { failures } = await verdict(new Scenario('Luxout', 'run', block), acts, waits)
+
+  expect(failures).toEqual([failure])
+})
+
+test.concurrent('fails a run that writes outside its storage', async ({ expect, outside, verdict }) => {
+  const file = join(outside, 'outside.json')
+
+  expect((await verdict(new Scenario('Luxout', 'run', BLOCK), { writes: file })).failures)
+    .toEqual([`writes ${file} outside the storage directory`])
+})
+
+test.concurrent('fails a run that outlasts the grace after SIGTERM', async ({ expect, verdict }) => {
+  const { failures } = await verdict(new Scenario('Luxout', 'run', BLOCK), { lingers: true }, { grace: 500 })
+
+  expect(failures).toEqual(['takes longer than 0.5 seconds to exit after SIGTERM'])
+})
+
+test.concurrent('keeps a run up whose requests all fail as ENOTFOUND', async ({ expect, verdict }) => {
+  const scenario = new Scenario('Luxout', 'network resilience', BLOCK, true)
+  const run      = await verdict(scenario, { fetches: 'https://api.open-meteo.com/v1/forecast' })
+
+  expect(run).toEqual({ failures: [], output: expect.stringContaining('Fetch failed: ENOTFOUND\n') })
+})
+
+test.concurrent('passes a run that exits in time and starts again on its port', async ({
+  expect,
+  verdict
+}) => {
+  expect((await verdict(new Shutdown(BLOCK))).failures).toEqual([])
+})
+
+test.concurrent('fails a second start that meets EADDRINUSE', async ({ expect, scratch, tuning }) => {
+  const homebridge = await install(join(scratch, 'release'))
+  const launch     = await stage(scratch, { conflicts: true })
+
+  expect((await new Shutdown(BLOCK).run(homebridge, launch, tuning)).failures)
+    .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
+})
+
+test.concurrent('fails a second start that meets EADDRINUSE once it listens', async ({
+  expect,
+  scratch,
+  tuning
+}) => {
+  const homebridge = await install(join(scratch, 'release'))
+  const launch     = await stage(scratch, { conflictsLate: true })
+
+  expect((await new Shutdown(BLOCK).run(homebridge, launch, { ...tuning, settle: 300 })).failures)
+    .toEqual([`meets EADDRINUSE starting again on port ${launch.port}`])
+})
+
+test('stops at a first start that never listens', async ({ scratch, tuned }) => {
+  const acts         = { mute: true }
+  const homebridge   = await install(join(scratch, 'release'))
+  const launch       = await stage(scratch, acts)
+  const start        = vi.spyOn(homebridge, 'start')
+  const { failures } = await new Shutdown(BLOCK).run(homebridge, launch, tuned(launch.storage, acts))
+
+  expect({ failures, starts: start.mock.calls.length }).toEqual({
+    failures : ['never reports its bridge listening'],
+    starts   : 1
+  })
+})
+
+test.concurrent('fails each start that outlasts the grace after SIGTERM', async ({ expect, verdict }) => {
+  const { failures } = await verdict(new Shutdown(BLOCK), { lingers: true }, { grace: 500 })
+
+  expect(failures).toEqual(Array(2).fill('takes longer than 0.5 seconds to exit after SIGTERM'))
+})

@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "lift"
-#MISE depends     = ["plugin:bake", "site:bake"]
+#MISE depends     = ["plugin:bake"]
 #MISE description = "Print each pin behind its newest release as one Markdown table, trial the lift in a scratch clone under `--try`, write it under `--write`, and hold a pin where it stands under `--hold <pin>`"
 
 source "$MISE_PROJECT_ROOT/.mise/lib/lock.sh"
