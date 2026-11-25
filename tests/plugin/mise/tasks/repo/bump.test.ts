@@ -4,7 +4,7 @@ import { join }     from 'node:path'
 
 import { describe } from 'vitest'
 
-import { repository }  from '../../../common/repository.js'
+import { start }       from '../../../common/repository.js'
 import { plant, test } from '../../../common/scratch.js'
 import { info, sync }  from '../../../common/sync.js'
 
@@ -16,11 +16,9 @@ const MANIFEST = `${JSON.stringify({ name: 'luxout', version: '0.1.0' }, null, 2
  * commits the repository holds, and its tags.
  */
 async function bump(scratch: string, args: string[] = []) {
-  const git = repository(scratch)
-
   await plant(scratch, { 'package.json': MANIFEST })
-  git('add', 'package.json')
-  git('commit', '--message', '0.1.0', '--quiet')
+
+  const git = start(scratch)
 
   const { status, stderr, stdout } = await sync(scratch, 'repo:bump', {
     args : args,
@@ -43,7 +41,7 @@ async function bump(scratch: string, args: string[] = []) {
 }
 
 describe.concurrent('repo:bump', () => {
-  test('runs as `mise bump`', async ({ expect }) => {
+  test('runs as `mise run bump`', async ({ expect }) => {
     expect(await info('repo:bump')).toMatchObject({ aliases: ['bump'] })
   })
 

@@ -113,14 +113,14 @@ describe.concurrent('gha:cut', () => {
     { order: 'before a draft', pages: [[release(false, VERSION), release(true, VERSION)]] },
     { order: 'with no draft', pages: [[release(false, VERSION)]] }
   ])(
-    'fails naming `mise bump` where a published release carrying the version is listed $order',
+    'fails naming `mise run bump` where a published release carrying the version is listed $order',
     async ({ pages }, { expect, scratch }) => {
       expect(await cut(scratch, { pages })).toEqual({
         calls   : [LISTING],
         outputs : { state: 'published', url: release(false, VERSION).html_url, version: VERSION },
         status  : 1,
         stderr  : '',
-        stdout  : `::error::Version ${VERSION} is already published, so run \`mise bump\` to move`
+        stdout  : `::error::Version ${VERSION} is already published, so run \`mise run bump\` to move`
           + ' `version` in `package.json` to the next release\n'
       })
     }

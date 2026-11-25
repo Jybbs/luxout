@@ -6,7 +6,7 @@ import { join }                                    from 'node:path'
 import { describe } from 'vitest'
 
 import { root }                from '../../../common/paths.js'
-import { repository }          from '../../../common/repository.js'
+import { start }               from '../../../common/repository.js'
 import { plant, test as base } from '../../../common/scratch.js'
 import { type Answer, sync }   from '../../../common/sync.js'
 
@@ -315,10 +315,8 @@ async function lift(
 ) {
   await plant(scratch, { ...FILES, ...files })
 
-  const git = repository(scratch)
+  const git = start(scratch)
 
-  git('add', '--all')
-  git('commit', '--message', 'Fixture', '--quiet')
   await plant(scratch, edits)
 
   if (staged) git('add', '--all')
@@ -537,7 +535,7 @@ describe.concurrent('lock:lift', () => {
       moved  : false,
       status : 0,
       steps  : [['clone', ...RELOCK], ['clone', ...VERIFY]],
-      stdout : expect.stringContaining('The whole lift passes `mise ci`, logged at .cache/lift/whole.log')
+      stdout : expect.stringContaining('The whole lift passes `mise run ci`, logged at .cache/lift/whole.log')
     })
   })
 
@@ -567,7 +565,7 @@ describe.concurrent('lock:lift', () => {
     expect({ status, steps, stdout }).toEqual({
       status : 1,
       steps  : expect.arrayContaining([['clone', ...VERIFY]]),
-      stdout : expect.stringContaining('The whole lift fails `mise ci`')
+      stdout : expect.stringContaining('The whole lift fails `mise run ci`')
     })
   })
 
@@ -585,10 +583,10 @@ describe.concurrent('lock:lift', () => {
       logs    : ['whole.log', 'without-actions-checkout.log', 'without-unbash.log'],
       status  : 1,
       verdict : [
-        'The whole lift fails `mise ci`, logged at .cache/lift/whole.log',
-        'Holding back `actions/checkout` still fails `mise ci`, logged at '
+        'The whole lift fails `mise run ci`, logged at .cache/lift/whole.log',
+        'Holding back `actions/checkout` still fails `mise run ci`, logged at '
       + '.cache/lift/without-actions-checkout.log',
-        'Holding back `unbash` passes `mise ci`, so lifting `unbash` breaks the tree, logged at '
+        'Holding back `unbash` passes `mise run ci`, so lifting `unbash` breaks the tree, logged at '
       + '.cache/lift/without-unbash.log'
       ]
     })
