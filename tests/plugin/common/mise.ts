@@ -10,11 +10,33 @@ import type { Run } from '../../../.mise/audit/audit.ts'
 interface Declared {
   name     : string
   source   : string
+  aliases? : string[]
   depends? : string[]
-  file?    : boolean
+  file?    : boolean | string
   run?     : (string | { tasks: string[] })[]
   tools?   : Record<string, string>
 }
+
+/**
+ * The `Commands:` section of `mise --help` and the sections around it, wrapped
+ * at the width mise prints to a pipe, with an alias list and a description
+ * each running onto a second line.
+ */
+export const HELP = [
+  'mise installs the development tools your projects need.',
+  '',
+  'Commands:',
+  '  activate      Print the script to activate mise in an',
+  '                interactive shell',
+  '  audit         Check tool versions for known vulnerabilities',
+  '  backends      Manage backends [aliases: b, backend,',
+  '                backend-list]',
+  '  run           Run tasks and their dependencies [aliases: r]',
+  '',
+  'Arguments:',
+  '  [TASK]  Task to run',
+  ''
+].join('\n')
 
 /**
  * The directories `bun_packages` in `.mise/lib/lock.sh` lists, one per Bun
@@ -33,12 +55,14 @@ export const VET = {
 
 /**
  * Lists `tasks` as `mise tasks ls --json` prints them for the checkout at
- * `root`, where `file` marks a task whose script is its own file.
+ * `root`, where `file` marks a task whose script is its own file or names the
+ * script a TOML task runs, relative to the checkout.
  */
 export const listing = (root: string, tasks: Declared[]): object[] =>
-  tasks.map(({ depends = [], file = false, name, run = [], source, tools = {} }) => ({
+  tasks.map(({ aliases = [], depends = [], file = false, name, run = [], source, tools = {} }) => ({
+    aliases : aliases,
     depends : depends,
-    file    : file ? join(root, source) : null,
+    file    : file === false ? null : join(root, file === true ? source : file),
     name    : name,
     run     : run,
     source  : join(root, source),
@@ -47,15 +71,25 @@ export const listing = (root: string, tasks: Declared[]): object[] =>
 
 /**
  * Stands in for the commands an audit runs, answering `mise tasks ls` with
- * `listed`, any other mise call with `issues`, `git ls-files` with `tracked`,
- * and `bun_packages` with one directory per row of `packages`.
+ * `listed`, `mise tasks validate` with `issues`, `mise --help` with `help`,
+ * `git ls-files` with `tracked`, and `bun_packages` with one directory per row
+ * of `packages`, and printing nothing for any other mise call.
  */
-export const mise = (listed: object[], issues: object[] = [], tracked = '', packages = PACKAGES): Run =>
-  vi.fn<Run>((command, [, verb]) => ({
+export const mise = (
+  listed   : object[],
+  issues   : object[] = [],
+  tracked  : string   = '',
+  packages : string[] = PACKAGES,
+  help     : string   = HELP
+): Run =>
+  vi.fn<Run>((command, [first, verb]) => ({
     stderr : '',
     stdout : {
       bash : packages.map((dir) => `${dir}\n`).join(''),
       git  : tracked,
-      mise : JSON.stringify(verb === 'ls' ? listed : { issues })
+      mise : first === '--help' ? help : {
+        ls       : JSON.stringify(listed),
+        validate : JSON.stringify({ issues })
+      }[verb ?? ''] ?? ''
     }[command] ?? ''
   }))

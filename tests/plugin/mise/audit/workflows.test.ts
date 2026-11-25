@@ -1,13 +1,11 @@
-import { join } from 'node:path'
-
 import { describe, expect } from 'vitest'
 
-import { Actions }     from '../../../../.mise/audit/actions.ts'
-import { Audit }       from '../../../../.mise/audit/audit.ts'
-import { TaskList }    from '../../../../.mise/audit/tasks.ts'
-import { Workflows }   from '../../../../.mise/audit/workflows.ts'
-import { mise }        from '../../common/mise.js'
-import { plant, test } from '../../common/scratch.js'
+import { Actions }       from '../../../../.mise/audit/actions.ts'
+import { Audit }         from '../../../../.mise/audit/audit.ts'
+import { TaskList }      from '../../../../.mise/audit/tasks.ts'
+import { Workflows }     from '../../../../.mise/audit/workflows.ts'
+import { listing, mise } from '../../common/mise.js'
+import { plant, test }   from '../../common/scratch.js'
 
 const COMMIT    = '3d3c42e5aac5ba805825da76410c181273ba90b1'
 const DRAFT     = '!github.event.pull_request.draft'
@@ -59,14 +57,12 @@ const audit = async (scratch: string, text: string, actions = new Actions({})) =
   new Workflows({ [FILE]: text }).findings(actions, await tasks(scratch))
 
 async function tasks(scratch: string): Promise<TaskList> {
-  const source = join(scratch, '.mise/tasks/plugin.toml')
-
-  const listed = [
-    { name: 'repo:verify', run: [{ tasks: ['plugin:cover'] }], tools: {} },
-    { name: 'plugin:cover', run: ['vitest'], tools: {} },
-    { name: 'plugin:lint', run: ['oxlint'], tools: {} },
+  const listed = listing(scratch, [
+    { name: 'repo:verify', run: [{ tasks: ['plugin:cover'] }] },
+    { name: 'plugin:cover', run: ['vitest'] },
+    { name: 'plugin:lint', run: ['oxlint'] },
     { name: 'plugin:test:22', run: ['vitest'], tools: { node: '22.23.3' } }
-  ].map((task) => ({ ...task, file: null, source }))
+  ].map((task) => ({ ...task, source: '.mise/tasks/plugin.toml' })))
 
   await plant(scratch, { '.mise/tasks/plugin.toml': TASKS })
 

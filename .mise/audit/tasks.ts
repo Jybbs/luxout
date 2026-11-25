@@ -1,4 +1,4 @@
-import { parseArgs } from 'node:util'
+import { parseArgs, stripVTControlCharacters } from 'node:util'
 
 import type { Audit }            from './audit.ts'
 import { TomlFile }              from './files.ts'
@@ -14,6 +14,7 @@ interface Defect {
 }
 
 interface Listed {
+  aliases : string[]
   depends : string[]
   file    : string | null
   name    : string
@@ -26,12 +27,13 @@ interface Script extends Spot {
   text: string
 }
 
-const INSTALL = new Set(['i', 'install'])
-const LIBRARY = '.mise/lib/*.sh'
-const LISTING = { file: CONFIG, line: 1 }
-const LOCKED  = new Set(['frozen-lockfile', 'lockfile-only'])
-const OPTIONS = { cwd: { type: 'string' } } as const
-const VERIFY  = 'repo:verify'
+const COMMANDS = /(?<=^ {2})\S+|(?<=\[aliases:\s[^\]]*)[^\s,\]]+/gm
+const INSTALL  = new Set(['i', 'install'])
+const LIBRARY  = '.mise/lib/*.sh'
+const LISTING  = { file: CONFIG, line: 1 }
+const LOCKED   = new Set(['frozen-lockfile', 'lockfile-only'])
+const OPTIONS  = { cwd: { type: 'string' } } as const
+const VERIFY   = 'repo:verify'
 
 class Task {
   readonly scripts  : Script[]
@@ -131,18 +133,26 @@ export class TaskList {
   readonly #tasks   : Map<string, Task>
 
   static read(audit: Audit): TaskList {
-    let defects : Defect[]
-    let listed  : Listed[]
+    let commands : Set<string>
+    let defects  : Defect[]
+    let listed   : Listed[]
 
     try {
-      defects = JSON.parse(audit.mise('tasks', 'validate', '--json')).issues
-      listed  = JSON.parse(audit.mise('tasks', 'ls', '--hidden', '--json', '--no-global'))
+      defects  = JSON.parse(audit.mise('tasks', 'validate', '--json')).issues
+      listed   = JSON.parse(audit.mise('tasks', 'ls', '--hidden', '--json', '--no-global'))
+      commands = commandsOf(audit.mise('--help'))
     } catch (error) {
       return new TaskList([new Finding(String(error), LISTING, 'Task listing')], [])
     }
 
     const library  = Object.entries(audit.readAll(LIBRARY)).map(([file, text]) => ({ file, line: 1, text }))
-    const reported = Map.groupBy(defects, (defect) => defect.task)
+    const shadowed = listed.flatMap(({ aliases, name }) => aliases.filter((alias) => commands.has(alias))
+      .map((alias) => ({
+        message : `\`mise ${alias}\` runs mise's own command rather than \`${name}\`, since \`mise --help\` `
+                + `lists the alias \`${alias}\` as a command or command alias`,
+        task    : name
+      })))
+    const reported = Map.groupBy([...defects, ...shadowed], (defect) => defect.task)
     const tasks    = listed.map((task) => Task.read(audit, reported.get(task.name) ?? [], task))
 
     return new TaskList([], tasks, library)
@@ -207,6 +217,22 @@ export class TaskList {
   tools(name: string): Record<string, string> | undefined {
     return this.#tasks.get(name)?.tools
   }
+}
+
+/**
+ * Lists each command and command alias under `Commands:` in `help`, the text
+ * `mise --help` prints, at whatever width and in whatever color it prints,
+ * including where its banner runs onto the `Commands:` line or a wrap falls
+ * after `[aliases:`.
+ */
+function commandsOf(help: string): Set<string> {
+  const [, section = ''] = stripVTControlCharacters(help).split(/^Commands:.*$/m)
+  const [commands = '']  = section.split('\n\n')
+  const names            = commands.match(COMMANDS)
+
+  if (names === null) throw new Error('`mise --help` lists no command under `Commands:`')
+
+  return new Set(names)
 }
 
 function unfrozen({ words: [program, ...args] }: Invocation): boolean {
