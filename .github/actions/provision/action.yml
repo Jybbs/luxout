@@ -1,5 +1,5 @@
 name        : Provision
-description : Install the mise release `min_version` names, then the tools a job reads at the releases `.mise/mise.lock` records
+description : Install the mise release `min_version` names, then the tools a job reads at the releases `.mise/mise.lock` records, then run the readiness checks `.mise/config.toml` declares for the programs it pins no release of
 
 inputs:
   tools:
@@ -23,3 +23,14 @@ runs:
         cache        : 'false'
         install_args : ${{ inputs.tools }}
         version      : ${{ steps.mise.outputs.version }}
+
+    - name  : Run each readiness check but `tools`, which a job installing only the tools it reads fails
+      shell : bash
+      run   : |
+        mise doctor project --json > "$RUNNER_TEMP/doctor.json" || true
+        jq --raw-output \
+          '[.errors[], (.checks[] | select(.name != "tools" and .status != "pass" and .status != "skipped")
+            | "\(.name): \(.hint)")]
+            | map("::error::" + tostring)
+            | if length > 0 then join("\n") + "\n" | halt_error(1) else empty end' \
+          "$RUNNER_TEMP/doctor.json"

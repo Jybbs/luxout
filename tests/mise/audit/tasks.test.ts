@@ -373,19 +373,19 @@ describe('a Node release a task declares', () => {
   })
 })
 
-test('finds the tasks repo:verify runs and the tools each task declares', async ({ scratch }) => {
-  await plant(scratch, { '.mise/tasks/repo/verify.toml': '["repo:verify"]\n' })
+test('finds the tasks repo:verify:checks runs and the tools each task declares', async ({ scratch }) => {
+  await plant(scratch, { '.mise/tasks/repo/verify.toml': '["repo:verify:checks"]\n' })
 
   const audit = new Audit(scratch, mise(listing(scratch, [{
-    name   : 'repo:verify',
-    run    : ['mise doctor project', { tasks: ['plugin:cover', 'repo:audit'] }],
+    name   : 'repo:verify:checks',
+    run    : [{ tasks: ['plugin:cover', 'repo:audit'] }],
     source : '.mise/tasks/repo/verify.toml',
     tools  : { jq: '1.8.2' }
   }])))
 
   const tasks = TaskList.read(audit)
 
-  expect([tasks.verified, tasks.tools('repo:verify'), tasks.tools('plugin:cover')])
+  expect([tasks.verified, tasks.tools('repo:verify:checks'), tasks.tools('plugin:cover')])
     .toEqual([new Set(['plugin:cover', 'repo:audit']), { jq: '1.8.2' }, undefined])
 })
 
