@@ -604,9 +604,9 @@ if "$trying"; then
   mkdir -p .cache/lift
 
   if trial .cache/lift/whole.log "$lifted"; then
-    echo "The whole lift passes \`mise ci\`, logged at .cache/lift/whole.log"
+    echo "The whole lift passes \`mise run ci\`, logged at .cache/lift/whole.log"
   else
-    echo "The whole lift fails \`mise ci\`, logged at .cache/lift/whole.log"
+    echo "The whole lift fails \`mise run ci\`, logged at .cache/lift/whole.log"
 
     while IFS= read -r pin; do
       [[ -n "$pin" ]] || continue
@@ -617,12 +617,12 @@ if "$trying"; then
       )
 
       if trial "$log" "$rest"; then
-        echo "Holding back \`$pin\` passes \`mise ci\`," \
+        echo "Holding back \`$pin\` passes \`mise run ci\`," \
              "so lifting \`$pin\` breaks the tree, logged at $log"
         exit 1
       fi
 
-      echo "Holding back \`$pin\` still fails \`mise ci\`, logged at $log"
+      echo "Holding back \`$pin\` still fails \`mise run ci\`, logged at $log"
     done <<<"$(jq --raw-output '.[] | select(.major).pin' <<<"$lifted")"
 
     echo "No single major lift accounts for the failure," \
