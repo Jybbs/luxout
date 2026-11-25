@@ -8,12 +8,14 @@ import { root }        from '../../../common/paths.js'
 import { plant, test } from '../../../common/scratch.js'
 import { mised, sync } from '../../../common/sync.js'
 
-const LATER = new Date('2030-01-01T00:00:00Z')
+const EARLIER = new Date('2020-01-01T00:00:00Z')
+const LATER   = new Date('2030-01-01T00:00:00Z')
 
 /**
  * Plants a checkout in `scratch` holding the repository's mise config, its
  * lockfile, its wrappers, and `plugin:build` alone, beside a source tree that
- * compiles, and builds it once through `mise run`.
+ * compiles, sets `src/index.ts` to the whole-second file time `EARLIER` so a
+ * test can restore that time exactly, and builds it once through `mise run`.
  *
  * Returns:
  *   A runner that builds the checkout again through `mise run`, skipping
@@ -33,6 +35,7 @@ async function checkout(scratch: string): Promise<() => Promise<string>> {
     copyFile(join(root, 'src', 'tsconfig.json'), join(scratch, 'src', 'tsconfig.json')),
     symlink(join(root, 'node_modules'), join(scratch, 'node_modules'))
   ])
+  await utimes(join(scratch, 'src', 'index.ts'), EARLIER, EARLIER)
 
   const build = async (): Promise<string> => {
     const { status, stderr } = await mised(scratch, ['run', '--skip-deps', 'plugin:build'])
@@ -106,10 +109,9 @@ describe.concurrent('plugin:build', () => {
   test('rebuilds where a source changes contents under the file time it had', async ({ expect, scratch }) => {
     const build  = await checkout(scratch)
     const source = join(scratch, 'src', 'index.ts')
-    const before = await stat(source)
 
     await writeFile(source, 'export const lux = 2\n')
-    await utimes(source, before.atime, before.mtime)
+    await utimes(source, EARLIER, EARLIER)
 
     expect(await build()).toMatch(/lux = 2/)
   })
