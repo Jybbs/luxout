@@ -124,7 +124,7 @@ it.for([
   ['hb-service command',   'install/installing.md',        `\nsudo hb-service add ${manifest.name}\n`],
   ['npm command',          'install/installing.md',        `\nsudo npm install -g ${manifest.name}\n`],
   ['issue form',           'troubleshooting/reporting.md', `the versions of \`${manifest.name}\`, `]
-] as const)('names in the %s on %s the package package.json names', async ([, page, text]) => {
+] as const)('writes in the %s on %s the name package.json declares', async ([, page, text]) => {
   expect(await readFile(join(site, page), 'utf8')).toContain(text)
 })
 
