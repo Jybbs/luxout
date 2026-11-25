@@ -5,14 +5,15 @@ import { YamlFile }             from './files.ts'
 import { Finding }              from './finding.ts'
 import type { PackageManifest } from './package.ts'
 
-const MANIFESTS   = 'tests/vet/*/package.json'
+const DIRECTORY   = 'tests/plugin/vet'
+const MANIFESTS   = `${DIRECTORY}/*/package.json`
 const TITLE       = 'Vet pin'
 const conjunction = new Intl.ListFormat('en', { type: 'conjunction' })
 
 /**
  * Holds the manifest of each Homebridge release `plugin:vet` installs, each in
- * a directory under `tests/vet` named for the source its `homebridge` pin
- * follows.
+ * a directory under `tests/plugin/vet` named for the source its `homebridge`
+ * pin follows.
  */
 export class VetManifests {
   readonly #files: YamlFile[]
@@ -26,10 +27,10 @@ export class VetManifests {
   }
 
   /**
-   * Holds the `homebridge` pin under `tests/vet/floor` to the floor of the
-   * oldest line `engines.homebridge` admits, and the one under
-   * `tests/vet/pinned` to the release the `homebridge` devDependency pins,
-   * reporting either manifest missing.
+   * Holds the `homebridge` pin under `tests/plugin/vet/floor` to the floor of
+   * the oldest line `engines.homebridge` admits, and the one under
+   * `tests/plugin/vet/pinned` to the release the `homebridge` devDependency
+   * pins, reporting either manifest missing.
    */
   findings(manifest: PackageManifest): Finding[] {
     const sources = new Map([
@@ -40,8 +41,9 @@ export class VetManifests {
     const missing = sources.entries()
       .filter(([role]) => !roles.has(role))
       .map(([role, held]) => new Finding(
-        `\`tests/vet/${role}/package.json\` is missing, whereas ${held.source} ${held.release ?? 'nothing'}`,
-        { file: `tests/vet/${role}/package.json`, line: 1 },
+        `\`${DIRECTORY}/${role}/package.json\` is missing, `
+      + `whereas ${held.source} ${held.release ?? 'nothing'}`,
+        { file: `${DIRECTORY}/${role}/package.json`, line: 1 },
         TITLE
       ))
       .toArray()
@@ -54,7 +56,7 @@ export class VetManifests {
 
       if (!held) {
         return [new Finding(
-          `\`tests/vet/${role}\` names no source its \`homebridge\` pin follows, `
+          `\`${DIRECTORY}/${role}\` names no source its \`homebridge\` pin follows, `
         + `since only ${conjunction.format(sources.keys().map((name) => `\`${name}\``))} name one`,
           file.start,
           TITLE

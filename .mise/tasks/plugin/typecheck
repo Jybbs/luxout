@@ -7,4 +7,4 @@ tsc --noEmit -p src
 tsc --noEmit -p src/ui/public
 tsc -p .mise/audit
 tsc -p .mise/vet
-tsc -p tests
+tsc -p tests/plugin
