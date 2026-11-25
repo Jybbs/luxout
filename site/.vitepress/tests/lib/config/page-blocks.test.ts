@@ -4,6 +4,7 @@ import { join }     from 'node:path'
 import { createMarkdownRenderer } from 'vitepress'
 import { expect, it }             from 'vitest'
 
+import manifest                      from '../../../../../package.json' with { type: 'json' }
 import { CLOUD_TUNING }              from '../../../../../src/daylight/cloud-factor.ts'
 import { REQUEST_TUNING }            from '../../../../../src/weather/client.ts'
 import { SCHEDULE_TUNING }           from '../../../../../src/weather/schedule.ts'
@@ -115,6 +116,16 @@ it('quotes on install/home.md the line the platform logs for a setting at fault'
   const platform = await readFile(join(site, '..', 'src', 'platform', 'dynamic.ts'), 'utf8')
 
   expect(platform).toContain(/(?<=`)Outside reads[^`]+/.exec(page)![0])
+})
+
+it.for([
+  ['opening line',         'install/installing.md',        `\n\`${manifest.name}\` is a plugin for `],
+  ['Homebridge UI search', 'install/installing.md',        `search the plugins for \`${manifest.name}\``],
+  ['hb-service command',   'install/installing.md',        `\nsudo hb-service add ${manifest.name}\n`],
+  ['npm command',          'install/installing.md',        `\nsudo npm install -g ${manifest.name}\n`],
+  ['issue form',           'troubleshooting/reporting.md', `the versions of \`${manifest.name}\`, `]
+] as const)('names in the %s on %s the package package.json names', async ([, page, text]) => {
+  expect(await readFile(join(site, page), 'utf8')).toContain(text)
 })
 
 it('quotes on estimate/failed-fetches.md each line the plugin logs', async () => {
