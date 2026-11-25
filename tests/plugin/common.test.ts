@@ -29,11 +29,8 @@ test.concurrent(
     vi.stubEnv('XDG_CONFIG_HOME', join(scratch, 'xdg'))
     vi.resetModules()
 
-    const { repository } = await import('./common/repository.js')
-    const git            = repository(join(scratch, 'repo'))
-
-    git('add', '--all')
-    git('commit', '--message', 'Start', '--quiet')
+    const { start } = await import('./common/repository.js')
+    const git       = start(join(scratch, 'repo'))
 
     expect({
       global : git('var', 'GIT_CONFIG_GLOBAL'),

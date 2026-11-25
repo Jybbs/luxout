@@ -18,10 +18,8 @@ const environment = {
  * its deletion where `deleted` is set, so the branch changes that file alone.
  */
 export async function branch(changed: string, repo: string, deleted = false): Promise<void> {
-  const git = repository(repo)
+  const git = start(repo)
 
-  git('add', '--all')
-  git('commit', '--message', 'Start', '--quiet')
   git('update-ref', 'refs/remotes/origin/main', 'HEAD')
   await (deleted ? rm(join(repo, changed)) : appendFile(join(repo, changed), '\n'))
   git('commit', '--all', '--message', 'Change', '--quiet')
@@ -40,6 +38,19 @@ export function repository(root: string): (...args: string[]) => string {
   })
 
   git('init', '--initial-branch', 'main', '--quiet')
+
+  return git
+}
+
+/**
+ * Starts a Git repository in `root` through `repository`, commits every file
+ * under it, and returns the runner.
+ */
+export function start(root: string): (...args: string[]) => string {
+  const git = repository(root)
+
+  git('add', '--all')
+  git('commit', '--message', 'Start', '--quiet')
 
   return git
 }
