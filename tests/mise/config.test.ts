@@ -81,9 +81,9 @@ test.for([
   { failing: 'git', name: 'a failing git check', status: 1 },
   { failing: 'tools', name: 'a failing tools check alone', status: 0 }
 ])('provisions a job to exit $status on $name', async ({ failing, status }, { expect, scratch }) => {
-  const report = JSON.stringify({ checks: [{ hint: 'Install it.', name: failing, status: 'fail' }], errors: [] })
+  const checks = [{ hint: 'Install it.', name: failing, status: 'fail' }]
 
-  expect(await readiness(scratch, report)).toMatchObject({ status })
+  expect(await readiness(scratch, JSON.stringify({ checks, errors: [] }))).toMatchObject({ status })
 })
 
 test('fails a provisioned job where mise writes no readiness report', async ({ expect, scratch }) => {
