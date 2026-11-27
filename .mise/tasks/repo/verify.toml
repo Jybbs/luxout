@@ -1,8 +1,26 @@
 ["repo:verify"]
 alias       = "ci"
-description = "Run `mise doctor project`, then every check task on the Node release `.mise/config.toml` pins"
+description = "Run `mise doctor project`, then every check `repo:verify:checks` lists on the Node release `.mise/config.toml` pins, carrying each to its end through `mise run --continue-on-error --report-file` and finishing on the list of each that failed"
+run         = '''
+#!/usr/bin/env -S bash -euo pipefail
+mise doctor project
+
+report=$(mktemp)
+trap 'rm -f "$report"' EXIT
+
+mise run --continue-on-error --report-file "$report" repo:verify:checks && exit
+
+jq --raw-output '
+  [.tasks[] | select(.status == "failed") | .name]
+    | "These checks failed: " + (sort | join(", "))
+' "$report" >&2
+exit 1
+'''
+
+["repo:verify:checks"]
+description = "Run every check task a pull request runs in CI, which `repo:verify` carries each to its end"
+hide        = true
 run         = [
-  "mise doctor project",
   { tasks = [
     "lock:check",
     "plugin:build",
