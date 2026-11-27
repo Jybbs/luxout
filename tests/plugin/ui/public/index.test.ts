@@ -7,11 +7,11 @@ import { expect, it, vi }         from 'vitest'
 
 import { LocationPage } from '../../../../src/ui/public/page.js'
 
-it('opens the page once the Homebridge UI is ready, logging a page that fails to open', async () => {
+it('opens the page once the Homebridge UI is ready, showing a page that fails to open through the error toast', async () => {
   const failure    = new TypeError('The page holds no #search')
   const homebridge = new MockHomebridgePluginUi()
-  const log        = vi.spyOn(console, 'error').mockImplementation(() => undefined)
   const open       = vi.spyOn(LocationPage, 'open').mockRejectedValue(failure)
+  const toast      = vi.spyOn(homebridge.toast, 'error')
 
   await once(homebridge, 'ready')
   vi.stubGlobal('homebridge', homebridge)
@@ -23,5 +23,5 @@ it('opens the page once the Homebridge UI is ready, logging a page that fails to
 
   expect(open).toHaveBeenCalledExactlyOnceWith(document, homebridge)
   await setImmediate()
-  expect(log).toHaveBeenCalledExactlyOnceWith(failure)
+  expect(toast).toHaveBeenCalledExactlyOnceWith(failure.message)
 })
