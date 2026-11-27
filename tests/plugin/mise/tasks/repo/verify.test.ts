@@ -18,7 +18,7 @@ const LAST = /\nThese checks failed: plugin:lint, site:typecheck\n\[repo:verify\
 const { run: [{ tasks: CHECKS }] } = await info('repo:verify:checks') as Listed
 
 /**
- * Runs `mise ci` in `scratch`, a checkout holding `verify.toml` beside a
+ * Runs `mise run ci` in `scratch`, a checkout holding `verify.toml` beside a
  * stand-in for each check it lists, which logs its name to `ran.log` and exits
  * 1 where `failing` names it, under the readiness check `doctor` runs, one
  * task at a time so a run stopping at its first failure starts no later check.

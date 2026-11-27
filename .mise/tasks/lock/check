@@ -18,6 +18,6 @@ stale=$(
 
 if [[ -n "$stale" ]]; then
   echo ".mise/mise.lock locks $stale, which nothing in .mise/ declares any longer," \
-       "so run \`mise relock\`" >&2
+       "so run \`mise run relock\`" >&2
   exit 1
 fi

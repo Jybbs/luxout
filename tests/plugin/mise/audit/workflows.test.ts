@@ -327,14 +327,14 @@ describe('the workflows together', () => {
     {
       line    : 17,
       message : 'Row `plugin:lint` runs a task `repo:verify:checks` leaves out, '
-              + 'so `mise ci` passes where the row fails',
+              + 'so `mise run ci` passes where the row fails',
       name    : 'a row whose task repo:verify:checks leaves out',
       text    : CI.replace('task: plugin:cover', 'task: plugin:lint')
     },
     {
       line    : 17,
       message : 'Row `plugin:pack` runs a task `repo:verify:checks` leaves out, '
-              + 'so `mise ci` passes where the row fails',
+              + 'so `mise run ci` passes where the row fails',
       name    : 'a row naming a task mise does not list',
       text    : CI.replace('task: plugin:cover', 'task: plugin:pack')
     },
