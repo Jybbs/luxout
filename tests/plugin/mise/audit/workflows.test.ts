@@ -53,6 +53,24 @@ const CI        = [
   '      - run: mise run gha:brief >> "$GITHUB_STEP_SUMMARY"'
 ].join('\n')
 
+const PRESS = [
+  '  press:',
+  `    if: ${GUARD}`,
+  '    runs-on: ubuntu-26.04',
+  '    timeout-minutes: 15',
+  '    steps:',
+  '      - name: Build the site',
+  '        id: press',
+  '        run: mise run site:press',
+  '      - name: Bundle',
+  '        run: mise run --skip-deps site:inspect',
+  '      - name: Links',
+  "        if: ${{ !cancelled() && steps.press.outcome == 'success' }}",
+  '        run: mise run --skip-deps site:linkcheck'
+].join('\n')
+
+const LINKS = `${CI.replace('needs: [check]', 'needs: [check, press]')}\n${PRESS}`
+
 const audit = async (scratch: string, text: string, actions = new Actions({})) =>
   new Workflows({ [FILE]: text }).findings(actions, await tasks(scratch))
 
@@ -366,6 +384,58 @@ describe('the workflows together', () => {
       message : `\`actions/checkout\` pins ${OTHER}, whereas ${FILE}:22 pins ${COMMIT}`,
       spot    : { file: '.github/actions/a/action.yml', line: 3 }
     }])
+  })
+})
+
+describe('a job that builds the site', () => {
+  test('reports nothing on checks that reuse the build', async ({ scratch }) => {
+    expect(await audit(scratch, LINKS)).toEqual([])
+  })
+
+  test.for([
+    {
+      line    : 46,
+      message : 'Step `Links` joins no `!cancelled()` and `steps.press.outcome==\'success\'` to its `if`',
+      name    : 'a link step reading a failed build',
+      text    : LINKS.replace("outcome == 'success'", "outcome == 'failure'")
+    },
+    {
+      line    : 45,
+      message : 'Step `Links` joins no `!cancelled()`',
+      name    : 'a link step with no `if`',
+      text    : LINKS.replace(/ {8}if: \$\{\{ !cancelled.*\n/, '')
+    },
+    {
+      line    : 46,
+      message : 'Step `Links` joins no `!cancelled()`',
+      name    : 'a link step whose `if` omits `!cancelled()`',
+      text    : LINKS.replace('!cancelled() && ', '')
+    },
+    {
+      line    : 43,
+      message : 'Step `Bundle` runs after the site build without `--skip-deps`',
+      name    : 'a check step that builds the site again',
+      text    : LINKS.replace('mise run --skip-deps site:inspect', 'mise run site:inspect')
+    },
+    {
+      line    : 45,
+      message : 'Step `Links` runs after the site build without `--skip-deps`',
+      name    : 'a link step that builds the site again',
+      text    : LINKS.replace('--skip-deps site:linkcheck', 'site:linkcheck')
+    }
+  ])('reports $name', async ({ line, message, text }, { scratch }) => {
+    const [finding, ...rest] = await audit(scratch, text)
+
+    expect(rest).toEqual([])
+    expect(finding).toMatchObject({ spot: { file: FILE, line }, title: 'Site build' })
+    expect(finding?.message).toContain(message)
+  })
+
+  test('reports a build step that sets no `id` once two steps follow it', async ({ scratch }) => {
+    expect(await audit(scratch, LINKS.replace('        id: press\n', ''))).toMatchObject([
+      { message: expect.stringContaining('Step `Build the site` builds the site and sets no `id`') },
+      { message: expect.stringContaining('Step `Links` joins no') }
+    ])
   })
 })
 

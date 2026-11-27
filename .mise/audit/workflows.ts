@@ -16,7 +16,9 @@ const DRAFT       = '!github.event.pull_request.draft'
 export const GATE = '✨ Reading'
 const GROUP       = /\((?:[^()]|\(\))+\)/g
 const IMAGE       = /^[a-z]+-\d[\w.-]*$/
+const PRESS       = 'site:press'
 const READY       = 'ready_for_review'
+const SKIP        = '--skip-deps'
 const STRING      = /'(?:[^']|'')*'/g
 const WORKFLOWS   = '.github/workflows/*.{yaml,yml}'
 
@@ -36,12 +38,15 @@ class Job {
   }
 
   get findings(): Finding[] {
-    return this.timeout || this.uses ? [] : [new Finding(
-      `Job \`${this.id}\` sets no \`timeout-minutes\`, `
-    + 'so a hung step holds its runner for the 360 minutes GitHub allows',
-      this.spot,
-      'Job timeout'
-    )]
+    return [
+      ...this.timeout || this.uses ? [] : [new Finding(
+        `Job \`${this.id}\` sets no \`timeout-minutes\`, `
+      + 'so a hung step holds its runner for the 360 minutes GitHub allows',
+        this.spot,
+        'Job timeout'
+      )],
+      ...this.#press
+    ]
   }
 
   get image(): Entry | undefined {
@@ -81,6 +86,43 @@ class Job {
 
   get uses(): Entry | undefined {
     return this.#at('uses')
+  }
+
+  get #press(): Finding[] {
+    const { steps } = this
+    const index     = steps.findIndex((step) => step.run.includes(PRESS))
+    const build     = steps[index]
+    const after     = steps.slice(index + 1)
+    const reads     = `steps.${build?.id}.outcome=='success'`
+
+    if (!build) return []
+
+    return [
+      ...build.id || after.length < 2 ? [] : [new Finding(
+        `Step \`${build.label}\` builds the site and sets no \`id\`, so no later step can read its outcome`,
+        build.spot,
+        'Site build'
+      )],
+      ...after.flatMap((step, offset) => {
+        const terms = conjuncts(step.condition?.value, true)
+
+        return [
+          ...step.run.includes(SKIP) ? [] : [new Finding(
+            `Step \`${step.label}\` runs after the site build without \`${SKIP}\`, so it builds the site again`,
+            step.spot,
+            'Site build'
+          )],
+          ...offset === 0 || ['!cancelled()', reads].every((term) => terms.includes(term))
+            ? []
+            : [new Finding(
+              `Step \`${step.label}\` joins no \`!cancelled()\` and \`${reads}\` to its \`if\` through \`&&\`, `
+            + 'so it skips whenever an earlier check step fails or the build does not succeed',
+              step.condition ?? step.spot,
+              'Site build'
+            )]
+        ]
+      })
+    ]
   }
 
   joins(term: string): boolean {
@@ -335,10 +377,14 @@ export class Workflows {
 /**
  * Splits a condition into the terms `&&` joins outside parentheses, emptying
  * each quoted string and collapsing each parenthesized group to `()` first, and
- * returning a condition holding `||` outside them as one term.
+ * returning a condition holding `||` outside them as one term. A quoted
+ * condition keeps its strings.
  */
-function conjuncts(value: unknown): string[] {
-  let text = expression(value).replaceAll(STRING, "''")
+function conjuncts(value: unknown, quoted = false): string[] {
+  let text = expression(value)
+
+  if (!quoted) text = text.replaceAll(STRING, "''")
+
   let last = ''
 
   while (text !== last) {
