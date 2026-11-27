@@ -1,5 +1,20 @@
 min_version = "2026.11.10"
 
+[doctor.checks.bash]
+description = "`bash` is on the path, since every task script and the suites' configurations run through it and `.mise/config.toml` pins no release of it"
+hint        = "Install Bash through the system's package manager, such as `sudo apt-get install bash` on Debian or Ubuntu."
+run         = "command -v bash"
+
+[doctor.checks.git]
+description = "`git` is on the path at release 2.35 or later, the first whose `git apply` takes the `--allow-empty` that `lock:lift` passes it, since `.mise/config.toml` pins no release of it"
+hint        = "Install Git 2.35 or later, through `xcode-select --install` on macOS or the system's package manager on Linux, such as `sudo apt-get install git`."
+run         = 'printf "2.35\n%s\n" "$(git --version | cut -d " " -f 3)" | sort -C -V'
+
+[doctor.checks.tar]
+description = "`tar` is on the path, since the suite packs the verification's stand-in tarball through it and `.mise/config.toml` pins no release of it"
+hint        = "Install tar through the system's package manager, such as `sudo apt-get install tar` on Debian or Ubuntu."
+run         = "command -v tar"
+
 [doctor.checks.tools]
 description = "Every tool `.mise/config.toml` pins is installed, since a task otherwise runs whatever release of that tool the machine's `PATH` holds"
 hint        = "Run `mise install` from the repository root."
@@ -11,8 +26,9 @@ NPM_CONFIG_IGNORE_SCRIPTS = "true"
 _.path                    = ".mise/bin"
 
 [settings]
-auto_install = false
-locked       = true
+auto_install                        = false
+locked                              = true
+task.source_freshness_hash_contents = true
 
 [tool_config]
 locked = true

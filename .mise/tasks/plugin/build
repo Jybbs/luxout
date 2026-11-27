@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "build"
 #MISE depends     = ["plugin:bake"]
-#MISE description = "Empty `dist/`, compile `src/` into it, bundle the settings page's script under `src/ui/public/` with Zag's listbox into `dist/ui/public/index.js`, and copy the page's `index.html` and `index.css` beside it, skipping the run where every output is newer than every source"
+#MISE description = "Empty `dist/`, compile `src/` into it, bundle the settings page's script under `src/ui/public/` with Zag's listbox into `dist/ui/public/index.js`, and copy the page's `index.html` and `index.css` beside it, skipping the run where no source's contents and no output changed since its last run"
 #MISE outputs     = [
 #MISE   "dist/index.js",
 #MISE   "dist/ui/public/index.css",

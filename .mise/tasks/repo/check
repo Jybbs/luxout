@@ -1,13 +1,14 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "check"
-#MISE depends     = [
-#MISE   "plugin:lint",
-#MISE   "plugin:typecheck",
-#MISE   "repo:audit",
-#MISE   "site:lint",
-#MISE   "site:typecheck"
-#MISE ]
-#MISE description = "Run the plugin's and the site's type and lint checks and `repo:audit`, then `plugin:affected` and `site:affected`, the check run before each commit"
+#MISE description = "Run `mise doctor project`, then `lock:check`, `repo:audit`, and the plugin's and the site's type and lint checks, then `plugin:affected` and `site:affected`, the check run before each commit"
 
+mise doctor project
+mise run \
+  lock:check ::: \
+  plugin:lint ::: \
+  plugin:typecheck ::: \
+  repo:audit ::: \
+  site:lint ::: \
+  site:typecheck
 mise run plugin:affected
 mise run site:affected

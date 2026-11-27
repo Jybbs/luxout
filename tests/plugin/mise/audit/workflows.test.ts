@@ -14,7 +14,7 @@ const GUARD     = `\${{ ${DRAFT} }}`
 const OTHER     = '2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca'
 const PROVISION = 'inputs:\n  tools:\n    required: true\nruns:\n  using: composite\n'
 const PULL      = / {2}pull_request:\n.*\n/
-const TASKS     = '["repo:verify"]\n\n["plugin:cover"]\n\n["plugin:lint"]\n\n["plugin:test:22"]\n'
+const TASKS     = '["repo:verify:checks"]\n\n["plugin:cover"]\n\n["plugin:lint"]\n\n["plugin:test:22"]\n'
 const TRIGGERS  = /on:\n[\s\S]*?workflow_dispatch:/
 const CI        = [
   'name: 🔆 CI',
@@ -58,7 +58,7 @@ const audit = async (scratch: string, text: string, actions = new Actions({})) =
 
 async function tasks(scratch: string): Promise<TaskList> {
   const listed = listing(scratch, [
-    { name: 'repo:verify', run: [{ tasks: ['plugin:cover'] }] },
+    { name: 'repo:verify:checks', run: [{ tasks: ['plugin:cover'] }] },
     { name: 'plugin:cover', run: ['vitest'] },
     { name: 'plugin:lint', run: ['oxlint'] },
     { name: 'plugin:test:22', run: ['vitest'], tools: { node: '22.23.3' } }
@@ -326,14 +326,14 @@ describe('the workflows together', () => {
     },
     {
       line    : 17,
-      message : 'Row `plugin:lint` runs a task `repo:verify` leaves out, '
+      message : 'Row `plugin:lint` runs a task `repo:verify:checks` leaves out, '
               + 'so `mise run ci` passes where the row fails',
-      name    : 'a row whose task repo:verify leaves out',
+      name    : 'a row whose task repo:verify:checks leaves out',
       text    : CI.replace('task: plugin:cover', 'task: plugin:lint')
     },
     {
       line    : 17,
-      message : 'Row `plugin:pack` runs a task `repo:verify` leaves out, '
+      message : 'Row `plugin:pack` runs a task `repo:verify:checks` leaves out, '
               + 'so `mise run ci` passes where the row fails',
       name    : 'a row naming a task mise does not list',
       text    : CI.replace('task: plugin:cover', 'task: plugin:pack')

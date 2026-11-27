@@ -51,7 +51,8 @@ const scripts  = { NPM_CONFIG_IGNORE_SCRIPTS: process.env.NPM_CONFIG_IGNORE_SCRI
  * Builds a checkout under `scratch` whose packed plugin runs `source`, beside a
  * seed for each release and a `node_modules` holding every package its manifest
  * declares, the devDependencies `absent` and the 2.4.0 stand-in among them. The
- * manifest's failing `postinstall` fails any install that runs without the
+ * manifest's failing `postinstall` fails any install that runs its lifecycle
+ * scripts, which the checkout's own install skips through the
  * `NPM_CONFIG_IGNORE_SCRIPTS` of `.mise/config.toml`.
  */
 async function checkout(scratch: string, source: string): Promise<string> {
@@ -126,10 +127,12 @@ async function pack(dir: string, file: string): Promise<void> {
 /**
  * Runs `plugin:vet` from `cwd` on the short windows a stand-in acts within,
  * waiting up to `start` milliseconds for each to listen, under a TMPDIR
- * reached through a symlink and named to open on the checkout's path, and
- * reads back what the task left in the directory the symlink names and in the
- * storage of the floor's run with the platform block alone, beside the verdict
- * it printed for each release's run with that block.
+ * reached through a symlink and named to open on the checkout's path and with
+ * `NPM_CONFIG_IGNORE_SCRIPTS` off, so only the task's own flags skip the packed
+ * plugin's failing `postinstall`, and reads back what the task left in the
+ * directory the symlink names and in the storage of the floor's run with the
+ * platform block alone, beside the verdict it printed for each release's run
+ * with that block.
  */
 async function vet(cwd: string, scratch: string, start: number) {
   const temp = join(scratch, 'checkout-temp')
@@ -140,10 +143,10 @@ async function vet(cwd: string, scratch: string, start: number) {
   const run = await sync(scratch, 'plugin:vet', {
     cwd : cwd,
     env : {
-      ...scripts,
-      BUN_INSTALL_CACHE_DIR : join(scratch, 'cache'),
-      PWD                   : cwd,
-      TUNING                : JSON.stringify({ ...TUNING, start })
+      BUN_INSTALL_CACHE_DIR     : join(scratch, 'cache'),
+      NPM_CONFIG_IGNORE_SCRIPTS : 'false',
+      PWD                       : cwd,
+      TUNING                    : JSON.stringify({ ...TUNING, start })
     }
   })
 
