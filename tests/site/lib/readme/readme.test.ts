@@ -107,9 +107,13 @@ describe('the README', () => {
     expect(readme).not.toContain('img.shields.io/node/')
   })
 
-  it('gives the search and the install command for the package the manifest names', () => {
-    expect(readme).toContain(`search the plugins for \`${manifest.name}\``)
-    expect(readme).toContain(`\nsudo hb-service add ${manifest.name}\n`)
+  it.for([
+    ['Homebridge UI search', `search the plugins for \`${manifest.name}\``],
+    ['hb-service command',   `\nsudo hb-service add ${manifest.name}\n`],
+    ['npm badge’s link',     `<a href="https://www.npmjs.com/package/${manifest.name}">`],
+    ['npm badge’s version',  `src="https://img.shields.io/npm/v/${manifest.name}?`]
+  ] as const)('writes in the %s the name package.json declares', ([, text]) => {
+    expect(readme).toContain(text)
   })
 
   it('describes the preview in its alternative text as the preview draws it', () => {

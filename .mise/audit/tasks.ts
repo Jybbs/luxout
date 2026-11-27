@@ -33,7 +33,7 @@ const LIBRARY  = '.mise/lib/*.sh'
 const LISTING  = { file: CONFIG, line: 1 }
 const LOCKED   = new Set(['frozen-lockfile', 'lockfile-only'])
 const OPTIONS  = { cwd: { type: 'string' } } as const
-const VERIFY   = 'repo:verify'
+const VERIFY   = 'repo:verify:checks'
 
 class Task {
   readonly scripts  : Script[]

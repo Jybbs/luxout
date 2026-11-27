@@ -25,7 +25,7 @@ for seed in tests/plugin/vet/*; do
   mkdir -p "$plugin"
   tar --directory "$plugin" --extract --file "$tarball" --strip-components 1
   cp bun.lock "$plugin"
-  bun install --cwd "$plugin" --frozen-lockfile --production
+  bun install --cwd "$plugin" --frozen-lockfile --ignore-scripts --production
   releases+=("$release")
 done
 

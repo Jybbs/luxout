@@ -107,6 +107,25 @@ export async function info(task: string): Promise<unknown> {
 }
 
 /**
+ * Runs `mise` with `args` in `scratch`, a checkout mise trusts, under the
+ * suite's environment beside the variables `env` adds, with mise's config and
+ * state directories under `scratch`, so no global config or task history
+ * reaches the run.
+ */
+export function mised(scratch: string, args: string[], env: NodeJS.ProcessEnv = {}): Promise<Spawned> {
+  return spawned('mise', args, {
+    cwd : scratch,
+    env : {
+      ...process.env,
+      ...env,
+      MISE_CONFIG_DIR           : join(scratch, 'tmp', 'mise', 'config'),
+      MISE_STATE_DIR            : join(scratch, 'tmp', 'mise', 'state'),
+      MISE_TRUSTED_CONFIG_PATHS : scratch
+    }
+  })
+}
+
+/**
  * Runs `file` with `args` through the promisified `execFile`, its standard
  * input closed, and resolves to its exit status and output whatever status it
  * exits with.

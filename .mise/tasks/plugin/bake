@@ -1,5 +1,5 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "bake"
-#MISE description = "Install the packages `bun.lock` records, failing where it no longer matches `package.json`"
+#MISE description = "Install the packages `bun.lock` records, failing where it no longer matches `package.json`, and run none of the lifecycle scripts `package.json` declares, so only `plugin:build` writes `dist/`"
 
-bun install --frozen-lockfile
+bun install --frozen-lockfile --ignore-scripts
