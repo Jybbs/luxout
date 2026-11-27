@@ -55,6 +55,12 @@ it('writes each row’s words as plain text, which the card renders without Mark
   expect(listed.filter(({ does, without }) => `${does}${without}`.includes('`'))).toEqual([])
 })
 
+it('names the log prefix of each bridge on the name row, as the debug line does', () => {
+  expect(byKey.get('name')!.without).toBe(
+    'Homebridge logs under the platform’s name on the main bridge and the package name on a child bridge'
+  )
+})
+
 it('marks the platform key needed, which Homebridge reads to hand the block to the plugin', () => {
   expect(byKey.get('platform')!.needed).toBe(true)
 })

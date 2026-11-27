@@ -17,7 +17,7 @@ Each key comes from `config.schema.json`, so this reference follows the schema a
 |---|---|---|---|---|---|
 | `latitude` | Latitude | number | None | Degrees north of the equator, negative to the south | Needed, and without it, the plugin starts nothing and logs the setting it lacks |
 | `longitude` | Longitude | number | None | Degrees east of the prime meridian, negative to the west | Needed, and without it, the plugin starts nothing and logs the setting it lacks |
-| `name` | Name | string | None | The name Homebridge sets in brackets before each line the plugin logs | Optional, and without it, Homebridge logs under the platform’s name |
+| `name` | Name | string | None | The name Homebridge sets in brackets before each line the plugin logs | Optional, and without it, Homebridge logs under the platform’s name on the main bridge and the package name on a child bridge |
 | `place` | Place | object | None | The name, region, and country of the place whose coordinates the user confirmed | Optional, and without it, the coordinates stand alone, as they do once typed in by hand |
 | `platform` | Not in the form | string | "Luxout" | The platform the block belongs to, which Homebridge reads to hand the block to the plugin | Needed, and without it, Homebridge skips the block |
 | `thresholds` | Threshold Sensors | array | None | Sensors that each switch on as the light outdoors reaches one level and off only once it passes another, holding their state across the gap between the two | Optional, and without it, the plugin adds no threshold sensor |

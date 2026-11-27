@@ -56,7 +56,7 @@ const PLATFORM: SchemaNode = {
 }
 const { offLux, onLux }                          = schema.schema.properties.thresholds.items.properties
 const OPTIONAL: Readonly<Record<string, string>> = {
-  'name'                : 'Homebridge logs under the platform’s name',
+  'name'                : 'Homebridge logs under the platform’s name on the main bridge and the package name on a child bridge',
   'place'               : 'the coordinates stand alone, as they do once typed in by hand',
   'thresholds'          : 'the plugin adds no threshold sensor',
   'thresholds[].offLux' : `the sensor switches off past ${offLux.placeholder} lux`,
