@@ -1,5 +1,5 @@
 import type { Entry, Key, YamlFile } from './files.ts'
-import { Finding }                   from './finding.ts'
+import { Finding, type Spot }        from './finding.ts'
 
 const PIN     = /^(?<action>[^/@]+\/[^/@]+)[^@]*@(?<ref>.+)$/
 const SUMMARY = 'GITHUB_STEP_SUMMARY'
@@ -27,8 +27,32 @@ export class Step {
     )] : []
   }
 
+  get condition(): Entry | undefined {
+    return this.#file.at(...this.#path, 'if')
+  }
+
+  get id(): string | undefined {
+    const id = this.#file.at(...this.#path, 'id')?.value
+
+    return typeof id === 'string' ? id : undefined
+  }
+
   get inputs(): Entry[] {
     return this.#file.keys(...this.#path, 'with')
+  }
+
+  get label(): string {
+    const name = this.#file.at(...this.#path, 'name')?.value ?? this.run
+
+    return String(name).split('\n')[0] ?? ''
+  }
+
+  get run(): string {
+    return String(this.#file.at(...this.#path, 'run')?.value ?? '')
+  }
+
+  get spot(): Spot {
+    return this.#file.at(...this.#path) ?? this.#file.start
   }
 
   get uses(): Entry | undefined {
