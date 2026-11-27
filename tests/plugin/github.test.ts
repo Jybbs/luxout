@@ -5,7 +5,7 @@ import { expect, it } from 'vitest'
 import { parse }      from 'yaml'
 
 import manifest from '../../package.json' with { type: 'json' }
-import { root } from './common/paths.js'
+import { root }  from './common/paths.js'
 
 const read = async (file: string) => parse(await readFile(join(root, file), 'utf8'))
 
