@@ -215,7 +215,7 @@ function find<T extends Element>(root: ParentNode, selector: string, type: abstr
   throw new TypeError(`The page holds no ${selector}`)
 }
 
-function message(error: unknown): string {
+export function message(error: unknown): string {
   return error instanceof Object && 'message' in error ? String(error.message) : String(error)
 }
 
