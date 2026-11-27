@@ -7,7 +7,7 @@ import { expect, it, vi }         from 'vitest'
 
 import { LocationPage } from '../../../../src/ui/public/page.js'
 
-it('opens the page once the Homebridge UI is ready, showing a page that fails to open through the error toast', async () => {
+it('opens the page once the Homebridge UI is ready, toasting a page that fails to open', async () => {
   const failure    = new TypeError('The page holds no #search')
   const homebridge = new MockHomebridgePluginUi()
   const open       = vi.spyOn(LocationPage, 'open').mockRejectedValue(failure)
