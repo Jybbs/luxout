@@ -85,6 +85,19 @@ describe.concurrent('plugin:pack', () => {
     expect(status).toBe(0)
   })
 
+  test('packs only what the build wrote, running no lifecycle script the manifest declares', async ({
+    expect,
+    scratch
+  }) => {
+    const scripts  = { prepack: 'touch dist/prepack.js', prepare: 'touch dist/prepare.js' }
+    const manifest = JSON.stringify({ ...MANIFEST, scripts })
+    const env      = { NPM_CONFIG_IGNORE_SCRIPTS: 'false' }
+
+    const { status, stdout } = await pack({ ...PACKAGE, 'package.json': manifest }, scratch, env)
+
+    expect({ status, stdout }).toEqual({ status: 0, stdout: expect.not.stringMatching(/prepa(?:ck|re)\.js/) })
+  })
+
   test('fails a package whose main imports a file the tarball leaves out', async ({ expect, scratch }) => {
     const files = {
       ...PACKAGE,

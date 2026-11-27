@@ -313,7 +313,7 @@ export class Workflows {
 
       return [
         ...included ? [] : [new Finding(
-          `Row \`${name}\` runs a task \`repo:verify\` leaves out, `
+          `Row \`${name}\` runs a task \`repo:verify:checks\` leaves out, `
         + 'so `mise run ci` passes where the row fails',
           task,
           'Check row'

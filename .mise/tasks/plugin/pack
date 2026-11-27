@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bash -euo pipefail
 #MISE alias       = "pack"
 #MISE depends     = ["plugin:build"]
-#MISE description = "Pack the package with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, or the settings page, its stylesheet, its script, or its server script under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait up to `PACK_READY_SECONDS` seconds, 10 by default, for the ready message of the server script it forks"
+#MISE description = "Pack the package, running none of its lifecycle scripts (a no-op script shell stops the `prepare` script npm 10 runs despite `--ignore-scripts`), with a copy of `.github/README.md` at its root, print the files the tarball holds, and fail where they leave out `README.md`, or the settings page, its stylesheet, its script, or its server script under the `customUiPath` `config.schema.json` names, then lint the tarball with publint, install it into an empty directory, import the package there, and wait up to `PACK_READY_SECONDS` seconds, 10 by default, for the ready message of the server script it forks"
 
 packed() {
   grep --fixed-strings --line-regexp --quiet "$1" <<<"$files" && return
@@ -11,7 +11,7 @@ packed() {
 
 cp .github/README.md README.md
 
-pack=$(npm pack --json)
+pack=$(npm pack --ignore-scripts --json --script-shell=true)
 files=$(jq --raw-output '.[0].files[].path' <<<"$pack")
 echo "$files"
 
