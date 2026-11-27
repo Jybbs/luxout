@@ -100,10 +100,6 @@ jobs:
             task  : site:cover
             tools : bun node
 
-          - name  : 🎒 Bundle
-            task  : site:inspect
-            tools : bun node
-
           - name  : 🧶 Lint
             task  : site:lint
             tools : bun node
@@ -113,7 +109,7 @@ jobs:
             tools : bun node
 
   press:
-    name            : ⛓️ Links
+    name            : 🎒 Bundle and ⛓️ Links
     if              : ${{ !github.event.pull_request.draft }}
     runs-on         : ubuntu-26.04
     timeout-minutes : 15
@@ -129,8 +125,16 @@ jobs:
         with:
           tools: bun lychee node
 
-      - name : Build the site and check its links
-        run  : mise run site:linkcheck
+      - name : Build the site
+        id   : press
+        run  : mise run site:press
+
+      - name : 🎒 Bundle
+        run  : mise run --skip-deps site:inspect
+
+      - name : ⛓️ Links
+        if   : ${{ !cancelled() && steps.press.outcome == 'success' }}
+        run  : mise run --skip-deps site:linkcheck
 
   brief:
     name            : ✨ Reading
