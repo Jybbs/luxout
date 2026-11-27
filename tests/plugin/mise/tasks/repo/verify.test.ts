@@ -33,7 +33,7 @@ async function ci(scratch: string, failing: string[], doctor = 'true') {
   })
   await cp(join(root, FILE), join(scratch, FILE))
 
-  const run = await mised(scratch, ['run', 'ci'], { MISE_JOBS: '1' })
+  const run = await mised(scratch, ['run', 'ci'], { MISE_COLOR: '0', MISE_JOBS: '1', NO_COLOR: '1' })
   const ran = (await readFile(join(scratch, 'ran.log'), 'utf8')).split('\n').filter(Boolean).toSorted()
 
   return { ...run, ran }
